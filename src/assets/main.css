@@ -1,0 +1,597 @@
+/* Syntax highlighting theme for the code note type */
+@import 'highlight.js/styles/atom-one-dark.css';
+
+/* Tailwind base reset, component classes, and utility classes */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base overrides ────────────────────────────────────────────────────────── */
+
+@layer base {
+:root {
+  --yai-timeout-1: 0.2s;
+  --yai-timeout-2: 0.4s;
+  --yai-button-default-padding: 0;
+  --st-theme-text: rgb(255 255 255 / 0.92);
+  --st-theme-text-muted: rgb(255 255 255 / 0.7);
+  --st-theme-module-bg: rgb(0 0 0 / 0.58);
+  --st-theme-header-bg: rgb(0 0 0 / 0.68);
+  --st-theme-dropdown-bg: rgb(0 0 0 / 0.82);
+  --st-theme-status-bg: rgb(0 0 0 / 0.72);
+  --st-theme-border: rgb(255 255 255 / 0.12);
+  --st-theme-accent: #00d2ff;
+  --st-feed-sidebar-bg: var(--st-theme-header-bg);
+  --st-feed-toolbar-bg: rgb(255 255 255 / 0.92);
+  --st-feed-toolbar-text: rgb(20 20 20 / 0.92);
+  --st-feed-toolbar-muted: rgb(80 80 80 / 0.86);
+  --st-feed-toolbar-badge-bg: rgb(243 244 246 / 1);
+  --st-feed-toolbar-badge-text: rgb(82 82 91 / 0.92);
+  --st-feed-item-bg: #333333;
+  --st-feed-item-bg-hover: #444444;
+  --st-feed-item-bg-active: #222222;
+  --st-feed-item-text: rgb(255 255 255 / 0.92);
+  --st-feed-item-text-muted: rgb(255 255 255 / 0.45);
+  --st-feed-item-text-dim: rgb(255 255 255 / 0.4);
+  --st-feed-item-body-bg: rgb(0 0 0 / 0.75);
+  --st-feed-item-body-copy: rgb(255 255 255 / 0.8);
+  --st-feed-item-button-bg: rgb(0 0 0 / 0.85);
+  --st-feed-item-button-bg-hover: rgb(0 0 0 / 1);
+  --st-feed-item-button-text: rgb(255 255 255 / 0.82);
+  --st-feed-item-button-border: rgb(255 255 255 / 0.1);
+  --st-feed-item-open-bg: #0056b3;
+  --st-feed-item-open-bg-hover: #004494;
+  --st-feed-item-divider: rgb(255 255 255 / 0.1);
+}
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --yai-timeout-1: 0s;
+      --yai-timeout-2: 0s;
+    }
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body, #app {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-size: 14px;
+    line-height: 1.35;
+    background-color: #050505;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-attachment: fixed;
+  }
+
+  /* Scrollbar suppression for nav rails */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Consistent focus ring across the app — kept subtle to match the dense look */
+  :focus-visible {
+    @apply outline-none ring-1 ring-white/40 ring-offset-0;
+  }
+}
+
+/* ─── Legibility scale ──────────────────────────────────────────────────────── *
+ * The UI was designed at ~9–12 px which is unreadable at 100 % browser zoom.
+ * Bump the densest fixed pixel sizes up again so 100 % browser zoom is viable.
+ * These selectors target Tailwind's arbitrary-value classes and sit *after*
+ * the @tailwind utilities directive so they win the cascade by source order. */
+.text-\[9px\]  { font-size: 12px; }
+.text-\[10px\] { font-size: 13px; }
+.text-\[11px\] { font-size: 14px; }
+.text-\[12px\] { font-size: 15px; }
+.text-xs       { font-size: 14px; line-height: 1.35; }
+.text-sm       { font-size: 15px; line-height: 1.4; }
+
+/* ─── Motion tokens ─────────────────────────────────────────────────────────── *
+ * Most timing currently comes from Tailwind utility classes embedded in Vue
+ * templates. Centralize their duration here so reduced-motion can zero them
+ * without editing every component individually. */
+.transition,
+.transition-all,
+.transition-colors,
+.transition-opacity,
+.transition-transform {
+  transition-duration: var(--yai-timeout-1) !important;
+}
+
+.duration-150,
+.duration-200 {
+  transition-duration: var(--yai-timeout-1) !important;
+}
+
+.duration-300,
+.duration-500 {
+  transition-duration: var(--yai-timeout-2) !important;
+}
+
+@media (max-width: 740px) {
+  :root { --yai-button-default-padding: 6px; }
+
+  button:not([class*="p-"]):not([class*="px-"]):not([class*="py-"]) {
+    padding: var(--yai-button-default-padding);
+  }
+}
+
+/* ─── Default opacity for bare `bg-black` ───────────────────────────────────── *
+ * Surfaces that use bare `.bg-black` (app header/footer/modules) read through
+ * the page wallpaper at 75 % opacity. Explicit `bg-black/<n>` modifiers still
+ * win because they emit their own `--tw-bg-opacity` value. */
+.bg-black { --tw-bg-opacity: 0.75; }
+
+/* ─── Tuned black surface utilities ─────────────────────────────────────────── *
+ * Tailwind's stock opacity steps were a little too harsh for these module
+ * shells over the wallpaper, so keep exact handcrafted values here. */
+.bg-black\/60 { background-color: #0000006d; }
+.bg-black\/65 { background-color: #00000075; }
+
+/* ─── Background themes ───────────────────────────────────────────────────── */
+.st-bg-theme-charcoal {
+  --st-theme-text: rgb(255 255 255 / 0.92);
+  --st-theme-text-muted: rgb(255 255 255 / 0.7);
+  --st-theme-module-bg: rgb(7 8 11 / 0.44);
+  --st-theme-header-bg: rgb(7 8 11 / 0.58);
+  --st-theme-dropdown-bg: rgb(7 8 11 / 0.82);
+  --st-theme-status-bg: rgb(7 8 11 / 0.74);
+  --st-theme-border: rgb(255 255 255 / 0.12);
+  --st-theme-accent: #00d2ff;
+  --st-feed-sidebar-bg: rgb(7 8 11 / 0.62);
+  --st-feed-toolbar-bg: rgb(242 247 252 / 0.94);
+  --st-feed-toolbar-text: rgb(18 24 31 / 0.94);
+  --st-feed-toolbar-muted: rgb(74 88 104 / 0.9);
+  --st-feed-toolbar-badge-bg: rgb(229 238 247 / 1);
+  --st-feed-toolbar-badge-text: rgb(66 79 94 / 0.92);
+  background-color: #0a0b0d;
+  background-image:
+    radial-gradient(circle at bottom right, rgba(92, 102, 120, 0.28), transparent 38%),
+    linear-gradient(145deg, #171a20 0%, #101217 45%, #0b0d11 100%);
+}
+
+.st-bg-theme-ocean {
+  --st-theme-text: rgb(244 250 255 / 0.94);
+  --st-theme-text-muted: rgb(244 250 255 / 0.72);
+  --st-theme-module-bg: rgb(5 18 29 / 0.42);
+  --st-theme-header-bg: rgb(5 18 29 / 0.56);
+  --st-theme-dropdown-bg: rgb(5 18 29 / 0.82);
+  --st-theme-status-bg: rgb(5 18 29 / 0.72);
+  --st-theme-border: rgb(157 215 255 / 0.16);
+  --st-theme-accent: #5ecbff;
+  --st-feed-sidebar-bg: rgb(5 18 29 / 0.62);
+  --st-feed-toolbar-bg: rgb(234 245 255 / 0.94);
+  --st-feed-toolbar-text: rgb(14 34 52 / 0.95);
+  --st-feed-toolbar-muted: rgb(67 98 121 / 0.92);
+  --st-feed-toolbar-badge-bg: rgb(216 234 249 / 1);
+  --st-feed-toolbar-badge-text: rgb(52 88 116 / 0.94);
+  background-color: #081018;
+  background-image:
+    radial-gradient(circle at top right, rgba(28, 124, 181, 0.24), transparent 34%),
+    linear-gradient(145deg, #0f2331 0%, #0a1620 48%, #091117 100%);
+}
+
+.st-bg-theme-moss {
+  --st-theme-text: rgb(246 250 241 / 0.93);
+  --st-theme-text-muted: rgb(246 250 241 / 0.72);
+  --st-theme-module-bg: rgb(13 19 12 / 0.44);
+  --st-theme-header-bg: rgb(13 19 12 / 0.58);
+  --st-theme-dropdown-bg: rgb(13 19 12 / 0.82);
+  --st-theme-status-bg: rgb(13 19 12 / 0.72);
+  --st-theme-border: rgb(183 214 162 / 0.16);
+  --st-theme-accent: #8fcf7a;
+  --st-feed-sidebar-bg: rgb(13 19 12 / 0.62);
+  --st-feed-toolbar-bg: rgb(238 244 233 / 0.94);
+  --st-feed-toolbar-text: rgb(28 45 24 / 0.94);
+  --st-feed-toolbar-muted: rgb(72 96 65 / 0.9);
+  --st-feed-toolbar-badge-bg: rgb(224 234 216 / 1);
+  --st-feed-toolbar-badge-text: rgb(70 95 61 / 0.94);
+  background-color: #0c120d;
+  background-image:
+    radial-gradient(circle at top left, rgba(100, 133, 76, 0.22), transparent 36%),
+    linear-gradient(145deg, #182018 0%, #121712 46%, #0d110d 100%);
+}
+
+.st-bg-theme-ember {
+  --st-theme-text: rgb(255 247 241 / 0.93);
+  --st-theme-text-muted: rgb(255 247 241 / 0.72);
+  --st-theme-module-bg: rgb(24 12 10 / 0.44);
+  --st-theme-header-bg: rgb(24 12 10 / 0.58);
+  --st-theme-dropdown-bg: rgb(24 12 10 / 0.82);
+  --st-theme-status-bg: rgb(24 12 10 / 0.72);
+  --st-theme-border: rgb(255 185 150 / 0.16);
+  --st-theme-accent: #ff9f63;
+  --st-feed-sidebar-bg: rgb(24 12 10 / 0.62);
+  --st-feed-toolbar-bg: rgb(250 240 235 / 0.94);
+  --st-feed-toolbar-text: rgb(53 25 18 / 0.95);
+  --st-feed-toolbar-muted: rgb(114 76 63 / 0.9);
+  --st-feed-toolbar-badge-bg: rgb(242 225 217 / 1);
+  --st-feed-toolbar-badge-text: rgb(110 70 58 / 0.94);
+  background-color: #140d0c;
+  background-image:
+    radial-gradient(circle at top right, rgba(173, 84, 48, 0.18), transparent 36%),
+    linear-gradient(145deg, #241413 0%, #180f0e 45%, #110b0a 100%);
+}
+
+.st-bg-theme-sunshine {
+  --st-theme-text: rgb(34 31 28 / 0.94);
+  --st-theme-text-muted: rgb(34 31 28 / 0.72);
+  --st-theme-module-bg: rgb(245 236 222 / 0.56);
+  --st-theme-header-bg: rgb(245 236 222 / 0.74);
+  --st-theme-dropdown-bg: rgb(248 241 230 / 0.94);
+  --st-theme-status-bg: rgb(238 228 213 / 0.88);
+  --st-theme-border: rgb(63 52 41 / 0.16);
+  --st-theme-accent: #b56b17;
+  --st-feed-sidebar-bg: rgb(245 236 222 / 0.8);
+  --st-feed-toolbar-bg: rgb(247 239 226 / 0.96);
+  --st-feed-toolbar-text: rgb(48 35 21 / 0.95);
+  --st-feed-toolbar-muted: rgb(106 81 49 / 0.88);
+  --st-feed-toolbar-badge-bg: rgb(236 225 205 / 1);
+  --st-feed-toolbar-badge-text: rgb(105 78 43 / 0.92);
+  --st-feed-item-bg: rgb(238 228 214 / 0.92);
+  --st-feed-item-bg-hover: rgb(233 221 204 / 0.96);
+  --st-feed-item-bg-active: rgb(228 214 196 / 0.98);
+  --st-feed-item-text: rgb(40 30 20 / 0.95);
+  --st-feed-item-text-muted: rgb(99 78 53 / 0.78);
+  --st-feed-item-text-dim: rgb(112 88 60 / 0.72);
+  --st-feed-item-body-bg: rgb(243 234 221 / 0.94);
+  --st-feed-item-body-copy: rgb(54 42 29 / 0.92);
+  --st-feed-item-button-bg: rgb(231 220 203 / 0.95);
+  --st-feed-item-button-bg-hover: rgb(223 209 188 / 1);
+  --st-feed-item-button-text: rgb(54 41 27 / 0.92);
+  --st-feed-item-button-border: rgb(104 82 56 / 0.16);
+  --st-feed-item-open-bg: #c57b23;
+  --st-feed-item-open-bg-hover: #af6917;
+  --st-feed-item-divider: rgb(78 58 34 / 0.14);
+  background-color: #dbd5cf;
+  background-image:
+    radial-gradient(circle at top left, rgba(255, 239, 190, 0.38), transparent 34%),
+    linear-gradient(145deg, #efe6da 0%, #ddd4c6 48%, #d2c7b7 100%);
+}
+
+.st-bg-theme-paper {
+  --st-theme-text: rgb(38 38 40 / 0.94);
+  --st-theme-text-muted: rgb(38 38 40 / 0.68);
+  --st-theme-module-bg: rgb(244 244 242 / 0.58);
+  --st-theme-header-bg: rgb(244 244 242 / 0.76);
+  --st-theme-dropdown-bg: rgb(248 248 246 / 0.95);
+  --st-theme-status-bg: rgb(236 236 233 / 0.9);
+  --st-theme-border: rgb(48 48 52 / 0.14);
+  --st-theme-accent: #0056b3;
+  --st-feed-sidebar-bg: rgb(244 244 242 / 0.82);
+  --st-feed-toolbar-bg: rgb(247 247 245 / 0.97);
+  --st-feed-toolbar-text: rgb(38 38 40 / 0.95);
+  --st-feed-toolbar-muted: rgb(93 93 98 / 0.86);
+  --st-feed-toolbar-badge-bg: rgb(234 234 230 / 1);
+  --st-feed-toolbar-badge-text: rgb(90 90 96 / 0.92);
+  --st-feed-item-bg: rgb(238 238 235 / 0.92);
+  --st-feed-item-bg-hover: rgb(230 230 226 / 0.96);
+  --st-feed-item-bg-active: rgb(223 223 219 / 0.98);
+  --st-feed-item-text: rgb(38 38 40 / 0.95);
+  --st-feed-item-text-muted: rgb(96 96 100 / 0.78);
+  --st-feed-item-text-dim: rgb(108 108 113 / 0.72);
+  --st-feed-item-body-bg: rgb(243 243 240 / 0.95);
+  --st-feed-item-body-copy: rgb(52 52 56 / 0.92);
+  --st-feed-item-button-bg: rgb(228 228 223 / 0.95);
+  --st-feed-item-button-bg-hover: rgb(220 220 214 / 1);
+  --st-feed-item-button-text: rgb(48 48 52 / 0.92);
+  --st-feed-item-button-border: rgb(78 78 84 / 0.14);
+  --st-feed-item-open-bg: #0056b3;
+  --st-feed-item-open-bg-hover: #004494;
+  --st-feed-item-divider: rgb(60 60 66 / 0.12);
+  background-color: #e8e6e1;
+  background-image:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.42), transparent 30%),
+    linear-gradient(145deg, #f0efec 0%, #e5e2dc 48%, #d8d4ce 100%);
+}
+
+.theme-nordic {
+  --st-theme-text: rgb(243 244 246 / 0.95);
+  --st-theme-text-muted: rgb(156 163 175 / 0.9);
+  --st-theme-module-bg: rgb(31 41 55 / 0.75);
+  --st-theme-header-bg: rgb(17 24 39 / 0.85);
+  --st-theme-dropdown-bg: rgb(17 24 39 / 0.95);
+  --st-theme-status-bg: rgb(55 65 81 / 0.9);
+  --st-theme-border: rgb(75 85 99 / 0.4);
+  --st-theme-accent: #9ca3af;
+  --st-feed-sidebar-bg: var(--st-theme-header-bg);
+  --st-feed-toolbar-bg: rgb(243 244 246 / 1);
+  --st-feed-toolbar-text: rgb(17 24 39 / 1);
+  --st-feed-toolbar-muted: rgb(107 114 128 / 1);
+  --st-feed-toolbar-badge-bg: rgb(209 213 219 / 1);
+  --st-feed-toolbar-badge-text: rgb(55 65 81 / 1);
+  --st-feed-item-bg: #374151;
+  --st-feed-item-bg-hover: #4b5563;
+  --st-feed-item-bg-active: #1f2937;
+  --st-feed-item-text: #f9fafb;
+  --st-feed-item-text-muted: #d1d5db;
+  --st-feed-item-text-dim: #9ca3af;
+  --st-feed-item-body-bg: rgb(17 24 39 / 0.9);
+  --st-feed-item-body-copy: #e5e7eb;
+  --st-feed-item-button-bg: #4b5563;
+  --st-feed-item-button-bg-hover: #374151;
+  --st-feed-item-button-text: #ffffff;
+  --st-feed-item-button-border: rgb(75 85 99 / 0.5);
+  --st-feed-item-open-bg: #6b7280;
+  --st-feed-item-open-bg-hover: #4b5563;
+  --st-feed-item-divider: rgb(75 85 99 / 0.3);
+}
+
+.theme-matrix {
+  --st-theme-text: #33ff33;
+  --st-theme-text-muted: rgba(51, 255, 51, 0.65);
+  --st-theme-module-bg: rgba(2, 15, 4, 0.85);
+  --st-theme-header-bg: rgba(1, 10, 2, 0.92);
+  --st-theme-dropdown-bg: rgba(0, 5, 1, 0.96);
+  --st-theme-status-bg: rgba(0, 40, 10, 0.9);
+  --st-theme-border: rgba(51, 255, 51, 0.25);
+  --st-theme-accent: #00ff00;
+  --st-feed-sidebar-bg: var(--st-theme-header-bg);
+  --st-feed-toolbar-bg: #33ff33;
+  --st-feed-toolbar-text: #010a02;
+  --st-feed-toolbar-muted: rgba(1, 10, 2, 0.7);
+  --st-feed-toolbar-badge-bg: #002200;
+  --st-feed-toolbar-badge-text: #33ff33;
+  --st-feed-item-bg: #05250a;
+  --st-feed-item-bg-hover: #08350f;
+  --st-feed-item-bg-active: #021204;
+  --st-feed-item-text: #ffffff;
+  --st-feed-item-text-muted: #33ff33;
+  --st-feed-item-text-dim: rgba(51, 255, 51, 0.4);
+  --st-feed-item-body-bg: rgba(1, 10, 2, 0.95);
+  --st-feed-item-body-copy: #aaffaa;
+  --st-feed-item-button-bg: #08350f;
+  --st-feed-item-button-bg-hover: #05250a;
+  --st-feed-item-button-text: #33ff33;
+  --st-feed-item-button-border: rgba(51, 255, 255, 0.2);
+  --st-feed-item-open-bg: #008800;
+  --st-feed-item-open-bg-hover: #006600;
+  --st-feed-item-divider: rgba(51, 255, 51, 0.2);
+}
+
+.st-app-header,
+.st-module,
+.st-module-header,
+.st-dropdown-panel,
+.st-status-bar {
+  border-color: var(--st-theme-border);
+}
+
+.st-app-header,
+.st-module-header,
+.st-status-bar,
+.st-dropdown-panel {
+  color: var(--st-theme-text);
+}
+
+.st-app-header,
+.st-module-header {
+  background: var(--st-theme-header-bg);
+}
+
+.st-module {
+  background: var(--st-theme-module-bg);
+  color: var(--st-theme-text);
+}
+
+.st-dropdown-panel {
+  background: var(--st-theme-dropdown-bg);
+  color: var(--st-theme-text);
+}
+
+.st-status-bar {
+  background: var(--st-theme-status-bg);
+  color: var(--st-theme-text);
+}
+
+.st-app-header h1,
+.st-app-header button,
+.st-app-header nav button,
+.st-module-header button,
+.st-dropdown-panel button,
+.st-status-bar button {
+  color: inherit;
+}
+
+.st-app-header button:hover,
+.st-app-header nav button:hover,
+.st-module-header button:hover,
+.st-dropdown-panel button:hover,
+.st-status-bar button:hover,
+.st-module-empty button:hover,
+.st-module-feed-source-button:hover,
+.st-module-feed-source-edit:hover {
+  color: var(--st-theme-text) !important;
+}
+
+.st-module-tabs button[aria-selected="true"] {
+  color: var(--st-theme-accent);
+}
+
+.st-module-empty p,
+.st-module-empty button,
+.st-module-feed-empty-text,
+.st-module-feed-empty button {
+  color: var(--st-theme-text-muted);
+}
+
+.st-module-empty button:hover,
+.st-module-feed-empty button:hover {
+  color: var(--st-theme-text);
+}
+
+.st-module-feed-sidebar {
+  background: var(--st-theme-header-bg);
+}
+
+.st-module-feed-sidebar {
+  background: var(--st-feed-sidebar-bg);
+}
+
+.st-module-feed-source-button {
+  color: var(--st-theme-text-muted);
+}
+
+.st-module-feed-source-button[aria-pressed='true'] {
+  background: var(--st-feed-toolbar-bg) !important;
+  color: var(--st-feed-toolbar-text) !important;
+}
+
+.st-module-feed-source-button[aria-pressed='true'] .st-module-feed-source-icon {
+  background: var(--st-feed-toolbar-badge-bg) !important;
+  border-right-color: var(--st-feed-item-divider) !important;
+}
+
+.st-module-feed-source-button[aria-pressed='true'] .st-module-feed-source-label {
+  color: inherit;
+}
+
+.st-module-feed-source-button:hover {
+  color: var(--st-theme-text);
+}
+
+.st-module-feed-toolbar {
+  background: var(--st-feed-toolbar-bg);
+  color: var(--st-feed-toolbar-text);
+  border-bottom-color: var(--st-feed-item-divider);
+}
+
+.st-module-feed-toolbar button,
+.st-module-feed-toolbar p,
+.st-module-feed-toolbar span {
+  color: inherit;
+}
+
+.st-module-feed-toolbar .st-module-feed-toolbar-muted,
+.st-module-feed-toolbar .st-module-feed-toolbar-button {
+  color: var(--st-feed-toolbar-muted);
+}
+
+.st-module-feed-toolbar .st-module-feed-toolbar-button:hover {
+  color: var(--st-feed-toolbar-text) !important;
+}
+
+.st-module-feed-toolbar .st-module-feed-toolbar-badge {
+  background: var(--st-feed-toolbar-badge-bg);
+  color: var(--st-feed-toolbar-badge-text);
+}
+
+.st-module-feed-item {
+  background: var(--st-feed-item-bg);
+  border-bottom-color: var(--st-feed-item-divider);
+}
+
+.st-module-feed-item-header {
+  background: transparent;
+}
+
+.st-module-feed-item-header:hover {
+  background: var(--st-feed-item-bg-hover);
+}
+
+.st-module-feed-item-header.expanded,
+.st-module-feed-item-header[data-expanded='true'] {
+  background: var(--st-feed-item-bg-active);
+}
+
+.st-module-feed-item-icon {
+  background: var(--st-feed-item-button-bg);
+  border-color: var(--st-feed-item-button-border);
+}
+
+.st-module-feed-item-title,
+.st-module-feed-item-heading {
+  color: var(--st-feed-item-text);
+}
+
+.st-module-feed-item-date,
+.st-module-feed-item-byline,
+.st-module-feed-item-empty,
+.st-module-feed-item-actions span {
+  color: var(--st-feed-item-text-muted);
+}
+
+.st-module-feed-item-body {
+  background: var(--st-feed-item-body-bg);
+  border-top-color: var(--st-feed-item-divider);
+}
+
+.st-module-feed-item-copy {
+  color: var(--st-feed-item-body-copy);
+}
+
+.st-module-feed-item-save,
+.st-module-feed-item-actions a,
+.st-module-feed-item-actions button,
+.st-module-feed-source-edit,
+.st-module-feed-add-source {
+  border-color: var(--st-feed-item-button-border);
+}
+
+.st-module-feed-item-save,
+.st-module-feed-item-actions a:not(.st-module-feed-item-open),
+.st-module-feed-item-actions button,
+.st-module-feed-source-edit {
+  background: var(--st-feed-item-button-bg);
+  color: var(--st-feed-item-button-text);
+}
+
+.st-module-feed-item-save:hover,
+.st-module-feed-item-actions a:not(.st-module-feed-item-open):hover,
+.st-module-feed-item-actions button:hover,
+.st-module-feed-source-edit:hover {
+  background: var(--st-feed-item-button-bg-hover);
+  color: var(--st-feed-item-text) !important;
+}
+
+.st-module-feed-item-open,
+.st-module-feed-add-source {
+  background: var(--st-feed-item-open-bg);
+  color: #fff;
+}
+
+.st-module-feed-item-open:hover,
+.st-module-feed-add-source:hover {
+  background: var(--st-feed-item-open-bg-hover);
+  color: #fff !important;
+}
+
+.st-module-feed-archive-item {
+  background: var(--st-feed-item-body-bg);
+  border-color: var(--st-feed-item-button-border);
+}
+
+.st-module-feed-archive-title {
+  color: var(--st-feed-item-text);
+}
+
+.st-module-feed-archive-source,
+.st-module-feed-archive-summary,
+.st-module-feed-archive-empty {
+  color: var(--st-feed-item-text-muted);
+}
+
+.st-module-feed-archive-comment {
+  color: var(--st-feed-item-body-copy);
+}
+
+.st-module-feed-archive-link {
+  color: var(--st-theme-accent);
+}
+
+.st-module-feed-archive-link:hover {
+  color: var(--st-theme-accent);
+  filter: brightness(1.08);
+}
+
+.st-module-feed-archive-delete {
+  color: #ef4444;
+}

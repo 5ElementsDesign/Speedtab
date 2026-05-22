@@ -1,0 +1,179 @@
+/**
+ * Speedtab – Extension Service Worker (background script)
+ *
+ * Architecture note:
+ *   Chrome extensions running as newtab pages cannot make cross-origin fetch
+ *   requests from the UI context (the new tab page). Background service workers
+ *   bypass this restriction because they operate outside the page CSP.
+ *
+ *   All RSS/Atom feed fetching MUST be delegated here via chrome.runtime.sendMessage.
+ *   The UI sends a { type: 'FETCH_FEED', url: string } message and awaits the
+ *   response with the raw XML string (or an error object).
+ *
+ * Current phase: Phase 1 scaffold only.
+ *   The message handler is wired up and typed; the actual fetch + XML parsing
+ *   will be implemented in Phase 5.
+ */
+
+import { db } from '@/db/db'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface FetchFeedMessage {
+  type: 'FETCH_FEED'
+  url:  string
+}
+
+interface FetchFeedResponse {
+  ok:    boolean
+  xml?:  string
+  error?: string
+}
+
+type IncomingMessage = FetchFeedMessage
+
+const CONTEXT_MENU_CAPTURE_NOTE = 'speedtab-capture-note'
+const CONTEXT_MENU_CAPTURE_BOOKMARK = 'speedtab-capture-bookmark'
+const CONTEXT_MENU_PARENT = 'speedtab-parent'
+
+async function ensureContextMenus() {
+  await chrome.contextMenus.removeAll()
+  chrome.contextMenus.create({
+    id: CONTEXT_MENU_PARENT,
+    title: 'Speedtab',
+    contexts: ['selection', 'page'],
+  })
+  chrome.contextMenus.create({
+    id: CONTEXT_MENU_CAPTURE_NOTE,
+    parentId: CONTEXT_MENU_PARENT,
+    title: 'Save selection as note',
+    contexts: ['selection'],
+  })
+  chrome.contextMenus.create({
+    id: CONTEXT_MENU_CAPTURE_BOOKMARK,
+    parentId: CONTEXT_MENU_PARENT,
+    title: 'Save current page as bookmark',
+    contexts: ['page'],
+  })
+}
+
+async function sha256Hex(input: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input))
+  return Array.from(new Uint8Array(digest))
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+async function storeCaptureItem(input: {
+  kind: 'note' | 'bookmark'
+  title: string | null
+  text: string | null
+  url: string | null
+  source_url: string | null
+  source_title: string | null
+}) {
+  const external_hash = await sha256Hex(JSON.stringify(input))
+  const existing = await db.capture_inbox.where('external_hash').equals(external_hash).first()
+  if (existing) return
+
+  await db.capture_inbox.add({
+    ...input,
+    external_hash,
+    created_at: Date.now(),
+    meta_json: null,
+  })
+}
+
+// ─── Lifecycle ────────────────────────────────────────────────────────────────
+
+chrome.runtime.onInstalled.addListener((details) => {
+  console.log('[Speedtab SW] Installed – reason:', details.reason)
+  void ensureContextMenus()
+})
+
+chrome.runtime.onStartup.addListener(() => {
+  void ensureContextMenus()
+})
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === CONTEXT_MENU_CAPTURE_NOTE) {
+    const text = info.selectionText?.trim()
+    if (!text) return
+    void storeCaptureItem({
+      kind: 'note',
+      title: null,
+      text,
+      url: null,
+      source_url: info.pageUrl ?? tab?.url ?? null,
+      source_title: tab?.title ?? null,
+    })
+    return
+  }
+
+  if (info.menuItemId === CONTEXT_MENU_CAPTURE_BOOKMARK) {
+    const pageUrl = info.pageUrl ?? tab?.url ?? null
+    if (!pageUrl) return
+    void storeCaptureItem({
+      kind: 'bookmark',
+      title: tab?.title ?? pageUrl,
+      text: null,
+      url: pageUrl,
+      source_url: pageUrl,
+      source_title: tab?.title ?? null,
+    })
+  }
+})
+
+// ─── Message dispatcher ───────────────────────────────────────────────────────
+
+chrome.runtime.onMessage.addListener(
+  (
+    message: IncomingMessage,
+    _sender: chrome.runtime.MessageSender,
+    sendResponse: (response: FetchFeedResponse) => void,
+  ) => {
+    if (message.type === 'FETCH_FEED') {
+      // Phase 5: fetch the URL, parse XML, return raw string.
+      // Stub response for Phase 1 so the message channel is testable.
+      handleFetchFeed(message.url)
+        .then(sendResponse)
+        .catch((err: unknown) => {
+          sendResponse({
+            ok:    false,
+            error: err instanceof Error ? err.message : String(err),
+          })
+        })
+
+      // Return true to keep the message channel open for the async response.
+      return true
+    }
+  },
+)
+
+// ─── Handlers ────────────────────────────────────────────────────────────────
+
+/**
+ * Fetches the URL bypasses CORS via the Service Worker background context.
+ * Includes a timeout to prevent hanging requests.
+ */
+async function handleFetchFeed(url: string): Promise<FetchFeedResponse> {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
+
+    const response = await fetch(url, { signal: controller.signal })
+    clearTimeout(timeout)
+
+    if (!response.ok) {
+      return { ok: false, error: `HTTP ${response.status}: ${response.statusText}` }
+    }
+
+    const xml = await response.text()
+    return { ok: true, xml }
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      return { ok: false, error: err.name === 'AbortError' ? 'Request timed out' : err.message }
+    }
+    return { ok: false, error: 'Request failed' }
+  }
+}

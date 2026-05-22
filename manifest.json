@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Speedtab",
+  "version": "1.0.0",
+  "description": "A local-first browser new-tab dashboard with bookmarks, feeds, and notes.",
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
+  "chrome_url_overrides": {
+    "newtab": "src/newtab.html"
+  },
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Speedtab"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
