@@ -138,14 +138,14 @@ Speedtab does not currently export feed cache responses. Feed items fetched from
 
 Current extension permissions:
 
-- `storage`
 - `unlimitedStorage`
+- `contextMenus`
 - host permissions for `http://*/*` and `https://*/*`
 
 Why they are needed:
 
-- `storage`: extension runtime and browser integration support
 - `unlimitedStorage`: allows larger local datasets and image assets in IndexedDB
+- `contextMenus`: lets users send selected text or the current page into Speedtab from the browser context menu
 - host permissions: required so the background service worker can fetch RSS/Atom feeds across origins
 
 Speedtab requests broad host permissions because users can configure RSS/Atom feeds from arbitrary domains, and those domains cannot be enumerated in advance.

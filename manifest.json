@@ -4,7 +4,6 @@
   "version": "1.0.0",
   "description": "A local-first browser new-tab dashboard with bookmarks, feeds, and notes.",
   "permissions": [
-    "storage",
     "unlimitedStorage",
     "contextMenus"
   ],
