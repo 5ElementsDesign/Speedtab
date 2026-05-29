@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useDragSort } from '@/composables/useDragSort'
 import type { Page } from '@/types/db'
-import { computed } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import Dropdown from './Dropdown.vue'
 
 // ─── Props & emits ────────────────────────────────────────────────────────────
@@ -10,6 +10,8 @@ interface Props {
   pages:      Page[]
   activePage: Page | null
   captureCount?: number
+  searchOpen?: boolean
+  searchQuery?: string
 }
 
 const props = defineProps<Props>()
@@ -25,8 +27,12 @@ const emit = defineEmits<{
   importData:   []
   cleanupData:  []
   openSettings: []
+  openAssets:   []
   copyUrl:      []
   openCaptureInbox: []
+  updateSearchOpen: [open: boolean]
+  updateSearchQuery: [query: string]
+  searchFocus: []
 }>()
 
 // ─── Page partitions ──────────────────────────────────────────────────────────
@@ -47,6 +53,30 @@ const dnd = useDragSort({
     emit('movePage', fromGlobal, toGlobal)
   },
 })
+
+const searchInput = ref<HTMLInputElement | null>(null)
+const localSearchFocused = ref(false)
+
+watch(() => props.searchOpen, async (open) => {
+  if (!open) return
+  await nextTick()
+  searchInput.value?.focus()
+})
+
+function openSearch() {
+  emit('updateSearchOpen', true)
+  emit('searchFocus')
+  void nextTick(() => searchInput.value?.focus())
+}
+
+function handleSearchBlur() {
+  localSearchFocused.value = false
+  window.setTimeout(() => {
+    if (!localSearchFocused.value && !(props.searchQuery?.trim())) {
+      emit('updateSearchOpen', false)
+    }
+  }, 120)
+}
 </script>
 
 <template>
@@ -135,6 +165,39 @@ const dnd = useDragSort({
       Inbox
       <span class="px-1 rounded-sm bg-white/15 text-[9px] leading-none">{{ captureCount }}</span>
     </button>
+
+    <div class="shrink-0 flex items-center min-w-0" data-speedtab-search>
+      <button
+        v-if="!searchOpen"
+        type="button"
+        @click="openSearch"
+        class="px-2 min-h-[28px] text-white/70 hover:text-white hover:bg-white/5 shrink-0 flex items-center justify-center"
+        title="Search"
+        aria-label="Open search"
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M8.5 3a5.5 5.5 0 014.33 8.89l3.64 3.64a1 1 0 01-1.41 1.41l-3.64-3.64A5.5 5.5 0 118.5 3zm0 2a3.5 3.5 0 100 7 3.5 3.5 0 000-7z" clip-rule="evenodd" />
+        </svg>
+      </button>
+      <div
+        v-else
+        class="w-full transition-all duration-150 ease-out"
+        style="max-width: 220px;"
+      >
+        <input
+          ref="searchInput"
+          :value="searchQuery || ''"
+          type="search"
+          placeholder="Search…"
+          class="w-full h-7 px-2 text-[11px] bg-white/10 border border-white/10 text-white placeholder:text-white/35 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+          @focus="localSearchFocused = true; emit('updateSearchOpen', true); emit('searchFocus')"
+          @click="emit('searchFocus')"
+          @blur="handleSearchBlur"
+          @input="emit('updateSearchQuery', ($event.target as HTMLInputElement).value)"
+          @keydown.escape="emit('updateSearchQuery', ''); emit('updateSearchOpen', false)"
+        />
+      </div>
+    </div>
 
     <!-- Page-level actions dropdown -->
     <Dropdown
@@ -240,6 +303,14 @@ const dnd = useDragSort({
         </div>
         <hr class="my-1 border-0 border-t border-white/10" />
         <div class="px-[0.1rem]">
+          <button
+            type="button"
+            role="menuitem"
+            @click="emit('openAssets')"
+            class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10"
+          >
+            Assets
+          </button>
           <button
             type="button"
             role="menuitem"

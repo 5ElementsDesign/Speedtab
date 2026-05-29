@@ -2,8 +2,8 @@
 import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import type { Note } from '@/types/db'
 import { decryptNote, parseCryptPayload } from '@/composables/useCrypt'
-import { sanitizeHtml } from '@/composables/useSanitize'
 import { highlightCode } from '@/composables/useHighlight'
+import { renderNoteHtmlWithAssets } from '@/composables/useNoteImages'
 
 const props = defineProps<{
   note: Note
@@ -73,10 +73,24 @@ watch(
 )
 
 // html: sanitise once, only when expanded
-const htmlSafe = computed(() => {
-  if (props.note.type !== 'html' || !expanded.value) return ''
-  return sanitizeHtml(props.note.content)
-})
+const htmlSafe = ref('')
+let revokeHtmlAssets: (() => void) | null = null
+
+watch(
+  [() => props.note.type, () => props.note.content, expanded],
+  async ([type, content, isExpanded]) => {
+    revokeHtmlAssets?.()
+    revokeHtmlAssets = null
+    htmlSafe.value = ''
+
+    if (type !== 'html' || !isExpanded || !content) return
+
+    const rendered = await renderNoteHtmlWithAssets(content)
+    htmlSafe.value = rendered.html
+    revokeHtmlAssets = rendered.revoke
+  },
+  { immediate: true },
+)
 
 // ─── Crypt unlock state ───────────────────────────────────────────────────────
 // Plaintext is held only while the note is "unlocked"; locking wipes the
@@ -111,6 +125,7 @@ function lock() {
 
 // Auto-lock when the component is destroyed (page navigation, etc.)
 onBeforeUnmount(lock)
+onBeforeUnmount(() => revokeHtmlAssets?.())
 </script>
 
 <template>
@@ -162,14 +177,14 @@ onBeforeUnmount(lock)
     <div v-if="expanded" class="px-2 pb-2 pt-0.5">
       <!-- text -->
       <pre v-if="note.type === 'text'"
-           class="text-[12px] leading-snug text-gray-300 whitespace-pre-wrap break-words font-sans m-0">{{ note.content }}</pre>
+           class="st-note-content-scale leading-snug text-gray-300 whitespace-pre-wrap break-words font-sans m-0">{{ note.content }}</pre>
 
       <!-- code -->
       <pre v-else-if="note.type === 'code'"
-           class="hljs text-[11px] leading-snug rounded overflow-x-auto p-2 m-0"><code v-html="codeHtml"></code></pre>
+           class="st-note-content-scale hljs leading-snug rounded overflow-x-auto p-2 m-0"><code v-html="codeHtml"></code></pre>
 
       <!-- links -->
-      <ul v-else-if="note.type === 'links'" class="space-y-0.5">
+      <ul v-else-if="note.type === 'links'" class="st-note-content-scale space-y-0.5">
         <li v-for="(entry, i) in linkItems" :key="i" class="leading-tight">
           <a v-if="entry.url" :href="entry.url" target="_blank" rel="noopener noreferrer"
              class="text-[12px] text-sky-400 hover:text-sky-300 hover:underline truncate block">{{ entry.text }}</a>
@@ -179,7 +194,7 @@ onBeforeUnmount(lock)
 
       <!-- html (sanitised) -->
       <div v-else-if="note.type === 'html'"
-           class="text-[12px] leading-snug text-gray-300 prose-tight" v-html="htmlSafe"></div>
+           class="st-note-content-scale leading-snug text-gray-300 prose-tight" v-html="htmlSafe"></div>
 
       <!-- crypt: locked → passphrase prompt; unlocked → plaintext + lock button -->
       <div v-else-if="note.type === 'crypt'">
@@ -202,7 +217,7 @@ onBeforeUnmount(lock)
         <p v-if="unlockError" class="mt-1 text-[10px] text-rose-400">{{ unlockError }}</p>
 
         <div v-if="unlockedText" class="space-y-1">
-          <pre class="text-[12px] leading-snug text-gray-200 whitespace-pre-wrap break-words font-sans m-0">{{ unlockedText }}</pre>
+          <pre class="st-note-content-scale leading-snug text-gray-200 whitespace-pre-wrap break-words font-sans m-0">{{ unlockedText }}</pre>
           <button type="button" @click="lock"
             class="text-[10px] uppercase tracking-wider font-bold text-rose-400 hover:text-rose-300">
             🔒 Lock
@@ -225,5 +240,18 @@ onBeforeUnmount(lock)
   background: rgba(255,255,255,0.04);
   padding: 0 3px;
   border-radius: 2px;
+}
+.prose-tight :deep(.st-note-image) {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.4rem 0;
+  border-radius: 0.3rem;
+}
+.prose-tight :deep(.st-note-image-missing) {
+  display: inline-block;
+  color: rgba(255,255,255,0.45);
+  font-size: 10px;
+  font-style: italic;
 }
 </style>

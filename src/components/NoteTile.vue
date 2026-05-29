@@ -4,6 +4,7 @@ import { computed } from 'vue';
 
 const props = defineProps<{
   note:         Note
+  isSearchHighlighted?: boolean
   isDragging?:  boolean
   isDragOver?:  boolean
 }>()
@@ -43,6 +44,7 @@ const preview = computed(() => {
     class="w-[115px] h-[56px] flex flex-col bg-white border border-[#dbdbdb] hover:border-[#00d2ff]
            text-left cursor-pointer overflow-hidden shrink-0 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#00d2ff]"
     :class="[
+      props.isSearchHighlighted ? 'ring-1 ring-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.95),0_0_16px_rgba(239,68,68,0.35)] border-red-400' : '',
       isDragging  ? 'opacity-40' : '',
       isDragOver && !isDragging ? 'ring-1 ring-[#00d2ff] border-[#00d2ff]' : '',
     ]"

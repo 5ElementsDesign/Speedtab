@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import AppSettingsForm from '@/components/AppSettingsForm.vue'
+import AssetBrowserModal from '@/components/AssetBrowserModal.vue'
 import CaptureInboxModal from '@/components/CaptureInboxModal.vue'
+import CleanupModal from '@/components/CleanupModal.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import Modal from '@/components/Modal.vue'
 import ModuleCard from '@/components/ModuleCard.vue'
 import ModuleForm from '@/components/ModuleForm.vue'
 import NavBar from '@/components/NavBar.vue'
 import PageForm from '@/components/PageForm.vue'
+import SidePanel from '@/components/SidePanel.vue'
 import { loadAssetObjectUrl } from '@/composables/useAsset'
 import {
   BackupValidationError,
@@ -24,6 +27,7 @@ import {
 } from '@/composables/useMaintenance'
 import { useReorder } from '@/composables/useReorder'
 import { db, isActiveRecord, makeCreateMetadata, makeUpdatedAtPatch } from '@/db/db'
+import { DEFAULT_THEME_PRESET, normalizeThemePreset } from '@/themePresets'
 import type {
   AppSetting,
   CaptureInboxItem,
@@ -34,7 +38,7 @@ import type {
   PortableInput,
   Tab,
 } from '@/types/db'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 // ─── Hash navigation ──────────────────────────────────────────────────────────
 
@@ -135,10 +139,252 @@ const { data: allCollections } = useLiveQuery(
   [] as Collection[],
 )
 
+const { data: allTabs } = useLiveQuery(
+  () => db.tabs.orderBy('sort_order').filter(isActiveRecord).toArray(),
+  [] as Tab[],
+)
+
+const { data: allNotes } = useLiveQuery(
+  () => db.notes.orderBy('sort_order').filter(isActiveRecord).toArray(),
+  [] as Note[],
+)
+
+const { data: allFeedSources } = useLiveQuery(
+  () => db.feed_sources.orderBy('sort_order').filter(isActiveRecord).toArray(),
+  [] as Array<import('@/types/db').FeedSource>,
+)
+
+const { data: allSavedFeedItems } = useLiveQuery(
+  () => db.saved_feed_items.orderBy('saved_at').filter(isActiveRecord).toArray(),
+  [] as Array<import('@/types/db').SavedFeedItem>,
+)
+
 const { data: captureInboxItems } = useLiveQuery(
   () => db.capture_inbox.orderBy('created_at').reverse().toArray(),
   [] as CaptureInboxItem[],
 )
+
+type SearchResult = {
+  id: string
+  kind: 'bookmark' | 'note' | 'feed_source' | 'archived_feed_item'
+  title: string
+  path: string
+  pageSlug: string | null
+  moduleId: number | null
+  collectionId: number | null
+  entityId: number | null
+  externalUrl: string | null
+  snippet: string | null
+  fields: string[]
+}
+
+const searchOpen = ref(false)
+const searchPanelVisible = ref(false)
+const searchQuery = ref('')
+const debouncedSearchQuery = ref('')
+const expandedSearchResultIds = ref<string[]>([])
+const searchHighlight = ref<{
+  moduleId: number | null
+  collectionId: number | null
+  kind: SearchResult['kind']
+  entityId: number | null
+} | null>(null)
+let searchDebounceHandle: number | null = null
+let searchHighlightResetHandle: number | null = null
+
+watch(searchQuery, (value) => {
+  if (searchDebounceHandle !== null) window.clearTimeout(searchDebounceHandle)
+  searchDebounceHandle = window.setTimeout(() => {
+    debouncedSearchQuery.value = value.trim()
+  }, 140)
+})
+
+onUnmounted(() => {
+  if (searchDebounceHandle !== null) window.clearTimeout(searchDebounceHandle)
+  if (searchHighlightResetHandle !== null) window.clearTimeout(searchHighlightResetHandle)
+})
+
+watch(searchOpen, (open) => {
+  if (!open && !searchQuery.value.trim()) {
+    expandedSearchResultIds.value = []
+    debouncedSearchQuery.value = ''
+    searchPanelVisible.value = false
+  }
+})
+
+watch(debouncedSearchQuery, () => {
+  expandedSearchResultIds.value = []
+  if (searchOpen.value || debouncedSearchQuery.value) {
+    searchPanelVisible.value = true
+  }
+})
+
+const pageById = computed(() => new Map(pages.value.map((page) => [page.id!, page])))
+const moduleById = computed(() => new Map(allModules.value.map((module) => [module.id!, module])))
+const collectionById = computed(() => new Map(allCollections.value.map((collection) => [collection.id!, collection])))
+
+function pathForCollection(collectionId: number | null | undefined): { pageSlug: string | null; path: string; moduleId: number | null } {
+  const collection = collectionId != null ? collectionById.value.get(collectionId) : null
+  const module = collection ? moduleById.value.get(collection.module_id) : null
+  const page = module ? pageById.value.get(module.page_id) : null
+  return {
+    pageSlug: page?.slug ?? null,
+    moduleId: module?.id ?? null,
+    path: [page?.title, module?.title, collection?.title].filter(Boolean).join(' / '),
+  }
+}
+
+function makeSnippet(value: string | null | undefined, max = 300): string | null {
+  if (!value) return null
+  const normalized = value.replace(/\s+/g, ' ').trim()
+  if (!normalized) return null
+  return normalized.length > max ? `${normalized.slice(0, max)}…` : normalized
+}
+
+function includesQuery(value: string | null | undefined, query: string): boolean {
+  return !!value && value.toLocaleLowerCase().includes(query)
+}
+
+const searchResults = computed<SearchResult[]>(() => {
+  const query = debouncedSearchQuery.value.toLocaleLowerCase()
+  if (!query) return []
+
+  const results: SearchResult[] = []
+
+  for (const tab of allTabs.value) {
+    const matchedFields = [tab.title, tab.url].filter((value) => includesQuery(value, query))
+    if (!matchedFields.length) continue
+    const pathInfo = pathForCollection(tab.collection_id)
+    results.push({
+      id: `bookmark:${tab.id}`,
+      kind: 'bookmark',
+      title: tab.title,
+      path: pathInfo.path,
+      pageSlug: pathInfo.pageSlug,
+      moduleId: pathInfo.moduleId,
+      collectionId: tab.collection_id,
+      entityId: tab.id ?? null,
+      externalUrl: tab.url,
+      snippet: makeSnippet(tab.description || tab.url),
+      fields: matchedFields as string[],
+    })
+  }
+
+  for (const note of allNotes.value) {
+    const matchedFields = [note.title, note.content].filter((value) => includesQuery(value, query))
+    if (!matchedFields.length) continue
+    const pathInfo = pathForCollection(note.collection_id)
+    results.push({
+      id: `note:${note.id}`,
+      kind: 'note',
+      title: note.title,
+      path: pathInfo.path,
+      pageSlug: pathInfo.pageSlug,
+      moduleId: pathInfo.moduleId,
+      collectionId: note.collection_id,
+      entityId: note.id ?? null,
+      externalUrl: null,
+      snippet: makeSnippet(note.content, 300),
+      fields: matchedFields as string[],
+    })
+  }
+
+  for (const source of allFeedSources.value) {
+    const matchedFields = [source.title, source.feed_url, source.site_url].filter((value) => includesQuery(value, query))
+    if (!matchedFields.length) continue
+    const pathInfo = pathForCollection(source.collection_id)
+    results.push({
+      id: `feed_source:${source.id}`,
+      kind: 'feed_source',
+      title: source.title,
+      path: pathInfo.path,
+      pageSlug: pathInfo.pageSlug,
+      moduleId: pathInfo.moduleId,
+      collectionId: source.collection_id,
+      entityId: source.id ?? null,
+      externalUrl: source.site_url || source.feed_url,
+      snippet: makeSnippet(source.feed_url),
+      fields: matchedFields as string[],
+    })
+  }
+
+  for (const item of allSavedFeedItems.value) {
+    const matchedFields = [item.comment, item.summary].filter((value) => includesQuery(value, query))
+    if (!matchedFields.length) continue
+    const pathInfo = pathForCollection(item.collection_id)
+    results.push({
+      id: `archived_feed_item:${item.id}`,
+      kind: 'archived_feed_item',
+      title: item.title || item.source_title || 'Archived feed item',
+      path: pathInfo.path,
+      pageSlug: pathInfo.pageSlug,
+      moduleId: pathInfo.moduleId,
+      collectionId: item.collection_id,
+      entityId: item.id ?? null,
+      externalUrl: item.url,
+      snippet: makeSnippet(item.comment || item.summary || item.url, 300),
+      fields: matchedFields as string[],
+    })
+  }
+
+  return results.slice(0, 80)
+})
+
+const showSearchPanel = computed(() => searchPanelVisible.value && (searchOpen.value || !!debouncedSearchQuery.value || !!searchQuery.value.trim()))
+const searchPanelStyle = computed(() => ({
+  top: backupStatus.value ? '72px' : '40px',
+  height: '80%',
+}))
+
+const searchKindLabel: Record<SearchResult['kind'], string> = {
+  bookmark: 'Bookmark',
+  note: 'Note',
+  feed_source: 'Feed Source',
+  archived_feed_item: 'Archived Feed',
+}
+
+function toggleSearchResult(resultId: string) {
+  if (expandedSearchResultIds.value.includes(resultId)) {
+    expandedSearchResultIds.value = expandedSearchResultIds.value.filter((id) => id !== resultId)
+    return
+  }
+  expandedSearchResultIds.value = [...expandedSearchResultIds.value, resultId]
+}
+
+function navigateToSearchResult(result: SearchResult) {
+  if (!result.pageSlug) return
+  updateHash(result.pageSlug, result.collectionId != null ? [result.collectionId] : [])
+  focusedModuleId.value = result.moduleId
+  searchPanelVisible.value = false
+  searchHighlight.value = {
+    moduleId: result.moduleId,
+    collectionId: result.collectionId,
+    kind: result.kind,
+    entityId: result.entityId,
+  }
+  if (searchHighlightResetHandle !== null) window.clearTimeout(searchHighlightResetHandle)
+  searchHighlightResetHandle = window.setTimeout(() => {
+    searchHighlight.value = null
+  }, 4200)
+}
+
+function handleSearchFocus() {
+  searchPanelVisible.value = true
+}
+
+function handleDocumentPointerDown(event: MouseEvent) {
+  const target = event.target as HTMLElement | null
+  if (!target) return
+  if (target.closest('.st-search-panel') || target.closest('[data-speedtab-search]')) return
+  searchPanelVisible.value = false
+}
+
+watch(captureInboxItems, (items) => {
+  document.title = items.length > 0 ? `INBOX [${items.length}] - Speedtab` : 'Speedtab'
+}, { immediate: true })
+
+onMounted(() => window.addEventListener('mousedown', handleDocumentPointerDown))
+onUnmounted(() => window.removeEventListener('mousedown', handleDocumentPointerDown))
 
 // Drag-and-drop bindings for the module grid (one row per module)
 const moduleDnd = useDragSort({ onReorder: (f, t) => moveModule(f, t) })
@@ -152,11 +398,36 @@ interface PageConfig {
 }
 
 type BackgroundTheme = 'charcoal' | 'ocean' | 'moss' | 'ember' | 'sunshine' | 'paper'
-type ThemePreset = 'nordic' | 'matrix'
+type ThemePreset = string
+type AppearanceState = {
+  backgroundAssetId: number | null
+  backgroundTheme: BackgroundTheme | null
+  backgroundPreset: ThemePreset
+  openBookmarksInNewTab: boolean
+  feedSearchUrlTemplate: string
+  feedContentScale: number
+  noteContentScale: number
+}
+type AppearanceDraft = AppearanceState & {
+  backgroundPreviewUrl?: string | null
+}
+type AppearanceDraftInput = {
+  backgroundAssetId: number | null
+  backgroundTheme: string | null
+  backgroundPreset: string
+  openBookmarksInNewTab: boolean
+  feedSearchUrlTemplate: string
+  feedContentScale: number
+  noteContentScale: number
+  backgroundPreviewUrl?: string | null
+}
 
 interface ModuleLayoutConfig {
   full_width?: boolean
+  expanded_width?: FeedExpandedWidth | null
 }
+
+type FeedExpandedWidth = 320 | 480 | 740 | 940 | 1240 | 1540 | 'max'
 
 function parsePageConfig(p: Page | null): PageConfig {
   if (!p?.config_json) return {}
@@ -188,6 +459,12 @@ function parseModuleLayoutConfig(module: Module): ModuleLayoutConfig {
   catch { return {} }
 }
 
+function normalizeFeedExpandedWidth(value: unknown): FeedExpandedWidth | null {
+  return value === 'max' || value === 320 || value === 480 || value === 740 || value === 940 || value === 1240 || value === 1540
+    ? value
+    : null
+}
+
 const autoFullWidthModuleId = computed<number | null>(() => {
   if (displayedModuleColumns.value !== 2 || !modules.value.length) return null
 
@@ -197,7 +474,7 @@ const autoFullWidthModuleId = computed<number | null>(() => {
 
   for (const module of modules.value) {
     if (!module.id) continue
-    const spansFull = expandedFeedModuleId.value === module.id || parseModuleLayoutConfig(module).full_width === true
+    const spansFull = expandedFeedState.value?.id === module.id || parseModuleLayoutConfig(module).full_width === true
 
     if (spansFull) {
       if (currentRow.length) {
@@ -231,6 +508,19 @@ const modulesGridStyle = computed(() => {
   const count      = modules.value.length || 1
   const cols       = displayedModuleColumns.value
 
+  if (count === 1) {
+    return {
+      gridTemplateColumns: 'max(50%, 360px)',
+      justifyContent: 'center',
+    }
+  }
+
+  if (count === 2) {
+    return {
+      gridTemplateColumns: 'repeat(2, minmax(360px, 1fr))',
+    }
+  }
+
   // When the actual module count is below the configured columns, switch from
   // stretching 1fr cells to fixed-width cells centered on the row (otherwise
   // 2 of 3 modules would stretch to fill the whole row instead of centering).
@@ -249,14 +539,20 @@ const modulesGridStyle = computed(() => {
 
 function moduleGridClass(module: Module): string {
   if (displayedModuleColumns.value <= 1) return ''
-  if (expandedFeedModuleId.value === module.id) return 'col-span-full'
+  if (expandedFeedState.value?.id === module.id) return 'col-span-full'
   if (parseModuleLayoutConfig(module).full_width) return 'col-span-full'
   return autoFullWidthModuleId.value === module.id ? 'col-span-full' : ''
 }
 
+function getModuleExpandedWidth(module: Module): FeedExpandedWidth | null {
+  const expanded = expandedFeedState.value
+  if (expanded && expanded.id === module.id) return expanded.width
+  return normalizeFeedExpandedWidth(parseModuleLayoutConfig(module).expanded_width)
+}
+
 // Sync hash when active page changes
 watch(activePage, (page) => {
-  expandedFeedModuleId.value = null
+  expandedFeedState.value = null
   if (!page) return
   const current = parseHash()
   if (current.pageSlug !== page.slug) {
@@ -270,7 +566,7 @@ watch(activePage, (page) => {
 
 /** Module that was most-recently clicked (drives the visual focus border). */
 const focusedModuleId = ref<number | null>(null)
-const expandedFeedModuleId = ref<number | null>(null)
+const expandedFeedState = ref<{ id: number; width: FeedExpandedWidth } | null>(null)
 
 function updateHash(slug: string, ids: number[] = []) {
   let target = `#/page/${encodeURIComponent(slug)}`
@@ -303,10 +599,30 @@ function focusModule(module: Module, newColId?: number, siblingIds: number[] = [
   updateHash(activePage.value.slug, filtered)
 }
 
-function toggleFeedModuleExpand(module: Module) {
+function collapseExpandedFeed() {
+  expandedFeedState.value = null
+}
+
+async function setFeedModuleExpandWidth(module: Module, width: FeedExpandedWidth) {
   const id = module.id ?? null
   if (id === null || module.type !== 'feeds') return
-  expandedFeedModuleId.value = expandedFeedModuleId.value === id ? null : id
+
+  let nextConfig: Record<string, unknown> = {}
+  try {
+    nextConfig = JSON.parse(module.config_json ?? '{}')
+  } catch {
+    nextConfig = {}
+  }
+
+  await db.modules.update(id, {
+    config_json: JSON.stringify({
+      ...nextConfig,
+      expanded_width: width,
+    }),
+    ...makeUpdatedAtPatch(Date.now()),
+  })
+
+  expandedFeedState.value = { id, width }
   focusedModuleId.value = id
 }
 
@@ -426,37 +742,50 @@ async function copyCurrentUrl() {
 const importInput = ref<HTMLInputElement | null>(null)
 const backupStatus = ref<string | null>(null)
 const isSettingsModalOpen = ref(false)
+const isAssetBrowserOpen = ref(false)
 const isCaptureInboxOpen = ref(false)
+const isCleanupModalOpen = ref(false)
+const settingsDraft = ref<AppearanceDraft | null>(null)
 
 const { data: appearanceSetting, loading: appearanceLoading } = useLiveQuery(
   () => db.app_settings.get('appearance'),
   null as AppSetting | null,
 )
 
-function parseAppearanceSetting(setting: AppSetting | null | undefined): { backgroundAssetId: number | null; backgroundTheme: BackgroundTheme | null; backgroundPreset: ThemePreset | null; openBookmarksInNewTab: boolean } {
-  if (!setting?.value_json) return { backgroundAssetId: null, backgroundTheme: null, backgroundPreset: null, openBookmarksInNewTab: false }
+function parseAppearanceSetting(setting: AppSetting | null | undefined): AppearanceState {
+  if (!setting?.value_json) return { backgroundAssetId: null, backgroundTheme: null, backgroundPreset: DEFAULT_THEME_PRESET, openBookmarksInNewTab: false, feedSearchUrlTemplate: 'https://www.google.com/search?q=%s', feedContentScale: 1, noteContentScale: 1 }
   try {
     const parsed = JSON.parse(setting.value_json)
     return {
       backgroundAssetId: typeof parsed.background_asset_id === 'number' ? parsed.background_asset_id : null,
       backgroundTheme: ['charcoal', 'ocean', 'moss', 'ember', 'sunshine', 'paper'].includes(parsed.background_theme) ? parsed.background_theme as BackgroundTheme : null,
-      backgroundPreset: ['nordic', 'matrix'].includes(parsed.background_preset) ? parsed.background_preset as ThemePreset : null,
+      backgroundPreset: normalizeThemePreset(parsed.background_preset),
       openBookmarksInNewTab: parsed.open_bookmarks_in_new_tab === true,
+      feedSearchUrlTemplate: typeof parsed.feed_search_url_template === 'string' && parsed.feed_search_url_template.trim()
+        ? parsed.feed_search_url_template.trim()
+        : 'https://www.google.com/search?q=%s',
+      feedContentScale: typeof parsed.feed_content_scale === 'number' && parsed.feed_content_scale > 0
+        ? parsed.feed_content_scale
+        : 1,
+      noteContentScale: typeof parsed.note_content_scale === 'number' && parsed.note_content_scale > 0
+        ? parsed.note_content_scale
+        : 1,
     }
   } catch {
-    return { backgroundAssetId: null, backgroundTheme: null, backgroundPreset: null, openBookmarksInNewTab: false }
+    return { backgroundAssetId: null, backgroundTheme: null, backgroundPreset: DEFAULT_THEME_PRESET, openBookmarksInNewTab: false, feedSearchUrlTemplate: 'https://www.google.com/search?q=%s', feedContentScale: 1, noteContentScale: 1 }
   }
 }
 
 const appAppearance = computed(() => parseAppearanceSetting(appearanceSetting.value))
+const effectiveAppearance = computed<AppearanceDraft>(() => settingsDraft.value ?? appAppearance.value)
 const effectiveBackgroundAssetId = computed<number | null>(() =>
-  activePageConfig.value.backgroundAssetId ?? appAppearance.value.backgroundAssetId ?? null
+  activePageConfig.value.backgroundAssetId ?? effectiveAppearance.value.backgroundAssetId ?? null
 )
 const appBackgroundThemeClass = computed(() =>
-  appAppearance.value.backgroundTheme ? `st-bg-theme-${appAppearance.value.backgroundTheme}` : ''
+  effectiveAppearance.value.backgroundTheme ? `st-bg-theme-${effectiveAppearance.value.backgroundTheme}` : ''
 )
 const appThemePresetClass = computed(() =>
-  appAppearance.value.backgroundPreset ? `theme-${appAppearance.value.backgroundPreset}` : ''
+  `theme-${effectiveAppearance.value.backgroundPreset}`
 )
 
 const backgroundObjectUrl = ref<string | null>(null)
@@ -476,8 +805,9 @@ async function syncBackgroundPreview(assetId: number | null) {
 
 watch(effectiveBackgroundAssetId, syncBackgroundPreview, { immediate: true })
 
-watch([effectiveBackgroundAssetId, () => appAppearance.value.backgroundTheme, appearanceLoading, pagesLoading], async ([assetId, backgroundTheme, isAppearanceLoading, isPagesLoading]) => {
+watch([effectiveBackgroundAssetId, () => effectiveAppearance.value.backgroundTheme, appearanceLoading, pagesLoading], async ([assetId, backgroundTheme, isAppearanceLoading, isPagesLoading]) => {
   if (isAppearanceLoading || isPagesLoading) return
+  if (settingsDraft.value?.backgroundPreviewUrl) return
   if (assetId !== null) return
   if (backgroundTheme) return
   if (defaultBackgroundUrl.value) return
@@ -489,20 +819,35 @@ onUnmounted(() => {
   if (backgroundUrlHandle) URL.revokeObjectURL(backgroundUrlHandle)
 })
 
+watchEffect(() => {
+  const rootStyle = document.documentElement.style
+  rootStyle.setProperty('--st-feed-content-scale', String(effectiveAppearance.value.feedContentScale))
+  rootStyle.setProperty('--st-note-content-scale', String(effectiveAppearance.value.noteContentScale))
+})
+
 const appShellStyle = computed(() => {
   const shouldUseDefaultBackground =
     !appearanceLoading.value &&
     !pagesLoading.value &&
+    !settingsDraft.value?.backgroundPreviewUrl &&
     effectiveBackgroundAssetId.value === null &&
-    !appAppearance.value.backgroundTheme
+    !effectiveAppearance.value.backgroundTheme
 
   const resolvedBackgroundUrl = shouldUseDefaultBackground
     ? defaultBackgroundUrl.value
-    : backgroundObjectUrl.value
+    : (settingsDraft.value?.backgroundPreviewUrl ?? backgroundObjectUrl.value)
 
-  if (!resolvedBackgroundUrl) return {}
+  const style: Record<string, string> = {
+    '--st-feed-content-scale': String(effectiveAppearance.value.feedContentScale),
+    '--st-note-content-scale': String(effectiveAppearance.value.noteContentScale),
+  }
+
+  if (!resolvedBackgroundUrl) {
+    return style
+  }
 
   return {
+    ...style,
     backgroundImage: `url("${resolvedBackgroundUrl}")`,
     backgroundPosition: 'center center',
     backgroundRepeat: 'no-repeat',
@@ -633,15 +978,18 @@ async function handleImportFile(e: Event) {
 }
 
 async function handleCleanup() {
-  try {
-    const report = await cleanupOrphans()
-    const total = Object.values(report).reduce((sum, value) => sum + value, 0)
-    backupStatus.value = total === 0
-      ? 'Cleanup complete · no orphaned records found'
-      : `Cleanup complete · removed ${total} orphaned records`
-  } catch (err) {
-    backupStatus.value = `Cleanup failed: ${(err as Error).message}`
+  isCleanupModalOpen.value = true
+}
+
+function handleCleanupCompleted(report: Awaited<ReturnType<typeof cleanupOrphans>>, refreshedFavicons: number) {
+  isCleanupModalOpen.value = false
+  const total = Object.values(report).reduce((sum, value) => sum + value, 0)
+  const parts: string[] = ['Cleanup complete']
+  parts.push(total === 0 ? 'nothing removed' : `removed ${total} selected items`)
+  if (refreshedFavicons > 0) {
+    parts.push(`refreshed ${refreshedFavicons} stale favicons`)
   }
+  backupStatus.value = parts.join(' · ')
 }
 
 async function saveCaptureInboxItem(item: CaptureInboxItem, collectionId: number) {
@@ -702,24 +1050,54 @@ async function discardCaptureInboxItem(itemId: number) {
   }
 }
 
-async function handleSaveSettings(backgroundAssetId: number | null, backgroundTheme: string | null, backgroundPreset: string | null, openBookmarksInNewTab: boolean) {
-  const normalizedTheme = backgroundTheme && ['charcoal', 'ocean', 'moss', 'ember', 'sunshine', 'paper'].includes(backgroundTheme)
-    ? backgroundTheme
+function openSettingsPanel() {
+  settingsDraft.value = {
+    ...appAppearance.value,
+    backgroundPreviewUrl: null,
+  }
+  isSettingsModalOpen.value = true
+}
+
+function closeSettingsPanel() {
+  settingsDraft.value = null
+  isSettingsModalOpen.value = false
+}
+
+function handleSettingsPreview(draft: AppearanceDraftInput) {
+  settingsDraft.value = {
+    backgroundAssetId: draft.backgroundAssetId,
+    backgroundTheme: draft.backgroundTheme && ['charcoal', 'ocean', 'moss', 'ember', 'sunshine', 'paper'].includes(draft.backgroundTheme)
+      ? draft.backgroundTheme as BackgroundTheme
+      : null,
+    backgroundPreset: normalizeThemePreset(draft.backgroundPreset),
+    openBookmarksInNewTab: draft.openBookmarksInNewTab,
+    feedSearchUrlTemplate: draft.feedSearchUrlTemplate.trim() || 'https://www.google.com/search?q=%s',
+    feedContentScale: [0.8, 1, 1.2, 1.4].includes(draft.feedContentScale) ? draft.feedContentScale : 1,
+    noteContentScale: [0.8, 1, 1.2, 1.4].includes(draft.noteContentScale) ? draft.noteContentScale : 1,
+    backgroundPreviewUrl: draft.backgroundPreviewUrl ?? null,
+  }
+}
+
+async function handleSaveSettings(draft: AppearanceDraftInput) {
+  const normalizedTheme = draft.backgroundTheme && ['charcoal', 'ocean', 'moss', 'ember', 'sunshine', 'paper'].includes(draft.backgroundTheme)
+    ? draft.backgroundTheme
     : null
-  const normalizedPreset = backgroundPreset && ['nordic', 'matrix'].includes(backgroundPreset)
-    ? backgroundPreset
-    : null
+  const normalizedPreset = normalizeThemePreset(draft.backgroundPreset)
+  const normalizedSearchTemplate = draft.feedSearchUrlTemplate.trim() || 'https://www.google.com/search?q=%s'
   await db.app_settings.put({
     key: 'appearance',
     value_json: JSON.stringify({
-      background_asset_id: backgroundAssetId,
+      background_asset_id: draft.backgroundAssetId,
       background_theme: normalizedTheme,
       background_preset: normalizedPreset,
-      open_bookmarks_in_new_tab: openBookmarksInNewTab,
+      open_bookmarks_in_new_tab: draft.openBookmarksInNewTab,
+      feed_search_url_template: normalizedSearchTemplate,
+      feed_content_scale: [0.8, 1, 1.2, 1.4].includes(draft.feedContentScale) ? draft.feedContentScale : 1,
+      note_content_scale: [0.8, 1, 1.2, 1.4].includes(draft.noteContentScale) ? draft.noteContentScale : 1,
     }),
     updated_at: Date.now(),
   })
-  isSettingsModalOpen.value = false
+  closeSettingsPanel()
 }
 
 </script>
@@ -732,6 +1110,8 @@ async function handleSaveSettings(backgroundAssetId: number | null, backgroundTh
       :pages="pages"
       :active-page="activePage"
       :capture-count="captureInboxItems.length"
+      :search-open="searchOpen"
+      :search-query="searchQuery"
       @navigate="navigateTo"
       @add-page="openAddPage"
       @edit-page="openEditPage"
@@ -740,9 +1120,13 @@ async function handleSaveSettings(backgroundAssetId: number | null, backgroundTh
       @export-data="handleExport"
       @import-data="triggerImport"
       @cleanup-data="handleCleanup"
-      @open-settings="isSettingsModalOpen = true"
+      @open-settings="openSettingsPanel"
+      @open-assets="isAssetBrowserOpen = true"
       @copy-url="openUrlModal"
       @open-capture-inbox="isCaptureInboxOpen = true"
+      @update-search-open="searchOpen = $event"
+      @update-search-query="searchQuery = $event"
+      @search-focus="handleSearchFocus"
     />
 
     <!-- Hidden import file picker -->
@@ -768,6 +1152,120 @@ async function handleSaveSettings(backgroundAssetId: number | null, backgroundTh
         aria-label="Dismiss"
       >✕</button>
     </div>
+
+    <section
+      v-if="showSearchPanel"
+      class="st-search-panel absolute left-1/2 z-50 flex w-[min(1000px,calc(100%-1rem))] -translate-x-1/2 flex-col overflow-hidden border shadow-2xl backdrop-blur-sm"
+      :style="searchPanelStyle"
+      aria-label="Search results"
+    >
+      <div class="st-search-panel-header border-b px-3 py-2 text-[10px] uppercase tracking-wider">
+        <template v-if="debouncedSearchQuery">
+          {{ searchResults.length }} result{{ searchResults.length === 1 ? '' : 's' }} for “{{ debouncedSearchQuery }}”
+        </template>
+        <template v-else>
+          Search pages, modules, bookmarks, notes, feed sources, and archived feed items.
+        </template>
+      </div>
+
+      <div class="min-h-0 flex-1 overflow-y-auto">
+        <div
+          v-if="!debouncedSearchQuery"
+          class="st-search-panel-empty px-4 py-5 text-[11px]"
+        >
+          Type to search across text and URL fields.
+        </div>
+
+        <div
+          v-else-if="!searchResults.length"
+          class="st-search-panel-empty px-4 py-5 text-[11px]"
+        >
+          No matches found.
+        </div>
+
+        <div v-else class="st-search-panel-results divide-y">
+          <article
+            v-for="result in searchResults"
+            :key="result.id"
+            class="st-search-result"
+          >
+            <button
+              type="button"
+              class="w-full px-4 py-3 text-left transition-colors hover:bg-white/5 focus:outline-none focus-visible:bg-white/5"
+              @click="toggleSearchResult(result.id)"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0 space-y-1">
+                  <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span class="st-search-result-kind text-[10px] uppercase tracking-wider">{{ searchKindLabel[result.kind] }}</span>
+                    <h3 class="st-search-result-title truncate text-[12px] font-medium">{{ result.title }}</h3>
+                  </div>
+                  <p class="st-search-result-path truncate text-[10px]">{{ result.path || 'Workspace' }}</p>
+                </div>
+                <span class="st-search-result-toggle shrink-0 text-[10px]">
+                  {{ expandedSearchResultIds.includes(result.id) ? '−' : '+' }}
+                </span>
+              </div>
+            </button>
+
+            <div
+              v-if="expandedSearchResultIds.includes(result.id)"
+              class="st-search-result-details border-t px-4 py-3 text-[11px]"
+            >
+              <div class="space-y-3">
+                <div class="st-search-result-matches flex flex-wrap items-center gap-2 text-[10px]">
+                  <span>Matched:</span>
+                  <span
+                    v-for="field in result.fields"
+                    :key="field"
+                    class="st-search-result-chip rounded-sm px-1.5 py-0.5"
+                  >
+                    {{ field.length > 40 ? `${field.slice(0, 40)}…` : field }}
+                  </span>
+                </div>
+
+                <p
+                  v-if="result.snippet"
+                  class="st-search-result-snippet whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+                >
+                  <a
+                    v-if="result.kind === 'bookmark' && result.externalUrl"
+                    :href="result.externalUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="st-search-result-link"
+                    @click.stop
+                  >
+                    {{ result.snippet }}
+                  </a>
+                  <template v-else>{{ result.snippet }}</template>
+                </p>
+
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <p class="st-search-result-footer text-[10px] uppercase tracking-wider">
+                    {{ result.path || 'Workspace root' }}
+                  </p>
+                  <button
+                    v-if="result.pageSlug"
+                    type="button"
+                    class="st-search-result-locate px-2 py-1 text-[10px] uppercase tracking-wider transition-colors"
+                    @click.stop="navigateToSearchResult(result)"
+                  >
+                    Locate
+                  </button>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <div
+      v-if="expandedFeedState !== null"
+      class="fixed inset-0 z-50 bg-black/65 backdrop-blur-[2px]"
+      @click="collapseExpandedFeed"
+    ></div>
 
     <!-- Main content area -->
     <main class="flex-1 min-h-0 overflow-y-auto">
@@ -811,11 +1309,11 @@ async function handleSaveSettings(backgroundAssetId: number | null, backgroundTh
         :style="pageContainerStyle"
       >
         <!-- Modules Grid -->
-        <div v-if="modulesLoading" class="grid justify-center gap-4" :style="modulesGridStyle">
+        <div v-if="modulesLoading" class="st-modules-grid grid justify-center gap-4" :style="modulesGridStyle">
           <div v-for="i in 3" :key="i" class="h-40 bg-black/40 border border-white/10 animate-pulse"></div>
         </div>
 
-        <div v-else-if="modules.length" class="grid justify-center gap-4" :style="modulesGridStyle">
+        <div v-else-if="modules.length" class="st-modules-grid grid justify-center gap-4" :style="modulesGridStyle">
           <ModuleCard
             v-for="(module, idx) in modules"
             :key="module.id"
@@ -824,12 +1322,15 @@ async function handleSaveSettings(backgroundAssetId: number | null, backgroundTh
             :module="module"
             :active-collection-ids="hashState.collectionIds"
             :is-focused="focusedModuleId === module.id"
-            :is-expanded="expandedFeedModuleId === module.id"
+            :is-expanded="expandedFeedState?.id === module.id"
+            :expanded-width="getModuleExpandedWidth(module)"
             :is-dragging="moduleDnd.draggingIndex.value === idx"
             :is-drag-over="moduleDnd.dragOverIndex.value === idx"
+            :feed-search-url-template="effectiveAppearance.feedSearchUrlTemplate"
+            :search-highlight="searchHighlight"
             @edit="editingModule = $event; isModuleModalOpen = true"
             @focus="focusModule"
-            @toggle-expand="toggleFeedModuleExpand"
+            @set-expand-width="setFeedModuleExpandWidth"
           />
         </div>
 
@@ -866,6 +1367,7 @@ async function handleSaveSettings(backgroundAssetId: number | null, backgroundTh
     >
       <PageForm
         :page="editingPage"
+        :default-max-width="editingPage ? null : (activePageConfig.maxWidth ?? null)"
         @save="savePage"
         @delete="deletePage"
         @cancel="isPageModalOpen = false"
@@ -891,7 +1393,16 @@ async function handleSaveSettings(backgroundAssetId: number | null, backgroundTh
           :value="isUrlModalOpen ? currentUrl : ''"
           @focus="($event.target as HTMLInputElement).select()"
         />
-        <div class="flex justify-end gap-2 pt-1">
+        <div class="flex items-center justify-between gap-2 pt-1">
+          <a
+            :href="currentUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-[11px] text-white/70 hover:text-white underline underline-offset-2"
+          >
+            Open in a new tab
+          </a>
+          <div class="flex gap-2">
           <button
             type="button"
             @click="isUrlModalOpen = false"
@@ -906,6 +1417,7 @@ async function handleSaveSettings(backgroundAssetId: number | null, backgroundTh
           >
             {{ urlCopied ? '✓ Copied!' : 'Copy' }}
           </button>
+          </div>
         </div>
       </div>
     </Modal>
@@ -926,20 +1438,35 @@ async function handleSaveSettings(backgroundAssetId: number | null, backgroundTh
       />
     </Modal>
 
-    <Modal
+    <SidePanel
       :show="isSettingsModalOpen"
       title="Settings"
-      @close="isSettingsModalOpen = false"
+      @close="closeSettingsPanel"
     >
       <AppSettingsForm
-        :background-asset-id="appAppearance.backgroundAssetId"
-        :background-theme="appAppearance.backgroundTheme"
-        :background-preset="appAppearance.backgroundPreset"
-        :open-bookmarks-in-new-tab="appAppearance.openBookmarksInNewTab"
+        :background-asset-id="effectiveAppearance.backgroundAssetId"
+        :background-theme="effectiveAppearance.backgroundTheme"
+        :background-preset="effectiveAppearance.backgroundPreset"
+        :open-bookmarks-in-new-tab="effectiveAppearance.openBookmarksInNewTab"
+        :feed-search-url-template="effectiveAppearance.feedSearchUrlTemplate"
+        :feed-content-scale="effectiveAppearance.feedContentScale"
+        :note-content-scale="effectiveAppearance.noteContentScale"
+        @preview="handleSettingsPreview"
         @save="handleSaveSettings"
-        @cancel="isSettingsModalOpen = false"
+        @cancel="closeSettingsPanel"
       />
-    </Modal>
+    </SidePanel>
+
+    <AssetBrowserModal
+      :show="isAssetBrowserOpen"
+      @close="isAssetBrowserOpen = false"
+    />
+
+    <CleanupModal
+      :show="isCleanupModalOpen"
+      @close="isCleanupModalOpen = false"
+      @completed="handleCleanupCompleted"
+    />
 
     <CaptureInboxModal
       :show="isCaptureInboxOpen"
@@ -963,6 +1490,13 @@ async function handleSaveSettings(backgroundAssetId: number | null, backgroundTh
 
 .st-page-panel {
   position: relative;
+}
+
+@media (max-width: 740px) {
+  .st-modules-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    justify-content: stretch !important;
+  }
 }
 
 .st-page-fade-enter-active {
@@ -990,5 +1524,64 @@ async function handleSaveSettings(backgroundAssetId: number | null, backgroundTh
 .st-page-fade-leave-active {
   position: absolute;
   inset: 0;
+}
+
+.st-search-panel {
+  background: color-mix(in srgb, var(--st-theme-dropdown-bg) 92%, black 8%);
+  border-color: var(--st-theme-border);
+  color: var(--st-theme-text);
+}
+
+.st-search-panel-header,
+.st-search-panel-empty,
+.st-search-result-kind,
+.st-search-result-path,
+.st-search-result-toggle,
+.st-search-result-footer,
+.st-search-result-matches {
+  color: var(--st-theme-text-muted);
+}
+
+.st-search-panel-results {
+  border-color: var(--st-theme-border);
+}
+
+.st-search-result button:hover,
+.st-search-result button:focus-visible {
+  background: color-mix(in srgb, var(--st-theme-text) 7%, transparent);
+}
+
+.st-search-result-title,
+.st-search-result-snippet {
+  color: var(--st-theme-text);
+}
+
+.st-search-result-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.st-search-result-link:hover {
+  color: var(--st-theme-accent);
+}
+
+.st-search-result-details {
+  border-color: var(--st-theme-border);
+  background: color-mix(in srgb, var(--st-theme-module-bg) 88%, transparent);
+}
+
+.st-search-result-chip {
+  background: color-mix(in srgb, var(--st-theme-text) 9%, transparent);
+  color: var(--st-theme-text);
+}
+
+.st-search-result-locate {
+  color: #fca5a5;
+}
+
+.st-search-result-locate:hover {
+  background: color-mix(in srgb, #ef4444 18%, transparent);
+  color: #fecaca;
 }
 </style>

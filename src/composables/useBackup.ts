@@ -1,4 +1,5 @@
 import { db as defaultDb, ensureSyncMetadataMigration, isActiveRecord, makeCreateMetadata, SpeedtabDB } from '@/db/db'
+import { remapNoteImageTokens } from '@/composables/useNoteImages'
 import type {
   Asset,
   AssetKind,
@@ -327,7 +328,7 @@ export async function exportAll(database: SpeedtabDB = defaultDb): Promise<Backu
 }
 
 export function manifestToJsonString(m: BackupManifest): string {
-  return JSON.stringify(m, null, 2)
+  return JSON.stringify(m)
 }
 
 async function shortManifestChecksum(manifest: BackupManifest): Promise<string> {
@@ -544,6 +545,9 @@ async function importLegacyManifest(
         await database.notes.add({
           ...rest,
           collection_id: collectionMap.get(rest.collection_id)!,
+          content: rest.type === 'html'
+            ? remapNoteImageTokens(rest.content, (assetId) => assetMap.get(assetId))
+            : rest.content,
           ...makeCreateMetadata(importNow),
         } as Note)
         report.notes++
@@ -629,12 +633,15 @@ async function importManifestV2(
     ],
     async () => {
       const assetIdByChecksum = new Map<string, number>()
+      const assetIdByOriginalId = new Map<number, number>()
       for (const existing of await database.assets.toArray()) {
         if (existing.id != null) assetIdByChecksum.set(existing.checksum, existing.id)
       }
 
       for (const asset of manifest.assets) {
-        if (assetIdByChecksum.has(asset.checksum)) {
+        const existingId = assetIdByChecksum.get(asset.checksum)
+        if (existingId != null) {
+          assetIdByOriginalId.set(asset.original_id, existingId)
           report.assets_deduped++
           continue
         }
@@ -648,6 +655,7 @@ async function importManifestV2(
           meta_json: asset.meta_json,
         } as Asset) as number
         assetIdByChecksum.set(asset.checksum, newId)
+        assetIdByOriginalId.set(asset.original_id, newId)
         report.assets++
       }
 
@@ -773,8 +781,8 @@ async function importManifestV2(
         makeInsert: (row, parentId) => ({
           ...row,
           collection_id: parentId,
-          favicon_asset_id: row.favicon_asset_id,
-          preview_asset_id: row.preview_asset_id,
+          favicon_asset_id: row.favicon_asset_id != null ? assetIdByOriginalId.get(row.favicon_asset_id) ?? null : null,
+          preview_asset_id: row.preview_asset_id != null ? assetIdByOriginalId.get(row.preview_asset_id) ?? null : null,
           deleted_at: null,
         } as Tab),
         makeUpdate: (row, _existing, parentId) => ({
@@ -782,8 +790,8 @@ async function importManifestV2(
           title: row.title,
           url: row.url,
           description: row.description,
-          favicon_asset_id: row.favicon_asset_id,
-          preview_asset_id: row.preview_asset_id,
+          favicon_asset_id: row.favicon_asset_id != null ? assetIdByOriginalId.get(row.favicon_asset_id) ?? null : null,
+          preview_asset_id: row.preview_asset_id != null ? assetIdByOriginalId.get(row.preview_asset_id) ?? null : null,
           meta_json: row.meta_json,
           created_at: row.created_at,
           updated_at: row.updated_at,
@@ -801,13 +809,18 @@ async function importManifestV2(
         makeInsert: (row, parentId) => ({
           ...row,
           collection_id: parentId,
+          content: row.type === 'html'
+            ? remapNoteImageTokens(row.content, (assetId) => assetIdByOriginalId.get(assetId))
+            : row.content,
           deleted_at: null,
         } as Note),
         makeUpdate: (row, _existing, parentId) => ({
           collection_id: parentId,
           title: row.title,
           type: row.type,
-          content: row.content,
+          content: row.type === 'html'
+            ? remapNoteImageTokens(row.content, (assetId) => assetIdByOriginalId.get(assetId))
+            : row.content,
           style_token: row.style_token,
           meta_json: row.meta_json,
           created_at: row.created_at,

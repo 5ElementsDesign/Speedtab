@@ -18,25 +18,31 @@ const form = ref<PortableInput<Module>>({
   type:        props.module?.type ?? 'tabs',
   title:       props.module?.title ?? '',
   sort_order:  props.module?.sort_order ?? 0,
-  config_json: props.module?.config_json ?? JSON.stringify({ columns: 4 }),
+  config_json: props.module?.config_json ?? JSON.stringify({ columns: props.module?.type === 'notes' ? 4 : 10 }),
 })
 
-function parseConfig(json: string | null | undefined): { columns: number; show_add_tile: boolean; full_width: boolean; refresh_interval_ms: number; feed_item_limit: number; open_in_new_tab: boolean | null } {
+function parseConfig(
+  json: string | null | undefined,
+  moduleType: ModuleType
+): { columns: number; show_add_tile: boolean; full_width: boolean; refresh_interval_ms: number; feed_item_limit: number; open_in_new_tab: boolean | null; quicklinks: boolean; show_hover_actions: boolean } {
+  const defaultColumns = moduleType === 'tabs' ? 10 : 4
   try {
     const parsed = JSON.parse(json || '{}')
     return {
-      columns:       typeof parsed.columns === 'number' ? parsed.columns : 4,
+      columns:       typeof parsed.columns === 'number' ? parsed.columns : defaultColumns,
       show_add_tile: parsed.show_add_tile !== false,  // default true
       full_width:    parsed.full_width === true,
       refresh_interval_ms: typeof parsed.refresh_interval_ms === 'number' ? parsed.refresh_interval_ms : 0,
       feed_item_limit: typeof parsed.feed_item_limit === 'number' ? parsed.feed_item_limit : 0,
       open_in_new_tab: typeof parsed.open_in_new_tab === 'boolean' ? parsed.open_in_new_tab : null,
+      quicklinks: parsed.quicklinks === true,
+      show_hover_actions: parsed.show_hover_actions !== false,
     }
   } catch {
-    return { columns: 4, show_add_tile: true, full_width: false, refresh_interval_ms: 0, feed_item_limit: 0, open_in_new_tab: null }
+    return { columns: defaultColumns, show_add_tile: true, full_width: false, refresh_interval_ms: 0, feed_item_limit: 0, open_in_new_tab: null, quicklinks: false, show_hover_actions: true }
   }
 }
-const config = ref(parseConfig(form.value.config_json))
+const config = ref(parseConfig(form.value.config_json, form.value.type))
 
 const titleInput = ref<HTMLInputElement | null>(null)
 onMounted(() => titleInput.value?.focus())
@@ -45,16 +51,6 @@ const moduleTypes: { value: ModuleType; label: string }[] = [
   { value: 'tabs',  label: 'Bookmarks (Tabs)' },
   { value: 'notes', label: 'Notes' },
   { value: 'feeds', label: 'RSS/Atom Feeds' },
-]
-
-const refreshIntervals = [
-  { value: 0, label: 'Off' },
-  { value: 60000, label: '1 minute' },
-  { value: 300000, label: '5 minutes' },
-  { value: 600000, label: '10 minutes' },
-  { value: 900000, label: '15 minutes' },
-  { value: 1800000, label: '30 minutes' },
-  { value: 3600000, label: '60 minutes' },
 ]
 
 const feedItemLimits = [
@@ -81,6 +77,9 @@ const layoutOptions = [
   { value: 6, label: '6' },
   { value: 7, label: '7' },
   { value: 8, label: '8' },
+  { value: 9, label: '9' },
+  { value: 10, label: '10' },
+  { value: 0, label: 'Infinite' },
 ]
 
 function handleSubmit() {
@@ -149,6 +148,32 @@ function handleSubmit() {
       </label>
     </div>
 
+    <div v-if="form.type === 'tabs'" class="flex items-center gap-2">
+      <input
+        id="module_quicklinks"
+        type="checkbox"
+        :checked="config.quicklinks"
+        @change="config.quicklinks = ($event.target as HTMLInputElement).checked"
+        class="rounded border-white/10 bg-surface-950 text-indigo-600 focus:ring-indigo-500"
+      />
+      <label for="module_quicklinks" class="text-sm text-gray-300 select-none">
+        Quicklinks mode
+      </label>
+    </div>
+
+    <div v-if="form.type === 'tabs'" class="flex items-center gap-2">
+      <input
+        id="module_show_hover_actions"
+        type="checkbox"
+        :checked="config.show_hover_actions"
+        @change="config.show_hover_actions = ($event.target as HTMLInputElement).checked"
+        class="rounded border-white/10 bg-surface-950 text-indigo-600 focus:ring-indigo-500"
+      />
+      <label for="module_show_hover_actions" class="text-sm text-gray-300 select-none">
+        Show bookmark hover action buttons
+      </label>
+    </div>
+
     <div v-if="form.type === 'tabs'">
       <label for="bookmark_open_mode" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Bookmark Open Behavior</label>
       <select
@@ -167,26 +192,6 @@ function handleSubmit() {
           {{ mode.label }}
         </option>
       </select>
-    </div>
-
-    <div v-if="form.type === 'feeds'">
-      <label for="feed_refresh_interval" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Auto Refresh</label>
-      <select
-        id="feed_refresh_interval"
-        v-model.number="config.refresh_interval_ms"
-        class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-      >
-        <option
-          v-for="interval in refreshIntervals"
-          :key="interval.value"
-          :value="interval.value"
-        >
-          {{ interval.label }}
-        </option>
-      </select>
-      <p class="mt-1 text-[11px] text-white/45">
-        Only runs while this feed module is open and the tab is visible.
-      </p>
     </div>
 
     <div v-if="form.type === 'feeds'">

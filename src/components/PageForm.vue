@@ -3,8 +3,17 @@ import { loadAssetObjectUrl, storeOrGetAsset } from '@/composables/useAsset'
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import type { Page, PortableInput } from '@/types/db'
 
+const PRESET_PAGE_ICONS = [
+  '⭕', '⚡', '🏠', '⭐', '📁', '📌', '🧩', '📝', '📚', '📰',
+  '📡', '🧠', '💼', '📊', '📈', '🛠️', '🔧', '🎯', '🚀', '🌐',
+  '🧭', '🗂️', '📂', '💡', '🔒', '🔖', '🗞️', '🧪', '🎨', '🧵',
+  '📷', '🎵', '🎬', '🛒', '💳', '🏦', '🧾', '🧰', '🖥️', '📱',
+  '⌨️', '🕹️', '☁️', '🌙', '☀️', '🔥', '🌿', '🌊', '📍', '✅',
+]
+
 const props = defineProps<{
   page?: Page
+  defaultMaxWidth?: number | null
 }>()
 
 const emit = defineEmits<{
@@ -15,7 +24,13 @@ const emit = defineEmits<{
 
 // Parse existing layout config (modulesPerRow, maxWidth, background) out of config_json.
 function parseConfig(): { modulesPerRow: number; maxWidth: number | null; backgroundAssetId: number | null } {
-  if (!props.page?.config_json) return { modulesPerRow: 3, maxWidth: null, backgroundAssetId: null }
+  if (!props.page?.config_json) {
+    return {
+      modulesPerRow: 3,
+      maxWidth: typeof props.defaultMaxWidth === 'number' ? props.defaultMaxWidth : null,
+      backgroundAssetId: null,
+    }
+  }
   try {
     const c = JSON.parse(props.page.config_json)
     return {
@@ -42,6 +57,7 @@ const maxWidth      = ref<number | null>(initialCfg.maxWidth)
 const backgroundAssetId = ref<number | null>(initialCfg.backgroundAssetId)
 const selectedBackgroundFile = ref<File | null>(null)
 const backgroundPreviewUrl = ref<string | null>(null)
+const isIconPickerOpen = ref(false)
 
 const titleInput = ref<HTMLInputElement | null>(null)
 onMounted(() => titleInput.value?.focus())
@@ -86,6 +102,11 @@ function clearBackgroundOverride() {
   backgroundPreviewUrl.value = null
 }
 
+function selectIcon(icon: string) {
+  form.value.icon = icon
+  isIconPickerOpen.value = false
+}
+
 async function handleSubmit() {
   if (!form.value.title) return
   if (!form.value.slug) {
@@ -120,15 +141,41 @@ async function handleSubmit() {
       />
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
-      <div>
+    <div class="grid grid-cols-2 gap-4 items-start">
+      <div :class="isIconPickerOpen ? 'col-span-2' : ''">
         <label for="page_icon" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Icon (Emoji)</label>
-        <input
-          id="page_icon"
-          v-model="form.icon"
-          type="text"
-          class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-        />
+        <div class="space-y-2">
+          <div class="flex gap-2">
+            <input
+              id="page_icon"
+              v-model="form.icon"
+              type="text"
+              class="min-w-0 max-w-[75%] flex-[1_1_75%] bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+            <button
+              type="button"
+              @click="isIconPickerOpen = !isIconPickerOpen"
+              class="shrink-0 px-3 py-2 bg-white/10 hover:bg-white/15 border border-white/10 rounded text-[10px] uppercase tracking-wider text-white/80 hover:text-white transition-colors"
+            >
+              Pick
+            </button>
+          </div>
+
+          <div
+            v-if="isIconPickerOpen"
+            class="grid grid-cols-6 gap-1 p-2 border border-white/10 bg-black/90 rounded-sm shadow-2xl"
+          >
+            <button
+              v-for="icon in PRESET_PAGE_ICONS"
+              :key="icon"
+              type="button"
+              @click="selectIcon(icon)"
+              class="h-8 rounded-sm bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-base transition-colors"
+            >
+              {{ icon }}
+            </button>
+          </div>
+        </div>
       </div>
       <div>
         <label for="page_nav_group" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Nav Group</label>

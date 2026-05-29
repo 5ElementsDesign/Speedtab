@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
-import type { PortableInput, Tab } from '@/types/db'
-import { TILE_W, TILE_H, storeOrGetAsset, canvasToWebpBlob } from '@/composables/useAsset'
+import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
+import type { Asset, PortableInput, Tab } from '@/types/db'
+import { TILE_W, TILE_H, storeOrGetAsset, canvasToWebpBlob, loadAssetObjectUrl } from '@/composables/useAsset'
+import { ensureFaviconAssetIdForUrl } from '@/composables/useFavicon'
+import { useLiveQuery } from '@/composables/useLiveQuery'
+import { db } from '@/db/db'
 
 type CropperInstance = import('cropperjs').default
 type CropperConstructor = typeof import('cropperjs').default
@@ -35,6 +38,95 @@ const form = ref({
   url:   props.tab?.url         ?? '',
   title: props.tab?.title       ?? '',
 })
+const isTesting = ref(false)
+const testError = ref<string | null>(null)
+const testSuccess = ref(false)
+const lastTestedUrl = ref(props.tab?.url ?? '')
+const urlStatusMessage = computed(() => {
+  if (testError.value) return testError.value
+  if (testSuccess.value) return 'URL is reachable.'
+  return 'Click test to check connectivity'
+})
+const urlStatusClass = computed(() =>
+  testError.value ? 'text-red-400' : testSuccess.value ? 'text-green-400' : 'text-white/40'
+)
+
+watch(() => form.value.url, () => {
+  testError.value = null
+  if (form.value.url !== lastTestedUrl.value) {
+    testSuccess.value = false
+  }
+})
+
+type UrlMetaResponse = {
+  ok: boolean
+  title?: string | null
+  finalUrl?: string
+  error?: string
+}
+
+async function fetchUrlMetaDirect(url: string): Promise<UrlMetaResponse> {
+  const response = await fetch(url, { redirect: 'follow' })
+  if (!response.ok) {
+    return { ok: false, error: `HTTP ${response.status}: ${response.statusText}` }
+  }
+
+  const contentType = response.headers.get('content-type') ?? ''
+  const finalUrl = response.url || url
+  if (!contentType.includes('text/html')) {
+    return { ok: true, title: null, finalUrl }
+  }
+
+  const html = await response.text()
+  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
+  return {
+    ok: true,
+    finalUrl,
+    title: titleMatch?.[1]?.replace(/\s+/g, ' ').trim() || null,
+  }
+}
+
+async function testUrl() {
+  if (!form.value.url) return
+
+  testError.value = null
+  testSuccess.value = false
+
+  let normalizedUrl: string
+  try {
+    normalizedUrl = new URL(form.value.url).toString()
+  } catch {
+    testError.value = 'Please enter a valid URL.'
+    return
+  }
+
+  isTesting.value = true
+  try {
+    const backgroundResponse = await chrome.runtime.sendMessage({
+      type: 'FETCH_URL_META',
+      url: normalizedUrl,
+    }) as UrlMetaResponse | undefined
+
+    const response = backgroundResponse && typeof backgroundResponse.ok === 'boolean'
+      ? backgroundResponse
+      : await fetchUrlMetaDirect(normalizedUrl)
+
+    if (!response.ok) {
+      throw new Error(response.error || 'Failed to reach URL')
+    }
+
+    form.value.url = response.finalUrl || normalizedUrl
+    if ((!form.value.title || !form.value.title.trim()) && response.title) {
+      form.value.title = response.title
+    }
+    testSuccess.value = true
+    lastTestedUrl.value = form.value.url
+  } catch (err: unknown) {
+    testError.value = err instanceof Error ? err.message : 'Failed to test URL'
+  } finally {
+    isTesting.value = false
+  }
+}
 
 // ─── Cropper pipeline ─────────────────────────────────────────────────────────
 
@@ -42,10 +134,45 @@ const fileInput      = ref<HTMLInputElement | null>(null)
 const cropperImgEl   = ref<HTMLImageElement  | null>(null)
 const imageDataUrl   = ref<string | null>(null)  // raw file data URL → shows cropper
 const croppedBlobUrl = ref<string | null>(null)  // object URL of final crop preview
+const selectedPreviewAssetId = ref<number | null>(props.tab?.preview_asset_id ?? null)
+const selectedPreviewAssetUrl = ref<string | null>(null)
+const isAssetPickerOpen = ref(false)
+const pickerPreviewUrls = ref<Record<number, string>>({})
 let   croppedBlob:      Blob | null = null
 let   cropperInstance:  CropperInstance | null = null
-/** Preserve existing preview_asset_id across edits unless user changes the image */
-let   currentPreviewId: number | null = props.tab?.preview_asset_id ?? null
+
+const { data: reusableAssets } = useLiveQuery(
+  () => db.assets
+    .where('kind')
+    .anyOf(['preview', 'background', 'note_image'])
+    .toArray(),
+  [] as Asset[]
+)
+
+const groupedReusableAssets = computed(() => ([
+  { kind: 'preview', label: 'Bookmark Previews' },
+  { kind: 'background', label: 'Backgrounds' },
+  { kind: 'note_image', label: 'Note Images' },
+]).map((group) => ({
+  ...group,
+  items: reusableAssets.value.filter((asset) => asset.kind === group.kind),
+})))
+
+async function loadSelectedPreviewAsset() {
+  if (selectedPreviewAssetUrl.value) {
+    URL.revokeObjectURL(selectedPreviewAssetUrl.value)
+    selectedPreviewAssetUrl.value = null
+  }
+  if (!selectedPreviewAssetId.value || imageDataUrl.value || croppedBlobUrl.value) return
+  selectedPreviewAssetUrl.value = await loadAssetObjectUrl(selectedPreviewAssetId.value)
+}
+
+function revokePickerPreviewUrls() {
+  for (const url of Object.values(pickerPreviewUrls.value)) {
+    URL.revokeObjectURL(url)
+  }
+  pickerPreviewUrls.value = {}
+}
 
 function destroyCropper() {
   if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null }
@@ -73,9 +200,19 @@ watch(imageDataUrl, async (url) => {
 function onFileChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
+  void loadBlobIntoCropper(file)
+}
+
+async function loadBlobIntoCropper(blob: Blob) {
   const reader = new FileReader()
-  reader.onload = (ev) => { imageDataUrl.value = ev.target?.result as string }
-  reader.readAsDataURL(file)
+  await new Promise<void>((resolve, reject) => {
+    reader.onload = (ev) => {
+      imageDataUrl.value = ev.target?.result as string
+      resolve()
+    }
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
 }
 
 async function applyCrop() {
@@ -95,23 +232,80 @@ function clearImage() {
   imageDataUrl.value = null
   if (croppedBlobUrl.value) { URL.revokeObjectURL(croppedBlobUrl.value); croppedBlobUrl.value = null }
   croppedBlob     = null
-  currentPreviewId = null
+  if (selectedPreviewAssetUrl.value) {
+    URL.revokeObjectURL(selectedPreviewAssetUrl.value)
+    selectedPreviewAssetUrl.value = null
+  }
+  selectedPreviewAssetId.value = null
+}
+
+function resetPreviewSelectionState() {
+  destroyCropper()
+  imageDataUrl.value = null
+  if (croppedBlobUrl.value) {
+    URL.revokeObjectURL(croppedBlobUrl.value)
+    croppedBlobUrl.value = null
+  }
+  croppedBlob = null
+}
+
+async function selectExistingAsset(asset: Asset) {
+  resetPreviewSelectionState()
+  if (asset.kind === 'background') {
+    selectedPreviewAssetId.value = null
+    if (selectedPreviewAssetUrl.value) {
+      URL.revokeObjectURL(selectedPreviewAssetUrl.value)
+      selectedPreviewAssetUrl.value = null
+    }
+    isAssetPickerOpen.value = false
+    await loadBlobIntoCropper(asset.blob)
+    return
+  }
+
+  if (selectedPreviewAssetUrl.value) {
+    URL.revokeObjectURL(selectedPreviewAssetUrl.value)
+    selectedPreviewAssetUrl.value = null
+  }
+  selectedPreviewAssetId.value = asset.id ?? null
+  isAssetPickerOpen.value = false
+  void loadSelectedPreviewAsset()
 }
 
 onBeforeUnmount(() => {
   destroyCropper()
   if (croppedBlobUrl.value) URL.revokeObjectURL(croppedBlobUrl.value)
+  if (selectedPreviewAssetUrl.value) URL.revokeObjectURL(selectedPreviewAssetUrl.value)
+  revokePickerPreviewUrls()
 })
+
+watch(selectedPreviewAssetId, () => {
+  void loadSelectedPreviewAsset()
+}, { immediate: true })
+
+watch(
+  () => reusableAssets.value.map((asset) => asset.id).join('|'),
+  () => {
+    revokePickerPreviewUrls()
+    const nextUrls: Record<number, string> = {}
+    for (const asset of reusableAssets.value) {
+      if (!asset.id) continue
+      nextUrls[asset.id] = URL.createObjectURL(asset.blob)
+    }
+    pickerPreviewUrls.value = nextUrls
+  },
+  { immediate: true },
+)
 
 // ─── Submit ───────────────────────────────────────────────────────────────────
 
 async function handleSubmit() {
   if (!form.value.url) return
 
-  let previewAssetId: number | null = currentPreviewId
+  let previewAssetId: number | null = selectedPreviewAssetId.value
   if (croppedBlob) {
     previewAssetId = await storeOrGetAsset(croppedBlob, 'preview', TILE_W, TILE_H)
   }
+  const faviconAssetId = await ensureFaviconAssetIdForUrl(form.value.url) ?? props.tab?.favicon_asset_id ?? null
 
   let displayTitle = form.value.title.trim()
   if (!displayTitle) {
@@ -123,7 +317,7 @@ async function handleSubmit() {
     title:            displayTitle,
     url:              form.value.url,
     description:      null,
-    favicon_asset_id: props.tab?.favicon_asset_id ?? null,
+    favicon_asset_id: faviconAssetId,
     preview_asset_id: previewAssetId,
     sort_order:       props.tab?.sort_order ?? 0,
     meta_json:        null,
@@ -136,9 +330,20 @@ async function handleSubmit() {
 
     <div>
       <label for="tab_url" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">URL</label>
-      <input id="tab_url" v-model="form.url" type="url" placeholder="https://example.com" required
-        class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100
-               focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+      <div class="flex gap-2">
+        <input id="tab_url" v-model="form.url" type="url" placeholder="https://example.com" required
+          class="flex-1 bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100
+                 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+        <button
+          type="button"
+          @click="testUrl"
+          :disabled="isTesting || !form.url"
+          class="px-3 py-1.5 bg-black/85 hover:bg-black border border-white/10 rounded text-[10px] uppercase tracking-wider font-bold text-white/85 hover:text-white transition-colors disabled:opacity-50"
+        >
+          {{ isTesting ? '...' : 'Test' }}
+        </button>
+      </div>
+      <p class="mt-1 text-[10px] min-h-[1rem]" :class="urlStatusClass">{{ urlStatusMessage }}</p>
     </div>
 
     <div>
@@ -151,12 +356,12 @@ async function handleSubmit() {
     <!-- Preview image pipeline -->
     <div>
       <label for="tab_preview_file" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-        Preview Image <span class="normal-case font-normal text-gray-600">(98×56 WebP, ≤5 KB)</span>
+        Preview Image <span class="normal-case font-normal text-gray-600">(98×56 WebP, high quality)</span>
       </label>
 
-      <!-- Cropped result preview -->
-      <div v-if="croppedBlobUrl" class="flex items-center gap-3">
-        <img :src="croppedBlobUrl" class="w-[98px] h-[56px] rounded object-cover border border-white/10" alt="Preview" />
+      <!-- Selected or cropped result preview -->
+      <div v-if="croppedBlobUrl || selectedPreviewAssetUrl" class="flex items-center gap-3">
+        <img :src="croppedBlobUrl || selectedPreviewAssetUrl || ''" class="w-[98px] h-[56px] rounded object-cover border border-white/10" alt="Preview" />
         <button type="button" @click="clearImage" class="text-xs text-red-400 hover:text-red-300 transition-colors">Remove</button>
       </div>
 
@@ -178,13 +383,51 @@ async function handleSubmit() {
       </div>
 
       <!-- File picker trigger -->
-      <div v-else>
+      <div v-else class="space-y-2">
         <input id="tab_preview_file" ref="fileInput" type="file" accept="image/*" class="hidden" @change="onFileChange" />
-        <button type="button" @click="fileInput?.click()"
-          class="w-full py-4 border border-dashed border-white/10 rounded text-xs text-gray-500
-                 hover:text-gray-300 hover:border-white/20 transition-colors">
-          ↑ Upload screenshot or thumbnail
-        </button>
+        <div class="flex gap-2">
+          <button type="button" @click="fileInput?.click()"
+            class="flex-1 py-4 border border-dashed border-white/10 rounded text-xs text-gray-500
+                   hover:text-gray-300 hover:border-white/20 transition-colors">
+            ↑ Upload screenshot or thumbnail
+          </button>
+          <button
+            type="button"
+            @click="isAssetPickerOpen = !isAssetPickerOpen"
+            class="px-3 py-2 bg-black/85 hover:bg-black border border-white/10 rounded text-[10px] uppercase tracking-wider font-bold text-white/85 hover:text-white transition-colors"
+          >
+            Pick Asset
+          </button>
+        </div>
+
+        <div
+          v-if="isAssetPickerOpen"
+          class="max-h-64 overflow-y-auto border border-white/10 bg-black/40 p-2 space-y-3"
+        >
+          <section
+            v-for="group in groupedReusableAssets"
+            :key="group.kind"
+            v-show="group.items.length"
+            class="space-y-2"
+          >
+            <h4 class="text-[10px] uppercase tracking-wider text-white/60">{{ group.label }}</h4>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <button
+                v-for="asset in group.items"
+                :key="asset.id"
+                type="button"
+                @click="selectExistingAsset(asset)"
+                class="border border-white/10 hover:border-white/25 bg-black/25 overflow-hidden"
+              >
+                <img
+                  :src="pickerPreviewUrls[asset.id!] || ''"
+                  :alt="group.label"
+                  class="w-full h-20 object-cover"
+                />
+              </button>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
 

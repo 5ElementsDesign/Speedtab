@@ -1,4 +1,7 @@
 import { db as defaultDb, type SpeedtabDB } from '@/db/db'
+import { getFaviconHostnameCandidatesForUrl, parseFaviconMeta } from '@/composables/useFavicon'
+import { extractNoteImageAssetIds } from '@/composables/useNoteImages'
+import type { Asset, Collection, FeedItem, FeedSource, Module, Note, SavedFeedItem, Tab } from '@/types/db'
 
 export interface CleanupReport {
   removedModules: number
@@ -11,6 +14,21 @@ export interface CleanupReport {
   removedAssets: number
 }
 
+export interface CleanupCandidates {
+  modules: Module[]
+  collections: Collection[]
+  tabs: Tab[]
+  notes: Note[]
+  feedSources: FeedSource[]
+  feedItems: FeedItem[]
+  savedFeedItems: SavedFeedItem[]
+  unusedAssets: Asset[]
+}
+
+export interface CleanupOptions {
+  removeUnusedAssets?: boolean
+}
+
 function emptyReport(): CleanupReport {
   return {
     removedModules: 0,
@@ -21,6 +39,19 @@ function emptyReport(): CleanupReport {
     removedFeedItems: 0,
     removedSavedFeedItems: 0,
     removedAssets: 0,
+  }
+}
+
+function emptyCandidates(): CleanupCandidates {
+  return {
+    modules: [],
+    collections: [],
+    tabs: [],
+    notes: [],
+    feedSources: [],
+    feedItems: [],
+    savedFeedItems: [],
+    unusedAssets: [],
   }
 }
 
@@ -42,6 +73,42 @@ function getAppBackgroundAssetId(valueJson: string | null | undefined): number |
   } catch {
     return null
   }
+}
+
+function collectReferencedFaviconAssetIds(
+  assets: Asset[],
+  tabs: Tab[],
+  feedSources: FeedSource[],
+  feedItems: FeedItem[],
+): Set<number> {
+  const referencedAssetIds = new Set<number>()
+
+  for (const tab of tabs) {
+    if (tab.favicon_asset_id != null) referencedAssetIds.add(tab.favicon_asset_id)
+    if (tab.preview_asset_id != null) referencedAssetIds.add(tab.preview_asset_id)
+  }
+
+  const referencedHosts = new Set<string>()
+  for (const tab of tabs) {
+    for (const host of getFaviconHostnameCandidatesForUrl(tab.url)) referencedHosts.add(host)
+  }
+  for (const source of feedSources) {
+    for (const host of getFaviconHostnameCandidatesForUrl(source.site_url || source.feed_url)) referencedHosts.add(host)
+  }
+  for (const item of feedItems) {
+    for (const host of getFaviconHostnameCandidatesForUrl(item.url)) referencedHosts.add(host)
+  }
+
+  for (const asset of assets) {
+    if (asset.kind !== 'favicon' || asset.id == null) continue
+    const meta = parseFaviconMeta(asset.meta_json)
+    if (!meta) continue
+    if (meta.hostnames.some((hostname) => referencedHosts.has(hostname))) {
+      referencedAssetIds.add(asset.id)
+    }
+  }
+
+  return referencedAssetIds
 }
 
 export async function deleteCollectionTree(
@@ -127,8 +194,10 @@ export async function deletePageTree(
 
 export async function cleanupOrphans(
   database: SpeedtabDB = defaultDb,
+  options: CleanupOptions = {},
 ): Promise<CleanupReport> {
   const report = emptyReport()
+  const removeUnusedAssets = options.removeUnusedAssets === true
 
   await database.transaction(
     'rw',
@@ -201,10 +270,16 @@ export async function cleanupOrphans(
         report.removedSavedFeedItems = orphanSavedFeedItemIds.length
       }
 
-      const referencedAssetIds = new Set<number>()
-      for (const tab of await database.tabs.toArray()) {
-        if (tab.favicon_asset_id != null) referencedAssetIds.add(tab.favicon_asset_id)
-        if (tab.preview_asset_id != null) referencedAssetIds.add(tab.preview_asset_id)
+      const currentTabs = await database.tabs.toArray()
+      const currentFeedSources = await database.feed_sources.toArray()
+      const currentFeedItems = await database.feed_items.toArray()
+      const currentAssets = await database.assets.toArray()
+      const referencedAssetIds = collectReferencedFaviconAssetIds(currentAssets, currentTabs, currentFeedSources, currentFeedItems)
+      for (const note of await database.notes.toArray()) {
+        if (note.type !== 'html') continue
+        for (const assetId of extractNoteImageAssetIds(note.content)) {
+          referencedAssetIds.add(assetId)
+        }
       }
       for (const page of await database.pages.toArray()) {
         const pageBackgroundAssetId = getPageBackgroundAssetId(page.config_json)
@@ -215,15 +290,81 @@ export async function cleanupOrphans(
         if (appBackgroundAssetId != null) referencedAssetIds.add(appBackgroundAssetId)
       }
 
-      const orphanAssetIds = (await database.assets.toArray())
-        .filter(asset => asset.id != null && !referencedAssetIds.has(asset.id))
-        .map(asset => asset.id!)
-      if (orphanAssetIds.length) {
-        await database.assets.bulkDelete(orphanAssetIds)
-        report.removedAssets = orphanAssetIds.length
+      if (removeUnusedAssets) {
+        const orphanAssetIds = currentAssets
+          .filter(asset => asset.id != null && !referencedAssetIds.has(asset.id))
+          .map(asset => asset.id!)
+        if (orphanAssetIds.length) {
+          await database.assets.bulkDelete(orphanAssetIds)
+          report.removedAssets = orphanAssetIds.length
+        }
       }
     },
   )
 
   return report
+}
+
+export async function getCleanupCandidates(
+  database: SpeedtabDB = defaultDb,
+): Promise<CleanupCandidates> {
+  const candidates = emptyCandidates()
+
+  const [
+    pages,
+    modules,
+    collections,
+    tabs,
+    notes,
+    feedSources,
+    feedItems,
+    savedFeedItems,
+    assets,
+    appSettings,
+  ] = await Promise.all([
+    database.pages.toArray(),
+    database.modules.toArray(),
+    database.collections.toArray(),
+    database.tabs.toArray(),
+    database.notes.toArray(),
+    database.feed_sources.toArray(),
+    database.feed_items.toArray(),
+    database.saved_feed_items.toArray(),
+    database.assets.toArray(),
+    database.app_settings.toArray(),
+  ])
+
+  const pageIds = new Set(pages.map((page) => page.id!).filter((id): id is number => typeof id === 'number'))
+  candidates.modules = modules.filter((module) => !pageIds.has(module.page_id))
+
+  const moduleIds = new Set(modules.map((module) => module.id!).filter((id): id is number => typeof id === 'number'))
+  candidates.collections = collections.filter((collection) => !moduleIds.has(collection.module_id))
+
+  const collectionIds = new Set(collections.map((collection) => collection.id!).filter((id): id is number => typeof id === 'number'))
+  candidates.tabs = tabs.filter((tab) => !collectionIds.has(tab.collection_id))
+  candidates.notes = notes.filter((note) => !collectionIds.has(note.collection_id))
+  candidates.feedSources = feedSources.filter((source) => !collectionIds.has(source.collection_id))
+  candidates.savedFeedItems = savedFeedItems.filter((item) => !collectionIds.has(item.collection_id))
+
+  const sourceIds = new Set(feedSources.map((source) => source.id!).filter((id): id is number => typeof id === 'number'))
+  candidates.feedItems = feedItems.filter((item) => !sourceIds.has(item.feed_source_id))
+
+  const referencedAssetIds = collectReferencedFaviconAssetIds(assets, tabs, feedSources, feedItems)
+  for (const note of notes) {
+    if (note.type !== 'html') continue
+    for (const assetId of extractNoteImageAssetIds(note.content)) {
+      referencedAssetIds.add(assetId)
+    }
+  }
+  for (const page of pages) {
+    const pageBackgroundAssetId = getPageBackgroundAssetId(page.config_json)
+    if (pageBackgroundAssetId != null) referencedAssetIds.add(pageBackgroundAssetId)
+  }
+  for (const setting of appSettings) {
+    const appBackgroundAssetId = getAppBackgroundAssetId(setting.value_json)
+    if (appBackgroundAssetId != null) referencedAssetIds.add(appBackgroundAssetId)
+  }
+  candidates.unusedAssets = assets.filter((asset) => asset.id != null && !referencedAssetIds.has(asset.id))
+
+  return candidates
 }

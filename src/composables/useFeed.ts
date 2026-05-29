@@ -5,6 +5,14 @@ import type { FeedItem } from '@/types/db'
  * Uses native DOMParser (available in the UI context).
  */
 export function useFeed() {
+  function textContentOf(entry: Element, selector: string): string | null {
+    return entry.querySelector(selector)?.textContent?.trim() || null
+  }
+
+  function attributeOf(entry: Element, selector: string, attribute: string): string | null {
+    return entry.querySelector(selector)?.getAttribute(attribute)?.trim() || null
+  }
+
   function parseFeed(xmlText: string, sourceId: number): FeedItem[] {
     const parser = new DOMParser()
     const doc = parser.parseFromString(xmlText, 'text/xml')
@@ -29,17 +37,34 @@ export function useFeed() {
   }
 
   function parseAtomEntry(entry: Element, sourceId: number): FeedItem {
-    const id = entry.querySelector('id')?.textContent || null
-    const title = entry.querySelector('title')?.textContent || 'Untitled'
-    const link = entry.querySelector('link[rel="alternate"]')?.getAttribute('href') ||
-                 entry.querySelector('link')?.getAttribute('href') ||
+    const id = textContentOf(entry, 'id')
+    const title = textContentOf(entry, 'title') || 'Untitled'
+    const link = attributeOf(entry, 'link[rel="alternate"]', 'href') ||
+                 attributeOf(entry, 'link', 'href') ||
                  null
-    const author = entry.querySelector('author name')?.textContent || null
-    const published = entry.querySelector('published')?.textContent ||
-                      entry.querySelector('updated')?.textContent ||
+    const author = textContentOf(entry, 'author name')
+    const published = textContentOf(entry, 'published') ||
+                      textContentOf(entry, 'updated') ||
                       null
-    const summary = entry.querySelector('summary')?.textContent || null
-    const content = entry.querySelector('content')?.textContent || null
+    const summary = textContentOf(entry, 'summary')
+    const content = textContentOf(entry, 'content')
+
+    const youtubeVideoId = textContentOf(entry, 'yt\\:videoId, videoId')
+    const youtubeChannelId = textContentOf(entry, 'yt\\:channelId, channelId')
+    const youtubeThumbnailUrl = attributeOf(entry, 'media\\:thumbnail, thumbnail', 'url')
+    const youtubeDescription = textContentOf(entry, 'media\\:description, description')
+    const youtubeViewCount = attributeOf(entry, 'media\\:statistics, statistics', 'views')
+    const youtubeStarCount = attributeOf(entry, 'media\\:starRating, starRating', 'count')
+
+    const payload = youtubeVideoId ? {
+      kind: 'youtube',
+      video_id: youtubeVideoId,
+      channel_id: youtubeChannelId,
+      thumbnail_url: youtubeThumbnailUrl,
+      description: youtubeDescription,
+      view_count: youtubeViewCount ? Number(youtubeViewCount) : null,
+      star_count: youtubeStarCount ? Number(youtubeStarCount) : null,
+    } : null
 
     return {
       feed_source_id: sourceId,
@@ -52,7 +77,7 @@ export function useFeed() {
       content,
       fetched_at: Date.now(),
       read_at: null,
-      payload_json: null
+      payload_json: payload ? JSON.stringify(payload) : null
     }
   }
 

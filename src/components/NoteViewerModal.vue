@@ -2,8 +2,8 @@
 import { ref, computed, watch, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import type { Note } from '@/types/db'
 import { decryptNote, parseCryptPayload } from '@/composables/useCrypt'
-import { sanitizeHtml } from '@/composables/useSanitize'
 import { highlightCode } from '@/composables/useHighlight'
+import { renderNoteHtmlWithAssets } from '@/composables/useNoteImages'
 
 const props = defineProps<{
   show: boolean
@@ -74,18 +74,27 @@ function langOf(note: Note): string | null {
 }
 
 const codeHtml = ref('')
-const htmlSafe  = computed(() =>
-  props.note?.type === 'html' ? sanitizeHtml(props.note.content) : '',
-)
+const htmlSafe = ref('')
+let revokeHtmlAssets: (() => void) | null = null
 
 watch(
   () => [props.show, props.note?.type, props.note?.content, props.note ? langOf(props.note) : null] as const,
   async ([show, type, content, language]) => {
+    revokeHtmlAssets?.()
+    revokeHtmlAssets = null
+    htmlSafe.value = ''
+
     if (!show || type !== 'code' || !content) {
       codeHtml.value = ''
-      return
+    } else {
+      codeHtml.value = await highlightCode(content, language)
     }
-    codeHtml.value = await highlightCode(content, language)
+
+    if (show && type === 'html' && content) {
+      const rendered = await renderNoteHtmlWithAssets(content)
+      htmlSafe.value = rendered.html
+      revokeHtmlAssets = rendered.revoke
+    }
   },
   { immediate: true }
 )
@@ -150,6 +159,7 @@ function toggleMaximized() {
 }
 
 onBeforeUnmount(lock)
+onBeforeUnmount(() => revokeHtmlAssets?.())
 </script>
 
 <template>
@@ -193,18 +203,24 @@ onBeforeUnmount(lock)
           </header>
 
           <!-- Message body — neutral, fully opaque -->
-          <div class="bg-surface-900 px-4 py-3 overflow-y-auto" :class="isMaximized ? 'h-[calc(90vh-40px)]' : 'max-h-[70vh]'">
+          <div
+            class="bg-surface-900 overflow-y-auto"
+            :class="[
+              isMaximized ? 'h-[calc(90vh-40px)]' : 'max-h-[70vh]',
+              note.type === 'code' ? 'p-0' : 'px-4 py-3',
+            ]"
+          >
 
             <!-- text -->
             <pre v-if="note.type === 'text'"
-                 class="text-[13px] leading-snug text-gray-200 whitespace-pre-wrap break-words font-sans m-0">{{ note.content }}</pre>
+                 class="st-note-content-scale leading-snug text-gray-200 whitespace-pre-wrap break-words font-sans m-0">{{ note.content }}</pre>
 
             <!-- code -->
             <pre v-else-if="note.type === 'code'"
-                 class="hljs text-[12px] leading-snug overflow-x-auto p-3 m-0"><code v-html="codeHtml"></code></pre>
+                 class="st-note-content-scale hljs leading-snug overflow-auto p-3 m-0 h-full max-h-full"><code v-html="codeHtml"></code></pre>
 
             <!-- links -->
-            <ul v-else-if="note.type === 'links'" class="space-y-1">
+            <ul v-else-if="note.type === 'links'" class="st-note-content-scale space-y-1">
               <li v-for="(entry, i) in linkItems" :key="i">
                 <a v-if="entry.url" :href="entry.url" target="_blank" rel="noopener noreferrer"
                    class="text-[13px] text-sky-400 hover:text-sky-300 hover:underline truncate block">{{ entry.text }}</a>
@@ -214,7 +230,7 @@ onBeforeUnmount(lock)
 
             <!-- html -->
             <div v-else-if="note.type === 'html'"
-                 class="text-[13px] leading-snug text-gray-200 prose-tight" v-html="htmlSafe"></div>
+                 class="st-note-content-scale leading-snug text-gray-200 prose-tight" v-html="htmlSafe"></div>
 
             <!-- crypt: locked -->
             <div v-else-if="note.type === 'crypt'">
@@ -244,7 +260,7 @@ onBeforeUnmount(lock)
               </div>
 
               <div v-if="unlockedText" class="space-y-2">
-                <pre class="text-[13px] leading-snug text-gray-200 whitespace-pre-wrap break-words font-sans m-0">{{ unlockedText }}</pre>
+                <pre class="st-note-content-scale leading-snug text-gray-200 whitespace-pre-wrap break-words font-sans m-0">{{ unlockedText }}</pre>
                 <button type="button" @click="lock"
                   class="text-[11px] uppercase tracking-wider font-bold text-rose-400 hover:text-rose-300">
                   🔒 Lock
@@ -270,5 +286,18 @@ onBeforeUnmount(lock)
   background: rgba(255,255,255,0.05);
   padding: 0 3px;
   border-radius: 2px;
+}
+.prose-tight :deep(.st-note-image) {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.5rem 0;
+  border-radius: 0.35rem;
+}
+.prose-tight :deep(.st-note-image-missing) {
+  display: inline-block;
+  color: rgba(255,255,255,0.45);
+  font-size: 11px;
+  font-style: italic;
 }
 </style>

@@ -1,0 +1,39 @@
+.theme-matrix {
+  --st-theme-text: #33ff33;
+  --st-theme-text-muted: rgb(51 255 51 / 0.65);
+  --st-theme-module-bg: rgb(2 15 4 / 0.85);
+  --st-theme-header-bg: rgb(1 10 2 / 0.92);
+  --st-theme-dropdown-bg: rgb(0 5 1 / 0.96);
+  --st-theme-status-bg: rgb(0 40 10 / 0.9);
+  --st-theme-border: rgb(51 255 51 / 0.25);
+  --st-theme-accent: #00ff00;
+  
+  --st-module-action-bg: rgb(24 43 24 / 0.95);
+  --st-module-action-bg-hover: rgb(34 58 34 / 1);
+  
+  --st-feed-sidebar-bg: rgb(1 10 2 / 0.92);
+  --st-feed-toolbar-bg: #33ff33;
+  --st-feed-toolbar-text: #010a02;
+  --st-feed-toolbar-muted: rgb(1 10 2 / 0.7);
+  --st-feed-toolbar-badge-bg: #002200;
+  --st-feed-toolbar-badge-text: #33ff33;
+  
+  --st-feed-item-bg: rgb(5 37 10 / 0.95);
+  --st-feed-item-bg-hover: rgb(8 53 15 / 0.95);
+  --st-feed-item-bg-active: rgb(2 18 4 / 0.98);
+  --st-feed-item-text: #ffffff;
+  --st-feed-item-text-muted: #33ff33;
+  --st-feed-item-text-dim: rgb(51 255 51 / 0.4);
+  
+  --st-feed-item-body-bg: rgb(1 10 2 / 0.95);
+  --st-feed-item-body-copy: #aaffaa;
+  
+  --st-feed-item-button-bg: rgb(8 53 15 / 0.95);
+  --st-feed-item-button-bg-hover: rgb(5 37 10 / 1);
+  --st-feed-item-button-text: #33ff33;
+  --st-feed-item-button-border: rgb(51 255 51 / 0.2);
+  
+  --st-feed-item-open-bg: #008800;
+  --st-feed-item-open-bg-hover: #006600;
+  --st-feed-item-divider: rgb(51 255 51 / 0.2);
+}

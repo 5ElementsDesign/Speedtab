@@ -46,6 +46,7 @@ import {
     blobToBase64,
     exportAll,
     importAll,
+    manifestToJsonString,
     readManifestFile,
     validateManifest,
     type BackupManifest,
@@ -199,6 +200,15 @@ describe('exportAll', () => {
     expect(m.tabs[0].collection_sync_id).toBeTypeOf('string')
     expect(m.saved_feed_items).toHaveLength(1)
   })
+
+  it('serialises backup JSON in minified form', async () => {
+    await seedFullChain(src)
+    const manifest = await exportAll(src)
+    const json = manifestToJsonString(manifest)
+
+    expect(json).not.toContain('\n')
+    expect(json).toContain('"version":2')
+  })
 })
 
 describe('importAll – round-trip', () => {
@@ -226,6 +236,132 @@ describe('importAll – round-trip', () => {
     const [collection] = await dst.collections.toArray()
     const [tab]        = await dst.tabs.toArray()
     expect(tab.collection_id).toBe(collection.id)
+  })
+
+  it('remaps bookmark preview asset ids to restored local asset ids', async () => {
+    await seedFullChain(src)
+    const manifest = await exportAll(src)
+    const previewBlob = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/webp' })
+    const previewAssetOriginalId = 99
+    manifest.assets.push({
+      original_id: previewAssetOriginalId,
+      kind: 'preview',
+      checksum: 'preview-checksum',
+      width: 100,
+      height: 50,
+      meta_json: null,
+      mime_type: 'image/webp',
+      data_base64: await blobToBase64(previewBlob),
+    })
+    manifest.tabs[0].preview_asset_id = previewAssetOriginalId
+
+    await importAll(manifest, {}, dst)
+
+    const [importedTab] = await dst.tabs.toArray()
+    expect(importedTab.preview_asset_id).not.toBeNull()
+
+    const importedPreview = await dst.assets.get(importedTab.preview_asset_id!)
+    expect(importedPreview?.checksum).toBe('preview-checksum')
+    expect(importedPreview?.kind).toBe('preview')
+  })
+
+  it('remaps bookmark favicon asset ids to restored local asset ids', async () => {
+    await seedFullChain(src)
+    const manifest = await exportAll(src)
+    const faviconBlob = new Blob([new Uint8Array([9, 8, 7])], { type: 'image/png' })
+    const faviconAssetOriginalId = 101
+    manifest.assets.push({
+      original_id: faviconAssetOriginalId,
+      kind: 'favicon',
+      checksum: 'favicon-checksum',
+      width: 32,
+      height: 32,
+      meta_json: JSON.stringify({ hostnames: ['github.com'], fetched_at: Date.now() }),
+      mime_type: 'image/png',
+      data_base64: await blobToBase64(faviconBlob),
+    })
+    manifest.tabs[0].favicon_asset_id = faviconAssetOriginalId
+
+    await importAll(manifest, {}, dst)
+
+    const [importedTab] = await dst.tabs.toArray()
+    expect(importedTab.favicon_asset_id).not.toBeNull()
+
+    const importedFavicon = await dst.assets.get(importedTab.favicon_asset_id!)
+    expect(importedFavicon?.checksum).toBe('favicon-checksum')
+    expect(importedFavicon?.kind).toBe('favicon')
+  })
+
+  it('round-trips bookmark module config_json options unchanged', async () => {
+    const pageId = await src.pages.add(withMeta({
+      slug: 'home',
+      title: 'Home',
+      nav_group: 'main',
+      icon: '🏠',
+      is_home: 1,
+      sort_order: 0,
+      config_json: null,
+    }))
+    const moduleConfig = JSON.stringify({
+      columns: 10,
+      show_add_tile: true,
+      full_width: false,
+      open_in_new_tab: true,
+      quicklinks: true,
+      show_hover_actions: false,
+    })
+    await src.modules.add(withMeta({
+      page_id: pageId as number,
+      type: 'tabs',
+      title: 'Bookmarks',
+      sort_order: 0,
+      config_json: moduleConfig,
+    }))
+
+    const manifest = await exportAll(src)
+    await importAll(manifest, {}, dst)
+
+    const [importedModule] = await dst.modules.toArray()
+    expect(importedModule.config_json).toBe(moduleConfig)
+  })
+
+  it('remaps html note image tokens to restored local asset ids', async () => {
+    await seedFullChain(src)
+    const manifest = await exportAll(src)
+    const noteImageBlob = new Blob([new Uint8Array([4, 5, 6])], { type: 'image/png' })
+    const noteImageOriginalId = 123
+
+    manifest.assets.push({
+      original_id: noteImageOriginalId,
+      kind: 'note_image',
+      checksum: 'note-image-checksum',
+      width: null,
+      height: null,
+      meta_json: null,
+      mime_type: 'image/png',
+      data_base64: await blobToBase64(noteImageBlob),
+    })
+    manifest.notes.push({
+      ...withMeta({
+        collection_sync_id: manifest.collections[0].sync_id,
+        title: 'HTML note',
+        type: 'html',
+        content: `<p>{{asset:image:${noteImageOriginalId}}}</p>`,
+        style_token: null,
+        sort_order: 0,
+        meta_json: null,
+        original_id: 222,
+      }),
+    })
+
+    await importAll(manifest, {}, dst)
+
+    const importedAssets = await dst.assets.toArray()
+    const importedNoteImage = importedAssets.find((asset) => asset.checksum === 'note-image-checksum')
+    expect(importedNoteImage?.id).toBeTruthy()
+
+    const htmlNote = (await dst.notes.toArray()).find((note) => note.title === 'HTML note')
+    expect(htmlNote?.content).toContain(`{{asset:image:${importedNoteImage!.id}}}`)
   })
 
   it('deduplicates assets with the same checksum', async () => {

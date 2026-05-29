@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { FeedSource, PortableInput } from '@/types/db'
 import { useFeed } from '@/composables/useFeed'
 
@@ -19,10 +19,67 @@ const { fetchFeed, parseFeed } = useFeed()
 const title = ref(props.source?.title || '')
 const feedUrl = ref(props.source?.feed_url || '')
 const siteUrl = ref(props.source?.site_url || '')
+const discoveredFeeds = ref<Array<{ url: string; title: string }>>([])
+const lookupStatus = ref<string | null>(null)
 
 const isTesting = ref(false)
+const isLookingUp = ref(false)
 const testError = ref<string | null>(null)
 const testSuccess = ref(false)
+const lastTestedUrl = ref(props.source?.feed_url || '')
+
+watch(feedUrl, () => {
+  testError.value = null
+  lookupStatus.value = null
+  discoveredFeeds.value = []
+  if (feedUrl.value !== lastTestedUrl.value) {
+    testSuccess.value = false
+  }
+})
+
+function normalizeDiscoveredFeeds(urls: Array<{ url: string; title: string }>) {
+  const seen = new Set<string>()
+  return urls.filter((entry) => {
+    if (seen.has(entry.url)) return false
+    seen.add(entry.url)
+    return true
+  })
+}
+
+function discoverFeedCandidates(html: string, baseUrl: string): Array<{ url: string; title: string }> {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+  const candidates: Array<{ url: string; title: string }> = []
+
+  doc.querySelectorAll('link[rel~="alternate"]').forEach((node) => {
+    const href = node.getAttribute('href')
+    const type = (node.getAttribute('type') ?? '').toLowerCase()
+    if (!href || !/(rss|atom|xml)/.test(type)) return
+    try {
+      candidates.push({
+        url: new URL(href, baseUrl).toString(),
+        title: node.getAttribute('title')?.trim() || href,
+      })
+    } catch {
+      // Ignore malformed alternate-feed links.
+    }
+  })
+
+  try {
+    const base = new URL(baseUrl)
+    const commonPaths = ['/feed', '/feed.xml', '/rss', '/rss.xml', '/atom.xml']
+    for (const path of commonPaths) {
+      candidates.push({
+        url: new URL(path, `${base.origin}/`).toString(),
+        title: path.replace(/^\//, ''),
+      })
+    }
+  } catch {
+    // Ignore malformed input URL.
+  }
+
+  return normalizeDiscoveredFeeds(candidates)
+}
 
 async function testConnection() {
   if (!feedUrl.value) return
@@ -37,6 +94,7 @@ async function testConnection() {
       throw new Error('Feed parsed but contains no items.')
     }
     testSuccess.value = true
+    lastTestedUrl.value = feedUrl.value
     // Try to auto-fill title if empty
     if (!title.value) {
       const parser = new DOMParser()
@@ -50,8 +108,52 @@ async function testConnection() {
   }
 }
 
+async function lookupFeeds() {
+  if (!feedUrl.value) return
+
+  isLookingUp.value = true
+  lookupStatus.value = null
+  discoveredFeeds.value = []
+
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'FETCH_URL_CONTENT', url: feedUrl.value })
+    if (!response?.ok) {
+      throw new Error(response?.error || 'Failed to inspect URL')
+    }
+
+    const finalUrl = response.finalUrl || feedUrl.value
+    const html = typeof response.html === 'string' ? response.html : ''
+    const candidates = discoverFeedCandidates(html, finalUrl)
+
+    if (!candidates.length) {
+      lookupStatus.value = 'No feed links were discovered on this page.'
+      return
+    }
+
+    lookupStatus.value = `Found ${candidates.length} possible feed${candidates.length === 1 ? '' : 's'}.`
+    discoveredFeeds.value = candidates
+  } catch (err: unknown) {
+    lookupStatus.value = err instanceof Error ? err.message : 'Feed lookup failed'
+  } finally {
+    isLookingUp.value = false
+  }
+}
+
+function useDiscoveredFeed(url: string) {
+  feedUrl.value = url
+  testError.value = null
+  testSuccess.value = false
+  if (!siteUrl.value) {
+    try {
+      siteUrl.value = new URL(url).origin
+    } catch {
+      // Ignore malformed discovered URL.
+    }
+  }
+}
+
 function handleSave() {
-  if (!title.value || !feedUrl.value) return
+  if (!title.value || !feedUrl.value || !canSave.value) return
 
   emit('save', {
     collection_id: props.collectionId,
@@ -73,6 +175,13 @@ function handleDelete() {
     emit('delete', props.source.id)
   }
 }
+
+const canSave = computed(() =>
+  !!title.value &&
+  !!feedUrl.value &&
+  testSuccess.value &&
+  feedUrl.value === lastTestedUrl.value
+)
 </script>
 
 <template>
@@ -96,9 +205,31 @@ function handleDelete() {
         >
           {{ isTesting ? '...' : 'Test' }}
         </button>
+        <button
+          type="button"
+          @click="lookupFeeds"
+          :disabled="isLookingUp || !feedUrl"
+          class="px-3 py-1.5 bg-black/85 hover:bg-black border border-white/10 rounded text-[10px] uppercase tracking-wider font-bold text-white/85 hover:text-white transition-colors disabled:opacity-50"
+        >
+          {{ isLookingUp ? '...' : 'Lookup' }}
+        </button>
       </div>
       <p v-if="testError" class="mt-1 text-[10px] text-red-400">{{ testError }}</p>
       <p v-if="testSuccess" class="mt-1 text-[10px] text-green-400">Connection successful!</p>
+      <p v-else class="mt-1 text-[10px] text-white/45">Test this URL before saving to make sure it is reachable and subscribable.</p>
+      <p v-if="lookupStatus" class="mt-1 text-[10px] text-white/65">{{ lookupStatus }}</p>
+      <div v-if="discoveredFeeds.length" class="mt-2 flex flex-col gap-1">
+        <button
+          v-for="candidate in discoveredFeeds"
+          :key="candidate.url"
+          type="button"
+          @click="useDiscoveredFeed(candidate.url)"
+          class="text-left px-2 py-1 bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 rounded transition-colors"
+        >
+          <span class="block text-[10px] text-white/85 truncate">{{ candidate.title }}</span>
+          <span class="block text-[10px] text-sky-300 truncate">{{ candidate.url }}</span>
+        </button>
+      </div>
     </div>
 
     <div>
@@ -145,7 +276,9 @@ function handleDelete() {
         </button>
         <button
           type="submit"
-          class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded text-[10px] uppercase tracking-wider font-bold transition-colors"
+          :disabled="!canSave"
+          :class="canSave ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-white/10 text-white/45 cursor-not-allowed'"
+          class="px-4 py-1.5 rounded text-[10px] uppercase tracking-wider font-bold transition-colors"
         >
           Save Feed
         </button>

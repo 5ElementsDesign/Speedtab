@@ -2,7 +2,7 @@
 
 export type ModuleType = 'tabs' | 'notes' | 'feeds'
 export type NoteType   = 'text' | 'code' | 'links' | 'crypt' | 'html'
-export type AssetKind  = 'favicon' | 'preview' | 'background'
+export type AssetKind  = 'favicon' | 'preview' | 'background' | 'note_image'
 export type NavGroup   = 'main' | 'overflow'
 export type CaptureKind = 'note' | 'bookmark'
 

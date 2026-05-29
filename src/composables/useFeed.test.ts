@@ -76,6 +76,51 @@ describe('useFeed - Atom Parsing', () => {
     })
     expect(items[0].published_at).toBe(new Date('2003-12-13T18:30:02Z').getTime())
   })
+
+  it('parses YouTube Atom metadata into payload_json', () => {
+    const atom = `
+      <?xml version="1.0" encoding="UTF-8"?>
+      <feed xmlns="http://www.w3.org/2005/Atom"
+            xmlns:yt="http://www.youtube.com/xml/schemas/2015"
+            xmlns:media="http://search.yahoo.com/mrss/">
+        <entry>
+          <id>yt:video:crGctJWuXsU</id>
+          <yt:videoId>crGctJWuXsU</yt:videoId>
+          <yt:channelId>UCldfgbzNILYZA4dmDt4Cd6A</yt:channelId>
+          <title>Example YouTube Video</title>
+          <link rel="alternate" href="https://www.youtube.com/watch?v=crGctJWuXsU"/>
+          <author>
+            <name>Secular Talk</name>
+          </author>
+          <published>2026-05-25T20:30:05+00:00</published>
+          <updated>2026-05-25T20:35:09+00:00</updated>
+          <media:group>
+            <media:thumbnail url="https://i4.ytimg.com/vi/crGctJWuXsU/hqdefault.jpg" width="480" height="360"/>
+            <media:description>Support The Show On Patreon</media:description>
+            <media:community>
+              <media:starRating count="1326" average="5.00" min="1" max="5"/>
+              <media:statistics views="9599"/>
+            </media:community>
+          </media:group>
+        </entry>
+      </feed>
+    `.trim()
+
+    const items = parseFeed(atom, 789)
+    expect(items).toHaveLength(1)
+    expect(items[0].url).toBe('https://www.youtube.com/watch?v=crGctJWuXsU')
+
+    const payload = JSON.parse(items[0].payload_json || '{}')
+    expect(payload).toMatchObject({
+      kind: 'youtube',
+      video_id: 'crGctJWuXsU',
+      channel_id: 'UCldfgbzNILYZA4dmDt4Cd6A',
+      thumbnail_url: 'https://i4.ytimg.com/vi/crGctJWuXsU/hqdefault.jpg',
+      description: 'Support The Show On Patreon',
+      view_count: 9599,
+      star_count: 1326,
+    })
+  })
 })
 
 describe('useFeed - Error Handling', () => {

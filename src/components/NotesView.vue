@@ -5,7 +5,7 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useReorder } from '@/composables/useReorder'
 import { db, isActiveRecord, makeCreateMetadata, makeUpdatedAtPatch } from '@/db/db'
 import type { Collection, Note, PortableInput } from '@/types/db'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import Modal from './Modal.vue'
 import NoteForm from './NoteForm.vue'
 import NoteTile from './NoteTile.vue'
@@ -13,7 +13,9 @@ import NoteViewerModal from './NoteViewerModal.vue'
 
 const props = defineProps<{
   collection: Collection
+  columns: number
   showAddTile?: boolean
+  highlightNoteId?: number | null
 }>()
 
 // ─── Live notes list ──────────────────────────────────────────────────────────
@@ -26,6 +28,16 @@ const { data: notes } = useLiveQuery(
 
 const { move: moveNote } = useReorder(db.notes, notes)
 const noteDnd = useDragSort({ onReorder: (f, t) => moveNote(f, t) })
+
+const gridStyle = computed(() => ({
+  display:             'grid',
+  gridTemplateColumns: 'repeat(auto-fit, 115px)',
+  gap:                 '4px',
+  justifyContent:      'center',
+  maxWidth:            props.columns > 0 ? `${props.columns * 115 + (props.columns - 1) * 4}px` : 'none',
+  marginLeft:          'auto',
+  marginRight:         'auto',
+}))
 
 // ─── Viewer modal state ───────────────────────────────────────────────────────
 
@@ -85,15 +97,13 @@ async function deleteNoteById(id: number) {
 <template>
   <div class="flex flex-wrap justify-center items-center w-full h-full">
     <!-- ─── Tile grid (same layout as TabsView bookmarks) ────────────────── -->
-    <div
-      v-if="notes.length"
-      class="flex flex-wrap gap-1 justify-center items-center"
-    >
+    <div v-if="notes.length" class="items-center" :style="gridStyle">
       <NoteTile
         v-for="(note, idx) in notes"
         :key="note.id"
         v-bind="noteDnd.bindFor(idx)"
         :note="note"
+        :is-search-highlighted="props.highlightNoteId === note.id"
         :is-dragging="noteDnd.draggingIndex.value === idx"
         :is-drag-over="noteDnd.dragOverIndex.value === idx"
         @view="openViewer"

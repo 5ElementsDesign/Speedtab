@@ -6,6 +6,7 @@ import {
   deleteCollectionTree,
   deleteModuleTree,
   deletePageTree,
+  getCleanupCandidates,
 } from './useMaintenance'
 
 let db: SpeedtabDB
@@ -144,7 +145,7 @@ describe('delete tree helpers', () => {
 })
 
 describe('cleanupOrphans', () => {
-  it('removes orphaned records and unused assets with a report', async () => {
+  it('removes orphaned records without implicitly deleting unused assets by default', async () => {
     const { assetId } = await seedPageTree()
     await db.tabs.clear()
 
@@ -211,7 +212,85 @@ describe('cleanupOrphans', () => {
     expect(report.removedNotes).toBe(1)
     expect(report.removedFeedSources).toBe(1)
     expect(report.removedFeedItems).toBe(1)
-    expect(report.removedAssets).toBe(2)
-    expect(await db.assets.get(assetId)).toBeUndefined()
+    expect(report.removedAssets).toBe(0)
+    expect(await db.assets.get(assetId)).toBeTruthy()
+  })
+
+  it('can report orphaned records and unused assets for cleanup preview', async () => {
+    const { assetId } = await seedPageTree()
+    await db.tabs.clear()
+
+    await db.modules.add(withMeta({
+      page_id: 999_001,
+      type: 'tabs',
+      title: 'Orphan module',
+      sort_order: 5,
+      config_json: null,
+    }))
+
+    const candidates = await getCleanupCandidates(db)
+
+    expect(candidates.modules).toHaveLength(1)
+    expect(candidates.unusedAssets.some((asset) => asset.id === assetId)).toBe(true)
+  })
+
+  it('does not report favicon assets as unused when feed URLs reference a parent-domain alias', async () => {
+    const { collectionId } = await seedPageTree()
+    const faviconAssetId = await db.assets.add({
+      kind: 'favicon',
+      checksum: 'favicon-cnn',
+      blob: new Blob(['ico'], { type: 'image/png' }),
+      width: 32,
+      height: 32,
+      meta_json: JSON.stringify({
+        hostnames: ['rss.cnn.com', 'cnn.com'],
+        fetched_at: Date.now(),
+      }),
+    }) as number
+
+    await db.feed_sources.add(withMeta({
+      collection_id: collectionId,
+      title: 'CNN',
+      feed_url: 'https://rss.cnn.com/rss/edition.rss',
+      site_url: null,
+      sort_order: 5,
+      style_token: null,
+      last_hash: null,
+      last_fetched_at: null,
+      last_error_at: null,
+      last_error_message: null,
+      fetch_options_json: null,
+    }))
+
+    const candidates = await getCleanupCandidates(db)
+
+    expect(candidates.unusedAssets.some((asset) => asset.id === faviconAssetId)).toBe(false)
+  })
+
+  it('preserves note image assets referenced from html note content', async () => {
+    const { collectionId } = await seedPageTree()
+    const noteImageAssetId = await db.assets.add({
+      kind: 'note_image',
+      checksum: 'note-image-a',
+      blob: new Blob(['img'], { type: 'image/png' }),
+      width: null,
+      height: null,
+      meta_json: null,
+    }) as number
+
+    await db.notes.add(withMeta({
+      collection_id: collectionId,
+      title: 'HTML note',
+      type: 'html',
+      content: `<p>{{asset:image:${noteImageAssetId}}}</p>`,
+      style_token: null,
+      sort_order: 5,
+      meta_json: null,
+    }))
+
+    const report = await cleanupOrphans(db)
+
+    expect(report.removedAssets).toBe(0)
+    expect(await db.assets.get(noteImageAssetId)).toBeTruthy()
   })
 })

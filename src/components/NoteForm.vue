@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onBeforeUnmount, nextTick } from 'vue'
 import type { Note, NoteType, PortableInput } from '@/types/db'
 import { encryptNote, decryptNote, parseCryptPayload, serialiseCryptPayload } from '@/composables/useCrypt'
 import { COMMON_LANGUAGES } from '@/composables/useHighlight'
+import { storeOrGetAsset } from '@/composables/useAsset'
+import { makeNoteImageToken } from '@/composables/useNoteImages'
 
 const props = defineProps<{
   note?:        Note
@@ -62,6 +64,8 @@ const decryptInput = ref('')
 const decrypted    = ref(false)
 const cryptError   = ref<string | null>(null)
 const working      = ref(false)
+const contentTextarea = ref<HTMLTextAreaElement | null>(null)
+const imageInput = ref<HTMLInputElement | null>(null)
 
 const isCryptNew  = computed(() => form.value.type === 'crypt' && !props.note?.id)
 const isCryptEdit = computed(() => form.value.type === 'crypt' &&  props.note?.id != null)
@@ -148,6 +152,43 @@ function onCancel() {
   wipeSecrets()
   emit('cancel')
 }
+
+function openImagePicker() {
+  imageInput.value?.click()
+}
+
+async function onImageSelected(event: Event) {
+  const input = event.target as HTMLInputElement | null
+  const file = input?.files?.[0]
+  if (!file) return
+
+  const assetId = await storeOrGetAsset(file, 'note_image', null, null, null)
+  const token = `<p>${makeNoteImageToken(assetId)}</p>`
+  const current = form.value.content ?? ''
+  const textarea = contentTextarea.value
+
+  if (!textarea) {
+    form.value.content = current ? `${current}\n${token}` : token
+    if (input) input.value = ''
+    return
+  }
+
+  const start = textarea.selectionStart ?? current.length
+  const end = textarea.selectionEnd ?? start
+  const prefix = current.slice(0, start)
+  const suffix = current.slice(end)
+  const needsLeadingBreak = prefix.length > 0 && !prefix.endsWith('\n')
+  const needsTrailingBreak = suffix.length > 0 && !suffix.startsWith('\n')
+  const insertion = `${needsLeadingBreak ? '\n' : ''}${token}${needsTrailingBreak ? '\n' : ''}`
+
+  form.value.content = `${prefix}${insertion}${suffix}`
+  if (input) input.value = ''
+
+  await nextTick()
+  const nextPos = prefix.length + insertion.length
+  textarea.focus()
+  textarea.setSelectionRange(nextPos, nextPos)
+}
 </script>
 
 <template>
@@ -226,14 +267,34 @@ function onCancel() {
 
     <!-- ─── Content editor (shared for text/code/links/html and unlocked crypt) ─── -->
     <div v-if="form.type !== 'crypt' || decrypted || isCryptNew">
-      <label for="note_content" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+      <div class="flex items-center justify-between gap-3 mb-1">
+        <label for="note_content" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">
         <span v-if="form.type === 'links'">URLs <span class="normal-case font-normal text-gray-600">(one per line)</span></span>
         <span v-else-if="form.type === 'html'">HTML <span class="normal-case font-normal text-gray-600">(sanitised on save)</span></span>
         <span v-else-if="form.type === 'code'">Code</span>
         <span v-else-if="form.type === 'crypt'">Plaintext <span class="normal-case font-normal text-gray-600">(encrypted before storage)</span></span>
         <span v-else>Content</span>
-      </label>
+        </label>
+        <button
+          v-if="form.type === 'html'"
+          type="button"
+          @click="openImagePicker"
+          class="px-2 py-1 text-[10px] uppercase tracking-wider font-medium text-sky-300 hover:text-sky-200 bg-white/[0.06] hover:bg-white/[0.1] rounded transition-colors"
+        >
+          Add Image
+        </button>
+      </div>
+      <input
+        v-if="form.type === 'html'"
+        ref="imageInput"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        class="hidden"
+        @change="onImageSelected"
+      />
       <textarea id="note_content" v-model="form.content"
+        ref="contentTextarea"
         :placeholder="form.type === 'links' ? 'https://...' : ''"
         :class="[
           'w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100',

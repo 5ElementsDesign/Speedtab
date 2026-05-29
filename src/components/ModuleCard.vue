@@ -10,7 +10,7 @@ import { cleanupOrphans, deleteCollectionTree } from '@/composables/useMaintenan
 import { useReorder } from '@/composables/useReorder'
 import { db, isActiveRecord, makeCreateMetadata, makeUpdatedAtPatch } from '@/db/db'
 import type { Collection, Module, PortableInput } from '@/types/db'
-import { computed, ref, useAttrs } from 'vue'
+import { computed, nextTick, ref, useAttrs, watch } from 'vue'
 import CollectionCard from './CollectionCard.vue'
 import CollectionForm from './CollectionForm.vue'
 import Dropdown from './Dropdown.vue'
@@ -49,6 +49,16 @@ const props = defineProps<{
   isFocused:           boolean
   /** Feed modules can be expanded into a larger reader mode. */
   isExpanded?:         boolean
+  /** Remembered/current expanded width for feed modules. */
+  expandedWidth?:      320 | 480 | 740 | 940 | 1240 | 1540 | 'max' | null
+  /** Global search URL template for feed item headline search. */
+  feedSearchUrlTemplate?: string
+  searchHighlight?: {
+    moduleId: number | null
+    collectionId: number | null
+    kind: 'page' | 'module' | 'collection' | 'bookmark' | 'note' | 'feed_source' | 'archived_feed_item'
+    entityId: number | null
+  } | null
   /** Drag-and-drop feedback flags set by the parent grid (App.vue). */
   isDragging?:         boolean
   isDragOver?:         boolean
@@ -59,7 +69,7 @@ const emit = defineEmits<{
   /** Tab click: emits the module, the chosen Collection id, and all sibling ids
    *  in this module so the parent can swap them in the hash list. */
   focus:        [module: Module, colId?: number, siblingIds?: number[]]
-  toggleExpand: [module: Module]
+  setExpandWidth: [module: Module, width: 320 | 480 | 740 | 940 | 1240 | 1540 | 'max']
 }>()
 
 // ─── Collections for this module ──────────────────────────────────────────────
@@ -97,29 +107,90 @@ const feedArchive = provideFeedArchive()
 const feedClear = provideFeedClear()
 
 /** Parse the module's config_json once and expose typed accessors. */
-const moduleConfig = computed<{ columns?: number; show_add_tile?: boolean; refresh_interval_ms?: number; feed_item_limit?: number; open_in_new_tab?: boolean | null }>(() => {
+const moduleConfig = computed<{ columns?: number; show_add_tile?: boolean; refresh_interval_ms?: number; feed_item_limit?: number; open_in_new_tab?: boolean | null; quicklinks?: boolean; show_hover_actions?: boolean }>(() => {
   try { return JSON.parse(props.module.config_json ?? '{}') }
   catch { return {} }
 })
-const moduleColumns = computed<number>(() => moduleConfig.value.columns ?? 4)
+const activeCollectionConfig = computed<{ refresh_interval_ms?: number }>(() => {
+  try { return JSON.parse(activeCollection.value?.config_json ?? '{}') }
+  catch { return {} }
+})
+const moduleColumns = computed<number>(() => typeof moduleConfig.value.columns === 'number' ? moduleConfig.value.columns : 4)
 /** Per-module toggle for the inline "+" Add tile. Defaults to true. */
 const showAddTile = computed<boolean>(() => moduleConfig.value.show_add_tile !== false)
-const refreshIntervalMs = computed<number>(() => moduleConfig.value.refresh_interval_ms ?? 0)
+const refreshIntervalMs = computed<number>(() =>
+  typeof activeCollectionConfig.value.refresh_interval_ms === 'number'
+    ? activeCollectionConfig.value.refresh_interval_ms
+    : (moduleConfig.value.refresh_interval_ms ?? 0)
+)
 const feedItemLimit = computed<number>(() => moduleConfig.value.feed_item_limit ?? 0)
 const openInNewTab = computed<boolean | null>(() => typeof moduleConfig.value.open_in_new_tab === 'boolean' ? moduleConfig.value.open_in_new_tab : null)
+const quicklinks = computed<boolean>(() => moduleConfig.value.quicklinks === true)
+const showHoverActions = computed<boolean>(() => moduleConfig.value.show_hover_actions !== false)
 const isExpandedFeedModule = computed<boolean>(() => props.module.type === 'feeds' && props.isExpanded === true)
+const isSearchHighlighted = computed<boolean>(() => props.searchHighlight?.moduleId === props.module.id)
+const activeCollectionSearchHighlight = computed(() =>
+  props.searchHighlight?.collectionId === activeCollection.value?.id ? props.searchHighlight : null
+)
+const EXPAND_WIDTH_OPTIONS = [320, 480, 740, 940, 1240, 1540, 'max'] as const
+const lastExpandedWidth = computed<typeof EXPAND_WIDTH_OPTIONS[number] | null>(() => props.expandedWidth ?? null)
+const isFeedSearchOpen = ref(false)
+const feedSearchQuery = ref('')
+const feedSearchInput = ref<HTMLInputElement | null>(null)
 
 const expandedModuleStyle = computed<Record<string, string> | undefined>(() => {
   if (!isExpandedFeedModule.value) return undefined
-  return {
+  if (props.expandedWidth === 'max' || !props.expandedWidth) {
+    const baseStyle: Record<string, string> = {
+      position: 'fixed',
+      zIndex:   '51',
+      background: '#111111f5',
+    }
+    return baseStyle
+  }
+  const widthStyle: Record<string, string> = {
     position: 'fixed',
-    top:      '40px',
-    left:     '20px',
-    right:    '20px',
-    bottom:   '20px',
     zIndex:   '51',
     background: '#111111f5',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: `min(calc(100vw - 20px), ${props.expandedWidth}px)`,
   }
+  return widthStyle
+})
+
+function handleExpandWidthSelect(event: Event) {
+  const select = event.target as HTMLSelectElement
+  const value = select.value
+  if (value === 'max') {
+    emit('setExpandWidth', props.module, 'max')
+  } else {
+    const parsed = Number(value)
+    if ([320, 480, 740, 940, 1240, 1540].includes(parsed)) {
+      emit('setExpandWidth', props.module, parsed as 320 | 480 | 740 | 940 | 1240 | 1540)
+    }
+  }
+  select.value = ''
+}
+
+function toggleFeedSearch() {
+  if (isFeedSearchOpen.value && !feedSearchQuery.value.trim()) {
+    isFeedSearchOpen.value = false
+    return
+  }
+  isFeedSearchOpen.value = true
+}
+
+function clearFeedSearch() {
+  feedSearchQuery.value = ''
+  isFeedSearchOpen.value = false
+}
+
+watch(isFeedSearchOpen, async (open) => {
+  if (!open) return
+  await nextTick()
+  feedSearchInput.value?.focus()
+  feedSearchInput.value?.select()
 })
 
 const { move: moveCollection } = useReorder(db.collections, collections)
@@ -174,7 +245,10 @@ async function deleteCollection(id: number) {
     :class="[
       'bg-black/75 border transition-colors flex flex-col min-h-[110px] relative',
       isFocused ? 'border-white/30' : 'border-white/10',
-      isExpandedFeedModule ? 'shadow-2xl' : '',
+      isSearchHighlighted ? 'ring-1 ring-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.95),0_0_18px_rgba(239,68,68,0.4)]' : '',
+      isExpandedFeedModule
+        ? `st-module-expanded-feed shadow-2xl ${props.expandedWidth === 'max' || !props.expandedWidth ? 'st-module-expanded-feed--max' : 'st-module-expanded-feed--width'}`
+        : '',
       isDragging ? 'opacity-40' : '',
       isDragOver && !isDragging ? 'ring-1 ring-[#00d2ff]' : '',
     ]"
@@ -206,6 +280,7 @@ async function deleteCollection(id: number) {
               activeCollection?.id === col.id
                 ? 'text-[#00d2ff] bg-white/10'
                 : 'text-[#888888] hover:text-white',
+              props.searchHighlight?.collectionId === col.id ? 'ring-1 ring-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.95),0_0_12px_rgba(239,68,68,0.25)]' : '',
               collectionDnd.draggingIndex.value === idx ? 'opacity-40' : '',
               collectionDnd.dragOverIndex.value === idx && collectionDnd.draggingIndex.value !== idx
                 ? 'ring-1 ring-[#00d2ff]' : '',
@@ -219,24 +294,71 @@ async function deleteCollection(id: number) {
       </div>
 
       <div class="st-module-actions flex items-center gap-1 shrink-0" @click.stop>
-        <button
+        <div
           v-if="module.type === 'feeds' && collections.length > 0"
-          type="button"
-          :title="props.isExpanded ? 'Restore feed module size' : 'Expand feed module'"
-          :aria-label="props.isExpanded ? 'Restore feed module size' : 'Expand feed module'"
-          @click="emit('toggleExpand', module)"
-          class="px-1 py-0.5 text-[10px] uppercase tracking-wider text-white/70 hover:text-white"
+          class="flex items-center gap-1 mr-[0.2rem]"
         >
-          {{ props.isExpanded ? '▣' : '▢' }}
-        </button>
+          <button
+            type="button"
+            @click="toggleFeedSearch"
+            class="h-full self-stretch px-2 py-1 text-white/70 hover:text-white flex items-center justify-center border-0 rounded-none"
+            :title="feedSearchQuery.trim() ? 'Feed search active' : 'Search loaded feed items'"
+            :aria-label="'Search loaded feed items'"
+          >
+            <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="m20 20-3.5-3.5"></path>
+            </svg>
+          </button>
+          <div v-if="isFeedSearchOpen || feedSearchQuery.trim()" class="flex items-center gap-1">
+            <input
+              ref="feedSearchInput"
+              v-model="feedSearchQuery"
+              type="search"
+              placeholder="Search"
+              class="h-full max-w-[220px] w-[140px] px-2 py-1 bg-black/20 text-[11px] text-white/90 border border-white/10 outline-none focus:border-white/25"
+            />
+            <button
+              v-if="feedSearchQuery.trim()"
+              type="button"
+              @click="clearFeedSearch"
+              class="h-full self-stretch px-1.5 py-1 text-white/55 hover:text-white border-0"
+              title="Clear feed search"
+              aria-label="Clear feed search"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        <select
+          v-if="module.type === 'feeds' && collections.length > 0"
+          :id="`feed-expand-width-${module.id}`"
+          :name="`feed-expand-width-${module.id}`"
+          :title="'Expand feed module'"
+          :aria-label="'Expand feed module'"
+          :value="''"
+          @change="handleExpandWidthSelect"
+          class="mr-[0.2rem] h-full self-stretch max-w-[100px] px-2 py-1 pr-6 text-[10px] uppercase tracking-wider bg-black/0 text-white/70 hover:text-white border-0 outline-none"
+        >
+          <option value="" class="text-black bg-white">Expand</option>
+          <option
+            v-for="width in EXPAND_WIDTH_OPTIONS"
+            :key="width"
+            :value="width"
+            class="text-black bg-white"
+          >
+            {{ width === 'max' ? 'max' : width }}{{ lastExpandedWidth === width ? ' · Last used' : '' }}
+          </option>
+        </select>
         <Dropdown
           label="Module actions"
           title="Module actions"
           align="right"
-          trigger-class="px-1 py-0.5 text-[10px] uppercase tracking-wider text-white/70 hover:text-white"
+          :hide-chevron="true"
+          trigger-class="st-module-action-trigger h-full self-stretch px-2 py-1 mr-[0.2rem] text-white/80 hover:text-white flex items-center justify-center border-0 rounded-none"
         >
           <template #trigger>
-            <span class="leading-none">⋯</span>
+            <span class="leading-none text-[16px]">+</span>
           </template>
           <div class="px-[0.1rem]">
             <button
@@ -306,7 +428,11 @@ async function deleteCollection(id: number) {
       class="st-module-body min-h-0 h-full"
       :class="[
         isExpandedFeedModule ? 'flex-1 overflow-hidden' : '',
-        module.type === 'feeds' && collections.length > 0 ? '' : 'px-4 py-4',
+        module.type === 'feeds' && collections.length > 0
+          ? ''
+          : module.type === 'tabs' && quicklinks
+            ? 'px-2 py-2'
+            : 'px-4 py-4',
       ]"
     >
       <div v-if="loading" class="st-module-loading animate-pulse space-y-2">
@@ -332,9 +458,16 @@ async function deleteCollection(id: number) {
           :columns="moduleColumns"
           :show-add-tile="showAddTile"
           :is-expanded="props.isExpanded"
+          :expanded-width="props.expandedWidth"
           :refresh-interval-ms="refreshIntervalMs"
           :feed-item-limit="feedItemLimit"
+          :feed-filter-query="feedSearchQuery"
+          :feed-search-url-template="props.feedSearchUrlTemplate"
           :open-in-new-tab="openInNewTab"
+          :quicklinks="quicklinks"
+          :show-hover-actions="showHoverActions"
+          :highlight-kind="activeCollectionSearchHighlight?.kind ?? null"
+          :highlight-entity-id="activeCollectionSearchHighlight?.entityId ?? null"
         />
       </div>
     </div>
@@ -353,6 +486,7 @@ async function deleteCollection(id: number) {
       <CollectionForm
         :collection="editingCollection"
         :module-id="module.id!"
+        :module-type="module.type"
         @save="saveCollection"
         @delete="deleteCollection"
         @cancel="isCollectionModalOpen = false"
@@ -360,3 +494,30 @@ async function deleteCollection(id: number) {
     </Modal>
   </section>
 </template>
+
+<style scoped>
+.st-module-expanded-feed {
+  top: 50px;
+  bottom: 10px;
+}
+
+.st-module-expanded-feed--max {
+  left: 10px;
+  right: 10px;
+}
+
+.st-module-expanded-feed--width {
+  right: auto;
+}
+
+@media (max-width: 740px) {
+  .st-module-expanded-feed {
+    top: 40px;
+    bottom: 0;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    transform: none !important;
+  }
+}
+</style>

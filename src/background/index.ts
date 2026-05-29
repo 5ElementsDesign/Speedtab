@@ -24,13 +24,38 @@ interface FetchFeedMessage {
   url:  string
 }
 
+interface FetchUrlMetaMessage {
+  type: 'FETCH_URL_META'
+  url:  string
+}
+
+interface FetchUrlContentMessage {
+  type: 'FETCH_URL_CONTENT'
+  url:  string
+}
+
 interface FetchFeedResponse {
   ok:    boolean
   xml?:  string
   error?: string
 }
 
-type IncomingMessage = FetchFeedMessage
+interface FetchUrlMetaResponse {
+  ok: boolean
+  title?: string | null
+  finalUrl?: string
+  error?: string
+}
+
+interface FetchUrlContentResponse {
+  ok: boolean
+  html?: string
+  contentType?: string
+  finalUrl?: string
+  error?: string
+}
+
+type IncomingMessage = FetchFeedMessage | FetchUrlMetaMessage | FetchUrlContentMessage
 
 const CONTEXT_MENU_CAPTURE_NOTE = 'speedtab-capture-note'
 const CONTEXT_MENU_CAPTURE_BOOKMARK = 'speedtab-capture-bookmark'
@@ -147,6 +172,30 @@ chrome.runtime.onMessage.addListener(
       // Return true to keep the message channel open for the async response.
       return true
     }
+
+    if (message.type === 'FETCH_URL_META') {
+      handleFetchUrlMeta(message.url)
+        .then(sendResponse)
+        .catch((err: unknown) => {
+          sendResponse({
+            ok: false,
+            error: err instanceof Error ? err.message : String(err),
+          })
+        })
+      return true
+    }
+
+    if (message.type === 'FETCH_URL_CONTENT') {
+      handleFetchUrlContent(message.url)
+        .then(sendResponse)
+        .catch((err: unknown) => {
+          sendResponse({
+            ok: false,
+            error: err instanceof Error ? err.message : String(err),
+          })
+        })
+      return true
+    }
   },
 )
 
@@ -170,6 +219,74 @@ async function handleFetchFeed(url: string): Promise<FetchFeedResponse> {
 
     const xml = await response.text()
     return { ok: true, xml }
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      return { ok: false, error: err.name === 'AbortError' ? 'Request timed out' : err.message }
+    }
+    return { ok: false, error: 'Request failed' }
+  }
+}
+
+async function handleFetchUrlMeta(url: string): Promise<FetchUrlMetaResponse> {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
+
+    const response = await fetch(url, {
+      signal: controller.signal,
+      redirect: 'follow',
+    })
+    clearTimeout(timeout)
+
+    if (!response.ok) {
+      return { ok: false, error: `HTTP ${response.status}: ${response.statusText}` }
+    }
+
+    const contentType = response.headers.get('content-type') ?? ''
+    const finalUrl = response.url || url
+    if (!contentType.includes('text/html')) {
+      return { ok: true, title: null, finalUrl }
+    }
+
+    const html = await response.text()
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
+    const title = titleMatch?.[1]
+      ?.replace(/\s+/g, ' ')
+      .trim() || null
+
+    return { ok: true, title, finalUrl }
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      return { ok: false, error: err.name === 'AbortError' ? 'Request timed out' : err.message }
+    }
+    return { ok: false, error: 'Request failed' }
+  }
+}
+
+async function handleFetchUrlContent(url: string): Promise<FetchUrlContentResponse> {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
+
+    const response = await fetch(url, {
+      signal: controller.signal,
+      redirect: 'follow',
+    })
+    clearTimeout(timeout)
+
+    if (!response.ok) {
+      return { ok: false, error: `HTTP ${response.status}: ${response.statusText}` }
+    }
+
+    const contentType = response.headers.get('content-type') ?? ''
+    const html = await response.text()
+
+    return {
+      ok: true,
+      html,
+      contentType,
+      finalUrl: response.url || url,
+    }
   } catch (err: unknown) {
     if (err instanceof Error) {
       return { ok: false, error: err.name === 'AbortError' ? 'Request timed out' : err.message }

@@ -57,12 +57,11 @@ export async function loadAssetObjectUrl(assetId: number | null): Promise<string
 
 /**
  * Export a canvas as a WebP Blob.
- * At 98×56 pixels, quality 0.82 keeps the result well under 5 KB for typical
- * screenshot/thumbnail content while preserving enough visual fidelity.
+ * At 98×56 pixels, keep previews crisp rather than aggressively compressed.
  */
 export function canvasToWebpBlob(
   canvas:  HTMLCanvasElement,
-  quality: number = 0.82,
+  quality: number = 0.98,
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(

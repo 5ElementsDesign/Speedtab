@@ -13,13 +13,17 @@ import TabTile from './TabTile.vue'
 
 const props = defineProps<{
   collection: Collection
-  /** Maximum tile columns (1–6) — set in the module's config_json. The grid
-   *  may render fewer columns when the module is narrower than N × 98 px. */
+/** Maximum tile columns. `0` means uncapped/infinite. */
   columns:     number
   /** Whether to render the bookmark-sized "+" add tile inline in the grid. */
   showAddTile: boolean
   /** Optional module-level override for opening in a new tab. */
   openInNewTab?: boolean | null
+  /** Compact bookmark rendering mode. */
+  quicklinks?: boolean
+  /** Whether bookmark hover action buttons should be shown. */
+  showHoverActions?: boolean
+  highlightTabId?: number | null
 }>()
 
 // ─── Live tab list ─────────────────────────────────────────────────────────────
@@ -58,10 +62,10 @@ const tabDnd = useDragSort({ onReorder: (f, t) => moveTab(f, t) })
 
 const gridStyle = computed(() => ({
   display:             'grid',
-  gridTemplateColumns: 'repeat(auto-fit, 98px)',
+  gridTemplateColumns: `repeat(auto-fit, ${props.quicklinks ? 50 : 98}px)`,
   gap:                 '4px',
   justifyContent:      'center',
-  maxWidth:            `${props.columns * 98 + (props.columns - 1) * 4}px`,
+  maxWidth:            props.columns > 0 ? `${props.columns * (props.quicklinks ? 50 : 98) + (props.columns - 1) * 4}px` : 'none',
   marginLeft:          'auto',
   marginRight:         'auto',
 }))
@@ -125,6 +129,9 @@ async function deleteTileTab(tab: Tab) {
         v-bind="tabDnd.bindFor(idx)"
         :tab="tab"
         :open-in-new-tab="resolvedOpenInNewTab"
+        :quicklinks="props.quicklinks === true"
+        :show-hover-actions="props.showHoverActions !== false"
+        :is-search-highlighted="props.highlightTabId === tab.id"
         :is-dragging="tabDnd.draggingIndex.value === idx"
         :is-drag-over="tabDnd.dragOverIndex.value === idx"
         @edit="openEdit"
@@ -138,10 +145,11 @@ async function deleteTileTab(tab: Tab) {
       <button
         v-if="showAddTile"
         @click="openAdd"
-        class="w-[98px] h-[56px] rounded-sm border border-dashed border-white/20
+        class="rounded-sm border border-dashed border-white/20
                flex items-center justify-center
                text-white/40 hover:text-white hover:border-white/50
                text-sm transition-colors shrink-0"
+        :class="props.quicklinks ? 'w-[50px] h-[50px]' : 'w-[98px] h-[56px]'"
         title="Add bookmark"
       >+</button>
     </div>

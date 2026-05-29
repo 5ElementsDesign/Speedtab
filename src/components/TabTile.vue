@@ -7,6 +7,9 @@ import { computed, onUnmounted, ref, watch } from 'vue';
 const props = defineProps<{
   tab:          Tab
   openInNewTab: boolean
+  quicklinks?:  boolean
+  showHoverActions?: boolean
+  isSearchHighlighted?: boolean
   isDragging?:  boolean
   isDragOver?:  boolean
 }>()
@@ -47,6 +50,18 @@ onUnmounted(() => { if (objectUrl) URL.revokeObjectURL(objectUrl) })
 const faviconUrl = computed(() => {
   return getFaviconUrl(props.tab.url)
 })
+
+const tileClass = computed(() =>
+  props.quicklinks
+    ? 'w-[50px] h-[50px]'
+    : 'w-[98px] h-[56px]'
+)
+
+const actionRevealClass = computed(() =>
+  props.quicklinks
+    ? 'delay-150 group-hover:delay-150'
+    : ''
+)
 </script>
 
 <template>
@@ -59,11 +74,13 @@ const faviconUrl = computed(() => {
     :href="tab.url"
     :target="openInNewTab ? '_blank' : undefined"
     :rel="openInNewTab ? 'noopener noreferrer' : undefined"
-    class="group relative block w-[98px] h-[56px] overflow-hidden
+    class="group relative block overflow-hidden
            bg-white border border-[#dbdbdb] hover:border-[#00d2ff]
            transition-colors shrink-0 focus:outline-none focus-visible:ring-1
            focus-visible:ring-[#00d2ff] cursor-grab active:cursor-grabbing"
     :class="[
+      tileClass,
+      props.isSearchHighlighted ? 'ring-1 ring-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.95),0_0_16px_rgba(239,68,68,0.35)] border-red-400' : '',
       isDragging ? 'opacity-30' : '',
       isDragOver && !isDragging ? 'ring-1 ring-[#00d2ff] border-[#00d2ff]' : '',
     ]"
@@ -83,7 +100,7 @@ const faviconUrl = computed(() => {
       <img
         :src="faviconUrl"
         :alt="tab.title"
-        class="w-8 h-8 object-contain"
+        :class="props.quicklinks ? 'object-contain' : 'w-8 h-8 object-contain'"
         draggable="false"
         @error="($event.target as HTMLImageElement).style.display = 'none'"
       />
@@ -101,8 +118,12 @@ const faviconUrl = computed(() => {
       </p>
 
       <!-- Action buttons — appear on hover only -->
-      <div class="flex items-center justify-end gap-0.5
-                  opacity-0 group-hover:opacity-100 transition-opacity">
+      <div
+        v-if="props.showHoverActions !== false"
+        class="flex items-center justify-end gap-0.5
+               opacity-0 group-hover:opacity-100 transition-opacity"
+        :class="actionRevealClass"
+      >
         <button
           @click.prevent.stop="emit('edit', tab)"
           class="p-[3px] rounded hover:bg-white/25 text-white/70 hover:text-white transition-colors"
