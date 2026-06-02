@@ -242,6 +242,7 @@ async function deleteCollection(id: number) {
   <section
     class="st-module"
     v-bind="rootAttrs"
+    :data-module-type="module.type ?? 'type_error'"
     :class="[
       'bg-black/75 border transition-colors flex flex-col min-h-[110px] relative',
       isFocused ? 'border-white/30' : 'border-white/10',

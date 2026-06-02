@@ -53,8 +53,8 @@ const faviconUrl = computed(() => {
 
 const tileClass = computed(() =>
   props.quicklinks
-    ? 'w-[50px] h-[50px]'
-    : 'w-[98px] h-[56px]'
+    ? 'w-[54px] h-[54px]'
+    : 'w-[106px] h-[60px]'
 )
 
 const actionRevealClass = computed(() =>

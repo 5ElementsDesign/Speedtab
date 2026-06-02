@@ -2,8 +2,8 @@ import { db } from '@/db/db'
 import type { AssetKind } from '@/types/db'
 
 // ─── Tile dimensions ──────────────────────────────────────────────────────────
-export const TILE_W = 98
-export const TILE_H = 56
+export const TILE_W = 106
+export const TILE_H = 60
 
 // ─── SHA-256 ──────────────────────────────────────────────────────────────────
 

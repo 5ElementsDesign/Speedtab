@@ -8,6 +8,7 @@ import Modal from '@/components/Modal.vue'
 import ModuleCard from '@/components/ModuleCard.vue'
 import ModuleForm from '@/components/ModuleForm.vue'
 import NavBar from '@/components/NavBar.vue'
+import OpenNotesHost from '@/components/OpenNotesHost.vue'
 import PageForm from '@/components/PageForm.vue'
 import SidePanel from '@/components/SidePanel.vue'
 import { loadAssetObjectUrl } from '@/composables/useAsset'
@@ -1138,6 +1139,8 @@ async function handleSaveSettings(draft: AppearanceDraftInput) {
       aria-hidden="true"
       @change="handleImportFile"
     />
+
+    <OpenNotesHost />
 
     <!-- Toast-style status line for backup operations -->
     <div

@@ -5,6 +5,7 @@ import { computed } from 'vue';
 const props = defineProps<{
   note:         Note
   isSearchHighlighted?: boolean
+  isOpen?: boolean
   isDragging?:  boolean
   isDragOver?:  boolean
 }>()
@@ -40,10 +41,12 @@ const preview = computed(() => {
 <template>
   <button
     type="button"
+    :disabled="props.isOpen"
     @click="emit('view', note)"
-    class="w-[115px] h-[56px] flex flex-col bg-white border border-[#dbdbdb] hover:border-[#00d2ff]
+    class="st-content-trigger-button st-trigger-note flex flex-col bg-white border border-[#dbdbdb] hover:border-[#00d2ff]
            text-left cursor-pointer overflow-hidden shrink-0 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#00d2ff]"
     :class="[
+      props.isOpen ? 'opacity-55 cursor-default border-[#00d2ff]' : '',
       props.isSearchHighlighted ? 'ring-1 ring-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.95),0_0_16px_rgba(239,68,68,0.35)] border-red-400' : '',
       isDragging  ? 'opacity-40' : '',
       isDragOver && !isDragging ? 'ring-1 ring-[#00d2ff] border-[#00d2ff]' : '',
@@ -51,11 +54,11 @@ const preview = computed(() => {
     :title="note.title"
   >
     <!-- Top half: colored header -->
-    <div class="w-full flex items-center justify-between px-1.5 py-0.5" :class="accentBg">
+    <div class="w-full flex items-center justify-between px-1.5 py-1" :class="accentBg">
       <span class="text-[10px] font-medium text-white leading-tight truncate">
         {{ note.title }}
       </span>
-      <span class="text-[9px] text-white/70 hover:text-white">×</span>
+      <span class="text-[9px] text-white/70 hover:text-white">{{ props.isOpen ? 'OPEN' : '×' }}</span>
     </div>
 
     <!-- Bottom half: content preview -->

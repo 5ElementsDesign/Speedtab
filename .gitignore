@@ -1,2 +1,4 @@
 node_modules/.vite/vitest/results.json
 DATA.TEST.md
+dist/
+node_modules/

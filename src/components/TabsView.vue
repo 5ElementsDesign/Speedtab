@@ -4,6 +4,7 @@ import { useDragSort } from '@/composables/useDragSort'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { cleanupOrphans } from '@/composables/useMaintenance'
 import { useReorder } from '@/composables/useReorder'
+import { TILE_W } from '@/composables/useAsset'
 import { db, isActiveRecord, makeCreateMetadata, makeUpdatedAtPatch } from '@/db/db'
 import type { AppSetting, Collection, PortableInput, Tab } from '@/types/db'
 import { computed, ref } from 'vue'
@@ -55,20 +56,15 @@ const resolvedOpenInNewTab = computed<boolean>(() => {
 const { move: moveTab } = useReorder(db.tabs, tabs)
 const tabDnd = useDragSort({ onReorder: (f, t) => moveTab(f, t) })
 
-// ─── Grid style: up to N columns × 98 px, 4 px gap, centered ──────────────────
-// `auto-fit` lets the grid shrink to fewer columns when the module is narrower
-// than the configured max; the explicit max-width caps it at N columns; the
-// `justify-content: center` centers tiles when the grid is wider than needed.
+const QUICKLINK_W = 54
 
-const gridStyle = computed(() => ({
-  display:             'grid',
-  gridTemplateColumns: `repeat(auto-fit, ${props.quicklinks ? 50 : 98}px)`,
-  gap:                 '4px',
-  justifyContent:      'center',
-  maxWidth:            props.columns > 0 ? `${props.columns * (props.quicklinks ? 50 : 98) + (props.columns - 1) * 4}px` : 'none',
-  marginLeft:          'auto',
-  marginRight:         'auto',
-}))
+const gridStyle = computed<Record<string, string>>(() => {
+  if (props.columns <= 0) return {} as Record<string, string>
+  const tileWidth = props.quicklinks ? QUICKLINK_W : TILE_W
+  return {
+    '--st-module-content-max-width': `${props.columns * tileWidth + (props.columns - 1) * 4}px`,
+  }
+})
 
 // ─── CRUD ──────────────────────────────────────────────────────────────────────
 
@@ -122,7 +118,12 @@ async function deleteTileTab(tab: Tab) {
 <template>
   <div class="h-full">
     <!-- ─── Tab grid (drag-and-drop reorderable) ─────────────────────────── -->
-    <div class="h-full items-center" v-if="tabs.length" :style="gridStyle">
+    <div
+      v-if="tabs.length"
+      class="st-module-content-wrapper items-center h-full"
+      :style="gridStyle"
+      :class="props.quicklinks === true ? 'st-module-tabs-quicklinks' : 'st-module-tabs-bookmarks'"
+    >
       <TabTile
         v-for="(tab, idx) in tabs"
         :key="tab.id"
@@ -145,11 +146,10 @@ async function deleteTileTab(tab: Tab) {
       <button
         v-if="showAddTile"
         @click="openAdd"
-        class="rounded-sm border border-dashed border-white/20
+        class="st-content-trigger-button rounded-sm border border-dashed border-white/20
                flex items-center justify-center
                text-white/40 hover:text-white hover:border-white/50
                text-sm transition-colors shrink-0"
-        :class="props.quicklinks ? 'w-[50px] h-[50px]' : 'w-[98px] h-[56px]'"
         title="Add bookmark"
       >+</button>
     </div>

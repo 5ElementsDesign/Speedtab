@@ -10,6 +10,7 @@ All notable changes to Speedtab will be documented in this file.
 - Global search with a debounced header search box, absolute results layer, locate flow, and in-page highlight cues.
 - Cleanup preview modal with grouped orphan candidates, optional unused-asset cleanup, preview tiles, and stale favicon refresh.
 - HTML note image support with asset-backed placeholder tokens and rendered inline images.
+- Floating note windows that can stay open across pages, with drag, resize, focus stacking, and per-note open-state locking in the module preview grid.
 - Bookmark module option to disable hover action buttons.
 - Bookmark quicklinks mode for compact favicon-first bookmark grids.
 - Feed module `Expand` width selector with multiple reading widths and stacked compact layout for narrow widths.

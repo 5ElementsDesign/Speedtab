@@ -187,7 +187,7 @@ watch(imageDataUrl, async (url) => {
   if (!cropperImgEl.value) return
   const Cropper = await loadCropper()
   cropperInstance = new Cropper(cropperImgEl.value, {
-    aspectRatio:  TILE_W / TILE_H,   // strict 98/56 = 1.75
+    aspectRatio:  TILE_W / TILE_H,   // strict preview tile ratio
     viewMode:     1,
     autoCropArea: 1,
     movable:      true,
@@ -219,7 +219,7 @@ async function applyCrop() {
   if (!cropperInstance) return
   // Export cropped region resampled to exact tile pixels
   const canvas   = cropperInstance.getCroppedCanvas({ width: TILE_W, height: TILE_H })
-  const blob     = await canvasToWebpBlob(canvas)   // ~1–4 KB at 98×56
+  const blob     = await canvasToWebpBlob(canvas)
   croppedBlob    = blob
   if (croppedBlobUrl.value) URL.revokeObjectURL(croppedBlobUrl.value)
   croppedBlobUrl.value = URL.createObjectURL(blob)
@@ -356,12 +356,12 @@ async function handleSubmit() {
     <!-- Preview image pipeline -->
     <div>
       <label for="tab_preview_file" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-        Preview Image <span class="normal-case font-normal text-gray-600">(98×56 WebP, high quality)</span>
+        Preview Image <span class="normal-case font-normal text-gray-600">({{ TILE_W }}×{{ TILE_H }} WebP, high quality)</span>
       </label>
 
       <!-- Selected or cropped result preview -->
       <div v-if="croppedBlobUrl || selectedPreviewAssetUrl" class="flex items-center gap-3">
-        <img :src="croppedBlobUrl || selectedPreviewAssetUrl || ''" class="w-[98px] h-[56px] rounded object-cover border border-white/10" alt="Preview" />
+        <img :src="croppedBlobUrl || selectedPreviewAssetUrl || ''" :style="{ width: `${TILE_W}px`, height: `${TILE_H}px` }" class="rounded object-cover border border-white/10" alt="Preview" />
         <button type="button" @click="clearImage" class="text-xs text-red-400 hover:text-red-300 transition-colors">Remove</button>
       </div>
 
@@ -373,7 +373,7 @@ async function handleSubmit() {
         <div class="flex gap-2">
           <button type="button" @click="applyCrop"
             class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-medium">
-            Apply Crop (98 × 56)
+            Apply Crop ({{ TILE_W }} × {{ TILE_H }})
           </button>
           <button type="button" @click="clearImage"
             class="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition-colors">
