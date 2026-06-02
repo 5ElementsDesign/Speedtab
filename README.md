@@ -9,6 +9,9 @@ It replaces the browser new tab page with three integrated building blocks:
 
 Everything runs in the browser. There is no backend, no account, and no required cloud service.
 
+Chrome Web Store:
+https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff
+
 ## Highlights
 
 - Local-first architecture with IndexedDB via Dexie
