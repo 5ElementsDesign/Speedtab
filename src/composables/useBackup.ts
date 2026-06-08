@@ -19,6 +19,7 @@ export const BACKUP_VERSION = 2
 export const LEGACY_BACKUP_VERSION = 1
 export const IMPORT_LOCK_KEY = 'backup_import_lock'
 export const LAST_IMPORT_EXPORTED_AT_KEY = 'last_import_exported_at'
+export const LAST_EXPORT_CHECKSUM_KEY = 'last_export_checksum'
 const IMPORT_LOCK_TTL_MS = 5 * 60 * 1000
 
 export interface SerializedAsset {
@@ -70,6 +71,16 @@ export interface BackupManifestV2 {
 }
 
 export type BackupManifest = BackupManifestV1 | BackupManifestV2
+
+type JsonLike =
+  | null
+  | boolean
+  | number
+  | string
+  | JsonLike[]
+  | { [key: string]: JsonLike }
+
+const NOTE_IMAGE_TOKEN_RE = /{{asset:image:(\d+)}}/g
 
 // ─── Blob ↔ base64 helpers ────────────────────────────────────────────────────
 
@@ -327,12 +338,186 @@ export async function exportAll(database: SpeedtabDB = defaultDb): Promise<Backu
   }
 }
 
-export function manifestToJsonString(m: BackupManifest): string {
-  return JSON.stringify(m)
+function compareScalars(a: string | number | null | undefined, b: string | number | null | undefined): number {
+  const left = a ?? null
+  const right = b ?? null
+
+  if (left === right) return 0
+  if (left === null) return -1
+  if (right === null) return 1
+
+  if (typeof left === 'number' && typeof right === 'number') {
+    return left - right
+  }
+
+  return String(left).localeCompare(String(right))
 }
 
-async function shortManifestChecksum(manifest: BackupManifest): Promise<string> {
-  const data = new TextEncoder().encode(manifestToJsonString(manifest))
+function sortRows<T>(rows: T[], compare: (left: T, right: T) => number): T[] {
+  return [...rows].sort(compare)
+}
+
+function sortObjectKeys(value: JsonLike): JsonLike {
+  if (Array.isArray(value)) {
+    return value.map((entry) => sortObjectKeys(entry))
+  }
+
+  if (!value || typeof value !== 'object') {
+    return value
+  }
+
+  const sortedEntries = Object.entries(value)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, entryValue]) => [key, sortObjectKeys(entryValue as JsonLike)] as const)
+
+  return Object.fromEntries(sortedEntries) as JsonLike
+}
+
+function canonicalizeManifest(manifest: BackupManifest): BackupManifest {
+  if (manifest.version === LEGACY_BACKUP_VERSION) {
+    return {
+      ...manifest,
+      pages: sortRows(manifest.pages, (left, right) => compareScalars(left.original_id, right.original_id)),
+      modules: sortRows(manifest.modules, (left, right) =>
+        compareScalars(left.page_id, right.page_id) ||
+        compareScalars(left.original_id, right.original_id)),
+      collections: sortRows(manifest.collections, (left, right) =>
+        compareScalars(left.module_id, right.module_id) ||
+        compareScalars(left.original_id, right.original_id)),
+      tabs: sortRows(manifest.tabs, (left, right) =>
+        compareScalars(left.collection_id, right.collection_id) ||
+        compareScalars(left.original_id, right.original_id)),
+      notes: sortRows(manifest.notes, (left, right) =>
+        compareScalars(left.collection_id, right.collection_id) ||
+        compareScalars(left.original_id, right.original_id)),
+      feed_sources: sortRows(manifest.feed_sources, (left, right) =>
+        compareScalars(left.collection_id, right.collection_id) ||
+        compareScalars(left.original_id, right.original_id)),
+      feed_items: sortRows(manifest.feed_items, (left, right) =>
+        compareScalars(left.feed_source_id, right.feed_source_id) ||
+        compareScalars(left.original_id, right.original_id)),
+      saved_feed_items: sortRows(manifest.saved_feed_items, (left, right) =>
+        compareScalars(left.collection_id, right.collection_id) ||
+        compareScalars(left.original_id, right.original_id)),
+      assets: sortRows(manifest.assets, (left, right) =>
+        compareScalars(left.checksum, right.checksum) ||
+        compareScalars(left.kind, right.kind) ||
+        compareScalars(left.original_id, right.original_id)),
+    }
+  }
+
+  return {
+    ...manifest,
+    pages: sortRows(manifest.pages, (left, right) => compareScalars(left.sync_id, right.sync_id)),
+    modules: sortRows(manifest.modules, (left, right) =>
+      compareScalars(left.page_sync_id, right.page_sync_id) ||
+      compareScalars(left.sync_id, right.sync_id)),
+    collections: sortRows(manifest.collections, (left, right) =>
+      compareScalars(left.module_sync_id, right.module_sync_id) ||
+      compareScalars(left.sync_id, right.sync_id)),
+    tabs: sortRows(manifest.tabs, (left, right) =>
+      compareScalars(left.collection_sync_id, right.collection_sync_id) ||
+      compareScalars(left.sync_id, right.sync_id)),
+    notes: sortRows(manifest.notes, (left, right) =>
+      compareScalars(left.collection_sync_id, right.collection_sync_id) ||
+      compareScalars(left.sync_id, right.sync_id)),
+    feed_sources: sortRows(manifest.feed_sources, (left, right) =>
+      compareScalars(left.collection_sync_id, right.collection_sync_id) ||
+      compareScalars(left.sync_id, right.sync_id)),
+    saved_feed_items: sortRows(manifest.saved_feed_items, (left, right) =>
+      compareScalars(left.collection_sync_id, right.collection_sync_id) ||
+      compareScalars(left.sync_id, right.sync_id)),
+    assets: sortRows(manifest.assets, (left, right) =>
+      compareScalars(left.checksum, right.checksum) ||
+      compareScalars(left.kind, right.kind) ||
+      compareScalars(left.original_id, right.original_id)),
+  }
+}
+
+function buildChecksumPayload(manifest: BackupManifest): JsonLike {
+  const canonical = canonicalizeManifest(manifest)
+
+  if (canonical.version === LEGACY_BACKUP_VERSION) {
+    return sortObjectKeys({
+      ...canonical,
+      exported_at: '',
+      pages: canonical.pages.map(({ original_id: _originalId, ...row }) => row),
+      modules: canonical.modules.map(({ original_id: _originalId, page_id, ...row }) => ({
+        ...row,
+        page_original_id: page_id,
+      })),
+      collections: canonical.collections.map(({ original_id: _originalId, module_id, ...row }) => ({
+        ...row,
+        module_original_id: module_id,
+      })),
+      tabs: canonical.tabs.map(({ original_id: _originalId, collection_id, favicon_asset_id, preview_asset_id, ...row }) => ({
+        ...row,
+        collection_original_id: collection_id,
+        favicon_asset_original_id: favicon_asset_id,
+        preview_asset_original_id: preview_asset_id,
+      })),
+      notes: canonical.notes.map(({ original_id: _originalId, collection_id, ...row }) => ({
+        ...row,
+        collection_original_id: collection_id,
+      })),
+      feed_sources: canonical.feed_sources.map(({ original_id: _originalId, collection_id, ...row }) => ({
+        ...row,
+        collection_original_id: collection_id,
+      })),
+      feed_items: canonical.feed_items.map(({ original_id: _originalId, feed_source_id, ...row }) => ({
+        ...row,
+        feed_source_original_id: feed_source_id,
+      })),
+      saved_feed_items: canonical.saved_feed_items.map(({ original_id: _originalId, collection_id, ...row }) => ({
+        ...row,
+        collection_original_id: collection_id,
+      })),
+      assets: canonical.assets.map(({ original_id: _originalId, ...row }) => row),
+    } as unknown as JsonLike)
+  }
+
+  const assetChecksumByOriginalId = new Map<number, string>(
+    canonical.assets.map((asset) => [asset.original_id, asset.checksum] as const),
+  )
+
+  const normalizeAssetRef = (assetOriginalId: number | null | undefined): string | null =>
+    assetOriginalId != null ? assetChecksumByOriginalId.get(assetOriginalId) ?? null : null
+
+  const normalizeNoteContent = (content: string, type: string): string => {
+    if (type !== 'html') return content
+    return content.replace(NOTE_IMAGE_TOKEN_RE, (_match, assetIdRaw: string) => {
+      const assetChecksum = assetChecksumByOriginalId.get(Number(assetIdRaw))
+      return assetChecksum ? `{{asset:image:${assetChecksum}}}` : ''
+    })
+  }
+
+  return sortObjectKeys({
+    ...canonical,
+    exported_at: '',
+    modules: canonical.modules.map(({ original_id: _originalId, ...row }) => row),
+    collections: canonical.collections.map(({ original_id: _originalId, ...row }) => row),
+    tabs: canonical.tabs.map(({ original_id: _originalId, favicon_asset_id, preview_asset_id, ...row }) => ({
+      ...row,
+      favicon_asset_checksum: normalizeAssetRef(favicon_asset_id),
+      preview_asset_checksum: normalizeAssetRef(preview_asset_id),
+    })),
+    notes: canonical.notes.map(({ original_id: _originalId, content, type, ...row }) => ({
+      ...row,
+      content: normalizeNoteContent(content, type),
+      type,
+    })),
+    feed_sources: canonical.feed_sources.map(({ original_id: _originalId, ...row }) => row),
+    saved_feed_items: canonical.saved_feed_items.map(({ original_id: _originalId, ...row }) => row),
+    assets: canonical.assets.map(({ original_id: _originalId, ...row }) => row),
+  } as unknown as JsonLike)
+}
+
+export function manifestToJsonString(m: BackupManifest): string {
+  return JSON.stringify(sortObjectKeys(canonicalizeManifest(m) as unknown as JsonLike))
+}
+
+export async function manifestChecksum(manifest: BackupManifest): Promise<string> {
+  const data = new TextEncoder().encode(JSON.stringify(buildChecksumPayload(manifest)))
   const digest = await crypto.subtle.digest('SHA-256', data)
   const bytes = Array.from(new Uint8Array(digest).slice(0, 6))
   return bytes.map(byte => byte.toString(16).padStart(2, '0')).join('')
@@ -955,7 +1140,7 @@ async function importChildRowsV2<TManifestRow extends { sync_id: string; updated
 // ─── Browser helpers ──────────────────────────────────────────────────────────
 
 export async function downloadManifest(manifest: BackupManifest, filename?: string): Promise<void> {
-  const resolvedFilename = filename ?? exportFilename(manifest, await shortManifestChecksum(manifest))
+  const resolvedFilename = filename ?? exportFilename(manifest, await manifestChecksum(manifest))
   const blob = new Blob([manifestToJsonString(manifest)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -967,11 +1152,14 @@ export async function downloadManifest(manifest: BackupManifest, filename?: stri
   setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
-export async function readManifestFile(file: File): Promise<BackupManifest> {
-  const text = await file.text()
+export function parseManifestText(text: string): BackupManifest {
   let parsed: unknown
   try { parsed = JSON.parse(text) }
   catch { throw new BackupValidationError('File is not valid JSON') }
   validateManifest(parsed)
   return parsed
+}
+
+export async function readManifestFile(file: File): Promise<BackupManifest> {
+  return parseManifestText(await file.text())
 }

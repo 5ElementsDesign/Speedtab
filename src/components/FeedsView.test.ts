@@ -63,6 +63,14 @@ async function settleFeedView(wrapper: ReturnType<typeof mount>, minItems = 1) {
   }
 }
 
+async function settleUntil(predicate: () => boolean) {
+  for (let i = 0; i < 20; i += 1) {
+    await flushPromises()
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    if (predicate()) return
+  }
+}
+
 describe('FeedsView', () => {
   const collectionA: Collection = {
     ...withMeta({
@@ -163,9 +171,52 @@ describe('FeedsView', () => {
 
     await wrapper.setProps({ collection: collectionB })
     await settleFeedView(wrapper)
+    await settleUntil(() =>
+      wrapper.find('.st-module-feed-title').text() === 'All sources' &&
+      wrapper.findAll('.feed-item-stub').length === 1 &&
+      wrapper.text().includes('Unread Beta item'),
+    )
 
     expect(wrapper.find('.st-module-feed-title').text()).toBe('All sources')
     expect(wrapper.findAll('.feed-item-stub')).toHaveLength(1)
     expect(wrapper.text()).toContain('Unread Beta item')
+  })
+
+  it('delegates feed item toggle and archive actions from the module root', async () => {
+    const sourceId = await seedFeedSource(collectionA.id!, 'Alpha Source')
+    const itemId = await seedFeedItem(sourceId, 'Delegated item', null)
+
+    const wrapper = mount(FeedsView, {
+      props: {
+        collection: collectionA,
+      },
+      global: {
+        stubs: {
+          Modal: {
+            props: ['show', 'title'],
+            template: '<div v-if="show"><div class="modal-title">{{ title }}</div><slot /></div>',
+          },
+          FeedSourceForm: true,
+          FeedArchiveForm: {
+            props: ['item'],
+            template: '<div class="archive-form-stub">{{ item.title }}</div>',
+          },
+        },
+      },
+    })
+
+    await settleFeedView(wrapper)
+
+    await wrapper.find('.st-module-feed-item-toggle').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('.st-module-feed-item-body').exists()).toBe(true)
+    expect((await db.feed_items.get(itemId))?.read_at).not.toBeNull()
+
+    await wrapper.find('.st-module-feed-item-save').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('.modal-title').text()).toBe('Archive Feed Item')
+    expect(wrapper.find('.archive-form-stub').text()).toContain('Delegated item')
   })
 })

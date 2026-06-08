@@ -4,6 +4,7 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 const props = defineProps<{
   show:  boolean
   title: string
+  dockRight?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -36,20 +37,29 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
     >
-      <div v-if="show" class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <div v-if="show" class="fixed inset-0 z-[70] flex items-center p-4" :class="props.dockRight ? 'justify-end' : 'justify-center'">
         <!-- Backdrop -->
-        <div class="absolute inset-0 bg-black/70 backdrop-blur-xs" @click="emit('close')"></div>
+        <div class="absolute inset-0" :class="props.dockRight ? 'bg-black/95' : 'bg-[#000000e6]'" @click="emit('close')"></div>
 
         <!-- Modal Panel -->
         <div
-          class="relative bg-black/80 backdrop-blur-xs border border-white/10 shadow-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
-          :class="isMaximized ? 'max-w-[min(96vw,1500px)] h-[90vh]' : 'max-w-lg'"
+          class="relative bg-black/80 border border-white/10 shadow-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+          :class="[
+            isMaximized
+              ? (props.dockRight ? 'max-w-[50vw] h-[90vh]' : 'max-w-[min(96vw,1500px)] h-[90vh]')
+              : 'max-w-lg',
+            props.dockRight ? 'lg:h-[calc(100vh-32px)] lg:max-h-none' : '',
+          ]"
         >
           <header class="px-3 py-2 border-b border-white/10 flex items-center justify-between bg-black/30">
             <h2 class="text-[11px] font-semibold text-white">
               <slot name="title">{{ title }}</slot>
             </h2>
             <div class="flex items-center gap-2">
+              <div v-if="$slots['header-meta']" class="text-[10px] text-gray-500 leading-none">
+                <slot name="header-meta"></slot>
+              </div>
+              <slot name="header-actions"></slot>
               <button
                 type="button"
                 @click="isMaximized = !isMaximized"

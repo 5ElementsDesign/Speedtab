@@ -11,9 +11,12 @@ export interface OpenNoteWindow {
 }
 
 const WINDOW_OFFSET_STEP = 28
-const MIN_WINDOW_WIDTH = 320
-const MIN_WINDOW_HEIGHT = 220
+const DEFAULT_WINDOW_WIDTH = 320
+const DEFAULT_WINDOW_HEIGHT = 220
+const MIN_WINDOW_WIDTH = 180
+const MIN_WINDOW_HEIGHT = 80
 const NOTE_Z_INDEX_BASE = 70
+const WINDOW_EDGE_INSET = 16
 
 const state = reactive<{
   windows: OpenNoteWindow[]
@@ -29,6 +32,18 @@ function readViewportWidth() {
 
 function readViewportHeight() {
   return typeof window === 'undefined' ? 800 : window.innerHeight
+}
+
+function isSmallViewportForNotes() {
+  if (typeof window === 'undefined') return false
+  return window.innerWidth < 740 || window.matchMedia('(pointer: coarse)').matches
+}
+
+function readActivePageMaxWidth() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return 1500
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--st-active-page-max-width').trim()
+  const parsed = Number(raw)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1500
 }
 
 function syncBodyZIndex() {
@@ -55,20 +70,20 @@ function nextZIndex() {
 function clampWindowPosition(width: number, height: number, x: number, y: number) {
   const viewportWidth = readViewportWidth()
   const viewportHeight = readViewportHeight()
-  const maxX = Math.max(12, viewportWidth - width - 12)
-  const maxY = Math.max(12, viewportHeight - height - 12)
+  const maxX = Math.max(WINDOW_EDGE_INSET, viewportWidth - width - WINDOW_EDGE_INSET)
+  const maxY = Math.max(WINDOW_EDGE_INSET, viewportHeight - height - WINDOW_EDGE_INSET)
 
   return {
-    x: Math.min(Math.max(12, x), maxX),
-    y: Math.min(Math.max(12, y), maxY),
+    x: Math.min(Math.max(WINDOW_EDGE_INSET, x), maxX),
+    y: Math.min(Math.max(WINDOW_EDGE_INSET, y), maxY),
   }
 }
 
 function clampWindowSize(width: number, height: number, x: number, y: number) {
   const viewportWidth = readViewportWidth()
   const viewportHeight = readViewportHeight()
-  const safeWidth = Math.max(MIN_WINDOW_WIDTH, Math.min(width, Math.max(MIN_WINDOW_WIDTH, viewportWidth - 24)))
-  const safeHeight = Math.max(MIN_WINDOW_HEIGHT, Math.min(height, Math.max(MIN_WINDOW_HEIGHT, viewportHeight - 24)))
+  const safeWidth = Math.max(MIN_WINDOW_WIDTH, Math.min(width, Math.max(MIN_WINDOW_WIDTH, viewportWidth - (WINDOW_EDGE_INSET * 2))))
+  const safeHeight = Math.max(MIN_WINDOW_HEIGHT, Math.min(height, Math.max(MIN_WINDOW_HEIGHT, viewportHeight - (WINDOW_EDGE_INSET * 2))))
   const position = clampWindowPosition(safeWidth, safeHeight, x, y)
 
   return {
@@ -96,22 +111,33 @@ function openNote(note: Pick<Note, 'id'>) {
     return
   }
 
-  const index = state.windows.length
+  const viewportWidth = readViewportWidth()
+  const isSmallViewport = isSmallViewportForNotes()
+  const index = isSmallViewport ? 0 : state.windows.length
+  const pageShellWidth = Math.min(readActivePageMaxWidth(), viewportWidth * 0.96)
+  const pageShellLeft = Math.max(0, (viewportWidth - pageShellWidth) / 2)
   const origin = clampWindowPosition(
-    MIN_WINDOW_WIDTH,
-    MIN_WINDOW_HEIGHT,
-    32 + (index % 6) * WINDOW_OFFSET_STEP,
+    DEFAULT_WINDOW_WIDTH,
+    DEFAULT_WINDOW_HEIGHT,
+    (isSmallViewport ? WINDOW_EDGE_INSET : pageShellLeft + WINDOW_EDGE_INSET) + (index % 6) * WINDOW_OFFSET_STEP,
     72 + (index % 6) * WINDOW_OFFSET_STEP,
   )
 
-  state.windows.push({
+  const nextWindow = {
     noteId: note.id,
     zIndex: nextZIndex(),
     x: origin.x,
     y: origin.y,
     width: null,
     height: null,
-  })
+  }
+
+  if (isSmallViewport) {
+    state.windows.splice(0, state.windows.length, nextWindow)
+    return
+  }
+
+  state.windows.push(nextWindow)
 }
 
 function focusNote(noteId: number) {

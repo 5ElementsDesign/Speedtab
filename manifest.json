@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Speedtab",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A local-first browser new-tab dashboard with bookmarks, feeds, and notes.",
   "permissions": [
+    "storage",
     "unlimitedStorage",
     "contextMenus"
   ],

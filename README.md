@@ -1,6 +1,6 @@
 # Speedtab
 
-Speedtab is a local-first Chrome new tab extension for people who want a dense, fast dashboard instead of a blank page or a slow cloud product.
+Speedtab is a local-first Chrome new tab extension focused on dense, fast dashboards instead of blank pages or slow cloud products.
 
 It replaces the browser new tab page with three integrated building blocks:
 - visual bookmarks
@@ -30,23 +30,23 @@ https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoam
 
 ### Start Page
 
-![Speedtab start page](screenshots/speedtab-1-start.png)
+![Speedtab start page](screenshots/1-speedtab-start.jpg)
 
 ### Note Viewer
 
-![Speedtab open note](screenshots/speedtab-2-open-note.png)
+![Speedtab open note](screenshots/2-speedtab-open-notes-feeds.jpg)
 
-### Encrypted Notes
+### Expanded Feed Reader
 
-![Speedtab crypted note](screenshots/speedtab-3-crypted-note.png)
+![Speedtab maximized feeds module](screenshots/3-speedtab-expanded-feed-reader.jpg)
 
-### Feed Reader
+### Search Filter
 
-![Speedtab maximized feeds module](screenshots/speedtab-4-feeds-maximized.png)
+![Speedtab with search results](screenshots/4-speedtab-search-filter.jpg)
 
-### Themes
+### Theme Charcoal
 
-![Speedtab themes](screenshots/speedtab-5-themes.png)
+![Speedtab themes, Charcoal](screenshots/5-speedtab-theme-charcoal.jpg)
 
 ## Privacy
 
@@ -141,12 +141,14 @@ Speedtab does not currently export feed cache responses. Feed items fetched from
 
 Current extension permissions:
 
+- `storage`
 - `unlimitedStorage`
 - `contextMenus`
 - host permissions for `http://*/*` and `https://*/*`
 
 Why they are needed:
 
+- `storage`: required for local-only extension settings such as remote sync configuration and credentials in `chrome.storage.local`
 - `unlimitedStorage`: allows larger local datasets and image assets in IndexedDB
 - `contextMenus`: lets users send selected text or the current page into Speedtab from the browser context menu
 - host permissions: required so the background service worker can fetch RSS/Atom feeds across origins
@@ -248,7 +250,7 @@ Speedtab replaces the default browser new tab page with a dense, fast, local-fir
 
 Build pages for different contexts, split them into modules, and organize content into tabs. Combine visual bookmarks, RSS/Atom feeds, quick notes, code snippets, link lists, HTML notes, encrypted private notes, theming, and a focused feed reader in one place.
 
-Speedtab is built for people who want speed, structure, and ownership over their data:
+Speedtab is built around speed, structure, and ownership over your data:
 
 - no required account
 - no backend service

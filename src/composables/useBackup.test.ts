@@ -46,6 +46,7 @@ import {
     blobToBase64,
     exportAll,
     importAll,
+    manifestChecksum,
     manifestToJsonString,
     readManifestFile,
     validateManifest,
@@ -85,6 +86,85 @@ async function seedFullChain(db: SpeedtabDB) {
   const collectionId = await db.collections.add(withMeta({ module_id: moduleId as number, title: 'Work', sort_order: 0, config_json: null }))
   const tabId        = await db.tabs.add(withMeta({ collection_id: collectionId as number, title: 'GitHub', url: 'https://github.com', description: null, favicon_asset_id: null, preview_asset_id: null, sort_order: 0, meta_json: null }))
   return { pageId, moduleId, collectionId, tabId }
+}
+
+async function seedDeterministicWorkspace(database: SpeedtabDB, options?: { reversePages?: boolean }) {
+  const now = 1_700_000_000_000
+  const pageRecords = options?.reversePages
+    ? [
+        withMeta({ slug: 'work', title: 'Work', nav_group: 'main' as const, icon: 'W', is_home: 0 as const, sort_order: 1, sync_id: '20000000-0000-4000-8000-000000000002', created_at: now + 2, updated_at: now + 2, deleted_at: null }),
+        withMeta({ slug: 'home', title: 'Home', nav_group: 'main' as const, icon: 'H', is_home: 1 as const, sort_order: 0, sync_id: '10000000-0000-4000-8000-000000000001', created_at: now + 1, updated_at: now + 1, deleted_at: null }),
+      ]
+    : [
+        withMeta({ slug: 'home', title: 'Home', nav_group: 'main' as const, icon: 'H', is_home: 1 as const, sort_order: 0, sync_id: '10000000-0000-4000-8000-000000000001', created_at: now + 1, updated_at: now + 1, deleted_at: null }),
+        withMeta({ slug: 'work', title: 'Work', nav_group: 'main' as const, icon: 'W', is_home: 0 as const, sort_order: 1, sync_id: '20000000-0000-4000-8000-000000000002', created_at: now + 2, updated_at: now + 2, deleted_at: null }),
+      ]
+
+  const pageIds: Record<string, number> = {}
+  for (const page of pageRecords) {
+    pageIds[page.slug] = await database.pages.add(page) as number
+  }
+
+  const moduleRecords = options?.reversePages
+    ? [
+        withMeta({ page_id: pageIds.work, type: 'tabs' as const, title: 'Work Tabs', sort_order: 0, config_json: JSON.stringify({ columns: 4, compact: true }), sync_id: '40000000-0000-4000-8000-000000000004', created_at: now + 4, updated_at: now + 4, deleted_at: null }),
+        withMeta({ page_id: pageIds.home, type: 'tabs' as const, title: 'Home Tabs', sort_order: 0, config_json: JSON.stringify({ columns: 6, compact: false }), sync_id: '30000000-0000-4000-8000-000000000003', created_at: now + 3, updated_at: now + 3, deleted_at: null }),
+      ]
+    : [
+        withMeta({ page_id: pageIds.home, type: 'tabs' as const, title: 'Home Tabs', sort_order: 0, config_json: JSON.stringify({ columns: 6, compact: false }), sync_id: '30000000-0000-4000-8000-000000000003', created_at: now + 3, updated_at: now + 3, deleted_at: null }),
+        withMeta({ page_id: pageIds.work, type: 'tabs' as const, title: 'Work Tabs', sort_order: 0, config_json: JSON.stringify({ columns: 4, compact: true }), sync_id: '40000000-0000-4000-8000-000000000004', created_at: now + 4, updated_at: now + 4, deleted_at: null }),
+      ]
+
+  const moduleIds: Record<string, number> = {}
+  for (const module of moduleRecords) {
+    moduleIds[module.title] = await database.modules.add(module) as number
+  }
+
+  const collectionRecords = options?.reversePages
+    ? [
+        withMeta({ module_id: moduleIds['Work Tabs'], title: 'Work Collection', sort_order: 0, config_json: JSON.stringify({ collapsed: false }), sync_id: '60000000-0000-4000-8000-000000000006', created_at: now + 6, updated_at: now + 6, deleted_at: null }),
+        withMeta({ module_id: moduleIds['Home Tabs'], title: 'Home Collection', sort_order: 0, config_json: JSON.stringify({ collapsed: false }), sync_id: '50000000-0000-4000-8000-000000000005', created_at: now + 5, updated_at: now + 5, deleted_at: null }),
+      ]
+    : [
+        withMeta({ module_id: moduleIds['Home Tabs'], title: 'Home Collection', sort_order: 0, config_json: JSON.stringify({ collapsed: false }), sync_id: '50000000-0000-4000-8000-000000000005', created_at: now + 5, updated_at: now + 5, deleted_at: null }),
+        withMeta({ module_id: moduleIds['Work Tabs'], title: 'Work Collection', sort_order: 0, config_json: JSON.stringify({ collapsed: false }), sync_id: '60000000-0000-4000-8000-000000000006', created_at: now + 6, updated_at: now + 6, deleted_at: null }),
+      ]
+
+  const collectionIds: Record<string, number> = {}
+  for (const collection of collectionRecords) {
+    collectionIds[collection.title] = await database.collections.add(collection) as number
+  }
+
+  await database.tabs.bulkAdd([
+    withMeta({
+      collection_id: collectionIds['Home Collection'],
+      title: 'Alpha',
+      url: 'https://alpha.example.com',
+      description: 'Alpha',
+      favicon_asset_id: null,
+      preview_asset_id: null,
+      sort_order: 0,
+      meta_json: JSON.stringify({ pinned: true }),
+      sync_id: '70000000-0000-4000-8000-000000000007',
+      created_at: now + 7,
+      updated_at: now + 7,
+      deleted_at: null,
+    }),
+    withMeta({
+      collection_id: collectionIds['Work Collection'],
+      title: 'Beta',
+      url: 'https://beta.example.com',
+      description: 'Beta',
+      favicon_asset_id: null,
+      preview_asset_id: null,
+      sort_order: 0,
+      meta_json: JSON.stringify({ pinned: false }),
+      sync_id: '80000000-0000-4000-8000-000000000008',
+      created_at: now + 8,
+      updated_at: now + 8,
+      deleted_at: null,
+    }),
+  ])
 }
 
 // ─── blob helpers ─────────────────────────────────────────────────────────────
@@ -208,6 +288,89 @@ describe('exportAll', () => {
 
     expect(json).not.toContain('\n')
     expect(json).toContain('"version":2')
+  })
+
+  it('returns the same checksum when hashed twice', async () => {
+    await seedDeterministicWorkspace(src)
+    const manifest = await exportAll(src)
+
+    const checksumA = await manifestChecksum(manifest)
+    const checksumB = await manifestChecksum(manifest)
+
+    expect(checksumA).toBe(checksumB)
+  })
+
+  it('ignores exported_at differences when computing checksum', async () => {
+    await seedDeterministicWorkspace(src)
+    const manifest = await exportAll(src)
+
+    const checksumA = await manifestChecksum(manifest)
+    const checksumB = await manifestChecksum({
+      ...manifest,
+      exported_at: new Date(Date.parse(manifest.exported_at) + 60_000).toISOString(),
+    })
+
+    expect(checksumA).toBe(checksumB)
+  })
+
+  it('keeps checksum stable when portable record insertion order differs', async () => {
+    const left = makeDb()
+    const right = makeDb()
+    await left.open()
+    await right.open()
+
+    try {
+      await seedDeterministicWorkspace(left, { reversePages: false })
+      await seedDeterministicWorkspace(right, { reversePages: true })
+
+      const leftManifest = await exportAll(left)
+      const rightManifest = await exportAll(right)
+
+      expect(await manifestChecksum(leftManifest)).toBe(await manifestChecksum(rightManifest))
+    } finally {
+      await left.delete()
+      await right.delete()
+    }
+  })
+
+  it('keeps checksum stable when asset insertion order differs', async () => {
+    const previewBlob = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/webp' })
+    const faviconBlob = new Blob([new Uint8Array([4, 5, 6])], { type: 'image/png' })
+    const previewBase64 = await blobToBase64(previewBlob)
+    const faviconBase64 = await blobToBase64(faviconBlob)
+
+    const leftManifest: BackupManifest = {
+      ...emptyManifest(),
+      assets: [
+        {
+          original_id: 10,
+          kind: 'preview',
+          checksum: 'asset-a',
+          width: 120,
+          height: 80,
+          meta_json: null,
+          mime_type: 'image/webp',
+          data_base64: previewBase64,
+        },
+        {
+          original_id: 11,
+          kind: 'favicon',
+          checksum: 'asset-b',
+          width: 32,
+          height: 32,
+          meta_json: JSON.stringify({ hostnames: ['example.com'] }),
+          mime_type: 'image/png',
+          data_base64: faviconBase64,
+        },
+      ],
+    }
+
+    const rightManifest: BackupManifest = {
+      ...emptyManifest(),
+      assets: [...leftManifest.assets].reverse(),
+    }
+
+    expect(await manifestChecksum(leftManifest)).toBe(await manifestChecksum(rightManifest))
   })
 })
 

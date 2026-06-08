@@ -75,6 +75,34 @@ describe('useSanitize – allowlist preservation', () => {
     const html = '<blockquote><p>quote</p></blockquote><pre><code>x = 1</code></pre>'
     expect(sanitizeHtml(html)).toBe(html)
   })
+
+  it('keeps picture and figure wrappers for injected note images', () => {
+    const html = '<picture><span>{{asset:image:11}}</span></picture><figure><span>{{asset:image:15}}</span><span>{{asset:image:16}}</span></figure>'
+    expect(sanitizeHtml(html)).toBe(html)
+  })
+
+  it('keeps additional semantic html note tags', () => {
+    const html = '<details><summary>More</summary><p>x</p></details>'
+      + '<dl><dt>Term</dt><dd>Definition</dd></dl>'
+      + '<nav><a href="https://example.com">Link</a></nav>'
+      + '<hgroup><h2>Title</h2><p>Subtitle</p></hgroup>'
+      + '<aside><article><address>Somewhere</address></article></aside>'
+      + '<menu><li>One</li></menu>'
+      + '<p><del>Old</del> <ins>New</ins> <cite>Source</cite></p>'
+      + '<textarea>Example</textarea>'
+    const out = sanitizeHtml(html)
+    expect(out).toContain('<details>')
+    expect(out).toContain('<summary>More</summary>')
+    expect(out).toContain('<dl><dt>Term</dt><dd>Definition</dd></dl>')
+    expect(out).toContain('<nav><a href="https://example.com" target="_blank" rel="noopener noreferrer">Link</a></nav>')
+    expect(out).toContain('<hgroup><h2>Title</h2><p>Subtitle</p></hgroup>')
+    expect(out).toContain('<aside><article><address>Somewhere</address></article></aside>')
+    expect(out).toContain('<menu><li>One</li></menu>')
+    expect(out).toContain('<del>Old</del>')
+    expect(out).toContain('<ins>New</ins>')
+    expect(out).toContain('<cite>Source</cite>')
+    expect(out).toContain('<textarea>Example</textarea>')
+  })
 })
 
 describe('useSanitize – anchor hardening hook', () => {

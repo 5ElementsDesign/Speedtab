@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { CaptureInboxItem, Collection, Module, Page } from '@/types/db'
-import { computed, ref, watch } from 'vue'
+import type { CaptureInboxItem, Collection, Module, Note, Page } from '@/types/db'
+import { computed, nextTick, ref, watch } from 'vue'
 import Modal from './Modal.vue'
 
 const props = defineProps<{
@@ -9,17 +9,20 @@ const props = defineProps<{
   pages: Page[]
   modules: Module[]
   collections: Collection[]
+  notes: Note[]
 }>()
 
 const emit = defineEmits<{
   close: []
-  save: [item: CaptureInboxItem, collectionId: number]
+  save: [item: CaptureInboxItem, collectionId: number, appendToNoteId?: number | null]
   discard: [itemId: number]
 }>()
 
 const activeItemId = ref<number | null>(null)
 const selectedModuleId = ref<number | null>(null)
 const selectedCollectionId = ref<number | null>(null)
+const selectedNoteId = ref<number | null>(null)
+const draftNoteText = ref('')
 
 const activeItem = computed(() =>
   props.items.find(item => item.id === activeItemId.value) ?? props.items[0] ?? null
@@ -36,6 +39,33 @@ const eligibleCollections = computed(() => {
   return props.collections.filter(collection => collection.module_id === selectedModuleId.value)
 })
 
+const eligibleNotes = computed(() => {
+  if (activeItem.value?.kind !== 'note' || !selectedCollectionId.value) return []
+  return props.notes
+    .filter(note => note.collection_id === selectedCollectionId.value)
+    .sort((a, b) => a.sort_order - b.sort_order)
+})
+
+function modulesForItem(item: CaptureInboxItem | null) {
+  if (!item) return []
+  const targetType = item.kind === 'note' ? 'notes' : 'tabs'
+  return props.modules.filter(module => module.type === targetType)
+}
+
+function initializeSelectionForItem(item: CaptureInboxItem | null) {
+  const firstModule = modulesForItem(item)[0] ?? null
+  selectedModuleId.value = firstModule?.id ?? null
+  const firstCollection = firstModule
+    ? props.collections.find(collection => collection.module_id === firstModule.id) ?? null
+    : null
+  selectedCollectionId.value = firstCollection?.id ?? null
+  selectedNoteId.value = null
+}
+
+function noteCanAppend(note: Note) {
+  return note.type !== 'crypt'
+}
+
 function moduleLabel(module: Module) {
   const page = props.pages.find(candidate => candidate.id === module.page_id)
   return page ? `${page.title} › ${module.title}` : module.title
@@ -44,16 +74,11 @@ function moduleLabel(module: Module) {
 watch(() => props.show, (isOpen) => {
   if (!isOpen) return
   activeItemId.value = props.items[0]?.id ?? null
+  nextTick(() => initializeSelectionForItem(activeItem.value))
 }, { immediate: true })
 
 watch(activeItem, (item) => {
-  const firstModule = item ? eligibleModules.value[0] ?? null : null
-  selectedModuleId.value = firstModule?.id ?? null
-}, { immediate: true })
-
-watch(selectedModuleId, (moduleId) => {
-  const firstCollection = props.collections.find(collection => collection.module_id === moduleId)
-  selectedCollectionId.value = firstCollection?.id ?? null
+  initializeSelectionForItem(item)
 }, { immediate: true })
 
 watch(() => props.items, (items) => {
@@ -65,12 +90,16 @@ watch(() => props.items, (items) => {
     activeItemId.value = items[0]?.id ?? null
   }
 }, { deep: true })
+
+watch(activeItem, (item) => {
+  draftNoteText.value = item?.kind === 'note' ? (item.text ?? '') : ''
+}, { immediate: true })
 </script>
 
 <template>
   <Modal :show="show" title="Capture Inbox" @close="emit('close')">
     <div v-if="items.length" class="space-y-4">
-      <div class="grid grid-cols-[12rem_minmax(0,1fr)] gap-4 max-h-[70vh] min-h-[24rem]">
+      <div class="grid grid-cols-[12rem_minmax(0,1fr)] gap-4 max-h-[85vh] min-h-[24rem]">
         <div class="border border-white/10 bg-black/20 overflow-y-auto">
           <button
             v-for="item in items"
@@ -90,7 +119,10 @@ watch(() => props.items, (items) => {
             <div class="text-[10px] uppercase tracking-wider text-white/45">Preview</div>
             <div class="text-[11px] text-white/90 break-words">
               <template v-if="activeItem.kind === 'note'">
-                {{ activeItem.text }}
+                <textarea
+                  v-model="draftNoteText"
+                  class="min-h-[160px] w-full resize-y bg-surface-950 border border-white/10 rounded px-3 py-2 text-[11px] text-white/90 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
               </template>
               <template v-else>
                 <div class="font-medium">{{ activeItem.title || 'Captured bookmark' }}</div>
@@ -133,6 +165,25 @@ watch(() => props.items, (items) => {
                 </option>
               </select>
             </div>
+
+            <div v-if="activeItem.kind === 'note' && eligibleNotes.length">
+              <label for="capture_existing_note" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Existing Note</label>
+              <select
+                id="capture_existing_note"
+                v-model.number="selectedNoteId"
+                class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                <option :value="null">Create new note</option>
+                <option
+                  v-for="note in eligibleNotes"
+                  :key="note.id"
+                  :value="note.id"
+                  :disabled="!noteCanAppend(note)"
+                >
+                  {{ note.title || 'Untitled note' }}{{ noteCanAppend(note) ? '' : ' (Encrypted)' }}
+                </option>
+              </select>
+            </div>
           </div>
 
           <div class="flex items-center justify-between pt-3 border-t border-white/10">
@@ -153,12 +204,27 @@ watch(() => props.items, (items) => {
                 Close
               </button>
               <button
+                v-if="activeItem.kind !== 'note' || !selectedNoteId"
                 type="button"
                 :disabled="!selectedCollectionId"
-                @click="activeItem && selectedCollectionId && emit('save', activeItem, selectedCollectionId)"
+                @click="activeItem && selectedCollectionId && emit('save', {
+                  ...activeItem,
+                  text: activeItem.kind === 'note' ? draftNoteText : activeItem.text,
+                }, selectedCollectionId, null)"
                 class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded text-xs font-medium transition-all"
               >
-                Save to Speedtab
+                {{ activeItem.kind === 'note' ? 'Create New Note' : 'Save to Speedtab' }}
+              </button>
+              <button
+                v-if="activeItem.kind === 'note' && selectedNoteId"
+                type="button"
+                @click="activeItem && selectedCollectionId && emit('save', {
+                  ...activeItem,
+                  text: draftNoteText,
+                }, selectedCollectionId, selectedNoteId)"
+                class="px-4 py-2 bg-white/10 hover:bg-white/15 text-white rounded text-xs font-medium transition-all"
+              >
+                Append
               </button>
             </div>
           </div>

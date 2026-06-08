@@ -11,6 +11,9 @@ const PRESET_PAGE_ICONS = [
   '⌨️', '🕹️', '☁️', '🌙', '☀️', '🔥', '🌿', '🌊', '📍', '✅',
 ]
 
+const PAGE_MAX_WIDTH_MIN = 300
+const PAGE_MAX_WIDTH_MAX = 2000
+
 const props = defineProps<{
   page?: Page
   defaultMaxWidth?: number | null
@@ -26,7 +29,7 @@ const emit = defineEmits<{
 function parseConfig(): { modulesPerRow: number; maxWidth: number | null; backgroundAssetId: number | null } {
   if (!props.page?.config_json) {
     return {
-      modulesPerRow: 3,
+      modulesPerRow: 2,
       maxWidth: typeof props.defaultMaxWidth === 'number' ? props.defaultMaxWidth : null,
       backgroundAssetId: null,
     }
@@ -34,11 +37,11 @@ function parseConfig(): { modulesPerRow: number; maxWidth: number | null; backgr
   try {
     const c = JSON.parse(props.page.config_json)
     return {
-      modulesPerRow: typeof c.modulesPerRow === 'number' ? c.modulesPerRow : 3,
+      modulesPerRow: typeof c.modulesPerRow === 'number' ? c.modulesPerRow : 2,
       maxWidth:      typeof c.maxWidth === 'number' ? c.maxWidth : null,
       backgroundAssetId: typeof c.background_asset_id === 'number' ? c.background_asset_id : null,
     }
-  } catch { return { modulesPerRow: 3, maxWidth: null, backgroundAssetId: null } }
+  } catch { return { modulesPerRow: 2, maxWidth: null, backgroundAssetId: null } }
 }
 const initialCfg = parseConfig()
 
@@ -117,8 +120,10 @@ async function handleSubmit() {
   }
   // Persist layout settings as a single JSON blob.
   form.value.config_json = JSON.stringify({
-    modulesPerRow: Math.max(1, Math.min(6, Number(modulesPerRow.value) || 3)),
-    maxWidth:      maxWidth.value && maxWidth.value > 0 ? Number(maxWidth.value) : null,
+    modulesPerRow: Math.max(1, Math.min(12, Number(modulesPerRow.value) || 2)),
+    maxWidth:      maxWidth.value && maxWidth.value > 0
+      ? Math.max(PAGE_MAX_WIDTH_MIN, Math.min(PAGE_MAX_WIDTH_MAX, Number(maxWidth.value)))
+      : null,
     background_asset_id: backgroundAssetId.value,
   })
   // Emit a plain shallow copy — IndexedDB's structured clone cannot serialize Vue's reactive Proxy.
@@ -136,45 +141,28 @@ async function handleSubmit() {
         v-model="form.title"
         type="text"
         placeholder="Page name"
-        class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        class="w-full min-h-[40px] bg-surface-950 border border-white/10 rounded px-3 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         required
       />
     </div>
 
     <div class="grid grid-cols-2 gap-4 items-start">
-      <div :class="isIconPickerOpen ? 'col-span-2' : ''">
+      <div>
         <label for="page_icon" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Icon (Emoji)</label>
-        <div class="space-y-2">
-          <div class="flex gap-2">
-            <input
-              id="page_icon"
-              v-model="form.icon"
-              type="text"
-              class="min-w-0 max-w-[75%] flex-[1_1_75%] bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-            <button
-              type="button"
-              @click="isIconPickerOpen = !isIconPickerOpen"
-              class="shrink-0 px-3 py-2 bg-white/10 hover:bg-white/15 border border-white/10 rounded text-[10px] uppercase tracking-wider text-white/80 hover:text-white transition-colors"
-            >
-              Pick
-            </button>
-          </div>
-
-          <div
-            v-if="isIconPickerOpen"
-            class="grid grid-cols-6 gap-1 p-2 border border-white/10 bg-black/90 rounded-sm shadow-2xl"
+        <div class="flex gap-2">
+          <input
+            id="page_icon"
+            v-model="form.icon"
+            type="text"
+            class="min-w-0 flex-1 min-h-[40px] bg-surface-950 border border-white/10 rounded px-3 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+          <button
+            type="button"
+            @click="isIconPickerOpen = !isIconPickerOpen"
+            class="shrink-0 min-h-[40px] px-3 bg-white/10 hover:bg-white/15 border border-white/10 rounded text-[10px] uppercase tracking-wider text-white/80 hover:text-white transition-colors"
           >
-            <button
-              v-for="icon in PRESET_PAGE_ICONS"
-              :key="icon"
-              type="button"
-              @click="selectIcon(icon)"
-              class="h-8 rounded-sm bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-base transition-colors"
-            >
-              {{ icon }}
-            </button>
-          </div>
+            Pick
+          </button>
         </div>
       </div>
       <div>
@@ -182,11 +170,25 @@ async function handleSubmit() {
         <select
           id="page_nav_group"
           v-model="form.nav_group"
-          class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          class="w-full min-h-[40px] bg-surface-950 border border-white/10 rounded px-3 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         >
           <option value="main">Main Nav</option>
           <option value="overflow">Overflow</option>
         </select>
+      </div>
+    </div>
+
+    <div v-if="isIconPickerOpen">
+      <div class="flex flex-wrap gap-1 p-2 border border-white/10 bg-black/90 rounded-sm shadow-2xl">
+        <button
+          v-for="icon in PRESET_PAGE_ICONS"
+          :key="icon"
+          type="button"
+          @click="selectIcon(icon)"
+          class="h-12 w-12 rounded-sm bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-[18px] transition-colors"
+        >
+          {{ icon }}
+        </button>
       </div>
     </div>
 
@@ -209,8 +211,8 @@ async function handleSubmit() {
           v-model.number="modulesPerRow"
           type="number"
           min="1"
-          max="6"
-          class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          max="12"
+          class="w-full min-h-[40px] bg-surface-950 border border-white/10 rounded px-3 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
       </div>
       <div>
@@ -219,9 +221,10 @@ async function handleSubmit() {
           id="page_max_width"
           v-model.number="maxWidth"
           type="number"
-          min="0"
-          placeholder="0 = full width"
-          class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          min="300"
+          max="2000"
+          placeholder="300 - 2000"
+          class="w-full min-h-[40px] bg-surface-950 border border-white/10 rounded px-3 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
       </div>
     </div>
@@ -229,6 +232,8 @@ async function handleSubmit() {
     <div class="space-y-2">
       <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Background Override</span>
       <input
+        id="page_background_file"
+        name="page_background_file"
         type="file"
         accept="image/*"
         @change="onBackgroundFileChange"

@@ -1,5 +1,6 @@
 import { db as defaultDb, type SpeedtabDB } from '@/db/db'
 import { getFaviconHostnameCandidatesForUrl, parseFaviconMeta } from '@/composables/useFavicon'
+import { extractLinkNoteUrls } from '@/composables/useNoteLinks'
 import { extractNoteImageAssetIds } from '@/composables/useNoteImages'
 import type { Asset, Collection, FeedItem, FeedSource, Module, Note, SavedFeedItem, Tab } from '@/types/db'
 
@@ -78,6 +79,7 @@ function getAppBackgroundAssetId(valueJson: string | null | undefined): number |
 function collectReferencedFaviconAssetIds(
   assets: Asset[],
   tabs: Tab[],
+  notes: Note[],
   feedSources: FeedSource[],
   feedItems: FeedItem[],
 ): Set<number> {
@@ -91,6 +93,12 @@ function collectReferencedFaviconAssetIds(
   const referencedHosts = new Set<string>()
   for (const tab of tabs) {
     for (const host of getFaviconHostnameCandidatesForUrl(tab.url)) referencedHosts.add(host)
+  }
+  for (const note of notes) {
+    if (note.type !== 'links') continue
+    for (const url of extractLinkNoteUrls(note.content)) {
+      for (const host of getFaviconHostnameCandidatesForUrl(url)) referencedHosts.add(host)
+    }
   }
   for (const source of feedSources) {
     for (const host of getFaviconHostnameCandidatesForUrl(source.site_url || source.feed_url)) referencedHosts.add(host)
@@ -271,10 +279,11 @@ export async function cleanupOrphans(
       }
 
       const currentTabs = await database.tabs.toArray()
+      const currentNotes = await database.notes.toArray()
       const currentFeedSources = await database.feed_sources.toArray()
       const currentFeedItems = await database.feed_items.toArray()
       const currentAssets = await database.assets.toArray()
-      const referencedAssetIds = collectReferencedFaviconAssetIds(currentAssets, currentTabs, currentFeedSources, currentFeedItems)
+      const referencedAssetIds = collectReferencedFaviconAssetIds(currentAssets, currentTabs, currentNotes, currentFeedSources, currentFeedItems)
       for (const note of await database.notes.toArray()) {
         if (note.type !== 'html') continue
         for (const assetId of extractNoteImageAssetIds(note.content)) {
@@ -349,7 +358,7 @@ export async function getCleanupCandidates(
   const sourceIds = new Set(feedSources.map((source) => source.id!).filter((id): id is number => typeof id === 'number'))
   candidates.feedItems = feedItems.filter((item) => !sourceIds.has(item.feed_source_id))
 
-  const referencedAssetIds = collectReferencedFaviconAssetIds(assets, tabs, feedSources, feedItems)
+  const referencedAssetIds = collectReferencedFaviconAssetIds(assets, tabs, notes, feedSources, feedItems)
   for (const note of notes) {
     if (note.type !== 'html') continue
     for (const assetId of extractNoteImageAssetIds(note.content)) {

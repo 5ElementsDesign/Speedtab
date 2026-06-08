@@ -54,8 +54,80 @@ describe('useFavicon', () => {
     expect(JSON.parse(assets[0].meta_json ?? '{}').hostnames.sort()).toEqual([
       'alpha.example.test',
       'beta.example.test',
-      'example.test',
     ])
+  })
+
+  it('does not persist the parent hostname when a subdomain favicon exists directly', async () => {
+    vi.mocked(globalThis.fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url.includes('/gemini.google.com.ico')) {
+        return {
+          ok: true,
+          blob: async () => fakePng([5, 5, 5]),
+        } as Response
+      }
+      if (url.includes('/google.com.ico')) {
+        return {
+          ok: true,
+          blob: async () => fakePng([9, 9, 9, 9]),
+        } as Response
+      }
+      return { ok: false } as Response
+    })
+
+    const geminiAssetId = await ensureFaviconAssetIdForUrl('https://gemini.google.com/')
+    expect(geminiAssetId).toBeTruthy()
+
+    const assetsAfterGemini = await db.assets.where('kind').equals('favicon').toArray()
+    expect(assetsAfterGemini).toHaveLength(1)
+    expect(JSON.parse(assetsAfterGemini[0].meta_json ?? '{}').hostnames).toEqual(['gemini.google.com'])
+
+    const googleAssetId = await ensureFaviconAssetIdForUrl('https://google.com/')
+    expect(googleAssetId).toBeTruthy()
+    expect(googleAssetId).not.toBe(geminiAssetId)
+
+    const assets = await db.assets.where('kind').equals('favicon').toArray()
+    expect(assets).toHaveLength(2)
+    expect(assets.map((asset) => JSON.parse(asset.meta_json ?? '{}').hostnames).sort()).toEqual([
+      ['gemini.google.com'],
+      ['google.com'],
+    ])
+  })
+
+  it('still fetches the exact subdomain favicon when a fresh parent-domain fallback already exists', async () => {
+    vi.mocked(globalThis.fetch).mockImplementation(async (input) => {
+      const url = String(input)
+      if (url.includes('/gemini.google.com.ico')) {
+        return {
+          ok: true,
+          blob: async () => fakePng([5, 5, 5]),
+        } as Response
+      }
+      if (url.includes('/google.com.ico')) {
+        return {
+          ok: true,
+          blob: async () => fakePng([9, 9, 9, 9]),
+        } as Response
+      }
+      return { ok: false } as Response
+    })
+
+    const googleAssetId = await ensureFaviconAssetIdForUrl('https://google.com/')
+    expect(googleAssetId).toBeTruthy()
+
+    const geminiAssetId = await ensureFaviconAssetIdForUrl('https://gemini.google.com/')
+    expect(geminiAssetId).toBeTruthy()
+    expect(geminiAssetId).not.toBe(googleAssetId)
+
+    const assets = await db.assets.where('kind').equals('favicon').toArray()
+    expect(assets).toHaveLength(2)
+    expect(assets.map((asset) => JSON.parse(asset.meta_json ?? '{}').hostnames).sort()).toEqual([
+      ['gemini.google.com'],
+      ['google.com'],
+    ])
+    expect(vi.mocked(globalThis.fetch).mock.calls.map((call) => String(call[0]))).toEqual(
+      expect.arrayContaining([expect.stringContaining('/gemini.google.com.ico')]),
+    )
   })
 
   it('refreshes a stale favicon asset in place', async () => {
@@ -108,6 +180,13 @@ describe('useFavicon', () => {
     expect(vi.mocked(globalThis.fetch).mock.calls.map((call) => String(call[0]))).toEqual([
       expect.stringContaining('/rss.cnn.com.ico'),
       expect.stringContaining('/cnn.com.ico'),
+    ])
+
+    const assets = await db.assets.where('kind').equals('favicon').toArray()
+    expect(assets).toHaveLength(1)
+    expect(JSON.parse(assets[0].meta_json ?? '{}').hostnames.sort()).toEqual([
+      'cnn.com',
+      'rss.cnn.com',
     ])
   })
 

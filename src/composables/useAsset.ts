@@ -1,9 +1,10 @@
 import { db } from '@/db/db'
+import { markExportDirty } from '@/composables/useExportState'
 import type { AssetKind } from '@/types/db'
 
 // ─── Tile dimensions ──────────────────────────────────────────────────────────
-export const TILE_W = 106
-export const TILE_H = 60
+export const TILE_W = 106 // --st-module-content-trigger-width: 106px;
+export const TILE_H = 60  // --st-module-content-trigger-height: 60px;
 
 // ─── SHA-256 ──────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,7 @@ export async function storeOrGetAsset(
   if (existing?.id) return existing.id
 
   const id = await db.assets.add({ kind, checksum, blob, width, height, meta_json: metaJson })
+  await markExportDirty('assets:create')
   return id as number
 }
 
@@ -57,7 +59,7 @@ export async function loadAssetObjectUrl(assetId: number | null): Promise<string
 
 /**
  * Export a canvas as a WebP Blob.
- * At 98×56 pixels, keep previews crisp rather than aggressively compressed.
+ * At variable pixels, keep previews crisp rather than aggressively compressed.
  */
 export function canvasToWebpBlob(
   canvas:  HTMLCanvasElement,

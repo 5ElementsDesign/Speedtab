@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount, nextTick } from 'vue'
-import type { Note, NoteType, PortableInput } from '@/types/db'
-import { encryptNote, decryptNote, parseCryptPayload, serialiseCryptPayload } from '@/composables/useCrypt'
-import { COMMON_LANGUAGES } from '@/composables/useHighlight'
 import { storeOrGetAsset } from '@/composables/useAsset'
+import { decryptNote, encryptNote, parseCryptPayload, serialiseCryptPayload } from '@/composables/useCrypt'
+import { COMMON_LANGUAGES, detectCodeLanguage } from '@/composables/useHighlight'
 import { makeNoteImageToken } from '@/composables/useNoteImages'
+import type { OpenNoteWindow } from '@/composables/useOpenNotes'
+import type { Note, NoteType, PortableInput } from '@/types/db'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import NoteViewerModal from './NoteViewerModal.vue'
 
 const props = defineProps<{
   note?:        Note
@@ -15,6 +17,8 @@ const emit = defineEmits<{
   save:   [data: PortableInput<Note>]
   delete: [id: number]
   cancel: []
+  previewModeChange: [active: boolean]
+  typeChange: [type: NoteType]
 }>()
 
 const NOTE_TYPES: { value: NoteType; label: string }[] = [
@@ -37,13 +41,13 @@ const initialMeta = parseMeta(props.note?.meta_json ?? null)
 // ─── Form state ───────────────────────────────────────────────────────────────
 
 const STYLE_TOKENS: { value: string | null; label: string; cls: string }[] = [
-  { value: null,      label: 'Default', cls: 'bg-indigo-700 text-white'  },
-  { value: 'info',    label: 'Info',    cls: 'bg-sky-700 text-white'     },
-  { value: 'success', label: 'Success', cls: 'bg-emerald-700 text-white' },
-  { value: 'warning', label: 'Warning', cls: 'bg-amber-600 text-white'   },
-  { value: 'danger',  label: 'Danger',  cls: 'bg-rose-700 text-white'    },
-  { value: 'dark',    label: 'Dark',    cls: 'bg-gray-800 text-white'    },
-  { value: 'light',   label: 'Light',   cls: 'bg-gray-200 text-gray-900' },
+  { value: null,      label: 'Default', cls: 'st-color-default'  },
+  { value: 'info',    label: 'Info',    cls: 'st-color-info'     },
+  { value: 'success', label: 'Success', cls: 'st-color-success' },
+  { value: 'warning', label: 'Warning', cls: 'st-color-warning'   },
+  { value: 'danger',  label: 'Danger',  cls: 'st-color-danger'    },
+  { value: 'dark',    label: 'Dark',    cls: 'st-color-dark'    },
+  { value: 'light',   label: 'Light',   cls: 'st-color-light' },
 ]
 
 const form = ref({
@@ -53,7 +57,7 @@ const form = ref({
   // For non-crypt notes `content` is the live editor value.
   // For crypt notes it starts empty and is populated by Decrypt-to-edit.
   content:  props.note?.type === 'crypt' ? '' : (props.note?.content ?? ''),
-  language: initialMeta.language ?? 'plaintext',
+  language: initialMeta.language ?? 'auto',
 })
 
 // ─── Crypt-specific transient state (never persisted anywhere) ────────────────
@@ -66,18 +70,56 @@ const cryptError   = ref<string | null>(null)
 const working      = ref(false)
 const contentTextarea = ref<HTMLTextAreaElement | null>(null)
 const imageInput = ref<HTMLInputElement | null>(null)
+const isPreviewOpen = ref(false)
+const detectedLanguage = ref<string | null>(null)
+const previewWindowState = ref<OpenNoteWindow>({
+  noteId: -1,
+  zIndex: 95,
+  x: 40,
+  y: 80,
+  width: 300,
+  height: 300,
+})
 
 const isCryptNew  = computed(() => form.value.type === 'crypt' && !props.note?.id)
 const isCryptEdit = computed(() => form.value.type === 'crypt' &&  props.note?.id != null)
+const codeLanguageOptions = computed(() => [
+  {
+    value: 'auto',
+    label: detectedLanguage.value ? `Auto detect (${detectedLanguage.value})` : 'Auto detect',
+  },
+  { value: 'plaintext', label: 'Plaintext' },
+  ...COMMON_LANGUAGES.map((language) => ({
+    value: language,
+    label: language,
+  })),
+])
 
 /** Reset transient secrets whenever the type toggles away from crypt. */
 watch(() => form.value.type, (t) => {
+  emit('typeChange', t)
   if (t !== 'crypt') {
     passphrase.value = passConfirm.value = decryptInput.value = ''
     decrypted.value  = false
     cryptError.value = null
   }
-})
+}, { immediate: true })
+
+let detectLanguageRun = 0
+watch(
+  () => [form.value.type, form.value.language, form.value.content] as const,
+  async ([type, language, content]) => {
+    const runId = ++detectLanguageRun
+    if (type !== 'code' || language !== 'auto') {
+      detectedLanguage.value = null
+      return
+    }
+    const detected = await detectCodeLanguage(content)
+    if (runId !== detectLanguageRun) return
+    detectedLanguage.value = detected
+  },
+  { immediate: true },
+)
 
 async function decryptForEdit() {
   cryptError.value = null
@@ -105,6 +147,56 @@ function wipeSecrets() {
 }
 
 onBeforeUnmount(wipeSecrets)
+
+const previewNote = computed<Note>(() => ({
+  id: -1,
+  collection_id: props.collectionId,
+  title: form.value.title.trim() || 'Preview',
+  type: form.value.type === 'crypt' ? 'text' : form.value.type,
+  content: form.value.content,
+  style_token: form.value.style_token,
+  sort_order: props.note?.sort_order ?? 0,
+  meta_json: form.value.type === 'code' ? JSON.stringify({ language: form.value.language }) : null,
+  sync_id: 'preview',
+  created_at: 0,
+  updated_at: 0,
+  deleted_at: null,
+}))
+
+function openPreview() {
+  const viewportWidth = typeof window === 'undefined' ? 1280 : window.innerWidth
+  const viewportHeight = typeof window === 'undefined' ? 800 : window.innerHeight
+  const isLargeViewport = viewportWidth >= 1024
+  previewWindowState.value = {
+    noteId: -1,
+    zIndex: 95,
+    x: isLargeViewport ? 24 : 40,
+    y: isLargeViewport ? 24 : 80,
+    width: isLargeViewport ? Math.max(300, Math.round(viewportWidth * 0.5) - 40) : 300,
+    height: isLargeViewport ? Math.max(300, viewportHeight - 48) : 300,
+  }
+  isPreviewOpen.value = true
+  emit('previewModeChange', true)
+}
+
+function closePreview() {
+  isPreviewOpen.value = false
+  emit('previewModeChange', false)
+}
+
+function updatePreviewWindow(patch: Partial<Pick<OpenNoteWindow, 'x' | 'y' | 'width' | 'height'>>) {
+  previewWindowState.value = {
+    ...previewWindowState.value,
+    ...patch,
+  }
+}
+
+function focusPreview() {
+  previewWindowState.value = {
+    ...previewWindowState.value,
+    zIndex: 95,
+  }
+}
 
 // ─── Submit ───────────────────────────────────────────────────────────────────
 
@@ -145,10 +237,12 @@ async function handleSubmit() {
     sort_order:    props.note?.sort_order  ?? 0,
     meta_json:     metaJson,
   })
+  closePreview()
   wipeSecrets()
 }
 
 function onCancel() {
+  closePreview()
   wipeSecrets()
   emit('cancel')
 }
@@ -163,7 +257,7 @@ async function onImageSelected(event: Event) {
   if (!file) return
 
   const assetId = await storeOrGetAsset(file, 'note_image', null, null, null)
-  const token = `<p>${makeNoteImageToken(assetId)}</p>`
+  const token = makeNoteImageToken(assetId)
   const current = form.value.content ?? ''
   const textarea = contentTextarea.value
 
@@ -192,7 +286,7 @@ async function onImageSelected(event: Event) {
 </script>
 
 <template>
-  <form @submit.prevent="handleSubmit" class="space-y-4">
+  <form @submit.prevent="handleSubmit" class="flex h-full min-h-0 flex-col gap-4">
 
     <div>
       <label for="note_title" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Title</label>
@@ -201,35 +295,34 @@ async function onImageSelected(event: Event) {
                focus:outline-none focus:ring-1 focus:ring-indigo-500" />
     </div>
 
-    <div>
+    <div v-if="!note?.id">
       <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Type</span>
-      <div class="flex flex-wrap gap-1">
+      <div class="flex flex-wrap gap-1 leading-none">
         <button v-for="t in NOTE_TYPES" :key="t.value" type="button"
-          :disabled="!!note?.id"
           @click="form.type = t.value"
           :class="[
-            'px-2 py-1 rounded text-[11px] font-medium uppercase tracking-wider transition-colors',
+            'px-2 py-2 rounded text-[11px] font-medium uppercase tracking-wider transition-colors',
             form.type === t.value
               ? 'bg-indigo-600 text-white'
               : 'bg-white/[0.04] text-gray-400 hover:text-gray-200 hover:bg-white/[0.08]',
-            note?.id ? 'opacity-60 cursor-not-allowed' : '',
           ]"
         >{{ t.label }}</button>
       </div>
-      <p v-if="note?.id" class="mt-1 text-[10px] text-gray-600 italic">Type cannot be changed after creation.</p>
     </div>
+
+    <p v-if="note?.id" class="text-[10px] text-gray-600 italic">Type cannot be changed after creation.</p>
 
     <!-- ─── Color scheme picker (style_token) ─────────────────────────── -->
     <div>
       <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Color Scheme</span>
-      <div class="flex flex-wrap gap-1">
+      <div class="flex flex-wrap gap-1 leading-none">
         <button
           v-for="tok in STYLE_TOKENS"
           :key="tok.value ?? 'default'"
           type="button"
           @click="form.style_token = tok.value"
           :class="[
-            'px-2 py-1 rounded text-[11px] font-medium transition-all',
+            'px-2 py-2 rounded text-[11px] font-medium transition-all',
             tok.cls,
             form.style_token === tok.value
               ? 'ring-2 ring-white/60'
@@ -245,7 +338,7 @@ async function onImageSelected(event: Event) {
       <select id="note_language" v-model="form.language"
         class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100
                focus:outline-none focus:ring-1 focus:ring-indigo-500">
-        <option v-for="l in COMMON_LANGUAGES" :key="l" :value="l">{{ l }}</option>
+        <option v-for="option in codeLanguageOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
       </select>
     </div>
 
@@ -266,7 +359,7 @@ async function onImageSelected(event: Event) {
     </div>
 
     <!-- ─── Content editor (shared for text/code/links/html and unlocked crypt) ─── -->
-    <div v-if="form.type !== 'crypt' || decrypted || isCryptNew">
+    <div v-if="form.type !== 'crypt' || decrypted || isCryptNew" class="flex min-h-0 flex-1 flex-col">
       <div class="flex items-center justify-between gap-3 mb-1">
         <label for="note_content" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">
         <span v-if="form.type === 'links'">URLs <span class="normal-case font-normal text-gray-600">(one per line)</span></span>
@@ -286,6 +379,8 @@ async function onImageSelected(event: Event) {
       </div>
       <input
         v-if="form.type === 'html'"
+        id="note_html_image_file"
+        name="note_html_image_file"
         ref="imageInput"
         type="file"
         accept="image/*"
@@ -297,7 +392,7 @@ async function onImageSelected(event: Event) {
         ref="contentTextarea"
         :placeholder="form.type === 'links' ? 'https://...' : ''"
         :class="[
-          'w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100',
+          'w-full flex-1 min-h-[180px] bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100',
           'focus:outline-none focus:ring-1 focus:ring-indigo-500',
           form.type === 'code' || form.type === 'links' || form.type === 'html' ? 'font-mono text-[12px]' : '',
         ]"
@@ -312,10 +407,10 @@ async function onImageSelected(event: Event) {
         </p>
       </div>
       <div class="grid grid-cols-2 gap-2">
-        <input v-model="passphrase" type="password" placeholder="Passphrase" required
+        <input id="note_new_passphrase" v-model="passphrase" name="note_new_passphrase" type="password" placeholder="Passphrase" required
           class="bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 font-mono
                  focus:outline-none focus:ring-1 focus:ring-rose-500" />
-        <input v-model="passConfirm" type="password" placeholder="Confirm passphrase" required
+        <input id="note_new_passphrase_confirm" v-model="passConfirm" name="note_new_passphrase_confirm" type="password" placeholder="Confirm passphrase" required
           class="bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 font-mono
                  focus:outline-none focus:ring-1 focus:ring-rose-500" />
       </div>
@@ -334,6 +429,10 @@ async function onImageSelected(event: Event) {
           class="px-4 py-2 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors">
           Cancel
         </button>
+        <button v-if="form.type !== 'crypt'" type="button" @click="openPreview"
+          class="px-4 py-2 bg-white/10 hover:bg-white/15 text-xs font-medium text-gray-100 rounded transition-colors">
+          Preview
+        </button>
         <button type="submit" :disabled="working"
           class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded text-xs font-medium
                  shadow-lg shadow-indigo-900/20 transition-all">
@@ -342,4 +441,15 @@ async function onImageSelected(event: Event) {
       </div>
     </div>
   </form>
+
+  <NoteViewerModal
+    v-if="isPreviewOpen"
+    :note="previewNote"
+    :window-state="previewWindowState"
+    preview-mode
+    @focus="focusPreview"
+    @close="closePreview"
+    @move="updatePreviewWindow"
+    @resize="updatePreviewWindow"
+  />
 </template>

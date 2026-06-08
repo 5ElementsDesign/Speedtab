@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { registerAddContent } from '@/composables/useAddContent'
 import { useDragSort } from '@/composables/useDragSort'
+import { markExportDirty } from '@/composables/useExportState'
 import { useFavicon } from '@/composables/useFavicon'
 import { useFeed } from '@/composables/useFeed'
 import { registerFeedArchive } from '@/composables/useFeedArchive'
@@ -9,7 +10,7 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useReorder } from '@/composables/useReorder'
 import { db, isActiveRecord, makeCreateMetadata, makeUpdatedAtPatch } from '@/db/db'
 import type { Collection, FeedItem, FeedSource, PortableInput, SavedFeedItem } from '@/types/db'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import FeedArchiveForm from './FeedArchiveForm.vue'
 import FeedItemCard from './FeedItemCard.vue'
 import FeedSourceForm from './FeedSourceForm.vue'
@@ -245,6 +246,10 @@ const activeFilter = ref<{ type: 'all' } | { type: 'source'; sourceId: number } 
 const showLoadedItems = ref(true)
 const FEED_ITEM_RETENTION_MS = 90 * 24 * 60 * 60 * 1000
 const refreshingSourceIds = ref<number[]>([])
+const expandedItemIds = ref<number[]>([])
+const expandedYoutubeDescriptionItemIds = ref<number[]>([])
+const feedRoot = ref<HTMLElement | null>(null)
+let feedClickAbortController: AbortController | null = null
 
 function syncRefreshTimer() {
   if (refreshTimer !== null) {
@@ -322,6 +327,46 @@ function openArchive(item: FeedItem) {
   isArchiveModalOpen.value = true
 }
 
+function isItemExpanded(itemId: number | undefined): boolean {
+  return typeof itemId === 'number' && expandedItemIds.value.includes(itemId)
+}
+
+function isYoutubeDescriptionExpanded(itemId: number | undefined): boolean {
+  return typeof itemId === 'number' && expandedYoutubeDescriptionItemIds.value.includes(itemId)
+}
+
+function toggleListMembership(target: number[], id: number): number[] {
+  return target.includes(id)
+    ? target.filter((entry) => entry !== id)
+    : [...target, id]
+}
+
+function collapseFeedItem(itemId: number) {
+  expandedItemIds.value = expandedItemIds.value.filter((entry) => entry !== itemId)
+  expandedYoutubeDescriptionItemIds.value = expandedYoutubeDescriptionItemIds.value.filter((entry) => entry !== itemId)
+}
+
+async function toggleFeedItem(item: FeedItem) {
+  if (typeof item.id !== 'number') return
+  if (isItemExpanded(item.id)) {
+    collapseFeedItem(item.id)
+    return
+  }
+
+  expandedItemIds.value = [...expandedItemIds.value, item.id]
+  if (item.read_at == null) {
+    await markAsRead(item)
+  }
+}
+
+function toggleFeedItemDescription(item: FeedItem) {
+  if (typeof item.id !== 'number') return
+  if (!isItemExpanded(item.id)) {
+    expandedItemIds.value = [...expandedItemIds.value, item.id]
+  }
+  expandedYoutubeDescriptionItemIds.value = toggleListMembership(expandedYoutubeDescriptionItemIds.value, item.id)
+}
+
 async function saveArchivedItem(data: PortableInput<SavedFeedItem>) {
   const now = Date.now()
   const count = await db.saved_feed_items.where('collection_id').equals(data.collection_id).filter(isActiveRecord).count()
@@ -330,6 +375,7 @@ async function saveArchivedItem(data: PortableInput<SavedFeedItem>) {
     ...data,
     ...makeCreateMetadata(now),
   })
+  await markExportDirty('saved_feed_items:create')
   isArchiveModalOpen.value = false
   archivingItem.value = null
 }
@@ -337,6 +383,7 @@ async function saveArchivedItem(data: PortableInput<SavedFeedItem>) {
 async function deleteArchivedItem(id: number) {
   if (!confirm('Delete this archived feed item?')) return
   await db.saved_feed_items.delete(id)
+  await markExportDirty('saved_feed_items:delete')
 }
 
 async function saveSource(data: PortableInput<FeedSource>) {
@@ -346,6 +393,7 @@ async function saveSource(data: PortableInput<FeedSource>) {
       ...data,
       ...makeUpdatedAtPatch(now),
     })
+    await markExportDirty('feed_sources:update')
   } else {
     const count = await db.feed_sources.where('collection_id').equals(data.collection_id).filter(isActiveRecord).count()
     data.sort_order = count
@@ -353,6 +401,7 @@ async function saveSource(data: PortableInput<FeedSource>) {
       ...data,
       ...makeCreateMetadata(now),
     })
+    await markExportDirty('feed_sources:create')
   }
   isModalOpen.value = false
 }
@@ -362,6 +411,7 @@ async function deleteSource(id: number) {
     await db.feed_sources.delete(id)
     await db.feed_items.where('feed_source_id').equals(id).delete()
   })
+  await markExportDirty('feed_sources:delete')
   isModalOpen.value = false
 }
 
@@ -393,6 +443,133 @@ function matchesFeedQuery(item: FeedItem, query: string): boolean {
     .join('\n')
     .toLowerCase()
   return haystack.includes(needle)
+}
+
+const itemById = computed(() => new Map(
+  items.value
+    .filter((item): item is FeedItem & { id: number } => typeof item.id === 'number')
+    .map((item) => [item.id, item]),
+))
+
+const sourceById = computed(() => new Map(
+  sources.value
+    .filter((source): source is FeedSource & { id: number } => typeof source.id === 'number')
+    .map((source) => [source.id, source]),
+))
+
+const archivedItemById = computed(() => new Map(
+  archivedItems.value
+    .filter((item): item is SavedFeedItem & { id: number } => typeof item.id === 'number')
+    .map((item) => [item.id, item]),
+))
+
+function routeModuleClick(event: MouseEvent) {
+  const root = feedRoot.value
+  if (!root) return
+
+  const actionElement = (event.target as HTMLElement | null)?.closest('[data-click]') as HTMLElement | null
+  if (!actionElement || !root.contains(actionElement)) return
+
+  const action = actionElement.dataset.click
+  if (!action) return
+
+  event.stopPropagation()
+
+  if (action === 'toggleLoadedItemsVisibility') {
+    toggleLoadedItemsVisibility()
+    return
+  }
+
+  if (action === 'toggleUnreadFilter') {
+    toggleUnreadFilter()
+    return
+  }
+
+  if (action === 'markAllAsRead') {
+    void markAllAsRead()
+    return
+  }
+
+  if (action === 'markAllAsUnread') {
+    void markAllAsUnread()
+    return
+  }
+
+  if (action === 'refreshAllFeeds') {
+    void refreshAll()
+    return
+  }
+
+  if (action === 'openAddFeedSource') {
+    openAdd()
+    return
+  }
+
+  if (action === 'resetFeedFilter') {
+    activeFilter.value = { type: 'all' }
+    return
+  }
+
+  if (action === 'showLoadedItems') {
+    showLoadedItems.value = true
+    return
+  }
+
+  if (action === 'toggleNewFilter') {
+    toggleNewFilter()
+    return
+  }
+
+  const sourceElement = actionElement.closest('[data-feed-source-id]') as HTMLElement | null
+  if (sourceElement) {
+    const sourceId = Number(sourceElement.dataset.feedSourceId)
+    const source = sourceById.value.get(sourceId)
+    if (!source) return
+
+    if (action === 'toggleFeedSource') {
+      void toggleSource(source)
+      return
+    }
+
+    if (action === 'editFeedSource') {
+      openEdit(source)
+      return
+    }
+  }
+
+  const rowElement = actionElement.closest('[data-feed-item-id]') as HTMLElement | null
+  const rawItemId = rowElement?.dataset.feedItemId
+  const itemId = rawItemId ? Number(rawItemId) : Number.NaN
+  const item = Number.isFinite(itemId) ? itemById.value.get(itemId) : undefined
+
+  const archivedElement = actionElement.closest('[data-archived-item-id]') as HTMLElement | null
+  if (archivedElement) {
+    const archivedItemId = Number(archivedElement.dataset.archivedItemId)
+    const archivedItem = archivedItemById.value.get(archivedItemId)
+    if (!archivedItem) return
+
+    if (action === 'deleteArchivedFeedItem') {
+      void deleteArchivedItem(archivedItem.id!)
+      return
+    }
+  }
+
+  if (action === 'toggleFeedItem') {
+    if (!item) return
+    void toggleFeedItem(item)
+    return
+  }
+
+  if (action === 'archiveFeedItem') {
+    if (!item) return
+    openArchive(item)
+    return
+  }
+
+  if (action === 'toggleFeedItemDescription') {
+    if (!item) return
+    toggleFeedItemDescription(item)
+  }
 }
 
 const scopedItems = computed<FeedItem[]>(() => {
@@ -452,7 +629,7 @@ const hasFeedSearch = computed<boolean>(() => Boolean(props.filterQuery?.trim())
 const hasNewItems = computed<boolean>(() => newlyFetchedItemIds.value.length > 0)
 const hasStickyNewItems = computed<boolean>(() => stickyNewItemIds.value.length > 0)
 const hasUnreadItems = computed<boolean>(() => items.value.some(isUnread))
-const showNewFilterButton = computed<boolean>(() => activeFilter.value.type === 'new' || hasNewItems.value || hasStickyNewItems.value)
+const showNewFilterButton = computed<boolean>(() => showLoadedItems.value && visibleItems.value.length > 0)
 const showNewCount = computed<number>(() => activeFilter.value.type === 'new' ? stickyNewItemIds.value.length : newlyFetchedItemIds.value.length)
 const highlightedNewItemIds = computed<number[]>(() => activeFilter.value.type === 'new' ? stickyNewItemIds.value : newlyFetchedItemIds.value)
 
@@ -526,7 +703,15 @@ watch(() => props.collection.id, () => {
   activeFilter.value = { type: 'all' }
   newlyFetchedItemIds.value = []
   stickyNewItemIds.value = []
+  expandedItemIds.value = []
+  expandedYoutubeDescriptionItemIds.value = []
   showLoadedItems.value = true
+})
+
+watch(items, (nextItems) => {
+  const validIds = new Set(nextItems.map((item) => item.id).filter((id): id is number => typeof id === 'number'))
+  expandedItemIds.value = expandedItemIds.value.filter((id) => validIds.has(id))
+  expandedYoutubeDescriptionItemIds.value = expandedYoutubeDescriptionItemIds.value.filter((id) => validIds.has(id))
 })
 
 watch(
@@ -546,10 +731,18 @@ function toggleLoadedItemsVisibility() {
 
 document.addEventListener('visibilitychange', onVisibilityChange)
 
+onMounted(() => {
+  if (!feedRoot.value) return
+  feedClickAbortController = new AbortController()
+  feedRoot.value.addEventListener('click', routeModuleClick, { signal: feedClickAbortController.signal })
+})
+
 onBeforeUnmount(() => {
   if (refreshTimer !== null) {
     window.clearInterval(refreshTimer)
   }
+  feedClickAbortController?.abort()
+  feedClickAbortController = null
   document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 
@@ -557,10 +750,12 @@ onBeforeUnmount(() => {
 
 <template>
   <div
+    ref="feedRoot"
     class="st-module-feed st-feed-grid h-full min-h-0"
     :class="{
       'st-feed-grid--compact-expanded': useCompactExpandedLayout,
       'st-feed-grid--expanded': props.expanded === true,
+      'is-fetching-source': refreshingSourceIds.length > 0,
     }"
   >
     <aside
@@ -573,14 +768,16 @@ onBeforeUnmount(() => {
           :key="source.id"
           v-bind="sourceDnd.bindFor(idx)"
           class="st-module-feed-source-row flex items-stretch"
+          :data-feed-source-id="source.id"
           :class="[
+            isSourceRefreshing(source.id) ? 'is-fetching-source' : '',
             sourceDnd.draggingIndex.value === idx ? 'opacity-40' : '',
             sourceDnd.dragOverIndex.value === idx && sourceDnd.draggingIndex.value !== idx
               ? 'ring-1 ring-white/40 rounded-sm' : '',
           ]"
         >
           <button
-            @click="toggleSource(source)"
+            data-click="toggleFeedSource"
             class="st-module-feed-source-button flex-1 min-w-0 flex items-stretch text-left text-[10px] uppercase tracking-wider font-normal transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40 overflow-hidden"
             :class="[
               activeFilter.type === 'source' && activeFilter.sourceId === source.id
@@ -597,21 +794,15 @@ onBeforeUnmount(() => {
               <img
                 v-if="getSourceFaviconUrl(source)"
                 :src="getSourceFaviconUrl(source)"
-                :alt="source.title"
+                alt=""
                 class="w-full h-full object-contain bg-white p-0.5"
                 draggable="false"
               />
             </span>
             <span class="st-module-feed-source-label block min-w-0 truncate px-2 py-1">{{ source.title }}</span>
-            <span
-              v-if="isSourceRefreshing(source.id)"
-              class="st-module-feed-source-loading shrink-0 self-center mr-2 w-1.5 h-1.5 rounded-full bg-red-500"
-              :title="`Refreshing ${source.title}`"
-              aria-hidden="true"
-            />
           </button>
           <button
-            @click="openEdit(source)"
+            data-click="editFeedSource"
             class="st-module-feed-source-edit shrink-0 px-2 py-1 rounded-sm bg-black/85 hover:bg-black border border-white/10 text-[10px] text-white/60 hover:text-white transition-colors"
             :aria-label="`Edit feed source ${source.title}`"
             title="Edit source"
@@ -622,7 +813,7 @@ onBeforeUnmount(() => {
         <button
           v-if="showNewFilterButton"
           type="button"
-          @click="toggleNewFilter"
+          data-click="toggleNewFilter"
           class="st-module-feed-source-button w-full min-w-0 flex items-stretch text-left text-[10px] uppercase tracking-wider font-normal transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40 overflow-hidden"
           :class="activeFilter.type === 'new' ? 'bg-white text-black' : 'bg-transparent text-white/80 hover:bg-white/10 hover:text-white'"
           :aria-pressed="activeFilter.type === 'new'"
@@ -640,7 +831,7 @@ onBeforeUnmount(() => {
       </nav>
       <div class="st-module-feed-sidebar-footer px-2 py-2 border-t border-white/10">
         <button
-          @click="openAdd"
+          data-click="openAddFeedSource"
           class="st-module-feed-add-source w-full px-2 py-1 rounded-sm bg-[#0056b3] hover:bg-[#004494] text-[10px] uppercase tracking-wider font-normal text-white transition-colors"
         >
           + Source
@@ -654,7 +845,7 @@ onBeforeUnmount(() => {
         <div class="st-module-feed-meta min-w-0 flex items-center gap-2">
           <button
             type="button"
-            @click="toggleLoadedItemsVisibility"
+            data-click="toggleLoadedItemsVisibility"
             :disabled="!canToggleLoadedItems"
             class="st-module-feed-title text-[12px] font-bold truncate transition-colors"
             :class="canToggleLoadedItems ? 'hover:opacity-70' : 'cursor-default'"
@@ -671,7 +862,7 @@ onBeforeUnmount(() => {
           </span>
           <button
             type="button"
-            @click="toggleUnreadFilter"
+            data-click="toggleUnreadFilter"
             :disabled="!hasUnreadItems"
             class="st-module-feed-toolbar-badge text-[9px] px-1 rounded-sm transition-colors"
             :class="activeFilter.type === 'unread' ? 'ring-1 ring-black/20' : ''"
@@ -691,7 +882,7 @@ onBeforeUnmount(() => {
         <div class="st-module-feed-actions flex items-center gap-2">
           <button
             type="button"
-            @click="markAllAsRead"
+            data-click="markAllAsRead"
             :disabled="!visibleItems.some(isUnread)"
             class="st-module-feed-toolbar-button px-1 text-[10px] uppercase font-bold text-gray-500 hover:text-black disabled:opacity-30 transition-colors"
           >
@@ -700,7 +891,7 @@ onBeforeUnmount(() => {
           <button
             v-if="visibleItems.length > 0"
             type="button"
-            @click="markAllAsUnread"
+            data-click="markAllAsUnread"
             :disabled="!visibleItems.some(item => !isUnread(item))"
             class="st-module-feed-toolbar-button px-1 text-[10px] uppercase font-bold text-gray-500 hover:text-black disabled:opacity-30 transition-colors"
           >
@@ -708,7 +899,7 @@ onBeforeUnmount(() => {
           </button>
           <button
             type="button"
-            @click="refreshAll"
+            data-click="refreshAllFeeds"
             :disabled="isRefreshing || sources.length === 0"
             class="st-module-feed-toolbar-button px-1 text-[10px] uppercase font-bold text-gray-500 hover:text-black disabled:opacity-30 transition-colors"
           >
@@ -731,8 +922,8 @@ onBeforeUnmount(() => {
             :source-title="getSourceTitle(item.feed_source_id)"
             :search-url-template="props.searchUrlTemplate"
             :is-newly-fetched="typeof item.id === 'number' && highlightedNewItemIds.includes(item.id)"
-            @archive="openArchive"
-            @mark-read="markAsRead"
+            :expanded="isItemExpanded(item.id)"
+            :show-youtube-description="isYoutubeDescriptionExpanded(item.id)"
           />
         </div>
       </div>
@@ -759,21 +950,21 @@ onBeforeUnmount(() => {
           </p>
           <button
             v-if="!sources.length"
-            @click="openAdd"
+            data-click="openAddFeedSource"
             class="text-[10px] uppercase tracking-wider font-normal text-white/80 hover:text-white transition-colors"
           >
             + Add Source
           </button>
           <button
             v-else-if="!showLoadedItems && scopedItems.length"
-            @click="showLoadedItems = true"
+            data-click="showLoadedItems"
             class="text-[10px] uppercase tracking-wider font-normal text-white/80 hover:text-white transition-colors"
           >
             Show Loaded Items
           </button>
           <button
             v-else-if="activeFilter.type === 'source' || activeFilter.type === 'new' || activeFilter.type === 'unread'"
-            @click="activeFilter = { type: 'all' }"
+            data-click="resetFeedFilter"
             class="text-[10px] uppercase tracking-wider font-normal text-white/80 hover:text-white transition-colors"
           >
             Show All Sources
@@ -805,11 +996,12 @@ onBeforeUnmount(() => {
     </Modal>
 
     <Modal :show="isArchiveListOpen" title="Archived Feed Items" @close="isArchiveListOpen = false">
-      <div v-if="archivedItems.length" class="space-y-3 max-h-[70vh] overflow-y-auto">
+      <div v-if="archivedItems.length" class="space-y-3 max-h-[85vh] overflow-y-auto">
         <article
           v-for="item in archivedItems"
           :key="item.id"
           class="st-module-feed-archive-item border border-white/10 bg-black/30 px-3 py-2 space-y-1"
+          :data-archived-item-id="item.id"
           :class="props.highlightArchivedItemId === item.id ? 'ring-1 ring-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.95),0_0_16px_rgba(239,68,68,0.35)] border-red-400' : ''"
         >
           <div class="flex items-start justify-between gap-3">
@@ -829,7 +1021,7 @@ onBeforeUnmount(() => {
               </a>
               <button
                 type="button"
-                @click="deleteArchivedItem(item.id!)"
+                data-click="deleteArchivedFeedItem"
                 class="st-module-feed-archive-delete text-[10px] uppercase tracking-wider text-red-400 hover:text-red-300"
               >
                 Delete
@@ -869,12 +1061,8 @@ onBeforeUnmount(() => {
   overflow: auto;
 }
 
-.st-feed-grid:not(.st-feed-grid--expanded) .st-module-feed-sources {
-  max-height: 284px;
-}
-
 .st-feed-grid--content-fetched {
-  min-height: 0;
+  min-height: 100%;
 }
 
 .st-feed-grid--compact-expanded {
@@ -899,6 +1087,9 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 768px) {
+  .st-module-feed-sidebar {
+    max-height: 240px;
+  }
   .st-feed-grid {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);

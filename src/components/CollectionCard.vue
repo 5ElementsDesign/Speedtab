@@ -27,6 +27,8 @@ const props = defineProps<{
   openInNewTab?: boolean | null
   /** Bookmark modules can render as compact quicklinks. */
   quicklinks?: boolean
+  /** Quicklinks can optionally ignore custom preview images. */
+  forceFavicon?: boolean
   /** Bookmark modules can hide tile hover action buttons. */
   showHoverActions?: boolean
   highlightKind?: 'page' | 'module' | 'collection' | 'bookmark' | 'note' | 'feed_source' | 'archived_feed_item' | null
@@ -38,7 +40,7 @@ const props = defineProps<{
   <div class="st-module-collection min-h-0 h-full">
     <!-- Module-type-specific content -->
     <div class="st-module-collection-content min-h-0 h-full">
-      <!-- Tabs module: visual 98×56 bookmark grid -->
+      <!-- Tabs module: visual bookmark grid -->
       <TabsView
         v-if="props.moduleType === 'tabs'"
         :collection="props.collection"
@@ -46,6 +48,7 @@ const props = defineProps<{
         :show-add-tile="props.showAddTile"
         :open-in-new-tab="props.openInNewTab"
         :quicklinks="props.quicklinks"
+        :force-favicon="props.forceFavicon"
         :show-hover-actions="props.showHoverActions"
         :highlight-tab-id="props.highlightKind === 'bookmark' ? props.highlightEntityId : null"
       />

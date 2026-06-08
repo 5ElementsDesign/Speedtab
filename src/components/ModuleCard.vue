@@ -3,6 +3,7 @@ defineOptions({ inheritAttrs: false })
 
 import { provideAddContent } from '@/composables/useAddContent'
 import { useDragSort } from '@/composables/useDragSort'
+import { markExportDirty } from '@/composables/useExportState'
 import { provideFeedArchive } from '@/composables/useFeedArchive'
 import { provideFeedClear } from '@/composables/useFeedClear'
 import { useLiveQuery } from '@/composables/useLiveQuery'
@@ -69,7 +70,7 @@ const emit = defineEmits<{
   /** Tab click: emits the module, the chosen Collection id, and all sibling ids
    *  in this module so the parent can swap them in the hash list. */
   focus:        [module: Module, colId?: number, siblingIds?: number[]]
-  setExpandWidth: [module: Module, width: 320 | 480 | 740 | 940 | 1240 | 1540 | 'max']
+  setExpandWidth: [module: Module, width: 320 | 480 | 740 | 940 | 1240 | 1540 | 'max' | null]
 }>()
 
 // ─── Collections for this module ──────────────────────────────────────────────
@@ -107,7 +108,7 @@ const feedArchive = provideFeedArchive()
 const feedClear = provideFeedClear()
 
 /** Parse the module's config_json once and expose typed accessors. */
-const moduleConfig = computed<{ columns?: number; show_add_tile?: boolean; refresh_interval_ms?: number; feed_item_limit?: number; open_in_new_tab?: boolean | null; quicklinks?: boolean; show_hover_actions?: boolean }>(() => {
+const moduleConfig = computed<{ columns?: number; show_add_tile?: boolean; refresh_interval_ms?: number; feed_item_limit?: number; open_in_new_tab?: boolean | null; quicklinks?: boolean; force_favicon?: boolean; show_hover_actions?: boolean }>(() => {
   try { return JSON.parse(props.module.config_json ?? '{}') }
   catch { return {} }
 })
@@ -126,6 +127,7 @@ const refreshIntervalMs = computed<number>(() =>
 const feedItemLimit = computed<number>(() => moduleConfig.value.feed_item_limit ?? 0)
 const openInNewTab = computed<boolean | null>(() => typeof moduleConfig.value.open_in_new_tab === 'boolean' ? moduleConfig.value.open_in_new_tab : null)
 const quicklinks = computed<boolean>(() => moduleConfig.value.quicklinks === true)
+const forceFavicon = computed<boolean>(() => moduleConfig.value.force_favicon === true)
 const showHoverActions = computed<boolean>(() => moduleConfig.value.show_hover_actions !== false)
 const isExpandedFeedModule = computed<boolean>(() => props.module.type === 'feeds' && props.isExpanded === true)
 const isSearchHighlighted = computed<boolean>(() => props.searchHighlight?.moduleId === props.module.id)
@@ -134,6 +136,11 @@ const activeCollectionSearchHighlight = computed(() =>
 )
 const EXPAND_WIDTH_OPTIONS = [320, 480, 740, 940, 1240, 1540, 'max'] as const
 const lastExpandedWidth = computed<typeof EXPAND_WIDTH_OPTIONS[number] | null>(() => props.expandedWidth ?? null)
+const expandSelectValue = computed<string>(() =>
+  isExpandedFeedModule.value && props.expandedWidth
+    ? String(props.expandedWidth)
+    : ''
+)
 const isFeedSearchOpen = ref(false)
 const feedSearchQuery = ref('')
 const feedSearchInput = ref<HTMLInputElement | null>(null)
@@ -162,6 +169,10 @@ const expandedModuleStyle = computed<Record<string, string> | undefined>(() => {
 function handleExpandWidthSelect(event: Event) {
   const select = event.target as HTMLSelectElement
   const value = select.value
+  if (!value) {
+    emit('setExpandWidth', props.module, null)
+    return
+  }
   if (value === 'max') {
     emit('setExpandWidth', props.module, 'max')
   } else {
@@ -170,7 +181,6 @@ function handleExpandWidthSelect(event: Event) {
       emit('setExpandWidth', props.module, parsed as 320 | 480 | 740 | 940 | 1240 | 1540)
     }
   }
-  select.value = ''
 }
 
 function toggleFeedSearch() {
@@ -218,6 +228,7 @@ async function saveCollection(data: PortableInput<Collection>) {
       ...data,
       ...makeUpdatedAtPatch(now),
     })
+    await markExportDirty('collections:update')
   } else {
     const count = await db.collections.where('module_id').equals(data.module_id).filter(isActiveRecord).count()
     data.sort_order = count
@@ -225,6 +236,7 @@ async function saveCollection(data: PortableInput<Collection>) {
       ...data,
       ...makeCreateMetadata(now),
     })
+    await markExportDirty('collections:create')
   }
   isCollectionModalOpen.value = false
 }
@@ -233,6 +245,7 @@ async function deleteCollection(id: number) {
   if (!confirm('Are you sure you want to delete this collection?')) return
   await deleteCollectionTree(id)
   await cleanupOrphans()
+  await markExportDirty('collections:delete')
 
   isCollectionModalOpen.value = false
 }
@@ -244,7 +257,7 @@ async function deleteCollection(id: number) {
     v-bind="rootAttrs"
     :data-module-type="module.type ?? 'type_error'"
     :class="[
-      'bg-black/75 border transition-colors flex flex-col min-h-[110px] relative',
+      'bg-black/75 border transition-colors flex flex-col relative',
       isFocused ? 'border-white/30' : 'border-white/10',
       isSearchHighlighted ? 'ring-1 ring-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.95),0_0_18px_rgba(239,68,68,0.4)]' : '',
       isExpandedFeedModule
@@ -261,13 +274,13 @@ async function deleteCollection(id: number) {
       class="st-module-header"
       v-bind="dragAttrs"
       :title="module.title + ' (drag header to reorder)'"
-      :class="'border-b border-black/50 flex items-center justify-between bg-black/40 cursor-grab active:cursor-grabbing'"
+      :class="'border-b flex items-center justify-between cursor-grab active:cursor-grabbing'"
     >
-      <div class="st-module-header-main flex items-center overflow-hidden w-full">
+      <div class="st-module-header-main flex items-center w-full min-w-0 overflow-x-auto overflow-y-hidden" style="scrollbar-width: none">
         <!-- Collection Switcher — flat rectangular tabs, drag to reorder, click to focus -->
         <nav
           v-if="collections.length > 0"
-          class="st-module-tabs flex items-center leading-none"
+          class="st-module-tabs flex flex-nowrap items-center line-height-[1.5] whitespace-nowrap"
           role="tablist"
           aria-label="Tabs"
         >
@@ -276,11 +289,11 @@ async function deleteCollection(id: number) {
             :key="col.id"
             v-bind="collectionDnd.bindFor(idx)"
             @click.stop="selectCollection(col)"
-            class="px-3 py-2 text-[11px] font-medium transition-colors cursor-grab active:cursor-grabbing"
+            class="px-3 py-1 text-[10px] min-h-[32px] transition-colors cursor-grab active:cursor-grabbing"
             :class="[
               activeCollection?.id === col.id
-                ? 'text-[#00d2ff] bg-white/10'
-                : 'text-[#888888] hover:text-white',
+                ? 'st-text-bold'
+                : 'st-text-normal',
               props.searchHighlight?.collectionId === col.id ? 'ring-1 ring-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.95),0_0_12px_rgba(239,68,68,0.25)]' : '',
               collectionDnd.draggingIndex.value === idx ? 'opacity-40' : '',
               collectionDnd.dragOverIndex.value === idx && collectionDnd.draggingIndex.value !== idx
@@ -294,7 +307,7 @@ async function deleteCollection(id: number) {
         </nav>
       </div>
 
-      <div class="st-module-actions flex items-center gap-1 shrink-0" @click.stop>
+      <div class="st-module-actions flex h-full items-center gap-1 shrink-0" @click.stop>
         <div
           v-if="module.type === 'feeds' && collections.length > 0"
           class="flex items-center gap-1 mr-[0.2rem]"
@@ -316,8 +329,9 @@ async function deleteCollection(id: number) {
               ref="feedSearchInput"
               v-model="feedSearchQuery"
               type="search"
+              name="searchInStoredFeedItems"
               placeholder="Search"
-              class="h-full max-w-[220px] w-[140px] px-2 py-1 bg-black/20 text-[11px] text-white/90 border border-white/10 outline-none focus:border-white/25"
+              class="h-full max-w-[220px] w-[140px] px-2 py-0.5 bg-black/20 text-[11px] text-white/90 border border-white/10 outline-none focus:border-white/25"
             />
             <button
               v-if="feedSearchQuery.trim()"
@@ -337,9 +351,9 @@ async function deleteCollection(id: number) {
           :name="`feed-expand-width-${module.id}`"
           :title="'Expand feed module'"
           :aria-label="'Expand feed module'"
-          :value="''"
+          :value="expandSelectValue"
           @change="handleExpandWidthSelect"
-          class="mr-[0.2rem] h-full self-stretch max-w-[100px] px-2 py-1 pr-6 text-[10px] uppercase tracking-wider bg-black/0 text-white/70 hover:text-white border-0 outline-none"
+          class="mr-[0.2rem] h-full self-stretch max-w-[100px] px-2 py-1 pr-6 text-[10px] uppercase tracking-wider bg-black/0 text-[color:var(--st-theme-text)] border-0 outline-none"
         >
           <option value="" class="text-black bg-white">Expand</option>
           <option
@@ -356,7 +370,8 @@ async function deleteCollection(id: number) {
           title="Module actions"
           align="right"
           :hide-chevron="true"
-          trigger-class="st-module-action-trigger h-full self-stretch px-2 py-1 mr-[0.2rem] text-white/80 hover:text-white flex items-center justify-center border-0 rounded-none"
+          root-class="h-full"
+          trigger-class="st-module-action-trigger h-full self-stretch px-3 py-1 mr-0 text-white/80 hover:text-white flex items-center justify-center border-0 rounded-none"
         >
           <template #trigger>
             <span class="leading-none text-[16px]">+</span>
@@ -466,6 +481,7 @@ async function deleteCollection(id: number) {
           :feed-search-url-template="props.feedSearchUrlTemplate"
           :open-in-new-tab="openInNewTab"
           :quicklinks="quicklinks"
+          :force-favicon="forceFavicon"
           :show-hover-actions="showHoverActions"
           :highlight-kind="activeCollectionSearchHighlight?.kind ?? null"
           :highlight-entity-id="activeCollectionSearchHighlight?.entityId ?? null"
@@ -498,8 +514,8 @@ async function deleteCollection(id: number) {
 
 <style scoped>
 .st-module-expanded-feed {
-  top: 50px;
-  bottom: 10px;
+  top: 20px;
+  bottom: 20px;
 }
 
 .st-module-expanded-feed--max {
@@ -511,7 +527,7 @@ async function deleteCollection(id: number) {
   right: auto;
 }
 
-@media (max-width: 740px) {
+@media (max-width: 744px) {
   .st-module-expanded-feed {
     top: 40px;
     bottom: 0;

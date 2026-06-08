@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { registerAddContent } from '@/composables/useAddContent'
+import { TILE_W } from '@/composables/useAsset'
 import { useDragSort } from '@/composables/useDragSort'
+import { markExportDirty } from '@/composables/useExportState'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { cleanupOrphans } from '@/composables/useMaintenance'
 import { useReorder } from '@/composables/useReorder'
-import { TILE_W } from '@/composables/useAsset'
 import { db, isActiveRecord, makeCreateMetadata, makeUpdatedAtPatch } from '@/db/db'
 import type { AppSetting, Collection, PortableInput, Tab } from '@/types/db'
 import { computed, ref } from 'vue'
@@ -22,6 +23,8 @@ const props = defineProps<{
   openInNewTab?: boolean | null
   /** Compact bookmark rendering mode. */
   quicklinks?: boolean
+  /** Quicklinks can optionally force favicon-only rendering. */
+  forceFavicon?: boolean
   /** Whether bookmark hover action buttons should be shown. */
   showHoverActions?: boolean
   highlightTabId?: number | null
@@ -90,6 +93,7 @@ async function saveTab(data: PortableInput<Tab>) {
       ...data,
       ...makeUpdatedAtPatch(now),
     })
+    await markExportDirty('tabs:update')
   } else {
     const count      = await db.tabs.where('collection_id').equals(data.collection_id).filter(isActiveRecord).count()
     data.sort_order  = count
@@ -97,6 +101,7 @@ async function saveTab(data: PortableInput<Tab>) {
       ...data,
       ...makeCreateMetadata(now),
     })
+    await markExportDirty('tabs:create')
   }
   await cleanupOrphans()
   isModalOpen.value = false
@@ -104,6 +109,7 @@ async function saveTab(data: PortableInput<Tab>) {
 
 async function deleteTabById(id: number) {
   await db.tabs.delete(id)
+  await markExportDirty('tabs:delete')
   await cleanupOrphans()
   isModalOpen.value = false
 }
@@ -111,6 +117,7 @@ async function deleteTabById(id: number) {
 async function deleteTileTab(tab: Tab) {
   if (!tab.id || !confirm('Delete this bookmark?')) return
   await db.tabs.delete(tab.id)
+  await markExportDirty('tabs:delete')
   await cleanupOrphans()
 }
 </script>
@@ -118,12 +125,10 @@ async function deleteTileTab(tab: Tab) {
 <template>
   <div class="h-full">
     <!-- ─── Tab grid (drag-and-drop reorderable) ─────────────────────────── -->
-    <div
+    <div class="st-module-content-wrapper items-center h-full"
       v-if="tabs.length"
-      class="st-module-content-wrapper items-center h-full"
       :style="gridStyle"
-      :class="props.quicklinks === true ? 'st-module-tabs-quicklinks' : 'st-module-tabs-bookmarks'"
-    >
+      :class="props.quicklinks === true ? 'st-module-tabs-quicklinks' : 'st-module-tabs-bookmarks'">
       <TabTile
         v-for="(tab, idx) in tabs"
         :key="tab.id"
@@ -131,6 +136,7 @@ async function deleteTileTab(tab: Tab) {
         :tab="tab"
         :open-in-new-tab="resolvedOpenInNewTab"
         :quicklinks="props.quicklinks === true"
+        :force-favicon="props.forceFavicon === true"
         :show-hover-actions="props.showHoverActions !== false"
         :is-search-highlighted="props.highlightTabId === tab.id"
         :is-dragging="tabDnd.draggingIndex.value === idx"
@@ -140,16 +146,15 @@ async function deleteTileTab(tab: Tab) {
       />
 
       <!--
-        Optional "Add" tile — same 98×56 footprint as a bookmark, controlled
+        Optional "Add" tile — same footprint as a bookmark, controlled
         per-module via the `showAddTile` setting in the module config.
       -->
       <button
         v-if="showAddTile"
         @click="openAdd"
-        class="st-content-trigger-button rounded-sm border border-dashed border-white/20
+        class="st-content-trigger-button st-inline-add-content-trigger rounded-sm border
                flex items-center justify-center
-               text-white/40 hover:text-white hover:border-white/50
-               text-sm transition-colors shrink-0"
+               transition-colors shrink-0"
         title="Add bookmark"
       >+</button>
     </div>

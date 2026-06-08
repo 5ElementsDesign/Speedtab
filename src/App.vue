@@ -3,6 +3,7 @@ import AppSettingsForm from '@/components/AppSettingsForm.vue'
 import AssetBrowserModal from '@/components/AssetBrowserModal.vue'
 import CaptureInboxModal from '@/components/CaptureInboxModal.vue'
 import CleanupModal from '@/components/CleanupModal.vue'
+import DataExchangeModal from '@/components/DataExchangeModal.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import Modal from '@/components/Modal.vue'
 import ModuleCard from '@/components/ModuleCard.vue'
@@ -11,22 +12,41 @@ import NavBar from '@/components/NavBar.vue'
 import OpenNotesHost from '@/components/OpenNotesHost.vue'
 import PageForm from '@/components/PageForm.vue'
 import SidePanel from '@/components/SidePanel.vue'
+import WidgetRail from '@/components/WidgetRail.vue'
 import { loadAssetObjectUrl } from '@/composables/useAsset'
 import {
   BackupValidationError,
   downloadManifest,
   exportAll, importAll,
   LAST_IMPORT_EXPORTED_AT_KEY,
+  manifestChecksum,
   readManifestFile,
 } from '@/composables/useBackup'
 import { useDragSort } from '@/composables/useDragSort'
+import {
+  clearExportDirty,
+  EXPORT_STATE_KEY,
+  markExportDirty,
+  noteImportedWorkspace,
+  parseStoredExportState,
+  summarizeExportDirtyReasons,
+} from '@/composables/useExportState'
 import { useLiveQuery } from '@/composables/useLiveQuery'
+import { updateLocalSettings } from '@/composables/useLocalSettings'
 import {
   cleanupOrphans,
   deleteModuleTree,
   deletePageTree,
 } from '@/composables/useMaintenance'
+import {
+  computeModuleGridColumn,
+  normalizeModuleColumnSpanFromConfig,
+  normalizeModuleMinHeightFromConfig,
+  type ModuleColumnSpan,
+} from '@/composables/useModuleLayout'
 import { useReorder } from '@/composables/useReorder'
+import { getWeatherWidgetApiKey, setWeatherWidgetApiKey } from '@/composables/useWeatherWidgetLocal'
+import { parseWidgetSettings, saveWidgetSettings, WIDGET_SETTINGS_KEY } from '@/composables/useWidgetSettings'
 import { db, isActiveRecord, makeCreateMetadata, makeUpdatedAtPatch } from '@/db/db'
 import { DEFAULT_THEME_PRESET, normalizeThemePreset } from '@/themePresets'
 import type {
@@ -39,6 +59,7 @@ import type {
   PortableInput,
   Tab,
 } from '@/types/db'
+import type { WeatherWidgetLocation, WeatherWidgetUnits, WidgetRailAlign, WidgetRailPosition } from '@/types/widgets'
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 
 // ─── Hash navigation ──────────────────────────────────────────────────────────
@@ -333,7 +354,7 @@ const searchResults = computed<SearchResult[]>(() => {
 
 const showSearchPanel = computed(() => searchPanelVisible.value && (searchOpen.value || !!debouncedSearchQuery.value || !!searchQuery.value.trim()))
 const searchPanelStyle = computed(() => ({
-  top: backupStatus.value ? '72px' : '40px',
+  top: '40px',
   height: '80%',
 }))
 
@@ -386,6 +407,18 @@ watch(captureInboxItems, (items) => {
 
 onMounted(() => window.addEventListener('mousedown', handleDocumentPointerDown))
 onUnmounted(() => window.removeEventListener('mousedown', handleDocumentPointerDown))
+onMounted(() => {
+  syncViewportLayoutMode()
+  window.addEventListener('resize', syncViewportLayoutMode)
+})
+onUnmounted(() => window.removeEventListener('resize', syncViewportLayoutMode))
+onMounted(async () => {
+  try {
+    localWeatherApiKey.value = (await getWeatherWidgetApiKey()) ?? ''
+  } catch {
+    localWeatherApiKey.value = ''
+  }
+})
 
 // Drag-and-drop bindings for the module grid (one row per module)
 const moduleDnd = useDragSort({ onReorder: (f, t) => moveModule(f, t) })
@@ -393,12 +426,15 @@ const moduleDnd = useDragSort({ onReorder: (f, t) => moveModule(f, t) })
 // ─── Page layout config (modules-per-row + max-width) ─────────────────────────
 
 interface PageConfig {
-  modulesPerRow?: number      // 1..6, default 3
+  modulesPerRow?: number      // 1..12, default 2
   maxWidth?:     number | null // px, null = full width
   backgroundAssetId?: number | null
 }
 
-type BackgroundTheme = 'charcoal' | 'ocean' | 'moss' | 'ember' | 'sunshine' | 'paper'
+const PAGE_MAX_WIDTH_MIN = 300
+const PAGE_MAX_WIDTH_MAX = 2000
+
+type BackgroundTheme = 'charcoal' | 'ocean' | 'moss' | 'ember' | 'sunshine' | 'light' | 'nordic'
 type ThemePreset = string
 type AppearanceState = {
   backgroundAssetId: number | null
@@ -409,10 +445,21 @@ type AppearanceState = {
   feedContentScale: number
   noteContentScale: number
 }
-type AppearanceDraft = AppearanceState & {
+type SettingsState = AppearanceState & {
+  widgetRailEnabled: boolean
+  widgetRailPosition: WidgetRailPosition
+  widgetRailAlign: WidgetRailAlign
+  weatherEnabled: boolean
+  weatherUnits: WeatherWidgetUnits
+  weatherRefreshIntervalMinutes: number
+  weatherDisplayLabel: string
+  weatherLocation: WeatherWidgetLocation | null
+  weatherApiKey: string
+}
+type SettingsDraft = SettingsState & {
   backgroundPreviewUrl?: string | null
 }
-type AppearanceDraftInput = {
+type SettingsDraftInput = {
   backgroundAssetId: number | null
   backgroundTheme: string | null
   backgroundPreset: string
@@ -420,13 +467,35 @@ type AppearanceDraftInput = {
   feedSearchUrlTemplate: string
   feedContentScale: number
   noteContentScale: number
+  widgetRailEnabled: boolean
+  widgetRailPosition: WidgetRailPosition
+  widgetRailAlign: WidgetRailAlign
+  weatherEnabled: boolean
+  weatherUnits: WeatherWidgetUnits
+  weatherRefreshIntervalMinutes: number
+  weatherDisplayLabel: string
+  weatherLocation: WeatherWidgetLocation | null
+  weatherApiKey: string
   backgroundPreviewUrl?: string | null
+}
+
+const CONTENT_SCALE_VALUES = [0.9, 1, 1.2, 1.4, 1.6] as const
+const DEFAULT_CONTENT_SCALE = 1.2
+
+function normalizeContentScale(value: unknown): number {
+  return typeof value === 'number' && CONTENT_SCALE_VALUES.includes(value as (typeof CONTENT_SCALE_VALUES)[number])
+    ? value
+    : DEFAULT_CONTENT_SCALE
 }
 
 interface ModuleLayoutConfig {
   full_width?: boolean
+  column_span?: number | 'full' | null
+  min_height_px?: number | null
   expanded_width?: FeedExpandedWidth | null
 }
+
+const MODULE_SINGLE_COLUMN_BREAKPOINT = 740
 
 type FeedExpandedWidth = 320 | 480 | 740 | 940 | 1240 | 1540 | 'max'
 
@@ -436,28 +505,84 @@ function parsePageConfig(p: Page | null): PageConfig {
     const parsed = JSON.parse(p.config_json)
     return {
       modulesPerRow: typeof parsed.modulesPerRow === 'number' ? parsed.modulesPerRow : undefined,
-      maxWidth: typeof parsed.maxWidth === 'number' ? parsed.maxWidth : null,
+      maxWidth: typeof parsed.maxWidth === 'number'
+        ? Math.max(PAGE_MAX_WIDTH_MIN, Math.min(PAGE_MAX_WIDTH_MAX, parsed.maxWidth))
+        : null,
       backgroundAssetId: typeof parsed.background_asset_id === 'number' ? parsed.background_asset_id : null,
     } as PageConfig
   } catch { return {} }
 }
 
 const activePageConfig = computed<PageConfig>(() => parsePageConfig(activePage.value))
+const isNarrowViewport = ref(false)
+
+function syncViewportLayoutMode() {
+  isNarrowViewport.value = window.innerWidth <= MODULE_SINGLE_COLUMN_BREAKPOINT
+}
 
 const pageContainerStyle = computed(() => {
+  if (!activePage.value) {
+    return { maxWidth: '1500px' }
+  }
   const mw = activePageConfig.value.maxWidth
   return mw && mw > 0 ? { maxWidth: `${mw}px` } : { maxWidth: '100%' }
 })
 
-const displayedModuleColumns = computed(() => {
-  const configured = Math.max(1, Math.min(6, activePageConfig.value.modulesPerRow ?? 3))
-  const count      = modules.value.length || 1
-  return Math.max(1, Math.min(configured, count))
+const widgetRailMaxWidth = computed<number | null>(() => {
+  if (!activePage.value) return 1500
+  return activePageConfig.value.maxWidth ?? null
 })
+
+const WIDGET_RAIL_SPACER_HEIGHT = 40
+const WIDGET_RAIL_STAGE_OFFSET = 115
+
+const showWidgetRailTop = computed(() =>
+  !!activePage.value &&
+  effectiveWidgetSettings.value.rail_enabled &&
+  effectiveWidgetSettings.value.rail_position === 'top',
+)
+
+const showWidgetRailBottom = computed(() =>
+  !!activePage.value &&
+  effectiveWidgetSettings.value.rail_enabled &&
+  effectiveWidgetSettings.value.rail_position === 'bottom',
+)
+
+const widgetRailSpacerTop = computed(() => showWidgetRailBottom.value ? WIDGET_RAIL_SPACER_HEIGHT : 0)
+const widgetRailSpacerBottom = computed(() => showWidgetRailTop.value ? WIDGET_RAIL_SPACER_HEIGHT : 0)
+
+const pagePanelStyle = computed(() => ({
+  ...pageContainerStyle.value,
+  '--st-widget-stage-offset': showWidgetRailTop.value || showWidgetRailBottom.value
+    ? `${WIDGET_RAIL_STAGE_OFFSET}px`
+    : '0px',
+}))
+
+const showMobilePageSpacing = computed(() =>
+  effectiveWidgetSettings.value.rail_enabled !== true,
+)
+
+const displayedModuleColumns = computed(() => {
+  return Math.max(1, Math.min(12, activePageConfig.value.modulesPerRow ?? 2))
+})
+
+const defaultNewModuleColumnSpan = computed<ModuleColumnSpan>(() => {
+  const columns = Math.max(1, Math.min(12, activePageConfig.value.modulesPerRow ?? 2))
+  if (columns < 3) return null
+  return Math.ceil(columns / 2)
+})
+
+const effectiveDisplayedModuleColumns = computed(() =>
+  isNarrowViewport.value ? 1 : displayedModuleColumns.value,
+)
 
 function parseModuleLayoutConfig(module: Module): ModuleLayoutConfig {
   try { return JSON.parse(module.config_json ?? '{}') as ModuleLayoutConfig }
   catch { return {} }
+}
+
+function normalizeModuleColumnSpan(module: Module): ModuleColumnSpan {
+  return normalizeModuleColumnSpanFromConfig(module.config_json)
 }
 
 function normalizeFeedExpandedWidth(value: unknown): FeedExpandedWidth | null {
@@ -467,7 +592,7 @@ function normalizeFeedExpandedWidth(value: unknown): FeedExpandedWidth | null {
 }
 
 const autoFullWidthModuleId = computed<number | null>(() => {
-  if (displayedModuleColumns.value !== 2 || !modules.value.length) return null
+  if (effectiveDisplayedModuleColumns.value !== 2 || !modules.value.length) return null
 
   const rows: Array<Array<{ id: number; spansFull: boolean }>> = []
   let currentRow: Array<{ id: number; spansFull: boolean }> = []
@@ -475,7 +600,7 @@ const autoFullWidthModuleId = computed<number | null>(() => {
 
   for (const module of modules.value) {
     if (!module.id) continue
-    const spansFull = expandedFeedState.value?.id === module.id || parseModuleLayoutConfig(module).full_width === true
+    const spansFull = expandedFeedState.value?.id === module.id || normalizeModuleColumnSpan(module) === 'full'
 
     if (spansFull) {
       if (currentRow.length) {
@@ -505,44 +630,28 @@ const autoFullWidthModuleId = computed<number | null>(() => {
 })
 
 const modulesGridStyle = computed(() => {
-  const configured = Math.max(1, Math.min(6, activePageConfig.value.modulesPerRow ?? 3))
-  const count      = modules.value.length || 1
-  const cols       = displayedModuleColumns.value
+  const cols       = effectiveDisplayedModuleColumns.value
 
-  if (count === 1) {
-    return {
-      gridTemplateColumns: 'max(50%, 360px)',
-      justifyContent: 'center',
-    }
-  }
-
-  if (count === 2) {
-    return {
-      gridTemplateColumns: 'repeat(2, minmax(360px, 1fr))',
-    }
-  }
-
-  // When the actual module count is below the configured columns, switch from
-  // stretching 1fr cells to fixed-width cells centered on the row (otherwise
-  // 2 of 3 modules would stretch to fill the whole row instead of centering).
-  if (count < configured) {
-    const mw        = activePageConfig.value.maxWidth
-    const cellWidth = mw && mw > 0
-      ? Math.floor((mw - (configured - 1) * 16) / configured)  // gap-4 = 16 px
-      : 360
-    return {
-      gridTemplateColumns: `repeat(${cols}, ${cellWidth}px)`,
-      justifyContent:      'center',
-    }
-  }
   return { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }
 })
 
-function moduleGridClass(module: Module): string {
-  if (displayedModuleColumns.value <= 1) return ''
-  if (expandedFeedState.value?.id === module.id) return 'col-span-full'
-  if (parseModuleLayoutConfig(module).full_width) return 'col-span-full'
-  return autoFullWidthModuleId.value === module.id ? 'col-span-full' : ''
+function getModuleGridStyle(module: Module): Record<string, string> {
+  const minHeight = normalizeModuleMinHeightFromConfig(module.config_json)
+  const baseStyle: Record<string, string> = {}
+  if (minHeight) {
+    baseStyle.minHeight = `${minHeight}px`
+  }
+  if (effectiveDisplayedModuleColumns.value <= 1) return baseStyle
+  if (expandedFeedState.value?.id === module.id) {
+    return { ...baseStyle, gridColumn: '1 / -1' }
+  }
+
+  const requestedSpan = normalizeModuleColumnSpan(module)
+  const gridColumn = computeModuleGridColumn(requestedSpan, effectiveDisplayedModuleColumns.value)
+  if (gridColumn) return { ...baseStyle, gridColumn }
+
+  if (autoFullWidthModuleId.value === module.id) return { ...baseStyle, gridColumn: '1 / -1' }
+  return baseStyle
 }
 
 function getModuleExpandedWidth(module: Module): FeedExpandedWidth | null {
@@ -604,9 +713,15 @@ function collapseExpandedFeed() {
   expandedFeedState.value = null
 }
 
-async function setFeedModuleExpandWidth(module: Module, width: FeedExpandedWidth) {
+async function setFeedModuleExpandWidth(module: Module, width: FeedExpandedWidth | null) {
   const id = module.id ?? null
   if (id === null || module.type !== 'feeds') return
+
+  if (width === null) {
+    collapseExpandedFeed()
+    focusedModuleId.value = id
+    return
+  }
 
   let nextConfig: Record<string, unknown> = {}
   try {
@@ -622,6 +737,7 @@ async function setFeedModuleExpandWidth(module: Module, width: FeedExpandedWidth
     }),
     ...makeUpdatedAtPatch(Date.now()),
   })
+  await markExportDirty('modules:update')
 
   expandedFeedState.value = { id, width }
   focusedModuleId.value = id
@@ -653,6 +769,7 @@ async function savePage(data: PortableInput<Page>) {
       ...data,
       ...makeUpdatedAtPatch(now),
     })
+    await markExportDirty('pages:update')
   } else {
     // New page
     const count = await db.pages.filter(isActiveRecord).count()
@@ -666,6 +783,7 @@ async function savePage(data: PortableInput<Page>) {
       ...data,
       ...makeCreateMetadata(now),
     })
+    await markExportDirty('pages:create')
   }
   isPageModalOpen.value = false
 }
@@ -674,6 +792,7 @@ async function deletePage(id: number) {
   if (!confirm('Are you sure you want to delete this page? All modules and tabs will be lost.')) return
   await deletePageTree(id)
   await cleanupOrphans()
+  await markExportDirty('pages:delete')
 
   isPageModalOpen.value = false
   // Navigation will automatically fallback to home or first page via activePage computed
@@ -683,9 +802,21 @@ async function deletePage(id: number) {
 
 const isModuleModalOpen = ref(false)
 const editingModule = ref<Module | undefined>(undefined)
+const moduleFormType = ref<'tabs' | 'notes' | 'feeds'>('tabs')
+const moduleTypeLabels: Record<'tabs' | 'notes' | 'feeds', string> = {
+  tabs: 'Bookmarks',
+  notes: 'Notes',
+  feeds: 'Feeds',
+}
+
+watch(editingModule, (module) => {
+  if (!module) return
+  moduleFormType.value = module.type
+})
 
 function openAddModule() {
   editingModule.value = undefined
+  moduleFormType.value = 'tabs'
   isModuleModalOpen.value = true
 }
 
@@ -696,6 +827,7 @@ async function saveModule(data: PortableInput<Module>) {
       ...data,
       ...makeUpdatedAtPatch(now),
     })
+    await markExportDirty('modules:update')
   } else {
     // New module
     const count = await db.modules.where('page_id').equals(data.page_id).filter(isActiveRecord).count()
@@ -704,6 +836,7 @@ async function saveModule(data: PortableInput<Module>) {
       ...data,
       ...makeCreateMetadata(now),
     })
+    await markExportDirty('modules:create')
   }
   isModuleModalOpen.value = false
 }
@@ -712,6 +845,7 @@ async function deleteModule(id: number) {
   if (!confirm('Are you sure you want to delete this module? All tabs inside will be lost.')) return
   await deleteModuleTree(id)
   await cleanupOrphans()
+  await markExportDirty('modules:delete')
 
   isModuleModalOpen.value = false
 }
@@ -721,7 +855,13 @@ async function deleteModule(id: number) {
 const isUrlModalOpen = ref(false)
 const urlCopied = ref(false)
 
-const currentUrl = computed(() => window.location.href)
+const currentUrl = computed(() => {
+  const hash = window.location.hash || ''
+  if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
+    return `${chrome.runtime.getURL('src/newtab.html')}${hash}`
+  }
+  return `${window.location.origin}${window.location.pathname}${hash}`
+})
 
 function openUrlModal() {
   urlCopied.value = false
@@ -742,46 +882,123 @@ async function copyCurrentUrl() {
 
 const importInput = ref<HTMLInputElement | null>(null)
 const backupStatus = ref<string | null>(null)
+let backupStatusResetHandle: number | null = null
+const isDataExchangeOpen = ref(false)
 const isSettingsModalOpen = ref(false)
 const isAssetBrowserOpen = ref(false)
 const isCaptureInboxOpen = ref(false)
 const isCleanupModalOpen = ref(false)
-const settingsDraft = ref<AppearanceDraft | null>(null)
+const isLoadingExampleWorkspace = ref(false)
+const hasUnsavedSettingsChanges = ref(false)
+const settingsDraft = ref<SettingsDraft | null>(null)
+const localWeatherApiKey = ref('')
+const openWidgetConfiguratorInSettings = ref(false)
 
 const { data: appearanceSetting, loading: appearanceLoading } = useLiveQuery(
   () => db.app_settings.get('appearance'),
   null as AppSetting | null,
 )
 
+const { data: widgetSetting } = useLiveQuery(
+  () => db.app_settings.get(WIDGET_SETTINGS_KEY),
+  null as AppSetting | null,
+)
+
+const { data: exportStateSetting } = useLiveQuery(
+  () => db.app_settings.get(EXPORT_STATE_KEY),
+  null as AppSetting | null,
+)
+const exportState = computed(() => parseStoredExportState(exportStateSetting.value?.value_json))
+const exportPending = computed<boolean>(() =>
+  exportState.value.export_dirty && exportState.value.remote_out_of_date,
+)
+const exportReasonsSummary = computed<string | null>(() => {
+  if (!exportState.value.export_dirty_reasons.length) return null
+  return summarizeExportDirtyReasons(exportState.value.export_dirty_reasons)
+})
+
+function clearBackupStatus() {
+  backupStatus.value = null
+  if (backupStatusResetHandle != null) {
+    window.clearTimeout(backupStatusResetHandle)
+    backupStatusResetHandle = null
+  }
+}
+
+function setBackupStatus(message: string | null, timeoutMs = 3000) {
+  clearBackupStatus()
+  if (!message) return
+  backupStatus.value = message
+  if (timeoutMs <= 0) return
+  backupStatusResetHandle = window.setTimeout(() => {
+    backupStatus.value = null
+    backupStatusResetHandle = null
+  }, timeoutMs)
+}
+
 function parseAppearanceSetting(setting: AppSetting | null | undefined): AppearanceState {
-  if (!setting?.value_json) return { backgroundAssetId: null, backgroundTheme: null, backgroundPreset: DEFAULT_THEME_PRESET, openBookmarksInNewTab: false, feedSearchUrlTemplate: 'https://www.google.com/search?q=%s', feedContentScale: 1, noteContentScale: 1 }
+  if (!setting?.value_json) return { backgroundAssetId: null, backgroundTheme: null, backgroundPreset: DEFAULT_THEME_PRESET, openBookmarksInNewTab: false, feedSearchUrlTemplate: 'https://www.google.com/search?q=%s', feedContentScale: DEFAULT_CONTENT_SCALE, noteContentScale: DEFAULT_CONTENT_SCALE }
   try {
     const parsed = JSON.parse(setting.value_json)
     return {
       backgroundAssetId: typeof parsed.background_asset_id === 'number' ? parsed.background_asset_id : null,
-      backgroundTheme: ['charcoal', 'ocean', 'moss', 'ember', 'sunshine', 'paper'].includes(parsed.background_theme) ? parsed.background_theme as BackgroundTheme : null,
+      backgroundTheme: ['charcoal', 'ocean', 'moss', 'ember', 'sunshine', 'light', 'nordic'].includes(parsed.background_theme) ? parsed.background_theme as BackgroundTheme : null,
       backgroundPreset: normalizeThemePreset(parsed.background_preset),
       openBookmarksInNewTab: parsed.open_bookmarks_in_new_tab === true,
       feedSearchUrlTemplate: typeof parsed.feed_search_url_template === 'string' && parsed.feed_search_url_template.trim()
         ? parsed.feed_search_url_template.trim()
         : 'https://www.google.com/search?q=%s',
-      feedContentScale: typeof parsed.feed_content_scale === 'number' && parsed.feed_content_scale > 0
-        ? parsed.feed_content_scale
-        : 1,
-      noteContentScale: typeof parsed.note_content_scale === 'number' && parsed.note_content_scale > 0
-        ? parsed.note_content_scale
-        : 1,
+      feedContentScale: normalizeContentScale(parsed.feed_content_scale),
+      noteContentScale: normalizeContentScale(parsed.note_content_scale),
     }
   } catch {
-    return { backgroundAssetId: null, backgroundTheme: null, backgroundPreset: DEFAULT_THEME_PRESET, openBookmarksInNewTab: false, feedSearchUrlTemplate: 'https://www.google.com/search?q=%s', feedContentScale: 1, noteContentScale: 1 }
+    return { backgroundAssetId: null, backgroundTheme: null, backgroundPreset: DEFAULT_THEME_PRESET, openBookmarksInNewTab: false, feedSearchUrlTemplate: 'https://www.google.com/search?q=%s', feedContentScale: DEFAULT_CONTENT_SCALE, noteContentScale: DEFAULT_CONTENT_SCALE }
   }
 }
 
 const appAppearance = computed(() => parseAppearanceSetting(appearanceSetting.value))
-const effectiveAppearance = computed<AppearanceDraft>(() => settingsDraft.value ?? appAppearance.value)
+const appWidgetSettings = computed(() => parseWidgetSettings(widgetSetting.value?.value_json))
+const appSettingsState = computed<SettingsState>(() => ({
+  ...appAppearance.value,
+  widgetRailEnabled: appWidgetSettings.value.rail_enabled,
+  widgetRailPosition: appWidgetSettings.value.rail_position,
+  widgetRailAlign: appWidgetSettings.value.rail_align,
+  weatherEnabled: appWidgetSettings.value.weather.enabled,
+  weatherUnits: appWidgetSettings.value.weather.units,
+  weatherRefreshIntervalMinutes: appWidgetSettings.value.weather.refresh_interval_minutes,
+  weatherDisplayLabel: appWidgetSettings.value.weather.display_label ?? '',
+  weatherLocation: appWidgetSettings.value.weather.location,
+  weatherApiKey: localWeatherApiKey.value,
+}))
+const effectiveSettings = computed<SettingsDraft>(() => settingsDraft.value ?? {
+  ...appSettingsState.value,
+  backgroundPreviewUrl: null,
+})
+const effectiveAppearance = computed<AppearanceState>(() => ({
+  backgroundAssetId: effectiveSettings.value.backgroundAssetId,
+  backgroundTheme: effectiveSettings.value.backgroundTheme,
+  backgroundPreset: effectiveSettings.value.backgroundPreset,
+  openBookmarksInNewTab: effectiveSettings.value.openBookmarksInNewTab,
+  feedSearchUrlTemplate: effectiveSettings.value.feedSearchUrlTemplate,
+  feedContentScale: effectiveSettings.value.feedContentScale,
+  noteContentScale: effectiveSettings.value.noteContentScale,
+}))
 const effectiveBackgroundAssetId = computed<number | null>(() =>
   activePageConfig.value.backgroundAssetId ?? effectiveAppearance.value.backgroundAssetId ?? null
 )
+const effectiveWidgetSettings = computed(() => ({
+  rail_enabled: effectiveSettings.value.widgetRailEnabled,
+  rail_position: effectiveSettings.value.widgetRailPosition,
+  rail_align: effectiveSettings.value.widgetRailAlign,
+  weather: {
+    enabled: effectiveSettings.value.weatherEnabled,
+    provider: 'open_meteo' as const,
+    units: effectiveSettings.value.weatherUnits,
+    refresh_interval_minutes: effectiveSettings.value.weatherRefreshIntervalMinutes,
+    display_label: effectiveSettings.value.weatherDisplayLabel.trim() || null,
+    location: effectiveSettings.value.weatherLocation,
+  },
+}))
 const appBackgroundThemeClass = computed(() =>
   effectiveAppearance.value.backgroundTheme ? `st-bg-theme-${effectiveAppearance.value.backgroundTheme}` : ''
 )
@@ -818,12 +1035,17 @@ watch([effectiveBackgroundAssetId, () => effectiveAppearance.value.backgroundThe
 
 onUnmounted(() => {
   if (backgroundUrlHandle) URL.revokeObjectURL(backgroundUrlHandle)
+  if (backupStatusResetHandle != null) {
+    window.clearTimeout(backupStatusResetHandle)
+    backupStatusResetHandle = null
+  }
 })
 
 watchEffect(() => {
   const rootStyle = document.documentElement.style
   rootStyle.setProperty('--st-feed-content-scale', String(effectiveAppearance.value.feedContentScale))
   rootStyle.setProperty('--st-note-content-scale', String(effectiveAppearance.value.noteContentScale))
+  rootStyle.setProperty('--st-active-page-max-width', String(activePageConfig.value.maxWidth ?? 1500))
 })
 
 const appShellStyle = computed(() => {
@@ -927,14 +1149,43 @@ function formatImportReport(report: Awaited<ReturnType<typeof importAll>>, clean
 async function handleExport() {
   try {
     const manifest = await exportAll()
+    const checksum = await manifestChecksum(manifest)
     await downloadManifest(manifest)
-    backupStatus.value = `Exported ${manifest.pages.length} pages · ${manifest.saved_feed_items.length} archived items · ${manifest.assets.length} assets`
+    await clearExportDirty({
+      checksum,
+      exportedAt: manifest.exported_at,
+      manifestVersion: manifest.version,
+    })
+    setBackupStatus(`Exported ${manifest.pages.length} pages · ${manifest.saved_feed_items.length} archived items · ${manifest.assets.length} assets`)
   } catch (err) {
-    backupStatus.value = `Export failed: ${(err as Error).message}`
+    setBackupStatus(`Export failed: ${(err as Error).message}`, 5000)
+  }
+}
+
+async function loadExampleWorkspace() {
+  if (isLoadingExampleWorkspace.value || pages.value.length) return
+  isLoadingExampleWorkspace.value = true
+  clearBackupStatus()
+  try {
+    const { seedExampleWorkspace } = await import('@/composables/useExampleWorkspace')
+    await seedExampleWorkspace()
+    for (const reason of ['pages:create', 'modules:create', 'collections:create', 'tabs:create', 'notes:create', 'feed_sources:create']) {
+      await markExportDirty(reason)
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 180))
+    setBackupStatus('Loaded example workspace')
+  } catch (err) {
+    setBackupStatus(`Example workspace failed: ${(err as Error).message}`, 5000)
+  } finally {
+    isLoadingExampleWorkspace.value = false
   }
 }
 
 function triggerImport() { importInput.value?.click() }
+
+function openDataExchange() {
+  isDataExchangeOpen.value = true
+}
 
 async function handleImportFile(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
@@ -968,11 +1219,18 @@ async function handleImportFile(e: Event) {
     const report = await importAll(manifest)
     const cleanup = await cleanupOrphans()
     const cleaned = Object.values(cleanup).reduce((sum, value) => sum + value, 0)
-    backupStatus.value = formatImportReport(report, cleaned)
+    await noteImportedWorkspace('import:local')
+    await updateLocalSettings({
+      last_known_local_checksum: null,
+      last_remote_seen_checksum: null,
+      last_remote_seen_exported_at: null,
+      last_remote_source_device: null,
+    })
+    setBackupStatus(formatImportReport(report, cleaned), 5000)
   } catch (err) {
-    backupStatus.value = err instanceof BackupValidationError
+    setBackupStatus(err instanceof BackupValidationError
       ? `Invalid backup: ${err.message}`
-      : `Import failed: ${(err as Error).message}`
+      : `Import failed: ${(err as Error).message}`, 5000)
   } finally {
     if (importInput.value) importInput.value.value = ''
   }
@@ -990,10 +1248,13 @@ function handleCleanupCompleted(report: Awaited<ReturnType<typeof cleanupOrphans
   if (refreshedFavicons > 0) {
     parts.push(`refreshed ${refreshedFavicons} stale favicons`)
   }
-  backupStatus.value = parts.join(' · ')
+  if (total > 0) {
+    void markExportDirty('cleanup:workspace')
+  }
+  setBackupStatus(parts.join(' · '))
 }
 
-async function saveCaptureInboxItem(item: CaptureInboxItem, collectionId: number) {
+async function saveCaptureInboxItem(item: CaptureInboxItem, collectionId: number, appendToNoteId: number | null = null) {
   const now = Date.now()
   const metaJson = JSON.stringify({
     capture_source_url: item.source_url,
@@ -1002,18 +1263,48 @@ async function saveCaptureInboxItem(item: CaptureInboxItem, collectionId: number
   })
 
   if (item.kind === 'note') {
-    const sortOrder = await db.notes.where('collection_id').equals(collectionId).filter(isActiveRecord).count()
-    const note: Note = {
-      collection_id: collectionId,
-      title: item.title || 'Captured note',
-      type: 'text',
-      content: item.text || '',
-      style_token: null,
-      sort_order: sortOrder,
-      meta_json: metaJson,
-      ...makeCreateMetadata(now),
+    if (appendToNoteId) {
+      const existing = await db.notes.get(appendToNoteId)
+      if (existing) {
+        if (existing.type === 'crypt') {
+          throw new Error('Encrypted notes cannot be used as append targets')
+        }
+        const sourceLine = item.source_title || item.source_url
+        const appendedParts = [existing.content]
+        if (sourceLine) {
+          appendedParts.push(`\n\n---\n\nCaptured from: ${sourceLine}`)
+        } else {
+          appendedParts.push('\n\n---')
+        }
+        if (item.source_url) {
+          appendedParts.push(`\n${item.source_url}`)
+        }
+        if (item.text) {
+          appendedParts.push(`\n\n${item.text}`)
+        }
+
+        await db.notes.update(appendToNoteId, {
+          content: appendedParts.join(''),
+          meta_json: metaJson,
+          ...makeUpdatedAtPatch(now),
+        })
+        await markExportDirty('notes:update')
+      }
+    } else {
+      const sortOrder = await db.notes.where('collection_id').equals(collectionId).filter(isActiveRecord).count()
+      const note: Note = {
+        collection_id: collectionId,
+        title: item.title || 'Captured note',
+        type: 'text',
+        content: item.text || '',
+        style_token: null,
+        sort_order: sortOrder,
+        meta_json: metaJson,
+        ...makeCreateMetadata(now),
+      }
+      await db.notes.add(note)
+      await markExportDirty('notes:create')
     }
-    await db.notes.add(note)
   } else {
     const sortOrder = await db.tabs.where('collection_id').equals(collectionId).filter(isActiveRecord).count()
     const tab: Tab = {
@@ -1028,15 +1319,16 @@ async function saveCaptureInboxItem(item: CaptureInboxItem, collectionId: number
       ...makeCreateMetadata(now),
     }
     await db.tabs.add(tab)
+    await markExportDirty('tabs:create')
   }
 
   if (item.id != null) {
     await db.capture_inbox.delete(item.id)
   }
 
-  backupStatus.value = item.kind === 'note'
-    ? 'Captured note saved'
-    : 'Captured bookmark saved'
+  setBackupStatus(item.kind === 'note'
+    ? (appendToNoteId ? 'Captured note appended' : 'Captured note saved')
+    : 'Captured bookmark saved')
 
   if (captureInboxItems.value.length <= 1) {
     isCaptureInboxOpen.value = false
@@ -1045,59 +1337,99 @@ async function saveCaptureInboxItem(item: CaptureInboxItem, collectionId: number
 
 async function discardCaptureInboxItem(itemId: number) {
   await db.capture_inbox.delete(itemId)
-  backupStatus.value = 'Captured item discarded'
+  setBackupStatus('Captured item discarded')
   if (captureInboxItems.value.length <= 1) {
     isCaptureInboxOpen.value = false
   }
 }
 
-function openSettingsPanel() {
+function openSettingsPanel(section: 'general' | 'widgets' = 'general') {
   settingsDraft.value = {
-    ...appAppearance.value,
+    ...appSettingsState.value,
     backgroundPreviewUrl: null,
   }
+  hasUnsavedSettingsChanges.value = false
+  openWidgetConfiguratorInSettings.value = section === 'widgets'
   isSettingsModalOpen.value = true
 }
 
 function closeSettingsPanel() {
   settingsDraft.value = null
+  hasUnsavedSettingsChanges.value = false
   isSettingsModalOpen.value = false
+  openWidgetConfiguratorInSettings.value = false
 }
 
-function handleSettingsPreview(draft: AppearanceDraftInput) {
+function handleSettingsPreview(draft: SettingsDraftInput) {
   settingsDraft.value = {
     backgroundAssetId: draft.backgroundAssetId,
-    backgroundTheme: draft.backgroundTheme && ['charcoal', 'ocean', 'moss', 'ember', 'sunshine', 'paper'].includes(draft.backgroundTheme)
+    backgroundTheme: draft.backgroundTheme && ['charcoal', 'ocean', 'moss', 'ember', 'sunshine', 'light', 'nordic'].includes(draft.backgroundTheme)
       ? draft.backgroundTheme as BackgroundTheme
       : null,
     backgroundPreset: normalizeThemePreset(draft.backgroundPreset),
     openBookmarksInNewTab: draft.openBookmarksInNewTab,
     feedSearchUrlTemplate: draft.feedSearchUrlTemplate.trim() || 'https://www.google.com/search?q=%s',
-    feedContentScale: [0.8, 1, 1.2, 1.4].includes(draft.feedContentScale) ? draft.feedContentScale : 1,
-    noteContentScale: [0.8, 1, 1.2, 1.4].includes(draft.noteContentScale) ? draft.noteContentScale : 1,
+    feedContentScale: normalizeContentScale(draft.feedContentScale),
+    noteContentScale: normalizeContentScale(draft.noteContentScale),
+    widgetRailEnabled: draft.widgetRailEnabled === true,
+    widgetRailPosition: draft.widgetRailPosition === 'bottom' ? 'bottom' : 'top',
+    widgetRailAlign: draft.widgetRailAlign === 'center' || draft.widgetRailAlign === 'right' ? draft.widgetRailAlign : 'left',
+    weatherEnabled: draft.weatherEnabled === true,
+    weatherUnits: draft.weatherUnits === 'imperial' ? 'imperial' : 'metric',
+    weatherRefreshIntervalMinutes: [10, 15, 30, 60, 120, 360].includes(draft.weatherRefreshIntervalMinutes)
+      ? draft.weatherRefreshIntervalMinutes
+      : 30,
+    weatherDisplayLabel: draft.weatherDisplayLabel.trim(),
+    weatherLocation: draft.weatherLocation,
+    weatherApiKey: draft.weatherApiKey.trim(),
     backgroundPreviewUrl: draft.backgroundPreviewUrl ?? null,
   }
 }
 
-async function handleSaveSettings(draft: AppearanceDraftInput) {
-  const normalizedTheme = draft.backgroundTheme && ['charcoal', 'ocean', 'moss', 'ember', 'sunshine', 'paper'].includes(draft.backgroundTheme)
+function handleSettingsDirtyChange(dirty: boolean) {
+  hasUnsavedSettingsChanges.value = dirty
+}
+
+async function handleSaveSettings(draft: SettingsDraftInput) {
+  const normalizedTheme = draft.backgroundTheme && ['charcoal', 'ocean', 'moss', 'ember', 'sunshine', 'light', 'nordic'].includes(draft.backgroundTheme)
     ? draft.backgroundTheme
     : null
   const normalizedPreset = normalizeThemePreset(draft.backgroundPreset)
   const normalizedSearchTemplate = draft.feedSearchUrlTemplate.trim() || 'https://www.google.com/search?q=%s'
-  await db.app_settings.put({
-    key: 'appearance',
-    value_json: JSON.stringify({
-      background_asset_id: draft.backgroundAssetId,
-      background_theme: normalizedTheme,
-      background_preset: normalizedPreset,
-      open_bookmarks_in_new_tab: draft.openBookmarksInNewTab,
-      feed_search_url_template: normalizedSearchTemplate,
-      feed_content_scale: [0.8, 1, 1.2, 1.4].includes(draft.feedContentScale) ? draft.feedContentScale : 1,
-      note_content_scale: [0.8, 1, 1.2, 1.4].includes(draft.noteContentScale) ? draft.noteContentScale : 1,
+  const updatedAt = Date.now()
+  await Promise.all([
+    db.app_settings.put({
+      key: 'appearance',
+      value_json: JSON.stringify({
+        background_asset_id: draft.backgroundAssetId,
+        background_theme: normalizedTheme,
+        background_preset: normalizedPreset,
+        open_bookmarks_in_new_tab: draft.openBookmarksInNewTab,
+        feed_search_url_template: normalizedSearchTemplate,
+        feed_content_scale: normalizeContentScale(draft.feedContentScale),
+        note_content_scale: normalizeContentScale(draft.noteContentScale),
+      }),
+      updated_at: updatedAt,
     }),
-    updated_at: Date.now(),
-  })
+    saveWidgetSettings({
+      rail_enabled: draft.widgetRailEnabled === true,
+      rail_position: draft.widgetRailPosition === 'bottom' ? 'bottom' : 'top',
+      rail_align: draft.widgetRailAlign === 'center' || draft.widgetRailAlign === 'right' ? draft.widgetRailAlign : 'left',
+      weather: {
+        enabled: draft.weatherEnabled === true,
+        provider: 'open_meteo',
+        units: draft.weatherUnits === 'imperial' ? 'imperial' : 'metric',
+        refresh_interval_minutes: [10, 15, 30, 60, 120, 360].includes(draft.weatherRefreshIntervalMinutes)
+          ? draft.weatherRefreshIntervalMinutes
+          : 30,
+        display_label: draft.weatherDisplayLabel.trim() || null,
+        location: draft.weatherLocation,
+      },
+    }),
+    setWeatherWidgetApiKey(draft.weatherApiKey.trim() || null),
+  ])
+  localWeatherApiKey.value = draft.weatherApiKey.trim()
+  hasUnsavedSettingsChanges.value = false
   closeSettingsPanel()
 }
 
@@ -1111,6 +1443,8 @@ async function handleSaveSettings(draft: AppearanceDraftInput) {
       :pages="pages"
       :active-page="activePage"
       :capture-count="captureInboxItems.length"
+      :export-pending="exportPending"
+      :export-reminder-label="exportReasonsSummary"
       :search-open="searchOpen"
       :search-query="searchQuery"
       @navigate="navigateTo"
@@ -1118,8 +1452,7 @@ async function handleSaveSettings(draft: AppearanceDraftInput) {
       @edit-page="openEditPage"
       @add-module="openAddModule"
       @move-page="movePage"
-      @export-data="handleExport"
-      @import-data="triggerImport"
+      @open-data-exchange="openDataExchange"
       @cleanup-data="handleCleanup"
       @open-settings="openSettingsPanel"
       @open-assets="isAssetBrowserOpen = true"
@@ -1130,9 +1463,18 @@ async function handleSaveSettings(draft: AppearanceDraftInput) {
       @search-focus="handleSearchFocus"
     />
 
+    <DataExchangeModal
+      :show="isDataExchangeOpen"
+      @close="isDataExchangeOpen = false"
+      @download-export="handleExport"
+      @import-local-file="triggerImport"
+    />
+
     <!-- Hidden import file picker -->
     <input
       ref="importInput"
+      id="workspace-import-file"
+      name="workspace_import_file"
       type="file"
       accept="application/json,.json"
       class="hidden"
@@ -1140,18 +1482,16 @@ async function handleSaveSettings(draft: AppearanceDraftInput) {
       @change="handleImportFile"
     />
 
-    <OpenNotesHost />
-
-    <!-- Toast-style status line for backup operations -->
+    <!-- Toast-style status notification for backup operations -->
     <div
       v-if="backupStatus"
-      class="st-status-bar absolute left-0 right-0 top-10 z-40 px-2 py-2 text-[10px] uppercase tracking-wider bg-black/85 text-white/90 border-b border-white/10 flex items-center justify-between"
+      class="st-status-bar absolute left-1/2 top-[55px] z-40 w-[300px] max-w-[calc(100%-1rem)] -translate-x-1/2 overflow-auto"
       role="status"
     >
-      <span class="truncate">{{ backupStatus }}</span>
+      <span class="st-status-bar-message">{{ backupStatus }}</span>
       <button
-        @click="backupStatus = null"
-        class="ml-2 text-white/70 hover:text-white"
+        @click="clearBackupStatus"
+        class="st-status-bar-dismiss"
         aria-label="Dismiss"
       >✕</button>
     </div>
@@ -1271,8 +1611,7 @@ async function handleSaveSettings(draft: AppearanceDraftInput) {
     ></div>
 
     <!-- Main content area -->
-    <main class="flex-1 min-h-0 overflow-y-auto">
-
+    <main class="st-main-content flex flex-1 min-h-0 flex-col overflow-y-auto">
       <!-- ① Boot / loading skeleton -->
       <div
         v-if="loading"
@@ -1290,16 +1629,30 @@ async function handleSaveSettings(draft: AppearanceDraftInput) {
         description="Add your first page to get started. Pages, modules, and tabs will appear here."
       >
         <template #action>
-          <button
-            @click="openAddPage"
-            class="
-              px-2 py-1 text-[11px] font-normal
-              bg-white/10 hover:bg-white/15 text-white border border-white/10
-              transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40
-            "
-          >
-            + New Page
-          </button>
+          <div class="flex flex-wrap items-center justify-center gap-2">
+            <button
+              @click="openAddPage"
+              class="
+                px-2 py-1 text-[11px] font-normal
+                bg-white/10 hover:bg-white/15 text-white border border-white/10
+                transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40
+              "
+            >
+              + New Page
+            </button>
+            <button
+              @click="loadExampleWorkspace"
+              :disabled="isLoadingExampleWorkspace"
+              class="
+                px-2 py-1 text-[11px] font-normal
+                bg-white/10 hover:bg-white/15 text-white border border-white/10
+                transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40
+                disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-white/10
+              "
+            >
+              {{ isLoadingExampleWorkspace ? 'Loading…' : 'Quick Start' }}
+            </button>
+          </div>
         </template>
       </EmptyState>
 
@@ -1308,54 +1661,94 @@ async function handleSaveSettings(draft: AppearanceDraftInput) {
       <Transition name="st-page-fade" mode="out-in" appear>
       <div
         :key="activePage.id"
-        class="st-page-panel min-h-full w-full mx-auto flex flex-col justify-center overflow-hidden p-2"
-        :style="pageContainerStyle"
+        class="st-page-panel w-full mx-auto flex flex-col justify-[safe_center] px-2"
+        :class="{ 'st-page-panel-mobile-spaced': showMobilePageSpacing }"
+        :style="pagePanelStyle"
       >
-        <!-- Modules Grid -->
-        <div v-if="modulesLoading" class="st-modules-grid grid justify-center gap-4" :style="modulesGridStyle">
-          <div v-for="i in 3" :key="i" class="h-40 bg-black/40 border border-white/10 animate-pulse"></div>
-        </div>
+        <div
+          v-if="widgetRailSpacerTop > 0"
+          class="st-widget-rail-spacer st-widget-rail-spacer-top"
+          :style="{ height: `${widgetRailSpacerTop}px` }"
+          aria-hidden="true"
+        ></div>
 
-        <div v-else-if="modules.length" class="st-modules-grid grid justify-center gap-4" :style="modulesGridStyle">
-          <ModuleCard
-            v-for="(module, idx) in modules"
-            :key="module.id"
-            v-bind="moduleDnd.bindFor(idx)"
-            :class="moduleGridClass(module)"
-            :module="module"
-            :active-collection-ids="hashState.collectionIds"
-            :is-focused="focusedModuleId === module.id"
-            :is-expanded="expandedFeedState?.id === module.id"
-            :expanded-width="getModuleExpandedWidth(module)"
-            :is-dragging="moduleDnd.draggingIndex.value === idx"
-            :is-drag-over="moduleDnd.dragOverIndex.value === idx"
-            :feed-search-url-template="effectiveAppearance.feedSearchUrlTemplate"
-            :search-highlight="searchHighlight"
-            @edit="editingModule = $event; isModuleModalOpen = true"
-            @focus="focusModule"
-            @set-expand-width="setFeedModuleExpandWidth"
+        <div
+          v-if="showWidgetRailTop"
+          class="st-widget-rail-flow st-widget-rail-flow-top"
+        >
+          <WidgetRail
+            :settings="effectiveWidgetSettings"
+            :max-width="widgetRailMaxWidth"
+            @configure="openSettingsPanel('widgets')"
           />
         </div>
 
-        <EmptyState
-          v-else
-          title="No modules on this page"
-          description="Tabs, Notes, and Feeds modules will appear here. Add your first module to get started."
-          icon="🧩"
+        <div class="st-modules-stage" :class="{ 'st-modules-stage-mobile-spaced': showMobilePageSpacing }">
+          <!-- Modules Grid -->
+          <div v-if="modulesLoading" class="st-modules-grid grid w-full justify-center gap-4" :style="modulesGridStyle">
+            <div v-for="i in 3" :key="i" class="h-40 bg-black/40 border border-white/10 animate-pulse"></div>
+          </div>
+
+          <div v-else-if="modules.length" class="st-modules-grid grid w-full justify-center gap-4" :style="modulesGridStyle">
+            <ModuleCard
+              v-for="(module, idx) in modules"
+              :key="module.id"
+              v-bind="moduleDnd.bindFor(idx)"
+              :style="getModuleGridStyle(module)"
+              :module="module"
+              :active-collection-ids="hashState.collectionIds"
+              :is-focused="focusedModuleId === module.id"
+              :is-expanded="expandedFeedState?.id === module.id"
+              :expanded-width="getModuleExpandedWidth(module)"
+              :is-dragging="moduleDnd.draggingIndex.value === idx"
+              :is-drag-over="moduleDnd.dragOverIndex.value === idx"
+              :feed-search-url-template="effectiveAppearance.feedSearchUrlTemplate"
+              :search-highlight="searchHighlight"
+              @edit="editingModule = $event; isModuleModalOpen = true"
+              @focus="focusModule"
+              @set-expand-width="setFeedModuleExpandWidth"
+            />
+          </div>
+
+          <EmptyState
+            v-else
+            title="No modules on this page"
+            description="Tabs, Notes, and Feeds modules will appear here. Add your first module to get started."
+            icon="🧩"
+          >
+            <template #action>
+               <button
+                @click="openAddModule"
+                class="
+                  px-2 py-1 text-[11px] font-normal
+                  bg-white/10 hover:bg-white/15 text-white border border-white/10
+                  transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40
+                "
+              >
+                + Add Module
+              </button>
+            </template>
+          </EmptyState>
+        </div>
+
+        <div
+          v-if="widgetRailSpacerBottom > 0"
+          class="st-widget-rail-spacer st-widget-rail-spacer-bottom"
+          :style="{ height: `${widgetRailSpacerBottom}px` }"
+          aria-hidden="true"
+        ></div>
+
+        <div
+          v-if="showWidgetRailBottom"
+          class="st-widget-rail-flow st-widget-rail-flow-bottom flex justify-between items-center"
         >
-          <template #action>
-             <button
-              @click="openAddModule"
-              class="
-                px-2 py-1 text-[11px] font-normal
-                bg-white/10 hover:bg-white/15 text-white border border-white/10
-                transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40
-              "
-            >
-              + Add Module
-            </button>
-          </template>
-        </EmptyState>
+          <WidgetRail
+            :settings="effectiveWidgetSettings"
+            :max-width="widgetRailMaxWidth"
+            @configure="openSettingsPanel('widgets')"
+          />
+
+        </div>
       </div>
       </Transition>
       </div>
@@ -1370,7 +1763,7 @@ async function handleSaveSettings(draft: AppearanceDraftInput) {
     >
       <PageForm
         :page="editingPage"
-        :default-max-width="editingPage ? null : (activePageConfig.maxWidth ?? null)"
+        :default-max-width="editingPage ? null : (activePage?.id ? (activePageConfig.maxWidth ?? null) : 1500)"
         @save="savePage"
         @delete="deletePage"
         @cancel="isPageModalOpen = false"
@@ -1388,6 +1781,8 @@ async function handleSaveSettings(draft: AppearanceDraftInput) {
           Paste this URL into a new tab to restore the current page and active tabs.
         </p>
         <input
+          id="copy-url-input"
+          name="copy_url"
           readonly
           class="
             w-full px-2 py-1.5 text-[11px] font-mono text-white/90
@@ -1431,29 +1826,47 @@ async function handleSaveSettings(draft: AppearanceDraftInput) {
       :title="editingModule ? 'Edit Module' : 'New Module'"
       @close="isModuleModalOpen = false"
     >
+      <template #header-meta>
+        <span class="uppercase tracking-wider mr-1">Type</span>
+        <span class="st-text-bold">{{ moduleTypeLabels[moduleFormType] }}</span>
+      </template>
       <ModuleForm
         v-if="activePage"
         :module="editingModule"
         :page-id="activePage.id!"
+        :default-column-span="editingModule ? undefined : defaultNewModuleColumnSpan"
         @save="saveModule"
         @delete="deleteModule"
         @cancel="isModuleModalOpen = false"
+        @type-change="moduleFormType = $event"
       />
     </Modal>
 
     <SidePanel
       :show="isSettingsModalOpen"
       title="Settings"
+      :lock-backdrop-close="hasUnsavedSettingsChanges"
       @close="closeSettingsPanel"
     >
       <AppSettingsForm
-        :background-asset-id="effectiveAppearance.backgroundAssetId"
-        :background-theme="effectiveAppearance.backgroundTheme"
-        :background-preset="effectiveAppearance.backgroundPreset"
-        :open-bookmarks-in-new-tab="effectiveAppearance.openBookmarksInNewTab"
-        :feed-search-url-template="effectiveAppearance.feedSearchUrlTemplate"
-        :feed-content-scale="effectiveAppearance.feedContentScale"
-        :note-content-scale="effectiveAppearance.noteContentScale"
+        :background-asset-id="appSettingsState.backgroundAssetId"
+        :background-theme="appSettingsState.backgroundTheme"
+        :background-preset="appSettingsState.backgroundPreset"
+        :open-bookmarks-in-new-tab="appSettingsState.openBookmarksInNewTab"
+        :feed-search-url-template="appSettingsState.feedSearchUrlTemplate"
+        :feed-content-scale="appSettingsState.feedContentScale"
+        :note-content-scale="appSettingsState.noteContentScale"
+        :widget-rail-enabled="appSettingsState.widgetRailEnabled"
+        :widget-rail-position="appSettingsState.widgetRailPosition"
+        :widget-rail-align="appSettingsState.widgetRailAlign"
+        :weather-enabled="appSettingsState.weatherEnabled"
+        :weather-units="appSettingsState.weatherUnits"
+        :weather-refresh-interval-minutes="appSettingsState.weatherRefreshIntervalMinutes"
+        :weather-display-label="appSettingsState.weatherDisplayLabel"
+        :weather-location="appSettingsState.weatherLocation"
+        :weather-api-key="appSettingsState.weatherApiKey"
+        :open-widget-configurator="openWidgetConfiguratorInSettings"
+        @dirty-change="handleSettingsDirtyChange"
         @preview="handleSettingsPreview"
         @save="handleSaveSettings"
         @cancel="closeSettingsPanel"
@@ -1477,25 +1890,73 @@ async function handleSaveSettings(draft: AppearanceDraftInput) {
       :pages="pages"
       :modules="allModules"
       :collections="allCollections"
+      :notes="allNotes"
       @close="isCaptureInboxOpen = false"
       @save="saveCaptureInboxItem"
       @discard="discardCaptureInboxItem"
     />
+
+    <OpenNotesHost />
   </div>
 </template>
 
 <style scoped>
+.st-main-content {
+  position: relative;
+}
+
+.st-widget-rail-flow {
+  position: relative;
+  z-index: 1;
+}
+
+.st-widget-rail-spacer {
+  flex: 0 0 auto;
+}
+
+.st-widget-rail-spacer-top {
+  width: 100%;
+}
+
+.st-widget-rail-spacer-bottom {
+  width: 100%;
+}
+
 .st-page-stage {
   position: relative;
-  min-height: 100%;
-  height: 100%;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: auto;
+  max-width: 96%;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .st-page-panel {
   position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.st-page-panel-mobile-spaced {
+  padding-top: 2rem;
+}
+
+.st-modules-stage {
+  height: calc(100% + var(--st-widget-stage-offset, 0px));
+  display: flex;
+  align-items: safe center;
+  width: 100%;
+}
+
+.st-modules-stage-mobile-spaced {
+  padding-bottom: 2rem;
 }
 
 @media (max-width: 740px) {
+  .st-modules-stage {
+    height: unset;
+  }
   .st-modules-grid {
     grid-template-columns: minmax(0, 1fr) !important;
     justify-content: stretch !important;

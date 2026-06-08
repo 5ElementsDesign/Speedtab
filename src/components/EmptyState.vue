@@ -8,7 +8,7 @@ defineProps<{
 
 <template>
   <div
-    class="st-empty-state flex flex-col items-center justify-center h-full select-none text-center px-6"
+    class="st-empty-state flex w-full flex-col items-center justify-center h-full select-none text-center px-6"
   >
     <div class="st-empty-state-shell px-6 py-4 rounded-sm shadow-2xl flex flex-col items-center">
     <!-- Icon bubble -->

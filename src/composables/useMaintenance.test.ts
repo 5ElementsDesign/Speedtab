@@ -293,4 +293,44 @@ describe('cleanupOrphans', () => {
     expect(report.removedAssets).toBe(0)
     expect(await db.assets.get(noteImageAssetId)).toBeTruthy()
   })
+
+  it('preserves favicon assets referenced from links notes', async () => {
+    const { collectionId } = await seedPageTree()
+    const faviconAssetId = await db.assets.add({
+      kind: 'favicon',
+      checksum: 'favicon-koofr',
+      blob: new Blob(['ico'], { type: 'image/png' }),
+      width: 32,
+      height: 32,
+      meta_json: JSON.stringify({
+        hostnames: ['app.koofr.net', 'koofr.net'],
+        fetched_at: Date.now(),
+      }),
+    }) as number
+
+    await db.notes.add(withMeta({
+      collection_id: collectionId,
+      title: 'Useful Links',
+      type: 'links',
+      content: [
+        'Speedtab Project',
+        'https://5elementsdesign.github.io/Speedtab/',
+        '',
+        '[hr]',
+        '',
+        'https://app.koofr.net/app/',
+        'https://open-meteo.com/',
+      ].join('\n'),
+      style_token: null,
+      sort_order: 6,
+      meta_json: null,
+    }))
+
+    const candidates = await getCleanupCandidates(db)
+    expect(candidates.unusedAssets.some((asset) => asset.id === faviconAssetId)).toBe(false)
+
+    const report = await cleanupOrphans(db)
+    expect(report.removedAssets).toBe(0)
+    expect(await db.assets.get(faviconAssetId)).toBeTruthy()
+  })
 })

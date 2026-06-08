@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 // ─── Drag-and-drop composable ─────────────────────────────────────────────────
 // A lightweight wrapper around the native HTML5 drag-and-drop API. We avoid
@@ -37,10 +37,32 @@ export interface DragSortBindings {
 export function useDragSort(options: DragSortOptions): DragSortBindings {
   const draggingIndex = ref<number | null>(null)
   const dragOverIndex = ref<number | null>(null)
+  const dragEnabled = ref(true)
+
+  function syncDragEnabled() {
+    if (typeof window === 'undefined') {
+      dragEnabled.value = true
+      return
+    }
+    dragEnabled.value = window.innerWidth >= 740 && !window.matchMedia('(pointer: coarse)').matches
+    if (!dragEnabled.value) {
+      draggingIndex.value = null
+      dragOverIndex.value = null
+    }
+  }
+
+  onMounted(() => {
+    syncDragEnabled()
+    window.addEventListener('resize', syncDragEnabled)
+  })
+
+  onUnmounted(() => {
+    window.removeEventListener('resize', syncDragEnabled)
+  })
 
   function bindFor(index: number): Record<string, unknown> {
     return {
-      draggable:        true,
+      draggable:        dragEnabled.value,
       'data-drag-index': index,
       'data-drag-over': dragOverIndex.value === index ? 'true' : undefined,
       'data-dragging':  draggingIndex.value === index ? 'true' : undefined,
@@ -53,6 +75,7 @@ export function useDragSort(options: DragSortOptions): DragSortBindings {
       // this element as a drop target.
 
       onDragstart: (e: DragEvent) => {
+        if (!dragEnabled.value) return
         e.stopPropagation()
         draggingIndex.value = index
         // Required for Firefox to fire subsequent drag events
@@ -62,6 +85,7 @@ export function useDragSort(options: DragSortOptions): DragSortBindings {
       },
 
       onDragenter: (e: DragEvent) => {
+        if (!dragEnabled.value) return
         if (draggingIndex.value === null) return
         e.preventDefault()
         e.stopPropagation()
@@ -69,6 +93,7 @@ export function useDragSort(options: DragSortOptions): DragSortBindings {
       },
 
       onDragover: (e: DragEvent) => {
+        if (!dragEnabled.value) return
         // Calling preventDefault on dragover is what permits the drop event
         if (draggingIndex.value === null) return
         e.preventDefault()
@@ -77,6 +102,7 @@ export function useDragSort(options: DragSortOptions): DragSortBindings {
       },
 
       onDrop: async (e: DragEvent) => {
+        if (!dragEnabled.value) return
         if (draggingIndex.value === null) return
         e.preventDefault()
         e.stopPropagation()
@@ -89,6 +115,7 @@ export function useDragSort(options: DragSortOptions): DragSortBindings {
       },
 
       onDragend: () => {
+        if (!dragEnabled.value) return
         draggingIndex.value = null
         dragOverIndex.value = null
       },

@@ -2,24 +2,18 @@
 import { useFavicon } from '@/composables/useFavicon';
 import { sanitizeHtml } from '@/composables/useSanitize';
 import type { FeedItem } from '@/types/db';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 
 const props = defineProps<{
   item: FeedItem
   sourceTitle: string
   searchUrlTemplate?: string
   isNewlyFetched?: boolean
-}>()
-
-const emit = defineEmits<{
-  archive:    [item: FeedItem]
-  'mark-read': [item: FeedItem]
+  expanded?: boolean
+  showYoutubeDescription?: boolean
 }>()
 
 const { getFaviconUrl } = useFavicon()
-
-const expanded = ref(false)
-const showYoutubeDescription = ref(false)
 
 const formattedDate = computed(() => {
   if (!props.item.published_at) return ''
@@ -112,26 +106,18 @@ const googleHeadlineUrl = computed(() => {
     : `${template}${template.includes('?') ? '&' : '?'}q=${query}`
 })
 
-function toggleExpanded() {
-  expanded.value = !expanded.value
-  if (!expanded.value) {
-    showYoutubeDescription.value = false
-  }
-  if (expanded.value && props.item.read_at == null) {
-    emit('mark-read', props.item)
-  }
-}
 </script>
 
 <template>
   <article
     class="st-module-feed-item w-full min-w-0 border-b"
+    :data-feed-item-id="item.id"
     :data-read="item.read_at != null ? 'true' : 'false'"
     :data-newly-fetched="props.isNewlyFetched ? 'true' : 'false'"
   >
     <div
       class="st-module-feed-item-header group w-full min-w-0 px-1 py-1 transition-colors"
-      :data-expanded="expanded ? 'true' : 'false'"
+      :data-expanded="props.expanded ? 'true' : 'false'"
     >
       <div
         class="st-module-feed-item-icon shrink-0 w-5 h-5 rounded-sm border flex items-center justify-center"
@@ -140,7 +126,7 @@ function toggleExpanded() {
         <img
           v-if="faviconUrl"
           :src="faviconUrl"
-          :alt="displaySource"
+          alt=""
           class="w-full h-full bg-white object-contain"
           draggable="false"
         />
@@ -148,14 +134,14 @@ function toggleExpanded() {
 
       <button
         type="button"
-        @click="toggleExpanded"
+        data-click="toggleFeedItem"
         class="st-module-feed-item-toggle min-w-0 w-full py-2 text-left"
-        :aria-expanded="expanded"
+        :aria-expanded="props.expanded"
         :title="`${displaySource} · ${item.title}`"
       >
         <span
           class="st-module-feed-item-title block min-w-0 text-[11px] truncate leading-none transition-colors"
-          :class="expanded ? 'opacity-0 select-none' : ''"
+          :class="props.expanded ? 'opacity-0 select-none' : ''"
           :title="item.title"
           aria-hidden="true"
         >
@@ -177,7 +163,7 @@ function toggleExpanded() {
 
       <button
         type="button"
-        @click.stop="emit('archive', item)"
+        data-click="archiveFeedItem"
         class="st-module-feed-item-save shrink-0 text-[9px] transition-colors px-1.5 py-0.5 rounded-sm border"
         title="Archive this item"
         aria-label="Archive this item"
@@ -187,7 +173,7 @@ function toggleExpanded() {
     </div>
 
     <div
-      v-if="expanded"
+      v-if="props.expanded"
       class="st-module-feed-item-body border-t"
       :class="youtubePayload ? 'p-0 space-y-0' : 'px-4 py-4 space-y-3'"
     >
@@ -234,14 +220,14 @@ function toggleExpanded() {
           <button
             v-if="youtubeDescriptionHtml"
             type="button"
-            @click="showYoutubeDescription = !showYoutubeDescription"
+            data-click="toggleFeedItemDescription"
             class="st-module-feed-item-action px-2 py-1 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
           >
-            {{ showYoutubeDescription ? 'Hide Description' : 'Description' }}
+            {{ props.showYoutubeDescription ? 'Hide Description' : 'Description' }}
           </button>
           <button
             type="button"
-            @click="emit('archive', item)"
+            data-click="archiveFeedItem"
             class="st-module-feed-item-action px-2 py-1 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
           >
             Archive
@@ -257,7 +243,7 @@ function toggleExpanded() {
         </div>
 
         <div
-          v-if="showYoutubeDescription && youtubeDescriptionHtml"
+          v-if="props.showYoutubeDescription && youtubeDescriptionHtml"
           class="st-module-feed-item-youtube-description p-3 border-t text-[12px] leading-snug"
           v-html="youtubeDescriptionHtml"
         />
@@ -303,7 +289,7 @@ function toggleExpanded() {
         </a>
         <button
           type="button"
-          @click="emit('archive', item)"
+          data-click="archiveFeedItem"
           class="st-module-feed-item-action px-2 py-1 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
         >
           Archive
@@ -379,10 +365,10 @@ function toggleExpanded() {
   padding: 0 3px;
   border-radius: 2px;
 }
-</style>
 
 .st-module-feed-item-youtube-video {
   width: 100%;
   aspect-ratio: 4 / 3;
   max-height: 360px;
 }
+</style>

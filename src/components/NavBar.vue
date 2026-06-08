@@ -10,6 +10,8 @@ interface Props {
   pages:      Page[]
   activePage: Page | null
   captureCount?: number
+  exportPending?: boolean
+  exportReminderLabel?: string | null
   searchOpen?: boolean
   searchQuery?: string
 }
@@ -23,8 +25,7 @@ const emit = defineEmits<{
   addModule:    []
   /** Drag-and-drop: fromIndex / toIndex within the *full* page list. */
   movePage:     [fromIndex: number, toIndex: number]
-  exportData:   []
-  importData:   []
+  openDataExchange: []
   cleanupData:  []
   openSettings: []
   openAssets:   []
@@ -107,7 +108,7 @@ function handleSearchBlur() {
         @click="emit('navigate', page)"
         @contextmenu.prevent="emit('editPage', page)"
         class="
-          flex items-center gap-1.5 px-3 min-h-[28px]
+          flex items-center gap-1.5 px-3 min-h-[32px]
           text-[11px] font-normal whitespace-nowrap transition-colors cursor-grab active:cursor-grabbing
           border border-transparent
           focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40
@@ -126,7 +127,7 @@ function handleSearchBlur() {
         :title="page.title + ' (Right click to edit · drag to reorder)'"
       >
         <span v-if="page.icon" class="shrink-0">{{ page.icon }}</span>
-        {{ page.title }}
+        <span :class="page.icon && activePage?.id !== page.id ? 'hidden sm:inline' : 'inline'">{{ page.title }}</span>
       </button>
 
       <Dropdown
@@ -186,6 +187,8 @@ function handleSearchBlur() {
       >
         <input
           ref="searchInput"
+          id="workspace-search"
+          name="workspace_search"
           :value="searchQuery || ''"
           type="search"
           placeholder="Search…"
@@ -204,7 +207,7 @@ function handleSearchBlur() {
       label="Page actions"
       title="Page actions"
       align="right"
-      trigger-class="px-3 min-h-[28px] text-[10px] uppercase tracking-wider text-[#a0a0a0] hover:text-white hover:bg-white/5 shrink-0 flex items-center"
+      trigger-class="px-3 min-h-[28px] text-[10px] leading-normal uppercase tracking-wider text-[#a0a0a0] hover:text-white hover:bg-white/5 shrink-0 flex items-center"
     >
       <template #trigger>Page</template>
 
@@ -287,18 +290,17 @@ function handleSearchBlur() {
           <button
             type="button"
             role="menuitem"
-            @click="emit('exportData')"
-            class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10"
+            @click="emit('openDataExchange')"
+            class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10 flex items-center justify-between gap-3"
           >
-            Export
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            @click="emit('importData')"
-            class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10"
-          >
-            Import
+            <span>Data Exchange</span>
+            <span
+              v-if="exportPending"
+              class="rounded-sm bg-amber-400/20 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-amber-200"
+              :title="exportReminderLabel ? `Local export needed: ${exportReminderLabel}` : 'Local export needed'"
+            >
+              Local Export
+            </span>
           </button>
         </div>
         <hr class="my-1 border-0 border-t border-white/10" />

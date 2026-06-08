@@ -1,0 +1,22 @@
+Title: Code Snippets
+Type: code
+Color: info
+Language: css
+
+/* Theme token example */
+:root {
+  --st-theme-text: rgb(255 255 255 / 0.92);
+  --st-theme-module-bg: rgb(0 0 0 / 0.58);
+  --st-widget-bg: var(--st-theme-module-bg);
+}
+
+/* Widget token example */
+.st-widget-card {
+  background: var(--st-widget-bg);
+  color: var(--st-widget-text);
+}
+
+/* Grid example */
+.st-modules-grid {
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+}

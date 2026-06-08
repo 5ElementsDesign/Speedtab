@@ -2,6 +2,21 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.2.0]
+
+### Added
+- Remote sync through a dedicated `Data Exchange` flow, including manual push, pull, verify, compare, and repair actions.
+- WebDAV remote provider support for syncing Speedtab workspaces across Chromium browsers and devices.
+- Local export and remote sync status panels that clearly separate portable export state from remote freshness.
+- Weather widget rail with top or bottom placement, manual refresh, location search, unit selection, and compact live conditions.
+- Widget configuration mode in Settings for managing optional rail-based widgets without mixing them into normal page settings.
+- Move or copy tab content between collections, including destination selection across page, module, and tab.
+- Selectable transfer list for tab-content moves and copies, with per-item checkboxes plus `Select All` and `Clear All`.
+- Custom bookmark favicons with built-in test, asset picking, upload, and clear flows.
+- Per-module width selection with `Auto`, multi-column spans, and full-width layout support inside the page grid.
+- Per-module minimum height control for stabilizing module rows and shaping denser dashboard layouts.
+- Quick Start example workspace with a styled starter layout, widget showcase, encrypted note demo, and in-app Help notes.
+
 ## [1.1.0]
 
 ### Added

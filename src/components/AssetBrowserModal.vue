@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { remapNoteImageTokens } from '@/composables/useNoteImages'
 import { refreshStaleFavicons } from '@/composables/useFavicon'
+import { markExportDirty } from '@/composables/useExportState'
+import { getFaviconHostnameCandidatesForUrl, parseFaviconMeta } from '@/composables/useFavicon'
 import { useLiveQuery } from '@/composables/useLiveQuery'
+import { extractLinkNoteUrls } from '@/composables/useNoteLinks'
+import { remapNoteImageTokens } from '@/composables/useNoteImages'
 import { db, makeUpdatedAtPatch } from '@/db/db'
-import type { AppSetting, Asset, Note, Page, Tab } from '@/types/db'
+import type { AppSetting, Asset, FeedItem, FeedSource, Note, Page, Tab } from '@/types/db'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import Modal from './Modal.vue'
 
@@ -19,11 +22,14 @@ const { data: assets } = useLiveQuery(() => db.assets.toArray(), [] as Asset[])
 const { data: tabs } = useLiveQuery(() => db.tabs.toArray(), [] as Tab[])
 const { data: notes } = useLiveQuery(() => db.notes.toArray(), [] as Note[])
 const { data: pages } = useLiveQuery(() => db.pages.toArray(), [] as Page[])
+const { data: feedSources } = useLiveQuery(() => db.feed_sources.toArray(), [] as FeedSource[])
+const { data: feedItems } = useLiveQuery(() => db.feed_items.toArray(), [] as FeedItem[])
 const { data: appSettings } = useLiveQuery(() => db.app_settings.toArray(), [] as AppSetting[])
 
 const selectedAssetId = ref<number | null>(null)
 const deleting = ref(false)
 const refreshingFavicons = ref(false)
+const refreshFaviconStatus = ref<string | null>(null)
 
 const orderedKinds: Array<Asset['kind']> = ['background', 'preview', 'note_image', 'favicon']
 
@@ -108,8 +114,15 @@ function getReferenceSummary(assetId: number) {
     backgrounds: 0,
     bookmarkFavicons: 0,
     bookmarkPreviews: 0,
+    feedFavicons: 0,
+    noteLinkFavicons: 0,
     noteImages: 0,
   }
+
+  const selected = assets.value.find((asset) => asset.id === assetId) ?? null
+  const faviconHosts = selected?.kind === 'favicon'
+    ? new Set(parseFaviconMeta(selected.meta_json)?.hostnames ?? [])
+    : null
 
   for (const page of pages.value) {
     if (!page.config_json) continue
@@ -132,8 +145,41 @@ function getReferenceSummary(assetId: number) {
   }
 
   for (const tab of tabs.value) {
-    if (tab.favicon_asset_id === assetId) counts.bookmarkFavicons += 1
+    if (tab.favicon_asset_id === assetId) {
+      counts.bookmarkFavicons += 1
+    } else if (faviconHosts) {
+      const candidates = getFaviconHostnameCandidatesForUrl(tab.url)
+      if (candidates.some((candidate) => faviconHosts.has(candidate))) {
+        counts.bookmarkFavicons += 1
+      }
+    }
     if (tab.preview_asset_id === assetId) counts.bookmarkPreviews += 1
+  }
+
+  if (faviconHosts) {
+    for (const note of notes.value) {
+      if (note.type !== 'links') continue
+      for (const url of extractLinkNoteUrls(note.content)) {
+        const candidates = getFaviconHostnameCandidatesForUrl(url)
+        if (candidates.some((candidate) => faviconHosts.has(candidate))) {
+          counts.noteLinkFavicons += 1
+        }
+      }
+    }
+
+    for (const source of feedSources.value) {
+      const candidates = getFaviconHostnameCandidatesForUrl(source.site_url || source.feed_url)
+      if (candidates.some((candidate) => faviconHosts.has(candidate))) {
+        counts.feedFavicons += 1
+      }
+    }
+
+    for (const item of feedItems.value) {
+      const candidates = getFaviconHostnameCandidatesForUrl(item.url)
+      if (candidates.some((candidate) => faviconHosts.has(candidate))) {
+        counts.feedFavicons += 1
+      }
+    }
   }
 
   for (const note of notes.value) {
@@ -213,6 +259,7 @@ async function deleteSelectedAsset() {
     })
 
     selectedAssetId.value = null
+    await markExportDirty('assets:delete')
   } finally {
     deleting.value = false
   }
@@ -222,7 +269,11 @@ async function refreshFaviconAssets() {
   if (refreshingFavicons.value) return
   refreshingFavicons.value = true
   try {
-    await refreshStaleFavicons()
+    refreshFaviconStatus.value = null
+    const refreshed = await refreshStaleFavicons()
+    refreshFaviconStatus.value = refreshed > 0
+      ? `Refreshed ${refreshed} stale favicon${refreshed === 1 ? '' : 's'}.`
+      : 'No stale favicons needed refreshing.'
   } finally {
     refreshingFavicons.value = false
   }
@@ -264,7 +315,7 @@ onBeforeUnmount(revokePreviewUrls)
         Cached and uploaded images stored inside Speedtab. Click an item for details or delete it.
       </p>
 
-      <div class="max-h-[70vh] overflow-y-auto space-y-5 pr-1">
+      <div class="overflow-y-auto space-y-5 pr-1">
         <section
           v-for="group in groupedAssets"
           :key="group.kind"
@@ -282,11 +333,23 @@ onBeforeUnmount(revokePreviewUrls)
                 :disabled="refreshingFavicons"
                 class="px-2 py-1 text-[10px] text-white/75 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors disabled:opacity-50"
               >
-                {{ refreshingFavicons ? 'Refreshing…' : 'Refresh Assets' }}
+                {{ refreshingFavicons ? 'Refreshing…' : 'Refresh Stale Favicons' }}
               </button>
               <span class="text-[10px] text-white/45">{{ group.items.length }}</span>
             </div>
           </div>
+          <p
+            v-if="group.kind === 'favicon'"
+            class="text-[10px] text-white/45"
+          >
+            Icons older than 90 days are refreshed here. Deleted favicon references are updated automatically when needed.
+          </p>
+          <p
+            v-if="group.kind === 'favicon' && refreshFaviconStatus"
+            class="text-[10px] text-white/55"
+          >
+            {{ refreshFaviconStatus }}
+          </p>
 
           <div
             v-if="group.items.length"
@@ -315,7 +378,7 @@ onBeforeUnmount(revokePreviewUrls)
               </div>
               <span
                 v-if="group.kind !== 'favicon'"
-                class="absolute right-1.5 bottom-1.5 px-1.5 py-0.5 text-[10px] leading-none text-white/90 bg-black/70 border border-white/10 rounded-sm"
+                class="absolute px-1.5 py-0.5 text-[9px] leading-none text-white bg-black/65 border border-white/10 rounded-sm"
                 style="right: 0; bottom: 0; white-space: nowrap;"
               >
                 {{ formatBytes(asset.blob) }}
@@ -381,6 +444,8 @@ onBeforeUnmount(revokePreviewUrls)
             <div>Backgrounds: {{ getReferenceSummary(selectedAsset.id!).backgrounds }}</div>
             <div>Bookmark favicons: {{ getReferenceSummary(selectedAsset.id!).bookmarkFavicons }}</div>
             <div>Bookmark previews: {{ getReferenceSummary(selectedAsset.id!).bookmarkPreviews }}</div>
+            <div>Feed favicons: {{ getReferenceSummary(selectedAsset.id!).feedFavicons }}</div>
+            <div>Link note favicons: {{ getReferenceSummary(selectedAsset.id!).noteLinkFavicons }}</div>
             <div>Note images: {{ getReferenceSummary(selectedAsset.id!).noteImages }}</div>
           </div>
         </div>

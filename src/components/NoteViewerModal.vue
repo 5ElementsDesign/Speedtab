@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import type { OpenNoteWindow } from '@/composables/useOpenNotes'
 import { decryptNote, parseCryptPayload } from '@/composables/useCrypt'
+import { useFavicon } from '@/composables/useFavicon'
 import { highlightCode } from '@/composables/useHighlight'
+import { useLiveQuery } from '@/composables/useLiveQuery'
 import { renderNoteHtmlWithAssets } from '@/composables/useNoteImages'
-import type { Note } from '@/types/db'
+import type { OpenNoteWindow } from '@/composables/useOpenNotes'
+import { db } from '@/db/db'
+import type { AppSetting, Note } from '@/types/db'
 import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
 
 const props = defineProps<{
   note: Note
   windowState: OpenNoteWindow
+  previewMode?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -21,29 +25,34 @@ const emit = defineEmits<{
 }>()
 
 interface TokenStyle {
-  header: string
-  border: string
-  headerText: string
+  tokenClass: string
+  borderClass: string
 }
 
 const TOKEN_STYLE: Record<string, TokenStyle> = {
-  info:    { header: 'bg-sky-700', border: 'border-sky-700', headerText: 'text-white' },
-  success: { header: 'bg-emerald-700', border: 'border-emerald-700', headerText: 'text-white' },
-  warning: { header: 'bg-amber-600', border: 'border-amber-600', headerText: 'text-white' },
-  danger:  { header: 'bg-rose-700', border: 'border-rose-700', headerText: 'text-white' },
-  dark:    { header: 'bg-gray-800', border: 'border-gray-800', headerText: 'text-white' },
-  light:   { header: 'bg-gray-200', border: 'border-gray-200', headerText: 'text-gray-900' },
+  info:    { tokenClass: 'st-color-info', borderClass: 'st-color-info-border' },
+  success: { tokenClass: 'st-color-success', borderClass: 'st-color-success-border' },
+  warning: { tokenClass: 'st-color-warning', borderClass: 'st-color-warning-border' },
+  danger:  { tokenClass: 'st-color-danger', borderClass: 'st-color-danger-border' },
+  dark:    { tokenClass: 'st-color-dark', borderClass: 'st-color-dark-border' },
+  light:   { tokenClass: 'st-color-light', borderClass: 'st-color-light-border' },
 }
 
 const DEFAULT_STYLE: TokenStyle = {
-  header: 'bg-indigo-700',
-  border: 'border-indigo-700',
-  headerText: 'text-white',
+  tokenClass: 'st-color-default',
+  borderClass: 'st-color-default-border',
 }
+const { getFaviconUrl } = useFavicon()
+
+type LinkNoteEntry =
+  | { kind: 'divider'; key: string }
+  | { kind: 'text'; key: string; text: string }
+  | { kind: 'link'; key: string; text: string; url: string; faviconUrl: string | null }
 
 const tokenStyle = computed<TokenStyle>(() =>
   props.note.style_token ? (TOKEN_STYLE[props.note.style_token] ?? DEFAULT_STYLE) : DEFAULT_STYLE,
 )
+const noteTypeClass = computed(() => `st-module-notes-type-${props.note.type}`)
 
 const hasExplicitSize = computed(() => props.windowState.width !== null && props.windowState.height !== null)
 const windowStyle = computed(() => ({
@@ -54,22 +63,46 @@ const windowStyle = computed(() => ({
   zIndex: String(props.windowState.zIndex),
 }))
 
-const linkItems = computed(() => {
+const { data: appearanceSetting } = useLiveQuery(
+  () => db.app_settings.get('appearance'),
+  null as AppSetting | null,
+)
+
+const resolvedOpenInNewTab = computed<boolean>(() => {
+  if (!appearanceSetting.value?.value_json) return false
+  try {
+    const parsed = JSON.parse(appearanceSetting.value.value_json)
+    return parsed.open_bookmarks_in_new_tab === true
+  } catch {
+    return false
+  }
+})
+
+const linkItems = computed<LinkNoteEntry[]>(() => {
   if (props.note.type !== 'links') return []
   return props.note.content
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => {
+    .map((line, index) => {
+      if (line === '[hr]' || line.toLowerCase() === '<hr>') {
+        return { kind: 'divider', key: `divider:${index}` } satisfies LinkNoteEntry
+      }
       try {
         const url = new URL(line)
         if (url.protocol === 'http:' || url.protocol === 'https:') {
-          return { text: line, url: url.toString() }
+          return {
+            kind: 'link',
+            key: `link:${index}`,
+            text: line,
+            url: url.toString(),
+            faviconUrl: getFaviconUrl(url.toString()),
+          } satisfies LinkNoteEntry
         }
       } catch {
         // Plain text headings are valid inside links notes.
       }
-      return { text: line, url: null }
+      return { kind: 'text', key: `text:${index}`, text: line } satisfies LinkNoteEntry
     })
 })
 
@@ -87,7 +120,7 @@ const htmlSafe = ref('')
 let revokeHtmlAssets: (() => void) | null = null
 
 watch(
-  () => [props.note.type, props.note.content, langOf(props.note)] as const,
+  [() => props.note.type, () => props.note.content, () => langOf(props.note)],
   async ([type, content, language]) => {
     revokeHtmlAssets?.()
     revokeHtmlAssets = null
@@ -152,6 +185,11 @@ function lock() {
 let dragCleanup: (() => void) | null = null
 let resizeCleanup: (() => void) | null = null
 
+function isSmallDeviceViewport() {
+  if (typeof window === 'undefined') return false
+  return window.innerWidth < 740 || window.matchMedia('(pointer: coarse)').matches
+}
+
 function attachPointerLifecycle(
   onMove: (event: PointerEvent) => void,
   onEnd?: () => void,
@@ -172,6 +210,7 @@ function attachPointerLifecycle(
 }
 
 function startDrag(event: PointerEvent) {
+  if (isSmallDeviceViewport()) return
   if ((event.target as HTMLElement | null)?.closest('button, a, input, textarea')) return
   emit('focus')
   const startX = event.clientX
@@ -188,6 +227,7 @@ function startDrag(event: PointerEvent) {
 }
 
 function startResize(event: PointerEvent) {
+  if (isSmallDeviceViewport()) return
   event.preventDefault()
   event.stopPropagation()
   emit('focus')
@@ -223,32 +263,51 @@ onBeforeUnmount(() => {
 
 <template>
   <article
-    class="pointer-events-auto fixed overflow-hidden border-2 bg-surface-900 shadow-2xl"
+    class="st-note-window pointer-events-auto fixed flex flex-col overflow-hidden border-2 bg-surface-900 shadow-2xl"
     :class="[
-      tokenStyle.border,
-      hasExplicitSize ? 'max-w-[calc(100vw-24px)] max-h-[calc(100vh-24px)]' : 'max-w-[min(1900px,calc(100vw-24px))] max-h-[65vh]',
+      noteTypeClass,
+      tokenStyle.tokenClass,
+      tokenStyle.borderClass,
+      hasExplicitSize ? 'max-w-[calc(100vw-24px)] max-h-[calc(100vh-24px)]' : 'max-w-[min(800px,calc(100vw-24px))] max-h-[var(--st-note-window-max-height)]',
     ]"
     :style="windowStyle"
     @mousedown="emit('focus')"
   >
     <header
       class="flex items-center justify-between gap-2 px-3 py-2 select-none cursor-move"
-      :class="[tokenStyle.header, tokenStyle.headerText]"
       @pointerdown="startDrag"
     >
       <span class="min-w-0 truncate text-[13px] font-semibold leading-none">{{ note.title }}</span>
       <div class="flex items-center gap-2 text-[11px]">
-        <button type="button" class="hover:opacity-100 opacity-80 transition-opacity" @click.stop="emit('edit', note)">Edit</button>
-        <button type="button" class="hover:opacity-100 opacity-80 transition-opacity" @click.stop="emit('delete', note)">Delete</button>
-        <button type="button" class="hover:opacity-100 opacity-80 transition-opacity" @click.stop="emit('close')" aria-label="Close note">Close</button>
+        <button
+          v-if="!previewMode"
+          type="button"
+          class="hover:opacity-100 opacity-80 transition-opacity"
+          @click.stop="emit('edit', note)"
+        >Edit</button>
+        <button
+          v-if="!previewMode"
+          type="button"
+          class="hover:opacity-100 opacity-80 transition-opacity"
+          @click.stop="emit('delete', note)"
+        >Delete</button>
+        <button
+          type="button"
+          class="border border-current px-2 py-1 leading-none hover:opacity-100 opacity-70 transition-opacity"
+          @click.stop="emit('close')"
+          aria-label="Close note"
+        >
+          {{ previewMode ? 'Preview' : 'Close' }}
+        </button>
       </div>
     </header>
 
     <div
-      class="overflow-auto"
+      class="st-note-window-content-wrap min-h-0 flex-1"
       :class="[
-        note.type === 'code' ? 'p-0' : 'px-4 py-3',
-        hasExplicitSize ? 'h-[calc(100%-40px)]' : 'max-h-[calc(65vh-40px)]',
+        note.type === 'code' ? '' : 'overflow-auto',
+        note.type === 'code' || note.type === 'html' ? 'p-0' : 'px-4 py-3',
+        note.type === 'code' ? '' : hasExplicitSize ? '' : 'max-h-[calc(var(--st-note-window-max-height)-40px)]',
       ]"
       @mousedown="emit('focus')"
     >
@@ -259,25 +318,39 @@ onBeforeUnmount(() => {
 
       <pre
         v-else-if="note.type === 'code'"
-        class="st-note-content-scale hljs m-0 h-full overflow-auto rounded p-3 leading-snug"
+        class="st-note-content-scale hljs m-0 overflow-auto rounded p-3 leading-snug"
+        :class="hasExplicitSize ? 'h-full' : 'max-h-[calc(var(--st-note-window-max-height)-40px)]'"
       ><code v-html="codeHtml"></code></pre>
 
-      <ul v-else-if="note.type === 'links'" class="st-note-content-scale space-y-1">
-        <li v-for="(entry, index) in linkItems" :key="index">
+      <ul v-else-if="note.type === 'links'" class="st-note-content-scale st-note-link-list">
+        <li v-for="entry in linkItems" :key="entry.key">
+          <hr v-if="entry.kind === 'divider'" class="st-note-link-divider" />
           <a
-            v-if="entry.url"
+            v-else-if="entry.kind === 'link'"
             :href="entry.url"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="block truncate text-[13px] text-sky-400 hover:text-sky-300 hover:underline"
-          >{{ entry.text }}</a>
-          <span v-else class="block text-[12px] font-medium text-white/70">{{ entry.text }}</span>
+            :target="resolvedOpenInNewTab ? '_blank' : undefined"
+            :rel="resolvedOpenInNewTab ? 'noopener noreferrer' : undefined"
+            class="st-note-link-row"
+          >
+            <span class="st-note-link-icon">
+              <img
+                v-if="entry.faviconUrl"
+                :src="entry.faviconUrl"
+                alt=""
+                class="st-note-link-icon-image"
+                draggable="false"
+              />
+              <span v-else class="st-note-link-icon-fallback">↗</span>
+            </span>
+            <span class="st-note-link-label">{{ entry.text }}</span>
+          </a>
+          <span v-else class="st-note-link-heading">{{ entry.text }}</span>
         </li>
       </ul>
 
       <div
         v-else-if="note.type === 'html'"
-        class="st-note-content-scale prose-tight leading-snug text-gray-200"
+        class="st-note-content-scale st-note-html-content st-module-notes-type-html"
         v-html="htmlSafe"
       ></div>
 
@@ -326,11 +399,13 @@ onBeforeUnmount(() => {
 
     <button
       type="button"
-      class="absolute bottom-1 right-1 h-4 w-4 cursor-se-resize rounded-sm border border-white/10 bg-black/40 text-[0] opacity-70 hover:opacity-100"
+      class="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize bg-transparent text-white/40 hover:text-white"
       aria-label="Resize note"
       @pointerdown="startResize"
     >
-      resize
+      <svg viewBox="0 0 20 20" class="h-5 w-5 fill-current">
+        <path d="M13 20H20V13L13 20ZM8 20H10L20 10V8L8 20ZM3 20H5L20 5V3L3 20Z" />
+      </svg>
     </button>
   </article>
 </template>

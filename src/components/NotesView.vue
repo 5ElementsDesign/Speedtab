@@ -2,11 +2,12 @@
 import { registerAddContent } from '@/composables/useAddContent'
 import { TILE_W } from '@/composables/useAsset'
 import { useDragSort } from '@/composables/useDragSort'
+import { markExportDirty } from '@/composables/useExportState'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { useOpenNotes } from '@/composables/useOpenNotes'
 import { useReorder } from '@/composables/useReorder'
 import { db, isActiveRecord, makeCreateMetadata, makeUpdatedAtPatch } from '@/db/db'
-import type { Collection, Note, PortableInput } from '@/types/db'
+import type { Collection, Note, NoteType, PortableInput } from '@/types/db'
 import { computed, ref } from 'vue'
 import Modal from './Modal.vue'
 import NoteForm from './NoteForm.vue'
@@ -39,16 +40,26 @@ const gridStyle = computed<Record<string, string>>(() => {
   }
 })
 
-// ─── Floating note windows ────────────────────────────────────────────────────
+// ─── Viewer modal state ───────────────────────────────────────────────────────
 const { openNote, isNoteOpen } = useOpenNotes()
 
 // ─── CRUD modal state ─────────────────────────────────────────────────────────
 
 const isFormOpen  = ref(false)
 const editingNote = ref<Note | undefined>(undefined)
+const isPreviewMode = ref(false)
+const noteFormType = ref<NoteType>('text')
+const noteTypeLabels: Record<NoteType, string> = {
+  text: 'Text',
+  code: 'Code',
+  links: 'Links',
+  html: 'HTML',
+  crypt: 'Crypt',
+}
 
 function openAdd() {
   editingNote.value = undefined
+  noteFormType.value = 'text'
   isFormOpen.value  = true
 }
 
@@ -61,6 +72,7 @@ async function saveNote(data: PortableInput<Note>) {
       ...data,
       ...makeUpdatedAtPatch(now),
     })
+    await markExportDirty('notes:update')
   } else {
     const count     = await db.notes.where('collection_id').equals(data.collection_id).filter(isActiveRecord).count()
     data.sort_order = count
@@ -68,13 +80,17 @@ async function saveNote(data: PortableInput<Note>) {
       ...data,
       ...makeCreateMetadata(now),
     })
+    await markExportDirty('notes:create')
   }
   isFormOpen.value = false
+  isPreviewMode.value = false
 }
 
 async function deleteNoteById(id: number) {
   await db.notes.delete(id)
+  await markExportDirty('notes:delete')
   isFormOpen.value = false
+  isPreviewMode.value = false
 }
 </script>
 
@@ -102,10 +118,9 @@ async function deleteNoteById(id: number) {
       <button
         v-if="showAddTile !== false"
         @click="openAdd"
-        class="st-content-trigger-button border border-dashed border-white/20
+        class="st-content-trigger-button st-inline-add-content-trigger border
                flex items-center justify-center
-               text-white/40 hover:text-white hover:border-white/50
-               text-sm transition-colors shrink-0"
+               transition-colors shrink-0"
         title="Add note"
       >+</button>
     </div>
@@ -120,13 +135,19 @@ async function deleteNoteById(id: number) {
     </div>
 
     <!-- ─── CRUD form modal ───────────────────────────────────────────────── -->
-    <Modal :show="isFormOpen" :title="editingNote ? 'Edit Note' : 'New Note'" @close="isFormOpen = false">
+    <Modal :show="isFormOpen" :dock-right="isPreviewMode" :title="editingNote ? 'Edit Note' : 'New Note'" @close="isFormOpen = false; isPreviewMode = false">
+      <template #header-meta>
+        <span class="uppercase tracking-wider mr-1">Type</span>
+        <span class="st-text-bold">{{ noteTypeLabels[noteFormType] }}</span>
+      </template>
       <NoteForm
         :note="editingNote"
         :collection-id="collection.id!"
         @save="saveNote"
         @delete="deleteNoteById"
-        @cancel="isFormOpen = false"
+        @cancel="isFormOpen = false; isPreviewMode = false"
+        @preview-mode-change="isPreviewMode = $event"
+        @type-change="noteFormType = $event"
       />
     </Modal>
   </div>

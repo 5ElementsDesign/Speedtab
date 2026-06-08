@@ -2,7 +2,7 @@
 import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import type { Asset, PortableInput, Tab } from '@/types/db'
 import { TILE_W, TILE_H, storeOrGetAsset, canvasToWebpBlob, loadAssetObjectUrl } from '@/composables/useAsset'
-import { ensureFaviconAssetIdForUrl } from '@/composables/useFavicon'
+import { ensureFaviconAssetIdForUrl, getFaviconUrl } from '@/composables/useFavicon'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { db } from '@/db/db'
 
@@ -32,6 +32,8 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const FAVICON_SIZE = 48
+
 // ─── Form state ───────────────────────────────────────────────────────────────
 
 const form = ref({
@@ -50,6 +52,28 @@ const urlStatusMessage = computed(() => {
 const urlStatusClass = computed(() =>
   testError.value ? 'text-red-400' : testSuccess.value ? 'text-green-400' : 'text-white/40'
 )
+
+const faviconFileInput = ref<HTMLInputElement | null>(null)
+const selectedFaviconAssetId = ref<number | null>(props.tab?.favicon_asset_id ?? null)
+const selectedFaviconAssetUrl = ref<string | null>(null)
+const isFaviconPickerOpen = ref(false)
+const faviconPickerUrls = ref<Record<number, string>>({})
+const faviconPreviewUrl = computed(() => selectedFaviconAssetUrl.value || getFaviconUrl(form.value.url))
+const hasUnlockedFaviconPicker = ref(!!props.tab)
+
+function syncFormFromTab(tab: Tab | undefined) {
+  form.value = {
+    url: tab?.url ?? '',
+    title: tab?.title ?? '',
+  }
+  selectedPreviewAssetId.value = tab?.preview_asset_id ?? null
+  selectedFaviconAssetId.value = tab?.favicon_asset_id ?? null
+  lastTestedUrl.value = tab?.url ?? ''
+  hasUnlockedFaviconPicker.value = !!tab
+  testError.value = null
+  testSuccess.value = false
+  isFaviconPickerOpen.value = false
+}
 
 watch(() => form.value.url, () => {
   testError.value = null
@@ -115,12 +139,14 @@ async function testUrl() {
       throw new Error(response.error || 'Failed to reach URL')
     }
 
-    form.value.url = response.finalUrl || normalizedUrl
+    form.value.url = normalizedUrl
     if ((!form.value.title || !form.value.title.trim()) && response.title) {
       form.value.title = response.title
     }
+    selectedFaviconAssetId.value = await ensureFaviconAssetIdForUrl(normalizedUrl)
     testSuccess.value = true
-    lastTestedUrl.value = form.value.url
+    lastTestedUrl.value = normalizedUrl
+    hasUnlockedFaviconPicker.value = true
   } catch (err: unknown) {
     testError.value = err instanceof Error ? err.message : 'Failed to test URL'
   } finally {
@@ -149,6 +175,11 @@ const { data: reusableAssets } = useLiveQuery(
   [] as Asset[]
 )
 
+const { data: faviconAssets } = useLiveQuery(
+  () => db.assets.where('kind').equals('favicon').toArray(),
+  [] as Asset[]
+)
+
 const groupedReusableAssets = computed(() => ([
   { kind: 'preview', label: 'Bookmark Previews' },
   { kind: 'background', label: 'Backgrounds' },
@@ -157,6 +188,18 @@ const groupedReusableAssets = computed(() => ([
   ...group,
   items: reusableAssets.value.filter((asset) => asset.kind === group.kind),
 })))
+const hasPendingCrop = computed(() => !!imageDataUrl.value)
+const canSubmit = computed(() => !!form.value.url && !hasPendingCrop.value)
+const cropperScaleX = ref(1)
+const cropperScaleY = ref(1)
+
+watch(
+  () => props.tab,
+  (tab) => {
+    syncFormFromTab(tab)
+  },
+  { immediate: true },
+)
 
 async function loadSelectedPreviewAsset() {
   if (selectedPreviewAssetUrl.value) {
@@ -167,6 +210,15 @@ async function loadSelectedPreviewAsset() {
   selectedPreviewAssetUrl.value = await loadAssetObjectUrl(selectedPreviewAssetId.value)
 }
 
+async function loadSelectedFaviconAsset() {
+  if (selectedFaviconAssetUrl.value) {
+    URL.revokeObjectURL(selectedFaviconAssetUrl.value)
+    selectedFaviconAssetUrl.value = null
+  }
+  if (!selectedFaviconAssetId.value) return
+  selectedFaviconAssetUrl.value = await loadAssetObjectUrl(selectedFaviconAssetId.value)
+}
+
 function revokePickerPreviewUrls() {
   for (const url of Object.values(pickerPreviewUrls.value)) {
     URL.revokeObjectURL(url)
@@ -174,8 +226,17 @@ function revokePickerPreviewUrls() {
   pickerPreviewUrls.value = {}
 }
 
+function revokeFaviconPickerUrls() {
+  for (const url of Object.values(faviconPickerUrls.value)) {
+    URL.revokeObjectURL(url)
+  }
+  faviconPickerUrls.value = {}
+}
+
 function destroyCropper() {
   if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null }
+  cropperScaleX.value = 1
+  cropperScaleY.value = 1
 }
 
 // When imageDataUrl changes (file picked), wait for Vue to render the <img>
@@ -193,7 +254,7 @@ watch(imageDataUrl, async (url) => {
     movable:      true,
     zoomable:     true,
     rotatable:    false,
-    scalable:     false,
+    scalable:     true,
   })
 })
 
@@ -219,12 +280,32 @@ async function applyCrop() {
   if (!cropperInstance) return
   // Export cropped region resampled to exact tile pixels
   const canvas   = cropperInstance.getCroppedCanvas({ width: TILE_W, height: TILE_H })
-  const blob     = await canvasToWebpBlob(canvas)
+  const blob     = await canvasToWebpBlob(canvas)   // compact WebP preview at tile size
   croppedBlob    = blob
   if (croppedBlobUrl.value) URL.revokeObjectURL(croppedBlobUrl.value)
   croppedBlobUrl.value = URL.createObjectURL(blob)
   destroyCropper()
   imageDataUrl.value = null
+}
+
+function zoomCropper(delta: number) {
+  cropperInstance?.zoom(delta)
+}
+
+function moveCropper(offsetX: number, offsetY: number) {
+  cropperInstance?.move(offsetX, offsetY)
+}
+
+function flipCropperX() {
+  if (!cropperInstance) return
+  cropperScaleX.value = cropperScaleX.value * -1
+  cropperInstance.scaleX(cropperScaleX.value)
+}
+
+function flipCropperY() {
+  if (!cropperInstance) return
+  cropperScaleY.value = cropperScaleY.value * -1
+  cropperInstance.scaleY(cropperScaleY.value)
 }
 
 function clearImage() {
@@ -271,15 +352,92 @@ async function selectExistingAsset(asset: Asset) {
   void loadSelectedPreviewAsset()
 }
 
+function selectExistingFavicon(asset: Asset) {
+  if (selectedFaviconAssetUrl.value) {
+    URL.revokeObjectURL(selectedFaviconAssetUrl.value)
+    selectedFaviconAssetUrl.value = null
+  }
+  selectedFaviconAssetId.value = asset.id ?? null
+  isFaviconPickerOpen.value = false
+  void loadSelectedFaviconAsset()
+}
+
+async function normalizeFaviconBlob(blob: Blob): Promise<{ blob: Blob; width: number | null; height: number | null }> {
+  if (typeof createImageBitmap !== 'function') {
+    return { blob, width: null, height: null }
+  }
+
+  try {
+    const bitmap = await createImageBitmap(blob)
+    const { width, height } = bitmap
+    const scale = Math.min(1, FAVICON_SIZE / Math.max(width, height))
+    const targetWidth = Math.max(1, Math.round(width * scale))
+    const targetHeight = Math.max(1, Math.round(height * scale))
+
+    if (targetWidth === width && targetHeight === height) {
+      bitmap.close()
+      return { blob, width, height }
+    }
+
+    const canvas = document.createElement('canvas')
+    canvas.width = targetWidth
+    canvas.height = targetHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      bitmap.close()
+      return { blob, width, height }
+    }
+    ctx.drawImage(bitmap, 0, 0, targetWidth, targetHeight)
+    bitmap.close()
+
+    const normalizedBlob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((nextBlob) => resolve(nextBlob), 'image/png')
+    })
+
+    return {
+      blob: normalizedBlob ?? blob,
+      width: targetWidth,
+      height: targetHeight,
+    }
+  } catch {
+    return { blob, width: null, height: null }
+  }
+}
+
+async function onFaviconFileChange(event: Event) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const normalized = await normalizeFaviconBlob(file)
+  const assetId = await storeOrGetAsset(normalized.blob, 'favicon', normalized.width, normalized.height)
+  selectedFaviconAssetId.value = assetId
+  isFaviconPickerOpen.value = false
+  ;(event.target as HTMLInputElement).value = ''
+}
+
+function clearFavicon() {
+  if (selectedFaviconAssetUrl.value) {
+    URL.revokeObjectURL(selectedFaviconAssetUrl.value)
+    selectedFaviconAssetUrl.value = null
+  }
+  selectedFaviconAssetId.value = null
+  isFaviconPickerOpen.value = false
+}
+
 onBeforeUnmount(() => {
   destroyCropper()
   if (croppedBlobUrl.value) URL.revokeObjectURL(croppedBlobUrl.value)
   if (selectedPreviewAssetUrl.value) URL.revokeObjectURL(selectedPreviewAssetUrl.value)
+  if (selectedFaviconAssetUrl.value) URL.revokeObjectURL(selectedFaviconAssetUrl.value)
   revokePickerPreviewUrls()
+  revokeFaviconPickerUrls()
 })
 
 watch(selectedPreviewAssetId, () => {
   void loadSelectedPreviewAsset()
+}, { immediate: true })
+
+watch(selectedFaviconAssetId, () => {
+  void loadSelectedFaviconAsset()
 }, { immediate: true })
 
 watch(
@@ -296,16 +454,30 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => faviconAssets.value.map((asset) => asset.id).join('|'),
+  () => {
+    revokeFaviconPickerUrls()
+    const nextUrls: Record<number, string> = {}
+    for (const asset of faviconAssets.value) {
+      if (!asset.id) continue
+      nextUrls[asset.id] = URL.createObjectURL(asset.blob)
+    }
+    faviconPickerUrls.value = nextUrls
+  },
+  { immediate: true },
+)
+
 // ─── Submit ───────────────────────────────────────────────────────────────────
 
 async function handleSubmit() {
-  if (!form.value.url) return
+  if (!canSubmit.value) return
 
   let previewAssetId: number | null = selectedPreviewAssetId.value
   if (croppedBlob) {
     previewAssetId = await storeOrGetAsset(croppedBlob, 'preview', TILE_W, TILE_H)
   }
-  const faviconAssetId = await ensureFaviconAssetIdForUrl(form.value.url) ?? props.tab?.favicon_asset_id ?? null
+  const faviconAssetId = selectedFaviconAssetId.value
 
   let displayTitle = form.value.title.trim()
   if (!displayTitle) {
@@ -330,18 +502,103 @@ async function handleSubmit() {
 
     <div>
       <label for="tab_url" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">URL</label>
-      <div class="flex gap-2">
-        <input id="tab_url" v-model="form.url" type="url" placeholder="https://example.com" required
-          class="flex-1 bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100
-                 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+      <div class="flex gap-2 items-start">
+        <div class="flex-1">
+          <div class="flex min-h-[39px] items-stretch rounded border border-white/10 bg-surface-950 focus-within:ring-1 focus-within:ring-indigo-500">
+            <button
+              type="button"
+              @click="hasUnlockedFaviconPicker && (isFaviconPickerOpen = !isFaviconPickerOpen)"
+              :disabled="!hasUnlockedFaviconPicker"
+              class="flex shrink-0 w-[44px] items-center justify-center overflow-hidden border-r border-white/10 bg-[#252525] transition-colors"
+              :class="hasUnlockedFaviconPicker ? 'hover:bg-[#2c2c2c]' : 'cursor-not-allowed opacity-45'"
+              :title="hasUnlockedFaviconPicker ? 'Choose bookmark favicon' : 'Test the URL first to unlock custom favicon selection'"
+            >
+              <img
+                :src="faviconPreviewUrl"
+                alt="Favicon preview"
+                class="h-full w-full max-h-[26px] object-contain"
+                draggable="false"
+              />
+            </button>
+            <input
+              id="tab_url"
+              v-model="form.url"
+              type="url"
+              placeholder="https://example.com"
+              required
+              class="flex-1 border-0 bg-transparent px-3 py-2 text-sm text-gray-100 focus:outline-none"
+            />
+          </div>
+          <input
+            id="tab_favicon_file"
+            ref="faviconFileInput"
+            type="file"
+            accept="image/*"
+            class="hidden"
+            @change="onFaviconFileChange"
+          />
+        </div>
+
         <button
           type="button"
           @click="testUrl"
           :disabled="isTesting || !form.url"
-          class="px-3 py-1.5 bg-black/85 hover:bg-black border border-white/10 rounded text-[10px] uppercase tracking-wider font-bold text-white/85 hover:text-white transition-colors disabled:opacity-50"
+          class="inline-flex min-h-[39px] shrink-0 items-center justify-center self-stretch rounded border border-white/10 bg-black/85 px-3 text-[10px] font-bold uppercase tracking-wider text-white/85 transition-colors hover:bg-black hover:text-white disabled:opacity-50"
         >
           {{ isTesting ? '...' : 'Test' }}
         </button>
+      </div>
+      <div
+        v-if="isFaviconPickerOpen"
+        class="mt-2 space-y-3 border border-white/10 bg-[#151515] p-2"
+      >
+        <section class="space-y-2">
+          <h4 class="text-[10px] uppercase tracking-wider text-white/60">Favicons</h4>
+          <div v-if="faviconAssets.length" class="st-favicon-picker-grid">
+            <button
+              v-for="asset in faviconAssets"
+              :key="asset.id"
+              type="button"
+              @click="selectExistingFavicon(asset)"
+              class="st-favicon-picker-tile border border-white/10 bg-[#262626] p-2 transition-colors hover:border-white/25 hover:bg-[#303030]"
+            >
+              <img
+                :src="faviconPickerUrls[asset.id!] || ''"
+                alt="Favicon asset"
+                class="w-full h-full object-contain"
+              />
+            </button>
+          </div>
+          <p v-else class="text-[11px] text-white/55">No favicon assets available yet.</p>
+        </section>
+
+        <section class="space-y-2 border-t border-white/10 pt-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              @click="faviconFileInput?.click()"
+              class="rounded border border-white/10 bg-black/45 px-3 py-1.5 text-[10px] uppercase tracking-wider text-white/85 transition-colors hover:bg-black/65 hover:text-white"
+            >
+              Upload
+            </button>
+            <button
+              type="button"
+              @click="clearFavicon"
+              class="rounded border border-white/10 bg-black/20 px-3 py-1.5 text-[10px] uppercase tracking-wider text-white/75 transition-colors hover:bg-black/45 hover:text-white"
+            >
+              Clear
+            </button>
+            </div>
+            <button
+              type="button"
+              @click="isFaviconPickerOpen = false"
+              class="rounded border border-white/10 bg-black/20 px-3 py-1.5 text-[10px] uppercase tracking-wider text-white/75 transition-colors hover:bg-black/45 hover:text-white"
+            >
+              Close
+            </button>
+          </div>
+        </section>
       </div>
       <p class="mt-1 text-[10px] min-h-[1rem]" :class="urlStatusClass">{{ urlStatusMessage }}</p>
     </div>
@@ -361,7 +618,12 @@ async function handleSubmit() {
 
       <!-- Selected or cropped result preview -->
       <div v-if="croppedBlobUrl || selectedPreviewAssetUrl" class="flex items-center gap-3">
-        <img :src="croppedBlobUrl || selectedPreviewAssetUrl || ''" :style="{ width: `${TILE_W}px`, height: `${TILE_H}px` }" class="rounded object-cover border border-white/10" alt="Preview" />
+        <img
+          :src="croppedBlobUrl || selectedPreviewAssetUrl || ''"
+          :style="{ width: `${TILE_W}px`, height: `${TILE_H}px` }"
+          class="rounded object-cover border border-white/10"
+          alt="Preview"
+        />
         <button type="button" @click="clearImage" class="text-xs text-red-400 hover:text-red-300 transition-colors">Remove</button>
       </div>
 
@@ -370,6 +632,67 @@ async function handleSubmit() {
         <div class="relative max-h-52 overflow-hidden rounded border border-white/10 bg-black">
           <img ref="cropperImgEl" :src="imageDataUrl" class="block max-w-full" alt="Crop source" />
         </div>
+        <div class="flex flex-wrap gap-2 text-[10px] uppercase tracking-wider text-white/70">
+          <button
+            type="button"
+            @click="zoomCropper(0.1)"
+            class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
+          >
+            Zoom +
+          </button>
+          <button
+            type="button"
+            @click="zoomCropper(-0.1)"
+            class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
+          >
+            Zoom -
+          </button>
+          <button
+            type="button"
+            @click="moveCropper(-20, 0)"
+            class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
+          >
+            Left
+          </button>
+          <button
+            type="button"
+            @click="moveCropper(20, 0)"
+            class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
+          >
+            Right
+          </button>
+          <button
+            type="button"
+            @click="moveCropper(0, -20)"
+            class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
+          >
+            Up
+          </button>
+          <button
+            type="button"
+            @click="moveCropper(0, 20)"
+            class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
+          >
+            Down
+          </button>
+          <button
+            type="button"
+            @click="flipCropperX"
+            class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
+          >
+            Flip X
+          </button>
+          <button
+            type="button"
+            @click="flipCropperY"
+            class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
+          >
+            Flip Y
+          </button>
+        </div>
+        <p class="text-[10px] text-amber-200/80">
+          Crop or cancel the image before saving this bookmark.
+        </p>
         <div class="flex gap-2">
           <button type="button" @click="applyCrop"
             class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-medium">
@@ -444,8 +767,9 @@ async function handleSubmit() {
           Cancel
         </button>
         <button type="submit"
+          :disabled="!canSubmit"
           class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-medium
-                 shadow-lg shadow-indigo-900/20 transition-all">
+                 shadow-lg shadow-indigo-900/20 transition-all disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-indigo-600">
           {{ tab?.id ? 'Save Changes' : 'Add Bookmark' }}
         </button>
       </div>

@@ -8,6 +8,7 @@ const props = defineProps<{
   tab:          Tab
   openInNewTab: boolean
   quicklinks?:  boolean
+  forceFavicon?: boolean
   showHoverActions?: boolean
   isSearchHighlighted?: boolean
   isDragging?:  boolean
@@ -24,23 +25,42 @@ const { getFaviconUrl } = useFavicon()
 // ─── Preview image (lazy-loaded blob → Object URL) ────────────────────────────
 
 const previewUrl = ref<string | null>(null)
-let   objectUrl:  string | null = null
+const faviconAssetUrl = ref<string | null>(null)
+let   previewObjectUrl:  string | null = null
+let   faviconObjectUrl: string | null = null
 
 watch(
   () => props.tab.preview_asset_id,
   async (id) => {
-    if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null }
+    if (previewObjectUrl) { URL.revokeObjectURL(previewObjectUrl); previewObjectUrl = null }
     previewUrl.value = null
     if (!id) return
     const asset = await db.assets.get(id)
     if (!asset?.blob) return
-    objectUrl        = URL.createObjectURL(asset.blob)
-    previewUrl.value = objectUrl
+    previewObjectUrl = URL.createObjectURL(asset.blob)
+    previewUrl.value = previewObjectUrl
   },
   { immediate: true },
 )
 
-onUnmounted(() => { if (objectUrl) URL.revokeObjectURL(objectUrl) })
+watch(
+  () => props.tab.favicon_asset_id,
+  async (id) => {
+    if (faviconObjectUrl) { URL.revokeObjectURL(faviconObjectUrl); faviconObjectUrl = null }
+    faviconAssetUrl.value = null
+    if (!id) return
+    const asset = await db.assets.get(id)
+    if (!asset?.blob) return
+    faviconObjectUrl = URL.createObjectURL(asset.blob)
+    faviconAssetUrl.value = faviconObjectUrl
+  },
+  { immediate: true },
+)
+
+onUnmounted(() => {
+  if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl)
+  if (faviconObjectUrl) URL.revokeObjectURL(faviconObjectUrl)
+})
 
 // ─── Favicon fallback ─────────────────────────────────────────────────────────
 // `chrome://favicon2/` is restricted to the browser's internal NTP and not
@@ -48,7 +68,7 @@ onUnmounted(() => { if (objectUrl) URL.revokeObjectURL(objectUrl) })
 // provider keyed by the URL's hostname instead.
 
 const faviconUrl = computed(() => {
-  return getFaviconUrl(props.tab.url)
+  return faviconAssetUrl.value || getFaviconUrl(props.tab.url)
 })
 
 const tileClass = computed(() =>
@@ -57,10 +77,20 @@ const tileClass = computed(() =>
     : 'w-[106px] h-[60px]'
 )
 
+const faviconClass = computed(() =>
+  props.quicklinks
+    ? 'w-[var(--st-module-content-quicklink-icon-size)] h-[var(--st-module-content-quicklink-icon-size)] object-contain'
+    : 'w-[var(--st-module-content-bookmark-favicon-size)] h-[var(--st-module-content-bookmark-favicon-size)] object-contain'
+)
+
 const actionRevealClass = computed(() =>
   props.quicklinks
     ? 'delay-150 group-hover:delay-150'
     : ''
+)
+
+const showPreviewImage = computed(() =>
+  !!previewUrl.value && !(props.quicklinks && props.forceFavicon)
 )
 </script>
 
@@ -74,8 +104,8 @@ const actionRevealClass = computed(() =>
     :href="tab.url"
     :target="openInNewTab ? '_blank' : undefined"
     :rel="openInNewTab ? 'noopener noreferrer' : undefined"
-    class="group relative block overflow-hidden
-           bg-white border border-[#dbdbdb] hover:border-[#00d2ff]
+    class="st-content-trigger-button st-trigger-tab group relative block overflow-hidden
+           st-bookmark-trigger-surface border hover:border-[#00d2ff]
            transition-colors shrink-0 focus:outline-none focus-visible:ring-1
            focus-visible:ring-[#00d2ff] cursor-grab active:cursor-grabbing"
     :class="[
@@ -88,19 +118,19 @@ const actionRevealClass = computed(() =>
   >
     <!-- ① Custom preview image (WebP blob stored in IndexedDB) -->
     <img
-      v-if="previewUrl"
-      :src="previewUrl"
-      :alt="tab.title"
-      class="absolute inset-0 w-full h-full object-cover"
+      v-if="showPreviewImage"
+      :src="previewUrl || undefined"
+      alt=""
+      class="absolute inset-0 w-full h-full object-cover st-bookmark-image-surface"
       draggable="false"
     />
 
     <!-- ② Chrome favicon fallback — centered and scaled inside the tile -->
-    <div v-else class="absolute inset-0 flex items-center justify-center">
+    <div v-else class="absolute inset-0 flex items-center justify-center st-bookmark-image-surface">
       <img
         :src="faviconUrl"
-        :alt="tab.title"
-        :class="props.quicklinks ? 'object-contain' : 'w-8 h-8 object-contain'"
+        alt=""
+        :class="faviconClass"
         draggable="false"
         @error="($event.target as HTMLImageElement).style.display = 'none'"
       />
@@ -109,7 +139,7 @@ const actionRevealClass = computed(() =>
     <!-- Hover overlay: dimmed scrim + title + action buttons -->
     <div
       class="absolute inset-0 flex flex-col justify-between p-[3px]
-             bg-black/0 group-hover:bg-black/65 transition-colors"
+             bg-black/0 group-hover:bg-black/50 transition-colors"
     >
       <!-- Title (only readable after hover) -->
       <p class="text-[9px] leading-tight text-white/0 group-hover:text-white/90

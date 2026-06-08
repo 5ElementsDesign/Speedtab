@@ -1,5 +1,7 @@
 import type { Table, UpdateSpec } from 'dexie';
 import type { Ref } from 'vue';
+import type { SpeedtabDB } from '@/db/db'
+import { markExportDirty } from '@/composables/useExportState'
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
 
@@ -48,6 +50,27 @@ export function useReorder<T extends { id?: number; sort_order: number }>(
   table:    Table<T, number>,
   itemsRef: Ref<T[]>,
 ) {
+  function exportDirtyReason(): string | null {
+    switch (table.name) {
+      case 'pages':
+      case 'modules':
+      case 'collections':
+      case 'tabs':
+      case 'notes':
+      case 'feed_sources':
+      case 'saved_feed_items':
+        return `${table.name}:reorder`
+      default:
+        return null
+    }
+  }
+
+  async function markDirtyIfPortable() {
+    const reason = exportDirtyReason()
+    if (!reason) return
+    await markExportDirty(reason, table.db as unknown as SpeedtabDB)
+  }
+
   async function moveUp(item: T) {
     const items = itemsRef.value
     const index = items.findIndex(i => i.id === item.id)
@@ -72,6 +95,7 @@ export function useReorder<T extends { id?: number; sort_order: number }>(
       await table.update(a.id!, { sort_order: orderB } as unknown as UpdateSpec<T>)
       await table.update(b.id!, { sort_order: orderA } as unknown as UpdateSpec<T>)
     })
+    await markDirtyIfPortable()
   }
 
   /** Drag-and-drop: persist a fromIndex→toIndex reorder in one transaction. */
@@ -83,6 +107,7 @@ export function useReorder<T extends { id?: number; sort_order: number }>(
         await table.update(u.id, { sort_order: u.sort_order } as unknown as UpdateSpec<T>)
       }
     })
+    await markDirtyIfPortable()
   }
 
   return { moveUp, moveDown, move }

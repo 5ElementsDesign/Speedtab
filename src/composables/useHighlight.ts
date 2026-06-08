@@ -9,6 +9,15 @@ async function getHighlighter() {
   return highlighterPromise
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -21,16 +30,25 @@ async function getHighlighter() {
  * wrappers and is safe to render with v-html.
  */
 export async function highlightCode(code: string, language?: string | null): Promise<string> {
+  if (language === 'plaintext') {
+    return escapeHtml(code)
+  }
+
   const hljs = await getHighlighter()
-  if (language && hljs.getLanguage(language)) {
+  if (language && language !== 'auto' && hljs.getLanguage(language)) {
     return hljs.highlight(code, { language, ignoreIllegals: true }).value
   }
   return hljs.highlightAuto(code).value
 }
 
+export async function detectCodeLanguage(code: string): Promise<string | null> {
+  if (!code.trim()) return null
+  const hljs = await getHighlighter()
+  return hljs.highlightAuto(code).language ?? null
+}
+
 /** List of language aliases that ship with `lib/common` (used by the form). */
 export const COMMON_LANGUAGES = [
-  'plaintext',
   'bash', 'shell',
   'javascript', 'typescript', 'json',
   'html', 'xml', 'css', 'scss',

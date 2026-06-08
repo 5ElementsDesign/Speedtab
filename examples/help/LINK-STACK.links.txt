@@ -1,0 +1,19 @@
+Title: Link Stack
+Type: links
+Color: light
+
+Speedtab
+https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff
+
+[hr]
+
+Speedtab Project
+https://5elementsdesign.github.io/Speedtab/
+https://5elementsdesign.github.io/Speedtab/CHANGELOG
+https://5elementsdesign.github.io/Speedtab/README.ST-HOW-TO-REMOTE
+
+[hr]
+
+Useful Services
+https://app.koofr.net/app/
+https://open-meteo.com/

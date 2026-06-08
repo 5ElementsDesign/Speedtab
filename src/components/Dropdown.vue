@@ -10,6 +10,8 @@ const props = withDefaults(defineProps<{
   align?: 'left' | 'right'
   /** Extra utility classes applied to the trigger button. */
   triggerClass?: string
+  /** Extra utility classes applied to the root wrapper. */
+  rootClass?: string
   /** Extra utility classes applied to the menu panel. */
   menuClass?: string
   /** Hide the built-in chevron icon (useful when caller provides custom trigger content). */
@@ -19,6 +21,7 @@ const props = withDefaults(defineProps<{
   title:        undefined,
   align:        'right',
   triggerClass: '',
+  rootClass:    '',
   menuClass:    '',
   hideChevron:  false,
 })
@@ -30,6 +33,9 @@ const menuStyle = ref<Record<string, string>>({})
 
 function toggle(e: Event) {
   e.stopPropagation()
+  if (!open.value) {
+    updateMenuPosition()
+  }
   open.value = !open.value
 }
 
@@ -65,7 +71,7 @@ const menuPositionClass = computed(() =>
 )
 
 function updateMenuPosition() {
-  if (!open.value || !rootEl.value) return
+  if (!rootEl.value) return
   const rect = rootEl.value.getBoundingClientRect()
   menuStyle.value = props.align === 'left'
     ? {
@@ -96,7 +102,7 @@ defineExpose({ close })
 </script>
 
 <template>
-  <div ref="rootEl" class="relative inline-block" @click.stop>
+  <div ref="rootEl" :class="['relative inline-block', rootClass]" @click.stop>
     <button
       type="button"
       :aria-label="label"

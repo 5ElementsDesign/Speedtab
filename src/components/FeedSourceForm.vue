@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import type { FeedSource, PortableInput } from '@/types/db'
-import { useFeed } from '@/composables/useFeed'
+import { useFeed } from '@/composables/useFeed';
+import type { FeedSource, PortableInput } from '@/types/db';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
   source?: FeedSource
@@ -30,11 +30,14 @@ const lastTestedUrl = ref(props.source?.feed_url || '')
 
 watch(feedUrl, () => {
   testError.value = null
-  lookupStatus.value = null
-  discoveredFeeds.value = []
   if (feedUrl.value !== lastTestedUrl.value) {
     testSuccess.value = false
   }
+})
+
+watch(siteUrl, () => {
+  lookupStatus.value = null
+  discoveredFeeds.value = []
 })
 
 function normalizeDiscoveredFeeds(urls: Array<{ url: string; title: string }>) {
@@ -46,30 +49,70 @@ function normalizeDiscoveredFeeds(urls: Array<{ url: string; title: string }>) {
   })
 }
 
+function deriveLookupBaseUrl(url: string) {
+  try {
+    const parsed = new URL(url.trim())
+    return `${parsed.origin}/`
+  } catch {
+    return url.trim()
+  }
+}
+
+function isLikelyFeedUrl(url: string) {
+  return /(feedburner|rss|atom|feed|xml)/i.test(url)
+}
+
+function pushDiscoveredFeed(
+  candidates: Array<{ url: string; title: string }>,
+  href: string,
+  baseUrl: string,
+  title: string,
+) {
+  try {
+    const absoluteUrl = new URL(href, baseUrl).toString()
+    if (!isLikelyFeedUrl(absoluteUrl)) return
+    candidates.push({
+      url: absoluteUrl,
+      title: title.trim() || absoluteUrl,
+    })
+  } catch {
+    // Ignore malformed discovered URLs.
+  }
+}
+
 function discoverFeedCandidates(html: string, baseUrl: string): Array<{ url: string; title: string }> {
   const parser = new DOMParser()
   const doc = parser.parseFromString(html, 'text/html')
-  const candidates: Array<{ url: string; title: string }> = []
+  const declaredCandidates: Array<{ url: string; title: string }> = []
+  const linkedCandidates: Array<{ url: string; title: string }> = []
+  const guessedCandidates: Array<{ url: string; title: string }> = []
 
   doc.querySelectorAll('link[rel~="alternate"]').forEach((node) => {
     const href = node.getAttribute('href')
     const type = (node.getAttribute('type') ?? '').toLowerCase()
     if (!href || !/(rss|atom|xml)/.test(type)) return
-    try {
-      candidates.push({
-        url: new URL(href, baseUrl).toString(),
-        title: node.getAttribute('title')?.trim() || href,
-      })
-    } catch {
-      // Ignore malformed alternate-feed links.
-    }
+    pushDiscoveredFeed(
+      declaredCandidates,
+      href,
+      baseUrl,
+      node.getAttribute('title')?.trim() || href,
+    )
+  })
+
+  doc.querySelectorAll('a[href]').forEach((node) => {
+    const href = node.getAttribute('href')
+    if (!href) return
+    const label = node.textContent?.replace(/\s+/g, ' ').trim()
+      || node.getAttribute('title')
+      || href
+    pushDiscoveredFeed(linkedCandidates, href, baseUrl, label)
   })
 
   try {
     const base = new URL(baseUrl)
     const commonPaths = ['/feed', '/feed.xml', '/rss', '/rss.xml', '/atom.xml']
     for (const path of commonPaths) {
-      candidates.push({
+      guessedCandidates.push({
         url: new URL(path, `${base.origin}/`).toString(),
         title: path.replace(/^\//, ''),
       })
@@ -78,7 +121,16 @@ function discoverFeedCandidates(html: string, baseUrl: string): Array<{ url: str
     // Ignore malformed input URL.
   }
 
-  return normalizeDiscoveredFeeds(candidates)
+  const realCandidates = normalizeDiscoveredFeeds([
+    ...declaredCandidates,
+    ...linkedCandidates,
+  ])
+
+  if (realCandidates.length > 0) {
+    return realCandidates
+  }
+
+  return normalizeDiscoveredFeeds(guessedCandidates)
 }
 
 async function testConnection() {
@@ -88,13 +140,14 @@ async function testConnection() {
   testSuccess.value = false
 
   try {
+    const normalizedTestUrl = new URL(feedUrl.value.trim()).toString()
+    lastTestedUrl.value = normalizedTestUrl
     const xml = await fetchFeed(feedUrl.value)
     const items = parseFeed(xml, 0)
     if (items.length === 0) {
       throw new Error('Feed parsed but contains no items.')
     }
     testSuccess.value = true
-    lastTestedUrl.value = feedUrl.value
     // Try to auto-fill title if empty
     if (!title.value) {
       const parser = new DOMParser()
@@ -103,25 +156,34 @@ async function testConnection() {
     }
   } catch (err: unknown) {
     testError.value = err instanceof Error ? err.message : 'Failed to connect'
+    if (!siteUrl.value.trim() && feedUrl.value.trim()) {
+      siteUrl.value = deriveLookupBaseUrl(feedUrl.value)
+    }
   } finally {
     isTesting.value = false
   }
 }
 
 async function lookupFeeds() {
-  if (!feedUrl.value) return
+  const lookupUrl = siteUrl.value.trim()
+  if (!lookupUrl) return
 
   isLookingUp.value = true
   lookupStatus.value = null
   discoveredFeeds.value = []
 
   try {
-    const response = await chrome.runtime.sendMessage({ type: 'FETCH_URL_CONTENT', url: feedUrl.value })
+    const response = await chrome.runtime.sendMessage({ type: 'FETCH_URL_CONTENT', url: lookupUrl })
     if (!response?.ok) {
       throw new Error(response?.error || 'Failed to inspect URL')
     }
 
-    const finalUrl = response.finalUrl || feedUrl.value
+    const finalUrl = response.finalUrl || lookupUrl
+    const contentType = (response.contentType ?? '').toLowerCase()
+    if (!contentType.includes('text/html')) {
+      lookupStatus.value = 'Lookup expects a homepage or website URL that returns HTML.'
+      return
+    }
     const html = typeof response.html === 'string' ? response.html : ''
     const candidates = discoverFeedCandidates(html, finalUrl)
 
@@ -139,17 +201,11 @@ async function lookupFeeds() {
   }
 }
 
-function useDiscoveredFeed(url: string) {
+async function useDiscoveredFeed(url: string) {
   feedUrl.value = url
   testError.value = null
   testSuccess.value = false
-  if (!siteUrl.value) {
-    try {
-      siteUrl.value = new URL(url).origin
-    } catch {
-      // Ignore malformed discovered URL.
-    }
-  }
+  await testConnection()
 }
 
 function handleSave() {
@@ -187,7 +243,19 @@ const canSave = computed(() =>
 <template>
   <form @submit.prevent="handleSave" class="flex flex-col gap-4">
     <div>
-      <label for="feed_source_url" class="block text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1">Feed URL</label>
+      <div class="mb-1 flex items-center justify-between gap-3">
+        <label for="feed_source_url" class="block text-[10px] uppercase tracking-wider font-bold text-gray-500">Feed URL</label>
+        <a
+          v-if="lastTestedUrl"
+          :href="lastTestedUrl"
+          :title="lastTestedUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-[9px] uppercase tracking-wider font-bold text-sky-300 hover:text-sky-200 transition-colors"
+        >
+          Open URL
+        </a>
+      </div>
       <div class="flex gap-2">
         <input
           id="feed_source_url"
@@ -195,7 +263,7 @@ const canSave = computed(() =>
           type="url"
           placeholder="https://example.com/feed.xml"
           required
-          class="flex-1 bg-black/80 text-white placeholder:text-white/35 border border-white/10 rounded px-2 py-1.5 text-xs focus:border-indigo-500 outline-none transition-colors"
+          class="flex-1 bg-surface-950 text-white placeholder:text-white/35 border border-white/10 rounded px-2 py-1.5 text-xs focus:border-indigo-500 outline-none transition-colors"
         />
         <button
           type="button"
@@ -205,30 +273,24 @@ const canSave = computed(() =>
         >
           {{ isTesting ? '...' : 'Test' }}
         </button>
-        <button
-          type="button"
-          @click="lookupFeeds"
-          :disabled="isLookingUp || !feedUrl"
-          class="px-3 py-1.5 bg-black/85 hover:bg-black border border-white/10 rounded text-[10px] uppercase tracking-wider font-bold text-white/85 hover:text-white transition-colors disabled:opacity-50"
-        >
-          {{ isLookingUp ? '...' : 'Lookup' }}
-        </button>
       </div>
       <p v-if="testError" class="mt-1 text-[10px] text-red-400">{{ testError }}</p>
       <p v-if="testSuccess" class="mt-1 text-[10px] text-green-400">Connection successful!</p>
-      <p v-else class="mt-1 text-[10px] text-white/45">Test this URL before saving to make sure it is reachable and subscribable.</p>
-      <p v-if="lookupStatus" class="mt-1 text-[10px] text-white/65">{{ lookupStatus }}</p>
-      <div v-if="discoveredFeeds.length" class="mt-2 flex flex-col gap-1">
-        <button
-          v-for="candidate in discoveredFeeds"
-          :key="candidate.url"
-          type="button"
-          @click="useDiscoveredFeed(candidate.url)"
-          class="text-left px-2 py-1 bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 rounded transition-colors"
-        >
-          <span class="block text-[10px] text-white/85 truncate">{{ candidate.title }}</span>
-          <span class="block text-[10px] text-sky-300 truncate">{{ candidate.url }}</span>
-        </button>
+      <p v-else-if="!testError" class="mt-1 text-[10px] text-white/45">Test this URL before saving to make sure it is reachable and subscribable.</p>
+      <div v-if="discoveredFeeds.length" class="mt-2 border-t border-white/10 pt-2">
+        <p v-if="lookupStatus" class="text-[10px] text-white/65">{{ lookupStatus }}</p>
+        <div class="flex max-h-[300px] flex-col gap-1 overflow-auto">
+          <button
+            v-for="candidate in discoveredFeeds"
+            :key="candidate.url"
+            type="button"
+            @click="useDiscoveredFeed(candidate.url)"
+            class="text-left px-2 py-1 bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 rounded transition-colors"
+          >
+            <span class="block text-[10px] text-white/85 truncate">{{ candidate.title }}</span>
+            <span class="block text-[10px] text-sky-300 truncate">{{ candidate.url }}</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -240,19 +302,31 @@ const canSave = computed(() =>
         type="text"
         placeholder="Feed Title"
         required
-        class="w-full bg-black/80 text-white placeholder:text-white/35 border border-white/10 rounded px-2 py-1.5 text-xs focus:border-indigo-500 outline-none transition-colors"
+        class="w-full bg-surface-950 text-white placeholder:text-white/35 border border-white/10 rounded px-2 py-1.5 text-xs focus:border-indigo-500 outline-none transition-colors"
       />
     </div>
 
     <div>
       <label for="feed_source_site_url" class="block text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1">Site URL (Optional)</label>
-      <input
-        id="feed_source_site_url"
-        v-model="siteUrl"
-        type="url"
-        placeholder="https://example.com"
-        class="w-full bg-black/80 text-white placeholder:text-white/35 border border-white/10 rounded px-2 py-1.5 text-xs focus:border-indigo-500 outline-none transition-colors"
-      />
+      <div class="flex gap-2">
+        <input
+          id="feed_source_site_url"
+          v-model="siteUrl"
+          type="url"
+          placeholder="https://example.com"
+          class="flex-1 bg-surface-950 text-white placeholder:text-white/35 border border-white/10 rounded px-2 py-1.5 text-xs focus:border-indigo-500 outline-none transition-colors"
+        />
+        <button
+          type="button"
+          @click="lookupFeeds"
+          :disabled="isLookingUp || !siteUrl"
+          class="px-3 py-1.5 bg-black/85 hover:bg-black border border-white/10 rounded text-[10px] uppercase tracking-wider font-bold text-white/85 hover:text-white transition-colors disabled:opacity-50"
+        >
+          {{ isLookingUp ? '...' : 'Lookup' }}
+        </button>
+      </div>
+      <p class="mt-1 text-[10px] text-white/45">Use the homepage here to discover feed links without overwriting the feed URL field.</p>
+      <p v-if="lookupStatus && !discoveredFeeds.length" class="mt-1 text-[10px] text-white/65">{{ lookupStatus }}</p>
     </div>
 
     <div class="flex justify-between items-center mt-4 pt-4 border-t border-white/10">

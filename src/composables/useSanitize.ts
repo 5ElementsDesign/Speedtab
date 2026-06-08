@@ -7,11 +7,17 @@ import DOMPurify from 'dompurify'
 
 const ALLOWED_TAGS = [
   'a', 'p', 'br', 'hr', 'span', 'div',
-  'strong', 'b', 'em', 'i', 'u', 's', 'mark', 'small', 'sub', 'sup',
+  'strong', 'b', 'em', 'i', 'u', 's', 'mark', 'small', 'sub', 'sup', 'del', 'ins', 'cite',
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-  'ul', 'ol', 'li',
+  'hgroup',
+  'ul', 'ol', 'li', 'menu',
+  'dl', 'dt', 'dd',
   'blockquote', 'pre', 'code', 'kbd', 'samp',
+  'picture', 'figure',
+  'details', 'summary',
+  'nav', 'aside', 'article', 'address',
   'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  'textarea',
 ]
 
 const ALLOWED_ATTR = [

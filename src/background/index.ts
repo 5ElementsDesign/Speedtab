@@ -59,6 +59,7 @@ type IncomingMessage = FetchFeedMessage | FetchUrlMetaMessage | FetchUrlContentM
 
 const CONTEXT_MENU_CAPTURE_NOTE = 'speedtab-capture-note'
 const CONTEXT_MENU_CAPTURE_BOOKMARK = 'speedtab-capture-bookmark'
+const CONTEXT_MENU_CAPTURE_PAGE_NOTE = 'speedtab-capture-page-note'
 const CONTEXT_MENU_PARENT = 'speedtab-parent'
 
 async function ensureContextMenus() {
@@ -69,17 +70,73 @@ async function ensureContextMenus() {
     contexts: ['selection', 'page'],
   })
   chrome.contextMenus.create({
+    id: CONTEXT_MENU_CAPTURE_BOOKMARK,
+    parentId: CONTEXT_MENU_PARENT,
+    title: 'Save current page as bookmark',
+    contexts: ['page', 'selection'],
+  })
+  chrome.contextMenus.create({
+    id: CONTEXT_MENU_CAPTURE_PAGE_NOTE,
+    parentId: CONTEXT_MENU_PARENT,
+    title: 'Store current page as note',
+    contexts: ['page', 'selection'],
+  })
+  chrome.contextMenus.create({
     id: CONTEXT_MENU_CAPTURE_NOTE,
     parentId: CONTEXT_MENU_PARENT,
     title: 'Save selection as note',
     contexts: ['selection'],
   })
-  chrome.contextMenus.create({
-    id: CONTEXT_MENU_CAPTURE_BOOKMARK,
-    parentId: CONTEXT_MENU_PARENT,
-    title: 'Save current page as bookmark',
-    contexts: ['page'],
-  })
+}
+
+async function fetchPageMeta(url: string) {
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000)
+    const response = await fetch(url, { signal: controller.signal, redirect: 'follow' })
+    clearTimeout(timeout)
+    if (!response.ok) return { title: null as string | null, description: null as string | null, finalUrl: url }
+
+    const finalUrl = response.url || url
+    const contentType = response.headers.get('content-type') ?? ''
+    if (!contentType.includes('text/html')) {
+      return { title: null as string | null, description: null as string | null, finalUrl }
+    }
+
+    const html = await response.text()
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
+    const metaDescriptionMatch = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([\s\S]*?)["'][^>]*>/i)
+      || html.match(/<meta[^>]+content=["']([\s\S]*?)["'][^>]+name=["']description["'][^>]*>/i)
+
+    return {
+      title: titleMatch?.[1]?.replace(/\s+/g, ' ').trim() || null,
+      description: metaDescriptionMatch?.[1]?.replace(/\s+/g, ' ').trim() || null,
+      finalUrl,
+    }
+  } catch {
+    return { title: null as string | null, description: null as string | null, finalUrl: url }
+  }
+}
+
+function buildCapturedPageNote(input: {
+  title: string | null
+  url: string
+  description: string | null
+  selection: string | null
+}) {
+  const lines: string[] = []
+  lines.push(`Page: ${input.title || input.url}`)
+  lines.push(`URL: ${input.url}`)
+  if (input.description) {
+    lines.push('')
+    lines.push(`Description: ${input.description}`)
+  }
+  if (input.selection) {
+    lines.push('')
+    lines.push('Selection:')
+    lines.push(input.selection)
+  }
+  return lines.join('\n')
 }
 
 async function sha256Hex(input: string) {
@@ -146,7 +203,35 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       source_url: pageUrl,
       source_title: tab?.title ?? null,
     })
+    return
   }
+
+  if (info.menuItemId === CONTEXT_MENU_CAPTURE_PAGE_NOTE) {
+    const pageUrl = info.pageUrl ?? tab?.url ?? null
+    if (!pageUrl) return
+    void (async () => {
+      const meta = await fetchPageMeta(pageUrl)
+      await storeCaptureItem({
+        kind: 'note',
+        title: meta.title ?? tab?.title ?? pageUrl,
+        text: buildCapturedPageNote({
+          title: meta.title ?? tab?.title ?? null,
+          url: meta.finalUrl,
+          description: meta.description,
+          selection: info.selectionText?.trim() || null,
+        }),
+        url: meta.finalUrl,
+        source_url: meta.finalUrl,
+        source_title: meta.title ?? tab?.title ?? null,
+      })
+    })()
+  }
+})
+
+chrome.action.onClicked.addListener(() => {
+  void chrome.tabs.create({
+    url: chrome.runtime.getURL('src/newtab.html'),
+  })
 })
 
 // ─── Message dispatcher ───────────────────────────────────────────────────────

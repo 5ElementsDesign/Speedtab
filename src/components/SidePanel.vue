@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, watch } from 'vue';
 
 const props = defineProps<{
   show: boolean
   title: string
   widthClass?: string
+  lockBackdropClose?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -17,8 +18,24 @@ function onKeyDown(event: KeyboardEvent) {
   }
 }
 
+const PANEL_WIDTH = 440
+
+function syncBodyOffset(show: boolean) {
+  if (typeof document === 'undefined') return
+  document.body.style.transition = 'margin-right 0.16s ease-out'
+  if (show && window.innerWidth >= 960) {
+    document.body.style.marginRight = `${Math.min(PANEL_WIDTH, window.innerWidth)}px`
+    return
+  }
+  document.body.style.marginRight = ''
+}
+
 onMounted(() => window.addEventListener('keydown', onKeyDown))
 onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
+watch(() => props.show, syncBodyOffset, { immediate: true })
+onUnmounted(() => {
+  syncBodyOffset(false)
+})
 </script>
 
 <template>
@@ -32,7 +49,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
       leave-to-class="opacity-0"
     >
       <div v-if="show" class="fixed inset-0 z-[70]">
-        <div class="absolute inset-0" @click="emit('close')"></div>
+        <div class="absolute inset-0" @click="!props.lockBackdropClose && emit('close')"></div>
 
         <Transition
           enter-active-class="transition duration-200 ease-out"
@@ -62,7 +79,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
               </button>
             </header>
 
-            <div class="px-3 py-3 flex-1 min-h-0 overflow-y-auto">
+            <div class="flex-1 min-h-0 overflow-y-auto">
               <slot></slot>
             </div>
           </aside>

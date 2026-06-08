@@ -4,6 +4,10 @@ import type { Note } from '@/types/db'
 import { decryptNote, parseCryptPayload } from '@/composables/useCrypt'
 import { highlightCode } from '@/composables/useHighlight'
 import { renderNoteHtmlWithAssets } from '@/composables/useNoteImages'
+import { useFavicon } from '@/composables/useFavicon'
+import { useLiveQuery } from '@/composables/useLiveQuery'
+import { db } from '@/db/db'
+import type { AppSetting } from '@/types/db'
 
 const props = defineProps<{
   note: Note
@@ -18,6 +22,11 @@ const emit = defineEmits<{
   edit:   [note: Note]
   delete: [note: Note]
 }>()
+const { getFaviconUrl } = useFavicon()
+type LinkNoteEntry =
+  | { kind: 'divider'; key: string }
+  | { kind: 'text'; key: string; text: string }
+  | { kind: 'link'; key: string; text: string; url: string; faviconUrl: string | null }
 
 // ─── Accordion state ──────────────────────────────────────────────────────────
 
@@ -34,26 +43,51 @@ const TYPE_META: Record<Note['type'], { label: string; cls: string }> = {
   crypt: { label: '🔒',   cls: 'bg-rose-700/60 text-rose-100'              },
 }
 const typeMeta = computed(() => TYPE_META[props.note.type])
+const noteTypeClass = computed(() => `st-module-notes-type-${props.note.type}`)
 
 // ─── Per-type rendering ───────────────────────────────────────────────────────
 
 // links: split on newlines and produce a clean list of URLs
-const linkItems = computed(() => {
+const { data: appearanceSetting } = useLiveQuery(
+  () => db.app_settings.get('appearance'),
+  null as AppSetting | null,
+)
+
+const resolvedOpenInNewTab = computed<boolean>(() => {
+  if (!appearanceSetting.value?.value_json) return false
+  try {
+    const parsed = JSON.parse(appearanceSetting.value.value_json)
+    return parsed.open_bookmarks_in_new_tab === true
+  } catch {
+    return false
+  }
+})
+
+const linkItems = computed<LinkNoteEntry[]>(() => {
   if (props.note.type !== 'links') return []
   return props.note.content
     .split(/\r?\n/)
     .map(l => l.trim())
     .filter(Boolean)
-    .map(line => {
+    .map((line, index) => {
+      if (line === '[hr]' || line.toLowerCase() === '<hr>') {
+        return { kind: 'divider', key: `divider:${index}` } satisfies LinkNoteEntry
+      }
       try {
         const url = new URL(line)
         if (url.protocol === 'http:' || url.protocol === 'https:') {
-          return { text: line, url: url.toString() }
+          return {
+            kind: 'link',
+            key: `link:${index}`,
+            text: line,
+            url: url.toString(),
+            faviconUrl: getFaviconUrl(url.toString()),
+          } satisfies LinkNoteEntry
         }
       } catch {
         // Plain text lines are allowed between links.
       }
-      return { text: line, url: null }
+      return { kind: 'text', key: `text:${index}`, text: line } satisfies LinkNoteEntry
     })
 })
 
@@ -130,8 +164,9 @@ onBeforeUnmount(() => revokeHtmlAssets?.())
 
 <template>
   <div
-    class="border-b border-white/[0.05] group transition-colors cursor-grab active:cursor-grabbing"
+    class="st-note-card border-b border-white/[0.05] group transition-colors cursor-grab active:cursor-grabbing"
     :class="[
+      noteTypeClass,
       isDragging ? 'opacity-40' : '',
       isDragOver && !isDragging ? 'bg-white/10' : '',
     ]"
@@ -174,7 +209,7 @@ onBeforeUnmount(() => revokeHtmlAssets?.())
     </button>
 
     <!-- ─── Expanded body ─────────────────────────────────────────────── -->
-    <div v-if="expanded" class="px-2 pb-2 pt-0.5">
+    <div v-if="expanded" :class="note.type === 'html' ? 'p-0' : 'px-2 pb-2 pt-0.5'">
       <!-- text -->
       <pre v-if="note.type === 'text'"
            class="st-note-content-scale leading-snug text-gray-300 whitespace-pre-wrap break-words font-sans m-0">{{ note.content }}</pre>
@@ -184,23 +219,43 @@ onBeforeUnmount(() => revokeHtmlAssets?.())
            class="st-note-content-scale hljs leading-snug rounded overflow-x-auto p-2 m-0"><code v-html="codeHtml"></code></pre>
 
       <!-- links -->
-      <ul v-else-if="note.type === 'links'" class="st-note-content-scale space-y-0.5">
-        <li v-for="(entry, i) in linkItems" :key="i" class="leading-tight">
-          <a v-if="entry.url" :href="entry.url" target="_blank" rel="noopener noreferrer"
-             class="text-[12px] text-sky-400 hover:text-sky-300 hover:underline truncate block">{{ entry.text }}</a>
-          <span v-else class="text-[12px] text-white/70 font-medium block">{{ entry.text }}</span>
+      <ul v-else-if="note.type === 'links'" class="st-note-content-scale st-note-link-list">
+        <li v-for="entry in linkItems" :key="entry.key" class="leading-tight">
+          <hr v-if="entry.kind === 'divider'" class="st-note-link-divider" />
+          <a
+            v-else-if="entry.kind === 'link'"
+            :href="entry.url"
+            :target="resolvedOpenInNewTab ? '_blank' : undefined"
+            :rel="resolvedOpenInNewTab ? 'noopener noreferrer' : undefined"
+            class="st-note-link-row"
+          >
+            <span class="st-note-link-icon">
+              <img
+                v-if="entry.faviconUrl"
+                :src="entry.faviconUrl"
+                alt=""
+                class="st-note-link-icon-image"
+                draggable="false"
+              />
+              <span v-else class="st-note-link-icon-fallback">↗</span>
+            </span>
+            <span class="st-note-link-label">{{ entry.text }}</span>
+          </a>
+          <span v-else class="st-note-link-heading">{{ entry.text }}</span>
         </li>
       </ul>
 
       <!-- html (sanitised) -->
       <div v-else-if="note.type === 'html'"
-           class="st-note-content-scale leading-snug text-gray-300 prose-tight" v-html="htmlSafe"></div>
+           class="st-note-content-scale st-note-html-content st-module-notes-type-html" v-html="htmlSafe"></div>
 
       <!-- crypt: locked → passphrase prompt; unlocked → plaintext + lock button -->
       <div v-else-if="note.type === 'crypt'">
         <div v-if="!unlockedText" class="flex items-center gap-1.5">
           <input
             v-model="passphraseInput"
+            :id="`note-card-passphrase-${note.id}`"
+            :name="`note_card_passphrase_${note.id}`"
             type="password"
             placeholder="Passphrase"
             @keydown.enter.prevent="unlock"
@@ -227,31 +282,3 @@ onBeforeUnmount(() => revokeHtmlAssets?.())
     </div>
   </div>
 </template>
-
-<style scoped>
-/* Compact prose treatment for sanitised HTML notes */
-.prose-tight :deep(p)  { margin: 0.25rem 0; }
-.prose-tight :deep(ul),
-.prose-tight :deep(ol) { margin: 0.25rem 0; padding-left: 1.1rem; }
-.prose-tight :deep(li) { line-height: 1.3; }
-.prose-tight :deep(a)  { color: theme('colors.sky.400'); text-decoration: underline; }
-.prose-tight :deep(code) {
-  font-size: 11px;
-  background: rgba(255,255,255,0.04);
-  padding: 0 3px;
-  border-radius: 2px;
-}
-.prose-tight :deep(.st-note-image) {
-  display: block;
-  max-width: 100%;
-  height: auto;
-  margin: 0.4rem 0;
-  border-radius: 0.3rem;
-}
-.prose-tight :deep(.st-note-image-missing) {
-  display: inline-block;
-  color: rgba(255,255,255,0.45);
-  font-size: 10px;
-  font-style: italic;
-}
-</style>

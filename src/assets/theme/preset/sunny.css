@@ -7,33 +7,45 @@
   --st-theme-status-bg: rgb(255 240 215 / 0.9);
   --st-theme-border: rgb(200 150 100 / 0.2);
   --st-theme-accent: #f59e0b;
-  
+
   --st-module-action-bg: rgb(250 220 180 / 0.9);
   --st-module-action-bg-hover: rgb(240 200 150 / 1);
-  
+
   --st-feed-sidebar-bg: rgb(255 245 235 / 0.9);
   --st-feed-toolbar-bg: rgb(255 252 245 / 0.95);
   --st-feed-toolbar-text: rgb(50 30 10 / 0.95);
   --st-feed-toolbar-muted: rgb(100 70 40 / 0.7);
   --st-feed-toolbar-badge-bg: rgb(255 235 200 / 1);
   --st-feed-toolbar-badge-text: rgb(100 60 20 / 0.9);
-  
+
   --st-feed-item-bg: rgb(255 255 250 / 0.95);
   --st-feed-item-bg-hover: rgb(255 248 238 / 0.95);
   --st-feed-item-bg-active: rgb(255 240 225 / 0.98);
   --st-feed-item-text: rgb(50 30 10 / 0.95);
   --st-feed-item-text-muted: rgb(100 70 40 / 0.7);
   --st-feed-item-text-dim: rgb(120 90 60 / 0.5);
-  
+
   --st-feed-item-body-bg: rgb(255 250 242 / 0.98);
   --st-feed-item-body-copy: rgb(60 40 20 / 0.85);
-  
+
   --st-feed-item-button-bg: rgb(255 235 200 / 0.95);
   --st-feed-item-button-bg-hover: rgb(250 220 180 / 1);
   --st-feed-item-button-text: rgb(80 50 20 / 0.9);
   --st-feed-item-button-border: rgb(200 150 100 / 0.2);
-  
+
   --st-feed-item-open-bg: #f59e0b;
   --st-feed-item-open-bg-hover: #d97706;
   --st-feed-item-divider: rgb(200 150 100 / 0.15);
+
+  --st-module-content-add-content-color: #332c2c47;
+  --st-module-content-add-content-color-hover: #312222af;
+  --st-module-content-add-content-border-color: #332c2c47;
+  --st-module-content-add-content-border-color-hover: #312222af;
+  --st-module-content-add-content-border-style: dashed;
+  --st-module-content-add-content-border-style-hover: solid;
+
+  --st-bookmark-image-bg: #ffffffad;
+  --st-bookmark-image-border: #7e737366;
+  --st-note-preview-container-border: #95909070;
+  --st-note-preview-container-border-hover: #00d2ff;
 }

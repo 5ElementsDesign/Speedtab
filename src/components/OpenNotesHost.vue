@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { useOpenNotes } from '@/composables/useOpenNotes'
+import { markExportDirty } from '@/composables/useExportState'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { db, isActiveRecord, makeUpdatedAtPatch } from '@/db/db'
-import type { Note, PortableInput } from '@/types/db'
+import type { Note, NoteType, PortableInput } from '@/types/db'
 import { computed, ref, watch } from 'vue'
 import Modal from './Modal.vue'
 import NoteForm from './NoteForm.vue'
@@ -42,9 +43,19 @@ watch(openNotes, (notes) => {
 
 const editingNote = ref<Note | null>(null)
 const isFormOpen = ref(false)
+const isPreviewMode = ref(false)
+const noteFormType = ref<NoteType>('text')
+const noteTypeLabels: Record<NoteType, string> = {
+  text: 'Text',
+  code: 'Code',
+  links: 'Links',
+  html: 'HTML',
+  crypt: 'Crypt',
+}
 
 function openEdit(note: Note) {
   editingNote.value = note
+  noteFormType.value = note.type
   isFormOpen.value = true
 }
 
@@ -57,6 +68,7 @@ async function handleDelete(note: Note) {
     isFormOpen.value = false
   }
   await db.notes.delete(note.id)
+  await markExportDirty('notes:delete')
 }
 
 async function saveNote(data: PortableInput<Note>) {
@@ -68,20 +80,25 @@ async function saveNote(data: PortableInput<Note>) {
     ...data,
     ...makeUpdatedAtPatch(now),
   })
+  await markExportDirty('notes:update')
   isFormOpen.value = false
   editingNote.value = null
+  isPreviewMode.value = false
 }
 
 async function deleteNoteById(id: number) {
   closeNote(id)
   await db.notes.delete(id)
+  await markExportDirty('notes:delete')
   isFormOpen.value = false
   editingNote.value = null
+  isPreviewMode.value = false
 }
 
 function closeForm() {
   editingNote.value = null
   isFormOpen.value = false
+  isPreviewMode.value = false
 }
 </script>
 
@@ -100,7 +117,11 @@ function closeForm() {
       @delete="handleDelete"
     />
 
-    <Modal :show="isFormOpen" :title="editingNote ? 'Edit Note' : 'Note'" @close="closeForm">
+    <Modal :show="isFormOpen" :dock-right="isPreviewMode" :title="editingNote ? 'Edit Note' : 'Note'" @close="closeForm">
+      <template #header-meta>
+        <span class="uppercase tracking-wider mr-1">Type</span>
+        <span class="st-text-bold">{{ noteTypeLabels[noteFormType] }}</span>
+      </template>
       <NoteForm
         v-if="editingNote"
         :note="editingNote"
@@ -108,6 +129,8 @@ function closeForm() {
         @save="saveNote"
         @delete="deleteNoteById"
         @cancel="closeForm"
+        @preview-mode-change="isPreviewMode = $event"
+        @type-change="noteFormType = $event"
       />
     </Modal>
   </div>

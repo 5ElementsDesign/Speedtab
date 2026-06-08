@@ -6,33 +6,33 @@
   --st-theme-dropdown-bg: rgb(17 24 39 / 0.95);
   --st-theme-status-bg: rgb(55 65 81 / 0.9);
   --st-theme-border: rgb(75 85 99 / 0.4);
-  --st-theme-accent: #9ca3af;
-  
-  --st-module-action-bg: rgb(63 59 59 / 0.96);
-  --st-module-action-bg-hover: rgb(84 79 79 / 1);
-  
+  --st-theme-accent: #c2cdde;
+
+  --st-module-action-bg: rgb(40 49 61 / 87%);
+  --st-module-action-bg-hover: rgb(28 39 53 / 87%);
+
   --st-feed-sidebar-bg: rgb(17 24 39 / 0.85);
   --st-feed-toolbar-bg: rgb(243 244 246 / 1);
   --st-feed-toolbar-text: rgb(17 24 39 / 1);
   --st-feed-toolbar-muted: rgb(107 114 128 / 1);
   --st-feed-toolbar-badge-bg: rgb(209 213 219 / 1);
   --st-feed-toolbar-badge-text: rgb(55 65 81 / 1);
-  
+
   --st-feed-item-bg: rgb(55 65 81 / 0.95);
   --st-feed-item-bg-hover: rgb(75 85 99 / 0.95);
   --st-feed-item-bg-active: rgb(31 41 55 / 0.98);
   --st-feed-item-text: rgb(249 250 251 / 0.95);
   --st-feed-item-text-muted: rgb(209 213 219 / 0.9);
   --st-feed-item-text-dim: rgb(156 163 175 / 0.9);
-  
+
   --st-feed-item-body-bg: rgb(17 24 39 / 0.9);
   --st-feed-item-body-copy: rgb(229 231 235 / 0.95);
-  
+
   --st-feed-item-button-bg: rgb(75 85 99 / 0.95);
   --st-feed-item-button-bg-hover: rgb(55 65 81 / 1);
   --st-feed-item-button-text: rgb(255 255 255 / 0.9);
   --st-feed-item-button-border: rgb(75 85 99 / 0.5);
-  
+
   --st-feed-item-open-bg: #6b7280;
   --st-feed-item-open-bg-hover: #4b5563;
   --st-feed-item-divider: rgb(75 85 99 / 0.3);
