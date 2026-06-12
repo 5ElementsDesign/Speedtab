@@ -39,12 +39,18 @@ export function useDragSort(options: DragSortOptions): DragSortBindings {
   const dragOverIndex = ref<number | null>(null)
   const dragEnabled = ref(true)
 
+  function coarsePointerMatches() {
+    return typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(pointer: coarse)').matches
+  }
+
   function syncDragEnabled() {
     if (typeof window === 'undefined') {
       dragEnabled.value = true
       return
     }
-    dragEnabled.value = window.innerWidth >= 740 && !window.matchMedia('(pointer: coarse)').matches
+    dragEnabled.value = window.innerWidth >= 740 && !coarsePointerMatches()
     if (!dragEnabled.value) {
       draggingIndex.value = null
       dragOverIndex.value = null

@@ -3,6 +3,7 @@ import { remapNoteImageTokens } from '@/composables/useNoteImages'
 import type {
   Asset,
   AssetKind,
+  BgArchiveItem,
   Collection,
   FeedItem,
   FeedSource,
@@ -68,6 +69,7 @@ export interface BackupManifestV2 {
   feed_sources: ExportedFeedSourceV2[]
   saved_feed_items: ExportedSavedFeedItemV2[]
   assets:       SerializedAsset[]
+  bg_archive?:  BgArchiveItem[]
 }
 
 export type BackupManifest = BackupManifestV1 | BackupManifestV2
@@ -271,7 +273,7 @@ function checkFk(
 export async function exportAll(database: SpeedtabDB = defaultDb): Promise<BackupManifestV2> {
   await ensureSyncMetadataMigration(database, { force: true })
 
-  const [pages, modules, collections, tabs, notes, feedSources, savedFeedItems, assets] =
+  const [pages, modules, collections, tabs, notes, feedSources, savedFeedItems, assets, bgArchive] =
     await Promise.all([
       database.pages.filter(isActiveRecord).toArray(),
       database.modules.filter(isActiveRecord).toArray(),
@@ -281,6 +283,7 @@ export async function exportAll(database: SpeedtabDB = defaultDb): Promise<Backu
       database.feed_sources.filter(isActiveRecord).toArray(),
       database.saved_feed_items.filter(isActiveRecord).toArray(),
       database.assets.toArray(),
+      database.bg_archive.orderBy('created_at').toArray(),
     ])
 
   const pageSyncById = new Map(pages.filter((row) => row.id != null).map((row) => [row.id!, row.sync_id]))
@@ -335,6 +338,7 @@ export async function exportAll(database: SpeedtabDB = defaultDb): Promise<Backu
       original_id: _id,
     })),
     assets: serializedAssets,
+    bg_archive: bgArchive,
   }
 }
 
@@ -431,6 +435,9 @@ function canonicalizeManifest(manifest: BackupManifest): BackupManifest {
       compareScalars(left.checksum, right.checksum) ||
       compareScalars(left.kind, right.kind) ||
       compareScalars(left.original_id, right.original_id)),
+    bg_archive: sortRows(manifest.bg_archive ?? [], (left, right) =>
+      compareScalars(left.created_at, right.created_at) ||
+      compareScalars(left.id ?? null, right.id ?? null)),
   }
 }
 
@@ -509,6 +516,7 @@ function buildChecksumPayload(manifest: BackupManifest): JsonLike {
     feed_sources: canonical.feed_sources.map(({ original_id: _originalId, ...row }) => row),
     saved_feed_items: canonical.saved_feed_items.map(({ original_id: _originalId, ...row }) => row),
     assets: canonical.assets.map(({ original_id: _originalId, ...row }) => row),
+    bg_archive: (canonical as BackupManifestV2).bg_archive ?? [],
   } as unknown as JsonLike)
 }
 
@@ -815,6 +823,7 @@ async function importManifestV2(
       database.pages, database.modules, database.collections,
       database.tabs, database.notes, database.feed_sources,
       database.saved_feed_items, database.assets, database.app_settings,
+      database.bg_archive,
     ],
     async () => {
       const assetIdByChecksum = new Map<string, number>()
@@ -1075,6 +1084,12 @@ async function importManifestV2(
         updateUpdated: () => { report.saved_feed_items_updated!++; },
         report,
       })
+
+      if (Array.isArray(manifest.bg_archive) && manifest.bg_archive.length > 0) {
+        await database.bg_archive.bulkAdd(
+          manifest.bg_archive.map(({ id: _id, ...row }) => row),
+        )
+      }
 
       await database.app_settings.put({
         key: LAST_IMPORT_EXPORTED_AT_KEY,

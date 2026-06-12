@@ -6,6 +6,7 @@ import { makeNoteImageToken } from '@/composables/useNoteImages'
 import type { OpenNoteWindow } from '@/composables/useOpenNotes'
 import type { Note, NoteType, PortableInput } from '@/types/db'
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import NoteViewerModal from './NoteViewerModal.vue'
 
 const props = defineProps<{
@@ -20,14 +21,15 @@ const emit = defineEmits<{
   previewModeChange: [active: boolean]
   typeChange: [type: NoteType]
 }>()
+const { t } = useI18n()
 
-const NOTE_TYPES: { value: NoteType; label: string }[] = [
-  { value: 'text',  label: 'Text'  },
-  { value: 'code',  label: 'Code'  },
-  { value: 'links', label: 'Links' },
-  { value: 'html',  label: 'HTML'  },
-  { value: 'crypt', label: 'Crypt' },
-]
+const NOTE_TYPES = computed(() => [
+  { value: 'text',  label: t('noteForm.types.text')  },
+  { value: 'code',  label: t('noteForm.types.code')  },
+  { value: 'links', label: t('noteForm.types.links') },
+  { value: 'html',  label: t('noteForm.types.html')  },
+  { value: 'crypt', label: t('noteForm.types.crypt') },
+] satisfies Array<{ value: NoteType; label: string }>)
 
 // ─── Initial meta extraction ──────────────────────────────────────────────────
 
@@ -40,15 +42,15 @@ const initialMeta = parseMeta(props.note?.meta_json ?? null)
 
 // ─── Form state ───────────────────────────────────────────────────────────────
 
-const STYLE_TOKENS: { value: string | null; label: string; cls: string }[] = [
-  { value: null,      label: 'Default', cls: 'st-color-default'  },
-  { value: 'info',    label: 'Info',    cls: 'st-color-info'     },
-  { value: 'success', label: 'Success', cls: 'st-color-success' },
-  { value: 'warning', label: 'Warning', cls: 'st-color-warning'   },
-  { value: 'danger',  label: 'Danger',  cls: 'st-color-danger'    },
-  { value: 'dark',    label: 'Dark',    cls: 'st-color-dark'    },
-  { value: 'light',   label: 'Light',   cls: 'st-color-light' },
-]
+const STYLE_TOKENS = computed(() => [
+  { value: null,      label: t('noteForm.styleTokens.default'), cls: 'st-color-default'  },
+  { value: 'info',    label: t('noteForm.styleTokens.info'), cls: 'st-color-info'     },
+  { value: 'success', label: t('noteForm.styleTokens.success'), cls: 'st-color-success' },
+  { value: 'warning', label: t('noteForm.styleTokens.warning'), cls: 'st-color-warning'   },
+  { value: 'danger',  label: t('noteForm.styleTokens.danger'), cls: 'st-color-danger'    },
+  { value: 'dark',    label: t('noteForm.styleTokens.dark'), cls: 'st-color-dark'    },
+  { value: 'light',   label: t('noteForm.styleTokens.light'), cls: 'st-color-light' },
+])
 
 const form = ref({
   title:       props.note?.title       ?? '',
@@ -86,9 +88,11 @@ const isCryptEdit = computed(() => form.value.type === 'crypt' &&  props.note?.i
 const codeLanguageOptions = computed(() => [
   {
     value: 'auto',
-    label: detectedLanguage.value ? `Auto detect (${detectedLanguage.value})` : 'Auto detect',
+    label: detectedLanguage.value
+      ? t('noteForm.code.autoDetectWithValue', { language: detectedLanguage.value })
+      : t('noteForm.code.autoDetect'),
   },
-  { value: 'plaintext', label: 'Plaintext' },
+  { value: 'plaintext', label: t('noteForm.code.plaintext') },
   ...COMMON_LANGUAGES.map((language) => ({
     value: language,
     label: language,
@@ -125,14 +129,14 @@ async function decryptForEdit() {
   cryptError.value = null
   working.value = true
   try {
-    if (!props.note?.content) throw new Error('Empty crypt payload')
+    if (!props.note?.content) throw new Error(t('noteForm.errors.emptyCryptPayload'))
     const payload   = parseCryptPayload(props.note.content)
     form.value.content = await decryptNote(payload, decryptInput.value)
     passphrase.value   = decryptInput.value  // reuse for re-encrypt on save
     decryptInput.value = ''
     decrypted.value    = true
   } catch {
-    cryptError.value = 'Wrong passphrase or corrupted note.'
+    cryptError.value = t('noteForm.errors.wrongPassphrase')
   } finally {
     working.value = false
   }
@@ -151,7 +155,7 @@ onBeforeUnmount(wipeSecrets)
 const previewNote = computed<Note>(() => ({
   id: -1,
   collection_id: props.collectionId,
-  title: form.value.title.trim() || 'Preview',
+  title: form.value.title.trim() || t('noteForm.previewTitle'),
   type: form.value.type === 'crypt' ? 'text' : form.value.type,
   content: form.value.content,
   style_token: form.value.style_token,
@@ -212,11 +216,11 @@ async function handleSubmit() {
     // Editing crypt note → reuse the passphrase from decryptForEdit.
     if (isCryptNew.value) {
       if (!passphrase.value || passphrase.value !== passConfirm.value) {
-        cryptError.value = 'Passphrases must match and not be empty.'
+        cryptError.value = t('noteForm.errors.passphrasesMismatch')
         return
       }
     } else if (!decrypted.value) {
-      cryptError.value = 'Unlock the note before saving.'
+      cryptError.value = t('noteForm.errors.unlockBeforeSaving')
       return
     }
     working.value = true
@@ -289,32 +293,32 @@ async function onImageSelected(event: Event) {
   <form @submit.prevent="handleSubmit" class="flex h-full min-h-0 flex-col gap-4">
 
     <div>
-      <label for="note_title" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Title</label>
-      <input id="note_title" v-model="form.title" type="text" required placeholder="Note title"
+      <label for="note_title" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('noteForm.title') }}</label>
+      <input id="note_title" v-model="form.title" type="text" required :placeholder="t('noteForm.titlePlaceholder')"
         class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100
                focus:outline-none focus:ring-1 focus:ring-indigo-500" />
     </div>
 
     <div v-if="!note?.id">
-      <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Type</span>
+      <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('noteForm.type') }}</span>
       <div class="flex flex-wrap gap-1 leading-none">
-        <button v-for="t in NOTE_TYPES" :key="t.value" type="button"
-          @click="form.type = t.value"
+        <button v-for="noteType in NOTE_TYPES" :key="noteType.value" type="button"
+          @click="form.type = noteType.value"
           :class="[
             'px-2 py-2 rounded text-[11px] font-medium uppercase tracking-wider transition-colors',
-            form.type === t.value
+            form.type === noteType.value
               ? 'bg-indigo-600 text-white'
               : 'bg-white/[0.04] text-gray-400 hover:text-gray-200 hover:bg-white/[0.08]',
           ]"
-        >{{ t.label }}</button>
+        >{{ noteType.label }}</button>
       </div>
     </div>
 
-    <p v-if="note?.id" class="text-[10px] text-gray-600 italic">Type cannot be changed after creation.</p>
+    <p v-if="note?.id" class="text-[10px] text-gray-600 italic">{{ t('noteForm.typeLocked') }}</p>
 
     <!-- ─── Color scheme picker (style_token) ─────────────────────────── -->
     <div>
-      <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Color Scheme</span>
+      <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('noteForm.colorScheme') }}</span>
       <div class="flex flex-wrap gap-1 leading-none">
         <button
           v-for="tok in STYLE_TOKENS"
@@ -334,7 +338,7 @@ async function onImageSelected(event: Event) {
 
     <!-- ─── Code language picker ────────────────────────────────────────── -->
     <div v-if="form.type === 'code'">
-      <label for="note_language" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Language</label>
+      <label for="note_language" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('noteForm.language') }}</label>
       <select id="note_language" v-model="form.language"
         class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100
                focus:outline-none focus:ring-1 focus:ring-indigo-500">
@@ -344,15 +348,15 @@ async function onImageSelected(event: Event) {
 
     <!-- ─── Crypt: decrypt-to-edit prompt ───────────────────────────────── -->
     <div v-if="isCryptEdit && !decrypted">
-      <label for="note_unlock_passphrase" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Unlock to edit</label>
+      <label for="note_unlock_passphrase" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('noteForm.unlockToEdit') }}</label>
       <div class="flex gap-2">
-        <input id="note_unlock_passphrase" v-model="decryptInput" type="password" placeholder="Passphrase"
+        <input id="note_unlock_passphrase" v-model="decryptInput" type="password" :placeholder="t('noteForm.passphrase')"
           @keydown.enter.prevent="decryptForEdit"
           class="flex-1 bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 font-mono
                  focus:outline-none focus:ring-1 focus:ring-rose-500" />
         <button type="button" @click="decryptForEdit" :disabled="working || !decryptInput"
           class="px-3 py-2 bg-rose-700 hover:bg-rose-600 disabled:opacity-40 text-white rounded text-xs font-medium">
-          Unlock
+          {{ t('noteForm.unlock') }}
         </button>
       </div>
       <p v-if="cryptError" class="mt-1 text-[10px] text-rose-400">{{ cryptError }}</p>
@@ -362,11 +366,11 @@ async function onImageSelected(event: Event) {
     <div v-if="form.type !== 'crypt' || decrypted || isCryptNew" class="flex min-h-0 flex-1 flex-col">
       <div class="flex items-center justify-between gap-3 mb-1">
         <label for="note_content" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">
-        <span v-if="form.type === 'links'">URLs <span class="normal-case font-normal text-gray-600">(one per line)</span></span>
-        <span v-else-if="form.type === 'html'">HTML <span class="normal-case font-normal text-gray-600">(sanitised on save)</span></span>
-        <span v-else-if="form.type === 'code'">Code</span>
-        <span v-else-if="form.type === 'crypt'">Plaintext <span class="normal-case font-normal text-gray-600">(encrypted before storage)</span></span>
-        <span v-else>Content</span>
+        <span v-if="form.type === 'links'">{{ t('noteForm.contentLabels.urls') }} <span class="normal-case font-normal text-gray-600">{{ t('noteForm.contentLabels.onePerLine') }}</span></span>
+        <span v-else-if="form.type === 'html'">{{ t('noteForm.contentLabels.html') }} <span class="normal-case font-normal text-gray-600">{{ t('noteForm.contentLabels.sanitisedOnSave') }}</span></span>
+        <span v-else-if="form.type === 'code'">{{ t('noteForm.contentLabels.code') }}</span>
+        <span v-else-if="form.type === 'crypt'">{{ t('noteForm.contentLabels.plaintext') }} <span class="normal-case font-normal text-gray-600">{{ t('noteForm.contentLabels.encryptedBeforeStorage') }}</span></span>
+        <span v-else>{{ t('noteForm.contentLabels.content') }}</span>
         </label>
         <button
           v-if="form.type === 'html'"
@@ -374,7 +378,7 @@ async function onImageSelected(event: Event) {
           @click="openImagePicker"
           class="px-2 py-1 text-[10px] uppercase tracking-wider font-medium text-sky-300 hover:text-sky-200 bg-white/[0.06] hover:bg-white/[0.1] rounded transition-colors"
         >
-          Add Image
+          {{ t('noteForm.addImage') }}
         </button>
       </div>
       <input
@@ -390,7 +394,7 @@ async function onImageSelected(event: Event) {
       />
       <textarea id="note_content" v-model="form.content"
         ref="contentTextarea"
-        :placeholder="form.type === 'links' ? 'https://...' : ''"
+        :placeholder="form.type === 'links' ? t('noteForm.linksPlaceholder') : ''"
         :class="[
           'w-full flex-1 min-h-[180px] bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100',
           'focus:outline-none focus:ring-1 focus:ring-indigo-500',
@@ -403,14 +407,14 @@ async function onImageSelected(event: Event) {
     <div v-if="isCryptNew" class="space-y-2">
       <div class="bg-rose-950/30 border border-rose-900/40 rounded px-2 py-1.5">
         <p class="text-[11px] text-rose-300 leading-snug">
-          ⚠ The passphrase is <strong>not stored</strong>. If you forget it the note is permanently unrecoverable.
+          {{ t('noteForm.cryptWarning') }}
         </p>
       </div>
       <div class="grid grid-cols-2 gap-2">
-        <input id="note_new_passphrase" v-model="passphrase" name="note_new_passphrase" type="password" placeholder="Passphrase" required
+        <input id="note_new_passphrase" v-model="passphrase" name="note_new_passphrase" type="password" :placeholder="t('noteForm.passphrase')" required
           class="bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 font-mono
                  focus:outline-none focus:ring-1 focus:ring-rose-500" />
-        <input id="note_new_passphrase_confirm" v-model="passConfirm" name="note_new_passphrase_confirm" type="password" placeholder="Confirm passphrase" required
+        <input id="note_new_passphrase_confirm" v-model="passConfirm" name="note_new_passphrase_confirm" type="password" :placeholder="t('noteForm.confirmPassphrase')" required
           class="bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 font-mono
                  focus:outline-none focus:ring-1 focus:ring-rose-500" />
       </div>
@@ -421,22 +425,22 @@ async function onImageSelected(event: Event) {
     <div class="pt-3 mt-3 border-t border-white/10 flex items-center justify-between">
       <button v-if="note?.id" type="button" @click="emit('delete', note.id!)"
         class="text-xs text-red-400 hover:text-red-300 transition-colors">
-        Delete Note
+        {{ t('noteForm.deleteNote') }}
       </button>
       <div v-else></div>
       <div class="flex gap-3">
         <button type="button" @click="onCancel"
           class="px-4 py-2 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors">
-          Cancel
+          {{ t('common.cancel') }}
         </button>
         <button v-if="form.type !== 'crypt'" type="button" @click="openPreview"
           class="px-4 py-2 bg-white/10 hover:bg-white/15 text-xs font-medium text-gray-100 rounded transition-colors">
-          Preview
+          {{ t('noteForm.preview') }}
         </button>
         <button type="submit" :disabled="working"
           class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded text-xs font-medium
                  shadow-lg shadow-indigo-900/20 transition-all">
-          {{ working ? 'Encrypting…' : (note?.id ? 'Save Changes' : 'Create Note') }}
+          {{ working ? t('noteForm.encrypting') : (note?.id ? t('noteForm.saveChanges') : t('noteForm.createNote')) }}
         </button>
       </div>
     </div>

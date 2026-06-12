@@ -9,6 +9,7 @@ import { useReorder } from '@/composables/useReorder'
 import { db, isActiveRecord, makeCreateMetadata, makeUpdatedAtPatch } from '@/db/db'
 import type { AppSetting, Collection, PortableInput, Tab } from '@/types/db'
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Modal from './Modal.vue'
 import TabForm from './TabForm.vue'
 import TabTile from './TabTile.vue'
@@ -29,6 +30,7 @@ const props = defineProps<{
   showHoverActions?: boolean
   highlightTabId?: number | null
 }>()
+const { t } = useI18n()
 
 // ─── Live tab list ─────────────────────────────────────────────────────────────
 
@@ -115,7 +117,7 @@ async function deleteTabById(id: number) {
 }
 
 async function deleteTileTab(tab: Tab) {
-  if (!tab.id || !confirm('Delete this bookmark?')) return
+  if (!tab.id || !confirm(t('tabsView.deleteConfirm'))) return
   await db.tabs.delete(tab.id)
   await markExportDirty('tabs:delete')
   await cleanupOrphans()
@@ -155,19 +157,19 @@ async function deleteTileTab(tab: Tab) {
         class="st-content-trigger-button st-inline-add-content-trigger rounded-sm border
                flex items-center justify-center
                transition-colors shrink-0"
-        title="Add bookmark"
+        :title="t('tabsView.addBookmark')"
       >+</button>
     </div>
 
     <!-- ─── Empty state ───────────────────────────────────────────────────── -->
     <div v-else class="st-module-empty text-center h-full">
-      <p class="text-[11px] text-white/50 italic mb-2">No bookmarks in this module</p>
+      <p class="text-[11px] text-white/50 italic mb-2">{{ t('tabsView.noBookmarks') }}</p>
       <button
         @click="openAdd"
         class="text-[10px] uppercase tracking-wider font-normal text-white/80
                hover:text-white transition-colors"
       >
-        + Add Bookmark
+        {{ t('tabsView.addBookmarkAction') }}
       </button>
     </div>
 
@@ -177,7 +179,7 @@ async function deleteTileTab(tab: Tab) {
     <!-- ─── CRUD Modal ────────────────────────────────────────────────────── -->
     <Modal
       :show="isModalOpen"
-      :title="editingTab ? 'Edit Bookmark' : 'New Bookmark'"
+      :title="editingTab ? t('tabsView.editBookmarkTitle') : t('tabsView.newBookmarkTitle')"
       @close="isModalOpen = false"
     >
       <TabForm

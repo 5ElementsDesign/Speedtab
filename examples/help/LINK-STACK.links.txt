@@ -8,9 +8,7 @@ https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoam
 [hr]
 
 Speedtab Project
-https://5elementsdesign.github.io/Speedtab/
-https://5elementsdesign.github.io/Speedtab/CHANGELOG
-https://5elementsdesign.github.io/Speedtab/README.ST-HOW-TO-REMOTE
+https://github.com/5ElementsDesign/Speedtab/
 
 [hr]
 

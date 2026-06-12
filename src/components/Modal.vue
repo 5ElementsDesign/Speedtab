@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   show:  boolean
@@ -12,6 +13,7 @@ const emit = defineEmits<{
 }>()
 
 const isMaximized = ref(false)
+const { t } = useI18n()
 
 function onKeyDown(e: KeyboardEvent) {
   if (e.key === 'Escape' && props.show) {
@@ -65,7 +67,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
                 @click="isMaximized = !isMaximized"
                 class="text-[11px] text-white/60 hover:text-white transition-colors"
               >
-                {{ isMaximized ? 'Restore' : 'Maximize' }}
+                {{ isMaximized ? t('common.restore') : t('common.maximize') }}
               </button>
               <button
                 @click="emit('close')"

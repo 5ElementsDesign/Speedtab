@@ -5,6 +5,7 @@ import { useLiveQuery } from '@/composables/useLiveQuery'
 import { db, isActiveRecord, makeUpdatedAtPatch } from '@/db/db'
 import type { Note, NoteType, PortableInput } from '@/types/db'
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Modal from './Modal.vue'
 import NoteForm from './NoteForm.vue'
 import NoteViewerModal from './NoteViewerModal.vue'
@@ -16,6 +17,7 @@ const {
   closeMissingNotes,
   updateWindow,
 } = useOpenNotes()
+const { t } = useI18n()
 
 const openNoteIds = computed(() => openWindows.value.map((windowState) => windowState.noteId))
 
@@ -46,11 +48,11 @@ const isFormOpen = ref(false)
 const isPreviewMode = ref(false)
 const noteFormType = ref<NoteType>('text')
 const noteTypeLabels: Record<NoteType, string> = {
-  text: 'Text',
-  code: 'Code',
-  links: 'Links',
-  html: 'HTML',
-  crypt: 'Crypt',
+  text: t('noteForm.types.text'),
+  code: t('noteForm.types.code'),
+  links: t('noteForm.types.links'),
+  html: t('noteForm.types.html'),
+  crypt: t('noteForm.types.crypt'),
 }
 
 function openEdit(note: Note) {
@@ -61,7 +63,7 @@ function openEdit(note: Note) {
 
 async function handleDelete(note: Note) {
   if (!note.id) return
-  if (!confirm(`Delete note "${note.title}"? This cannot be undone.`)) return
+  if (!confirm(t('openNotes.deleteConfirm', { title: note.title }))) return
   closeNote(note.id)
   if (editingNote.value?.id === note.id) {
     editingNote.value = null
@@ -117,9 +119,9 @@ function closeForm() {
       @delete="handleDelete"
     />
 
-    <Modal :show="isFormOpen" :dock-right="isPreviewMode" :title="editingNote ? 'Edit Note' : 'Note'" @close="closeForm">
+    <Modal :show="isFormOpen" :dock-right="isPreviewMode" :title="editingNote ? t('openNotes.editNoteTitle') : t('openNotes.noteTitle')" @close="closeForm">
       <template #header-meta>
-        <span class="uppercase tracking-wider mr-1">Type</span>
+        <span class="uppercase tracking-wider mr-1">{{ t('openNotes.type') }}</span>
         <span class="st-text-bold">{{ noteTypeLabels[noteFormType] }}</span>
       </template>
       <NoteForm

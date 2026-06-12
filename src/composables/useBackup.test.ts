@@ -455,6 +455,31 @@ describe('importAll – round-trip', () => {
     expect(importedFavicon?.kind).toBe('favicon')
   })
 
+  it('appends background archive items on import instead of overwriting existing local rows', async () => {
+    await src.bg_archive.add({
+      name: 'Source item',
+      value: 'linear-gradient(90deg, #111, #333)',
+      created_at: 1_700_000_000_000,
+    })
+    const manifest = await exportAll(src)
+
+    await dst.bg_archive.add({
+      name: 'Existing item',
+      value: 'radial-gradient(circle, #444, #111)',
+      created_at: 1_700_000_100_000,
+    })
+
+    await importAll(manifest, {}, dst)
+
+    const archiveItems = await dst.bg_archive.orderBy('created_at').toArray()
+    expect(archiveItems).toHaveLength(2)
+    expect(archiveItems.map((item) => item.name)).toEqual(['Source item', 'Existing item'])
+    expect(archiveItems.map((item) => item.value)).toEqual([
+      'linear-gradient(90deg, #111, #333)',
+      'radial-gradient(circle, #444, #111)',
+    ])
+  })
+
   it('round-trips bookmark module config_json options unchanged', async () => {
     const pageId = await src.pages.add(withMeta({
       slug: 'home',

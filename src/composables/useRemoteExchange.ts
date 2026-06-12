@@ -20,6 +20,7 @@ import {
 import { updateLocalSettings } from '@/composables/useLocalSettings'
 import { db as defaultDb, type SpeedtabDB } from '@/db/db'
 import { cleanupOrphans, type CleanupReport } from '@/composables/useMaintenance'
+import en from '@/locales/en'
 import type { RemoteExportMetadata, RemoteProviderVerifyResult } from '@/types/remote'
 
 export type RemoteCompareState =
@@ -130,6 +131,9 @@ const defaultDeps: RemoteExchangeDeps = {
   noteImportedWorkspace: noteImportedWorkspaceDefault,
 }
 
+const remoteStatus = en.dataExchange.status
+const remoteConfirm = en.dataExchange.confirm
+
 export function getCompareActions(state: RemoteCompareState): Array<'push' | 'pull' | 'download_both' | 'download_remote'> {
   switch (state) {
     case 'identical':
@@ -159,7 +163,9 @@ async function blobToText(blob: Blob): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(reader.result as string)
-    reader.onerror = () => reject(reader.error ?? new Error('Failed to read remote export blob'))
+    reader.onerror = () => reject(
+      reader.error ?? new Error(remoteStatus.remoteDownloadFailed.replace('{message}', 'Failed to read remote export blob'))
+    )
     reader.readAsText(blob)
   })
 }
@@ -248,28 +254,28 @@ function getNoBaselineOverwriteWarning(
   if (hasKnownRemoteBaseline(settings)) return null
   if (!shouldConfirmOverwrite(state)) return null
 
-  return 'This browser profile has no known remote baseline yet. Pushing now will replace the live remote workspace with the current local state.'
+  return remoteConfirm.noRemoteBaseline
 }
 
 function makeInspectionMessage(inspection: RemotePushInspection): string {
   switch (inspection.state) {
     case 'remote_missing':
-      return 'No remote export exists yet. Upload the current local workspace?'
+      return remoteConfirm.remoteMissingUpload
     case 'identical':
     case 'up_to_date':
-      return 'Remote export already matches the current local workspace.'
+      return remoteConfirm.remoteAlreadyMatchesWorkspace
     case 'remote_newer':
-      return 'Remote export appears newer than the current local workspace. Overwrite it anyway?'
+      return remoteConfirm.remoteNewerOverwrite
     case 'local_newer':
-      return 'Local workspace appears newer than the remote export. Upload it now?'
+      return remoteConfirm.localNewerUpload
     case 'divergent':
-      return 'Remote export differs from the current local workspace. Overwrite it anyway?'
+      return remoteConfirm.remoteDiffersOverwrite
     case 'version_mismatch':
-      return 'Remote metadata uses a different manifest version. Overwrite it with the current local workspace?'
+      return remoteConfirm.versionMismatchOverwrite
     case 'unknown_endpoint_context':
-      return 'Remote metadata appears to belong to a different endpoint context. Overwrite it anyway?'
+      return remoteConfirm.endpointContextOverwrite
     case 'not_configured':
-      return 'Remote provider is not configured.'
+      return remoteConfirm.providerNotConfigured
   }
 }
 
@@ -316,7 +322,7 @@ export async function inspectRemotePush(
       local,
       remote: null,
       archiveExists: false,
-      warnings: ['Remote provider is not configured.'],
+      warnings: [remoteStatus.providerNotConfigured],
     }
   }
 
@@ -338,8 +344,8 @@ export async function inspectRemotePush(
         archiveExists: archiveResult.ok ? archiveResult.value : false,
         warnings: [
           ...(archiveResult.ok
-          ? ['Remote export is missing.']
-          : ['Remote export is missing.', archiveResult.error.message]),
+          ? [remoteStatus.remoteMissing]
+          : [remoteStatus.remoteMissing, archiveResult.error.message]),
           ...(noBaselineWarning ? [noBaselineWarning] : []),
         ],
       }
@@ -379,7 +385,7 @@ export async function pushToRemote(
   const inspection = await inspectRemotePush({ provider, database: options.database, ...requestOptions }, deps)
 
   if (inspection.state === 'not_configured') {
-    throw new Error('Remote provider is not configured.')
+    throw new Error(remoteStatus.providerNotConfigured)
   }
 
   const ensureArchive = async () => {
@@ -400,7 +406,7 @@ export async function pushToRemote(
 
     return {
       archiveExists: false,
-      warnings: [`Remote archive upload skipped: ${archiveUpload.error.message}`],
+      warnings: [remoteStatus.remoteArchiveUploadSkipped.replace('{message}', archiveUpload.error.message)],
     }
   }
 
@@ -413,7 +419,7 @@ export async function pushToRemote(
         archiveExists: archive.archiveExists,
       },
       warnings: [
-        'Remote export already matches local state.',
+        remoteStatus.remoteAlreadyMatchesLocal,
         ...archive.warnings,
       ],
     }
@@ -422,7 +428,7 @@ export async function pushToRemote(
   if (shouldConfirmOverwrite(inspection.state)) {
     const confirmed = await (options.confirmOverwrite?.(inspection) ?? globalThis.confirm?.(makeInspectionMessage(inspection)) ?? false)
     if (!confirmed) {
-      throw new Error('Remote push cancelled.')
+      throw new Error(remoteStatus.remotePushCancelled)
     }
   }
 
@@ -458,7 +464,7 @@ export async function pushToRemote(
         },
       },
       warnings: [
-        'Export uploaded, but metadata sidecar upload failed.',
+        remoteStatus.exportUploadedRepairNeeded,
         ...archive.warnings,
         metaUpload.error.message,
       ],
@@ -498,7 +504,7 @@ export async function downloadRemoteExportArtifact(
   }
   const preview = await previewRemotePull({ provider, ...requestOptions }, deps)
   if (preview.state === 'not_configured') {
-    throw new Error('Remote provider is not configured.')
+    throw new Error(remoteStatus.providerNotConfigured)
   }
 
   const exportResult = await provider.downloadExport(requestOptions)
@@ -523,10 +529,10 @@ export async function verifyRemoteHealth(
       health: 'not_configured',
       providerId: null,
       remote: null,
-      message: 'Remote provider is not configured.',
-      guidance: 'Configure the remote provider before verifying remote health.',
+      message: remoteStatus.providerNotConfigured,
+      guidance: remoteStatus.remoteProviderNotConfiguredGuidance,
       repairActions: [],
-      warnings: ['Remote provider is not configured.'],
+      warnings: [remoteStatus.providerNotConfigured],
     }
   }
 
@@ -541,8 +547,8 @@ export async function verifyRemoteHealth(
           health: 'auth_failure',
           providerId: null,
           remote: null,
-          message: 'Remote authentication failed.',
-          guidance: 'Check the configured endpoint, username, and secret before retrying verification.',
+          message: remoteStatus.remoteAuthenticationFailed,
+          guidance: remoteStatus.remoteAuthenticationGuidance,
           repairActions: ['verify'],
           warnings: [verifyResult.error.message],
         }
@@ -551,8 +557,8 @@ export async function verifyRemoteHealth(
           health: 'corrupt_metadata',
           providerId: null,
           remote: null,
-          message: 'Remote metadata sidecar is corrupt or unreadable.',
-          guidance: 'Push local state again to rewrite the metadata sidecar, or download the remote export for manual inspection first.',
+          message: remoteStatus.remoteMetadataCorrupt,
+          guidance: remoteStatus.remoteMetadataCorruptGuidance,
           repairActions: ['push', 'download_remote', 'verify'],
           warnings: [verifyResult.error.message],
         }
@@ -561,8 +567,8 @@ export async function verifyRemoteHealth(
           health: 'network_error',
           providerId: null,
           remote: null,
-          message: 'Remote verification failed.',
-          guidance: 'Retry verification after the network or server issue is resolved.',
+          message: remoteStatus.remoteVerificationFailed,
+          guidance: remoteStatus.remoteVerificationGuidance,
           repairActions: ['verify'],
           warnings: [verifyResult.error.message],
         }
@@ -575,8 +581,8 @@ export async function verifyRemoteHealth(
       health: 'sidecar_missing',
       providerId: remote.provider_id,
       remote,
-      message: 'Remote export exists but the metadata sidecar is missing.',
-      guidance: 'Push local state again to recreate the sidecar, or pull/download the remote export before deciding how to repair it.',
+      message: remoteStatus.remoteSidecarMissing,
+      guidance: remoteStatus.remoteSidecarMissingGuidance,
       repairActions: ['push', 'pull', 'download_remote', 'verify'],
       warnings: remote.warnings,
     }
@@ -587,8 +593,8 @@ export async function verifyRemoteHealth(
       health: 'export_missing',
       providerId: remote.provider_id,
       remote,
-      message: 'Remote metadata exists but the export file is missing.',
-      guidance: 'Push local state again to recreate the export file.',
+      message: remoteStatus.remoteExportFileMissing,
+      guidance: remoteStatus.remoteExportFileMissingGuidance,
       repairActions: ['push', 'verify'],
       warnings: remote.warnings,
     }
@@ -599,8 +605,8 @@ export async function verifyRemoteHealth(
       health: 'metadata_mismatch',
       providerId: remote.provider_id,
       remote,
-      message: 'Remote metadata points at a different endpoint context.',
-      guidance: 'Confirm that the remote endpoint is correct. If it is, push local state again to rewrite the sidecar for this endpoint.',
+      message: remoteStatus.remoteMetadataContextMismatch,
+      guidance: remoteStatus.remoteMetadataContextMismatchGuidance,
       repairActions: ['push', 'download_remote', 'verify'],
       warnings: remote.warnings,
     }
@@ -610,8 +616,8 @@ export async function verifyRemoteHealth(
     health: 'healthy',
     providerId: remote.provider_id,
     remote,
-    message: 'Remote export and metadata look healthy.',
-    guidance: 'You can push, pull, or verify again as needed.',
+    message: remoteStatus.remoteHealthy,
+    guidance: remoteStatus.remoteHealthyGuidance,
     repairActions: ['verify', 'download_remote'],
     warnings: remote.warnings,
   }
@@ -626,7 +632,7 @@ function classifyRemotePullPreview(
       state: 'remote_missing',
       remoteMeta: remote.meta,
       providerId: remote.provider_id,
-      warnings: ['Remote export is missing.'],
+      warnings: [remoteStatus.remoteMissing],
     }
   }
 
@@ -674,7 +680,7 @@ export async function previewRemotePull(
       state: 'not_configured',
       remoteMeta: null,
       providerId: null,
-      warnings: ['Remote provider is not configured.'],
+      warnings: [remoteStatus.providerNotConfigured],
     }
   }
 
@@ -688,7 +694,7 @@ export async function previewRemotePull(
         state: 'remote_missing',
         remoteMeta: null,
         providerId: null,
-        warnings: ['Remote export is missing.'],
+        warnings: [remoteStatus.remoteMissing],
       }
     }
     throw new Error(verifyResult.error.message)
@@ -715,23 +721,23 @@ export async function pullFromRemote(
   const preview = await previewRemotePull({ provider, ...requestOptions }, deps)
 
   if (preview.state === 'not_configured') {
-    throw new Error('Remote provider is not configured.')
+    throw new Error(remoteStatus.providerNotConfigured)
   }
   if (preview.state === 'remote_missing') {
-    throw new Error('Remote export is missing.')
+    throw new Error(remoteStatus.remoteMissing)
   }
 
   const confirmed = await (options.confirmImport?.(preview) ?? globalThis.confirm?.([
     preview.state === 'up_to_date'
-      ? 'Remote export matches the last pulled state.'
-      : 'Pull the remote workspace and merge it into the current local workspace?',
+      ? remoteStatus.remoteMatchesLastPulled
+      : remoteStatus.remotePullQuestion,
     preview.remoteMeta
-      ? `Exported at: ${preview.remoteMeta.exported_at}`
-      : 'Remote metadata unavailable.',
+      ? remoteStatus.remoteExportedAtOnly.replace('{value}', preview.remoteMeta.exported_at)
+      : remoteStatus.remoteMetadataUnavailable,
   ].join('\n\n')) ?? false)
 
   if (!confirmed) {
-    throw new Error('Remote pull cancelled.')
+    throw new Error(remoteStatus.remotePullCancelled)
   }
 
   const exportResult = await provider.downloadExport(requestOptions)
@@ -756,7 +762,7 @@ export async function pullFromRemote(
 
   return {
     preview: manifest.version === 1
-      ? { ...preview, state: 'legacy_manifest', warnings: [...preview.warnings, 'Legacy remote manifest detected.'] }
+      ? { ...preview, state: 'legacy_manifest', warnings: [...preview.warnings, remoteStatus.legacyRemoteManifestDetected] }
       : preview,
     report,
     cleanup,

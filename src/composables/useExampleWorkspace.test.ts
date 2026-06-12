@@ -63,8 +63,9 @@ describe('seedExampleWorkspace', () => {
       'Notes',
       'Feed reader',
       'Weather widget',
-      'HTML',
       'Assets',
+      'INBOX',
+      'HTML',
       'CLEANUP',
     ])
     expect(featureNotes.find((note) => note.title === 'Bookmarks')?.style_token).toBe('info')
@@ -95,5 +96,18 @@ describe('seedExampleWorkspace', () => {
     expect(feedSources[0].title).toBe('GTmetrix Blog')
     expect(feedSources[0].feed_url).toBe('https://gtmetrix.com/blog/feed/')
     expect(feedSources[0].site_url).toBe('https://gtmetrix.com/blog/')
+  })
+
+  it('loads locale-specific bundled example content for german', async () => {
+    await seedExampleWorkspace(db, { locale: 'de' })
+
+    const notes = await db.notes.orderBy('sort_order').toArray()
+    const welcomeNote = notes.find((note) => note.type === 'html' && note.content.includes('Willkommen bei Speedtab'))
+    const quickStartNote = notes.find((note) => note.title === 'Schnellstart-Tipps')
+    const inboxNote = notes.find((note) => note.title === 'INBOX')
+
+    expect(welcomeNote?.content).toContain('Willkommen bei Speedtab')
+    expect(quickStartNote?.content).toContain('Speedtab ist darauf ausgelegt, erkundet zu werden.')
+    expect(inboxNote?.type).toBe('html')
   })
 })

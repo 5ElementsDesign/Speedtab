@@ -8,6 +8,7 @@ import type { OpenNoteWindow } from '@/composables/useOpenNotes'
 import { db } from '@/db/db'
 import type { AppSetting, Note } from '@/types/db'
 import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   note: Note
@@ -23,6 +24,7 @@ const emit = defineEmits<{
   edit: [note: Note]
   delete: [note: Note]
 }>()
+const { t } = useI18n()
 
 interface TokenStyle {
   tokenClass: string
@@ -170,7 +172,7 @@ async function unlock() {
     unlockedText.value = await decryptNote(payload, passphraseInput.value)
     passphraseInput.value = ''
   } catch {
-    unlockError.value = 'Wrong passphrase or corrupted note.'
+    unlockError.value = t('noteViewer.wrongPassphrase')
   } finally {
     unlocking.value = false
   }
@@ -187,7 +189,10 @@ let resizeCleanup: (() => void) | null = null
 
 function isSmallDeviceViewport() {
   if (typeof window === 'undefined') return false
-  return window.innerWidth < 740 || window.matchMedia('(pointer: coarse)').matches
+  return window.innerWidth < 740 || (
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(pointer: coarse)').matches
+  )
 }
 
 function attachPointerLifecycle(
@@ -284,20 +289,20 @@ onBeforeUnmount(() => {
           type="button"
           class="hover:opacity-100 opacity-80 transition-opacity"
           @click.stop="emit('edit', note)"
-        >Edit</button>
+        >{{ t('noteViewer.edit') }}</button>
         <button
           v-if="!previewMode"
           type="button"
           class="hover:opacity-100 opacity-80 transition-opacity"
           @click.stop="emit('delete', note)"
-        >Delete</button>
+        >{{ t('noteViewer.delete') }}</button>
         <button
           type="button"
           class="border border-current px-2 py-1 leading-none hover:opacity-100 opacity-70 transition-opacity"
           @click.stop="emit('close')"
-          aria-label="Close note"
+          :aria-label="t('noteViewer.closeAria')"
         >
-          {{ previewMode ? 'Preview' : 'Close' }}
+          {{ previewMode ? t('noteViewer.preview') : t('noteViewer.close') }}
         </button>
       </div>
     </header>
@@ -362,7 +367,7 @@ onBeforeUnmount(() => {
               :name="`note_viewer_passphrase_${note.id}`"
               v-model="passphraseInput"
               type="password"
-              placeholder="Passphrase"
+              :placeholder="t('noteViewer.passphrase')"
               @keydown.enter.prevent="unlock"
               class="flex-1 rounded border border-white/10 bg-surface-950 px-3 py-2 font-mono text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-rose-500"
             />
@@ -372,12 +377,12 @@ onBeforeUnmount(() => {
               class="rounded bg-rose-700 px-3 py-2 text-xs font-medium text-white hover:bg-rose-600 disabled:opacity-40"
               @click="unlock"
             >
-              {{ unlocking ? '…' : 'Unlock' }}
+              {{ unlocking ? t('noteViewer.unlocking') : t('noteViewer.unlock') }}
             </button>
           </div>
           <p v-if="unlockError" class="m-0 text-[11px] text-rose-400">{{ unlockError }}</p>
           <div v-if="ciphertextPreview" class="st-note-state-encrypted max-w-[440px]">
-            <p class="mb-1 text-[10px] uppercase tracking-wider text-white/40">Encrypted Payload</p>
+            <p class="mb-1 text-[10px] uppercase tracking-wider text-white/40">{{ t('noteViewer.encryptedPayload') }}</p>
             <div class="max-h-[40vh] overflow-y-auto border border-rose-900/30 bg-black/40 p-3 font-mono text-[11px] text-rose-300/50 break-words [word-wrap:break-word] [overflow-wrap:anywhere]">
               {{ ciphertextPreview }}
             </div>
@@ -391,7 +396,7 @@ onBeforeUnmount(() => {
             class="text-[11px] font-bold uppercase tracking-wider text-rose-400 hover:text-rose-300"
             @click="lock"
           >
-            Lock
+            {{ t('noteViewer.lock') }}
           </button>
         </div>
       </div>
@@ -400,7 +405,7 @@ onBeforeUnmount(() => {
     <button
       type="button"
       class="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize bg-transparent text-white/40 hover:text-white"
-      aria-label="Resize note"
+      :aria-label="t('noteViewer.resizeAria')"
       @pointerdown="startResize"
     >
       <svg viewBox="0 0 20 20" class="h-5 w-5 fill-current">

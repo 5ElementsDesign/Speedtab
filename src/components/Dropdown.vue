@@ -139,7 +139,7 @@ defineExpose({ close })
         :class="[
           'st-dropdown-panel',
           'min-w-[10rem] z-[90]',
-          'bg-black/85 backdrop-blur-xs border border-white/20 shadow-2xl py-2',
+          'bg-black/85 border border-white/20 shadow-2xl py-2',
           menuPositionClass,
           menuClass,
         ]"

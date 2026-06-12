@@ -2,6 +2,7 @@
 import WeatherWidget from '@/components/WeatherWidget.vue'
 import type { WidgetSettings } from '@/types/widgets'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   settings: WidgetSettings
@@ -11,6 +12,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   configure: []
 }>()
+const { t } = useI18n()
 
 const showRail = computed(() => props.settings.rail_enabled)
 const showWeatherWidget = computed(() => props.settings.weather.enabled)
@@ -30,7 +32,7 @@ const railCenterStyle = computed<Record<string, string>>(() => ({
 </script>
 
 <template>
-  <section v-if="showRail" class="st-widget-rail" aria-label="Widgets">
+  <section v-if="showRail" class="st-widget-rail" :aria-label="t('widgetRail.aria')">
     <div class="st-widget-rail-inner" :style="railStyle">
       <div class="st-widget-rail-center" :style="railCenterStyle">
         <WeatherWidget

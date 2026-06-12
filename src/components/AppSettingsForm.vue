@@ -4,15 +4,18 @@ import { loadAssetObjectUrl, storeOrGetAsset } from '@/composables/useAsset'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { searchOpenMeteoLocations, type OpenMeteoGeocodeResult } from '@/composables/useOpenMeteoWeather'
 import { db } from '@/db/db'
-import { isThemePreset, THEME_PRESETS, normalizeThemePreset } from '@/themePresets'
+import { isThemePreset, normalizeThemePreset, THEME_PRESETS } from '@/themePresets'
 import type { WeatherWidgetLocation, WeatherWidgetUnits, WidgetRailAlign, WidgetRailPosition } from '@/types/widgets'
 import type { CSSProperties } from 'vue'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 type SettingsDraft = {
   backgroundAssetId: number | null
   backgroundTheme: string | null
   backgroundPreset: string
+  backgroundProperties: string | null
+  uiLanguage: string
   openBookmarksInNewTab: boolean
   feedSearchUrlTemplate: string
   feedContentScale: number
@@ -33,6 +36,8 @@ const props = defineProps<{
   backgroundAssetId: number | null
   backgroundTheme: string | null
   backgroundPreset: string | null
+  backgroundProperties: string | null
+  uiLanguage: string
   openBookmarksInNewTab: boolean
   feedSearchUrlTemplate: string
   feedContentScale: number
@@ -64,6 +69,8 @@ type BackgroundThemeOption = {
   style?: CSSProperties
 }
 
+const { t } = useI18n()
+
 const BACKGROUND_THEMES: readonly BackgroundThemeOption[] = [
   {
     value: null,
@@ -85,23 +92,6 @@ const BACKGROUND_THEMES: readonly BackgroundThemeOption[] = [
   { value: 'sunshine', label: 'Sunshine', className: 'st-bg-theme-sunshine', light: true },
 ] as const
 
-const CONTENT_SCALE_OPTIONS = [
-  { value: 0.9, label: 'Small' },
-  { value: 1, label: 'Normal' },
-  { value: 1.2, label: 'Comfortable' },
-  { value: 1.4, label: 'Large' },
-  { value: 1.6, label: 'X-Large' },
-] as const
-
-const WEATHER_REFRESH_OPTIONS = [
-  { value: 10, label: '10 minutes' },
-  { value: 15, label: '15 minutes' },
-  { value: 30, label: '30 minutes' },
-  { value: 60, label: '1 hour' },
-  { value: 120, label: '2 hours' },
-  { value: 360, label: '6 hours' },
-] as const
-
 const selectedFile = ref<File | null>(null)
 const previewUrl = ref<string | null>(null)
 const isCleared = ref(false)
@@ -109,6 +99,7 @@ const isBackgroundPickerOpen = ref(false)
 const selectedBackgroundAssetId = ref<number | null>(props.backgroundAssetId)
 const backgroundTheme = ref<string | null>(props.backgroundTheme)
 const backgroundPreset = ref<string>(normalizeThemePreset(props.backgroundPreset))
+const uiLanguage = ref(props.uiLanguage)
 const openBookmarksInNewTab = ref(props.openBookmarksInNewTab)
 const feedSearchUrlTemplate = ref(props.feedSearchUrlTemplate)
 const feedContentScale = ref(props.feedContentScale)
@@ -127,6 +118,19 @@ const weatherLocationQuery = ref('')
 const weatherLocationResults = ref<OpenMeteoGeocodeResult[]>([])
 const weatherLocationSearchStatus = ref<'idle' | 'loading' | 'error' | 'empty'>('idle')
 const weatherLocationSearchError = ref<string | null>(null)
+const showCustomBgInput = ref(!!props.backgroundProperties)
+const backgroundPropertiesRaw = ref<string>(props.backgroundProperties ?? '')
+const backgroundProperties = ref<string | null>(props.backgroundProperties ?? null)
+const backgroundPropertiesError = ref<string | null>(null)
+
+function sanitizeBackgroundValue(input: string): string {
+  return input
+    .trim()
+    .replace(/^background-image\s*:\s*/i, '')
+    .replace(/^background\s*:\s*/i, '')
+    .replace(/;$/, '')
+    .trim()
+}
 
 let objectUrl: string | null = null
 let locationSearchHandle: number | null = null
@@ -134,10 +138,58 @@ let locationSearchController: AbortController | null = null
 const backgroundPickerUrls = ref<Record<number, string>>({})
 const backgroundPickerContainer = ref<HTMLElement | null>(null)
 
+const contentScaleOptions = computed(() => [
+  { value: 0.9, label: t('settings.contentSize.small') },
+  { value: 1, label: t('settings.contentSize.normal') },
+  { value: 1.2, label: t('settings.contentSize.comfortable') },
+  { value: 1.4, label: t('settings.contentSize.large') },
+  { value: 1.6, label: t('settings.contentSize.xlarge') },
+])
+
+const weatherRefreshOptions = computed(() => [
+  { value: 10, label: t('settings.refreshOptions.m10') },
+  { value: 15, label: t('settings.refreshOptions.m15') },
+  { value: 30, label: t('settings.refreshOptions.m30') },
+  { value: 60, label: t('settings.refreshOptions.h1') },
+  { value: 120, label: t('settings.refreshOptions.h2') },
+  { value: 360, label: t('settings.refreshOptions.h6') },
+])
+
+const localizedBackgroundThemes = computed(() => BACKGROUND_THEMES.map((theme) => ({
+  ...theme,
+  label: theme.value === null
+    ? t('settings.themes.speedy')
+    : t(`settings.themes.${theme.value}`),
+})))
+
 const { data: backgroundAssets } = useLiveQuery(
   () => db.assets.where('kind').equals('background').toArray(),
   []
 )
+
+const { data: bgArchiveItems } = useLiveQuery(
+  () => db.bg_archive.orderBy('created_at').reverse().toArray(),
+  []
+)
+
+async function archiveBackground() {
+  if (!backgroundProperties.value) return
+  const newId = await db.bg_archive.add({
+    name: '',
+    value: backgroundProperties.value,
+    created_at: Date.now(),
+  }) as number
+  await db.bg_archive.update(newId, { name: `BG #${newId}` })
+}
+
+async function deleteArchiveItem(id: number) {
+  if (!window.confirm(t('settings.customBg.confirmRemoveBg'))) return
+  await db.bg_archive.delete(id)
+}
+
+function loadArchiveItem(value: string) {
+  backgroundPropertiesRaw.value = value
+}
 
 const resolvedWeatherLocationLabel = computed(() => {
   if (!weatherLocation.value) return null
@@ -155,30 +207,13 @@ function normalizedSettingsSnapshot(value: Omit<SettingsDraft, 'backgroundPrevie
   return JSON.stringify(value)
 }
 
-const hasSettingsChanges = computed(() => {
-  const current = currentDraft()
-  const currentSnapshot = normalizedSettingsSnapshot({
-    backgroundAssetId: current.backgroundAssetId,
-    backgroundTheme: current.backgroundTheme,
-    backgroundPreset: current.backgroundPreset,
-    openBookmarksInNewTab: current.openBookmarksInNewTab,
-    feedSearchUrlTemplate: current.feedSearchUrlTemplate,
-    feedContentScale: current.feedContentScale,
-    noteContentScale: current.noteContentScale,
-    widgetRailEnabled: current.widgetRailEnabled,
-    widgetRailPosition: current.widgetRailPosition,
-    widgetRailAlign: current.widgetRailAlign,
-    weatherEnabled: current.weatherEnabled,
-    weatherUnits: current.weatherUnits,
-    weatherRefreshIntervalMinutes: current.weatherRefreshIntervalMinutes,
-    weatherDisplayLabel: current.weatherDisplayLabel,
-    weatherLocation: current.weatherLocation,
-    weatherApiKey: current.weatherApiKey,
-  })
-  const initialSnapshot = normalizedSettingsSnapshot({
+function snapshotFromProps() {
+  return normalizedSettingsSnapshot({
     backgroundAssetId: props.backgroundAssetId,
     backgroundTheme: props.backgroundTheme,
     backgroundPreset: normalizeThemePreset(props.backgroundPreset),
+    backgroundProperties: props.backgroundProperties ?? null,
+    uiLanguage: props.uiLanguage,
     openBookmarksInNewTab: props.openBookmarksInNewTab,
     feedSearchUrlTemplate: props.feedSearchUrlTemplate.trim(),
     feedContentScale: props.feedContentScale,
@@ -193,7 +228,33 @@ const hasSettingsChanges = computed(() => {
     weatherLocation: props.weatherLocation,
     weatherApiKey: props.weatherApiKey.trim(),
   })
-  return currentSnapshot !== initialSnapshot
+}
+
+const initialSettingsSnapshot = ref(snapshotFromProps())
+
+const hasSettingsChanges = computed(() => {
+  const current = currentDraft()
+  const currentSnapshot = normalizedSettingsSnapshot({
+    backgroundAssetId: current.backgroundAssetId,
+    backgroundTheme: current.backgroundTheme,
+    backgroundPreset: current.backgroundPreset,
+    backgroundProperties: current.backgroundProperties,
+    uiLanguage: current.uiLanguage,
+    openBookmarksInNewTab: current.openBookmarksInNewTab,
+    feedSearchUrlTemplate: current.feedSearchUrlTemplate,
+    feedContentScale: current.feedContentScale,
+    noteContentScale: current.noteContentScale,
+    widgetRailEnabled: current.widgetRailEnabled,
+    widgetRailPosition: current.widgetRailPosition,
+    widgetRailAlign: current.widgetRailAlign,
+    weatherEnabled: current.weatherEnabled,
+    weatherUnits: current.weatherUnits,
+    weatherRefreshIntervalMinutes: current.weatherRefreshIntervalMinutes,
+    weatherDisplayLabel: current.weatherDisplayLabel,
+    weatherLocation: current.weatherLocation,
+    weatherApiKey: current.weatherApiKey,
+  })
+  return currentSnapshot !== initialSettingsSnapshot.value
 })
 
 watch(hasSettingsChanges, (dirty) => {
@@ -219,6 +280,8 @@ function currentDraft(): SettingsDraft {
     backgroundAssetId: isCleared.value ? null : selectedBackgroundAssetId.value,
     backgroundTheme: backgroundTheme.value,
     backgroundPreset: backgroundPreset.value,
+    backgroundProperties: backgroundProperties.value,
+    uiLanguage: uiLanguage.value,
     openBookmarksInNewTab: openBookmarksInNewTab.value,
     feedSearchUrlTemplate: feedSearchUrlTemplate.value.trim(),
     feedContentScale: feedContentScale.value,
@@ -314,20 +377,31 @@ function clearWeatherLocation() {
 function handleBackgroundThemeClick(themeValue: string) {
   const isSameTheme = backgroundTheme.value === themeValue
   backgroundTheme.value = isSameTheme ? null : themeValue
-  if (!isSameTheme && isThemePreset(themeValue)) {
-    backgroundPreset.value = themeValue
+  if (!isSameTheme) {
+    backgroundPropertiesRaw.value = ''
+    backgroundProperties.value = null
+    backgroundPropertiesError.value = null
+    showCustomBgInput.value = false
+    if (isThemePreset(themeValue)) {
+      backgroundPreset.value = themeValue
+    }
   }
 }
 
 function handleDefaultBackgroundThemeClick() {
   backgroundTheme.value = null
   backgroundPreset.value = 'dark'
+  backgroundPropertiesRaw.value = ''
+  backgroundProperties.value = null
+  backgroundPropertiesError.value = null
+  showCustomBgInput.value = false
 }
 
 watch(() => props.backgroundAssetId, loadExistingPreview, { immediate: true })
 watch(() => props.backgroundAssetId, value => { selectedBackgroundAssetId.value = value })
 watch(() => props.backgroundTheme, value => { backgroundTheme.value = value })
 watch(() => props.backgroundPreset, value => { backgroundPreset.value = normalizeThemePreset(value) })
+watch(() => props.uiLanguage, value => { uiLanguage.value = value })
 watch(() => props.openBookmarksInNewTab, value => { openBookmarksInNewTab.value = value })
 watch(() => props.feedSearchUrlTemplate, value => { feedSearchUrlTemplate.value = value })
 watch(() => props.feedContentScale, value => { feedContentScale.value = value })
@@ -346,6 +420,30 @@ watch(() => props.openWidgetConfigurator, value => {
     isWeatherConfiguratorOpen.value = true
   }
 }, { immediate: true })
+watch(() => props.backgroundProperties, value => {
+  backgroundProperties.value = value ?? null
+  backgroundPropertiesRaw.value = value ?? ''
+  if (value) showCustomBgInput.value = true
+})
+watch(backgroundPropertiesRaw, (raw) => {
+  const sanitized = sanitizeBackgroundValue(raw)
+  if (!sanitized) {
+    backgroundPropertiesError.value = null
+    backgroundProperties.value = null
+    emitPreview()
+    return
+  }
+  if (CSS.supports('background', sanitized) || CSS.supports('background-image', sanitized)) {
+    backgroundPropertiesError.value = null
+    backgroundProperties.value = sanitized
+    backgroundTheme.value = null
+    emitPreview()
+  } else {
+    backgroundPropertiesError.value = t('settings.customBg.notValidCssValue')
+    backgroundProperties.value = null
+    emitPreview()
+  }
+})
 watch(widgetRailEnabled, (enabled) => {
   if (!enabled) {
     isWeatherConfiguratorOpen.value = false
@@ -394,6 +492,7 @@ watch(
     selectedBackgroundAssetId,
     backgroundTheme,
     backgroundPreset,
+    uiLanguage,
     openBookmarksInNewTab,
     feedSearchUrlTemplate,
     feedContentScale,
@@ -478,49 +577,47 @@ async function handleSubmit() {
     <template v-if="isWeatherConfiguratorOpen">
       <div class="space-y-3">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">Widget configuration</span>
+          <span class="text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.widgetConfiguration') }}</span>
           <button
             type="button"
             class="px-3 py-2 bg-black/85 hover:bg-black border border-white/10 rounded text-[10px] uppercase tracking-wider font-bold text-white/85 hover:text-white transition-colors"
             @click="isWeatherConfiguratorOpen = false"
-          >
-            Back
-          </button>
+          >{{ t('common.back') }}</button>
         </div>
       </div>
 
       <div class="grid gap-3 md:grid-cols-2">
         <div class="space-y-2">
-          <label for="widget_rail_position" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Rail Position</label>
+          <label for="widget_rail_position" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.railPosition') }}</label>
           <select
             id="widget_rail_position"
             v-model="widgetRailPosition"
             name="widget_rail_position"
             class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
-            <option value="top">Top</option>
-            <option value="bottom">Bottom</option>
+            <option value="top">{{ t('settings.top') }}</option>
+            <option value="bottom">{{ t('settings.bottom') }}</option>
           </select>
         </div>
 
         <div class="space-y-2">
-          <label for="widget_rail_align" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Rail Alignment</label>
+          <label for="widget_rail_align" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.railAlignment') }}</label>
           <select
             id="widget_rail_align"
             v-model="widgetRailAlign"
             name="widget_rail_align"
             class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
-            <option value="left">Left</option>
-            <option value="center">Center</option>
-            <option value="right">Right</option>
+            <option value="left">{{ t('settings.left') }}</option>
+            <option value="center">{{ t('settings.center') }}</option>
+            <option value="right">{{ t('settings.right') }}</option>
           </select>
         </div>
       </div>
 
       <div class="space-y-3 border border-white/10 bg-[#181818] p-3">
         <div class="flex items-center justify-between gap-3">
-          <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Weather Widget</p>
+          <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.weatherWidget') }}</p>
           <label class="flex items-center gap-2 whitespace-nowrap text-sm text-gray-300">
             <input
               id="weather_enabled"
@@ -529,7 +626,7 @@ async function handleSubmit() {
               type="checkbox"
               class="rounded border-white/10 bg-surface-950 text-indigo-600 focus:ring-indigo-500"
             />
-            <span>Enable weather</span>
+            <span>{{ t('settings.enableWeather') }}</span>
           </label>
         </div>
 
@@ -537,23 +634,23 @@ async function handleSubmit() {
           <hr class="border-white/10" />
 
           <div class="space-y-2">
-            <label for="weather_location_query" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Weather Location</label>
+            <label for="weather_location_query" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.weatherLocation') }}</label>
             <input
               id="weather_location_query"
               v-model="weatherLocationQuery"
               name="weather_location_query"
               type="text"
-              placeholder="Search for a city or place"
+              :placeholder="t('settings.weatherLocationPlaceholder')"
               class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
             <p class="text-[11px] text-white/55">
-              Search uses Open-Meteo geocoding. Speedtab stores only the resolved location.
+              {{ t('settings.weatherLocationHelp') }}
             </p>
           </div>
 
           <div v-if="resolvedWeatherLocationLabel" class="flex items-center justify-between gap-3 border border-white/10 bg-black/20 px-3 py-2">
             <div class="min-w-0">
-              <p class="text-[10px] uppercase tracking-[0.18em] text-white/45">Current Location</p>
+              <p class="text-[10px] uppercase tracking-[0.18em] text-white/45">{{ t('settings.currentLocation') }}</p>
               <p class="mt-1 text-[11px] text-white/80 truncate">{{ resolvedWeatherLocationLabel }}</p>
             </div>
             <button
@@ -561,18 +658,18 @@ async function handleSubmit() {
               class="text-[10px] uppercase tracking-[0.18em] text-red-300 hover:text-red-200 transition-colors"
               @click="clearWeatherLocation"
             >
-              Clear
+              {{ t('settings.clear') }}
             </button>
           </div>
 
           <div v-if="weatherLocationSearchStatus === 'loading'" class="text-[11px] text-white/60">
-            Searching locations…
+            {{ t('settings.searchingLocations') }}
           </div>
           <div v-else-if="weatherLocationSearchStatus === 'error'" class="text-[11px] text-red-200/90">
-            {{ weatherLocationSearchError || 'Location search failed.' }}
+            {{ weatherLocationSearchError || t('settings.locationSearchFailed') }}
           </div>
           <div v-else-if="weatherLocationSearchStatus === 'empty'" class="text-[11px] text-white/60">
-            No location matches found.
+            {{ t('settings.noLocationMatches') }}
           </div>
 
           <div v-if="weatherLocationResults.length" class="border border-white/10 bg-black/30">
@@ -586,36 +683,36 @@ async function handleSubmit() {
               <span class="min-w-0">
                 <span class="block text-[11px] text-white/90 truncate">{{ result.name }}</span>
                 <span class="block text-[10px] text-white/55 truncate">
-                  {{ result.country || 'Unknown country' }}
+                  {{ result.country || t('settings.unknownCountry') }}
                   <template v-if="result.timezone"> · {{ result.timezone }}</template>
                 </span>
               </span>
-              <span class="shrink-0 text-[10px] uppercase tracking-[0.18em] text-sky-200/85">Use</span>
+              <span class="shrink-0 text-[10px] uppercase tracking-[0.18em] text-sky-200/85">{{ t('common.use') }}</span>
             </button>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="space-y-2">
-              <label for="weather_units" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Units</label>
+              <label for="weather_units" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.units') }}</label>
               <select
                 id="weather_units"
                 v-model="weatherUnits"
                 name="weather_units"
                 class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
-                <option value="metric">Metric</option>
-                <option value="imperial">Imperial</option>
+                <option value="metric">{{ t('settings.metric') }}</option>
+                <option value="imperial">{{ t('settings.imperial') }}</option>
               </select>
             </div>
 
             <div class="space-y-2">
-              <label for="weather_display_label" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Display Label</label>
+              <label for="weather_display_label" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.displayLabel') }}</label>
               <input
                 id="weather_display_label"
                 v-model="weatherDisplayLabel"
                 name="weather_display_label"
                 type="text"
-                placeholder="Optional custom label"
+                :placeholder="t('settings.displayLabelPlaceholder')"
                 class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
@@ -624,7 +721,7 @@ async function handleSubmit() {
           <hr class="border-white/10" />
 
           <div class="space-y-2">
-            <label for="weather_refresh_interval" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Refresh Interval</label>
+            <label for="weather_refresh_interval" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.refreshInterval') }}</label>
             <select
               id="weather_refresh_interval"
               v-model.number="weatherRefreshIntervalMinutes"
@@ -632,7 +729,7 @@ async function handleSubmit() {
               class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
               <option
-                v-for="option in WEATHER_REFRESH_OPTIONS"
+                v-for="option in weatherRefreshOptions"
                 :key="option.value"
                 :value="option.value"
               >
@@ -642,20 +739,79 @@ async function handleSubmit() {
           </div>
         </template>
       </div>
-
     </template>
 
     <template v-else>
     <div class="space-y-2">
-      <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Background Theme</span>
+      <div class="flex items-center justify-between">
+        <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.backgroundTheme') }}</span>
+        <button
+          type="button"
+          @click="showCustomBgInput = !showCustomBgInput"
+          class="px-2 py-1 border rounded text-[10px] uppercase tracking-wider font-bold transition-colors"
+          :class="showCustomBgInput || backgroundProperties ? 'bg-sky-500/20 border-sky-400/60 text-sky-300' : 'bg-black/85 border-white/10 hover:border-white/20 text-white/85 hover:text-white'"
+        >{{ t('common.custom') }}</button>
+      </div>
+      <div v-if="showCustomBgInput" class="space-y-2">
+        <div class="flex gap-2">
+          <input
+            id="background_properties"
+            name="background_properties"
+            type="text"
+            v-model="backgroundPropertiesRaw"
+            placeholder="linear-gradient(to right, #222, #444)"
+            class="flex-1 bg-surface-950 border rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            :class="backgroundPropertiesError ? 'border-red-500/60' : backgroundProperties ? 'border-sky-400/60' : 'border-white/10'"
+          />
+          <button
+            type="button"
+            :disabled="!backgroundProperties"
+            @click="archiveBackground"
+            class="px-3 py-2 border rounded text-[10px] uppercase tracking-wider font-bold transition-colors"
+            :class="backgroundProperties ? 'bg-black/85 border-white/10 hover:border-white/20 text-white/85 hover:text-white' : 'bg-black/85 border-white/10 text-white/30 cursor-not-allowed'"
+          >{{ t('feedItem.archive') }}</button>
+        </div>
+        <p v-if="backgroundPropertiesError" class="text-[11px] text-red-400">{{ backgroundPropertiesError }}</p>
+        <div
+          v-if="bgArchiveItems.length"
+          class="overflow-y-auto border border-white/10 bg-black/20 rounded p-2"
+          style="max-height: 154px"
+        >
+          <div class="flex flex-wrap gap-2">
+            <div
+              v-for="item in bgArchiveItems"
+              :key="item.id"
+              class="relative"
+              style="flex: 1 1 20%"
+            >
+              <button
+                type="button"
+                :data-st-bg-archive="item.value"
+                @click="loadArchiveItem(item.value)"
+                class="h-10 w-full rounded border text-left px-2 transition-colors relative overflow-hidden"
+                :class="item.value === backgroundProperties ? 'border-sky-400/60 ring-1 ring-sky-400/40' : 'border-white/10 hover:border-white/20'"
+                :style="{ background: item.value }"
+              >
+                <span class="relative z-10 text-[9px] font-medium text-white/80 drop-shadow bg-black/60 p-0.5">{{ item.name }}</span>
+              </button>
+              <button
+                type="button"
+                @click.stop="deleteArchiveItem(item.id!)"
+                class="absolute top-0.5 right-0.5 z-20 w-5 h-5 flex items-center justify-center rounded-full bg-black/70 text-white/60 hover:text-white hover:bg-black transition-colors text-[12px] leading-none"
+                aria-label="Remove"
+              >×</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="grid grid-cols-4 gap-2 leading-none">
         <button
-          v-for="theme in BACKGROUND_THEMES"
+          v-for="theme in localizedBackgroundThemes"
           :key="theme.value ?? 'default'"
           type="button"
           @click="theme.value === null ? handleDefaultBackgroundThemeClick() : handleBackgroundThemeClick(theme.value)"
           class="h-12 rounded border text-left px-3 transition-colors relative overflow-hidden"
-          :class="backgroundTheme === theme.value ? 'border-[#5ecbff] ring-1 ring-[#5ecbff]' : 'border-white/10 hover:border-white/20'"
+          :class="backgroundTheme === theme.value && !backgroundProperties ? 'border-[#5ecbff] ring-1 ring-[#5ecbff]' : 'border-white/10 hover:border-white/20'"
         >
           <span
             class="absolute inset-0"
@@ -669,14 +825,14 @@ async function handleSubmit() {
         </button>
       </div>
       <p class="text-[11px] text-white/55">
-        Theme colors are used when no background image is active.
+        {{ t('settings.backgroundThemeHelp') }}
       </p>
     </div>
 
     <hr class="border-white/10" />
 
     <div class="space-y-2">
-      <label for="theme_preset" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Theme Preset Override</label>
+      <label for="theme_preset" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.themePresetOverride') }}</label>
       <select
         id="theme_preset"
         v-model="backgroundPreset"
@@ -692,14 +848,14 @@ async function handleSubmit() {
         </option>
       </select>
       <p class="text-[11px] text-white/55">
-        Presets override theme variables and can be layered on top of a base background theme.
+        {{ t('settings.themePresetHelp') }}
       </p>
     </div>
 
     <hr class="border-white/10" />
 
     <div class="space-y-2">
-      <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider">App Background</span>
+      <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.appBackground') }}</span>
       <div class="flex items-center gap-2">
         <input
           id="app-settings-wallpaper-file"
@@ -715,11 +871,11 @@ async function handleSubmit() {
           @click="isBackgroundPickerOpen = !isBackgroundPickerOpen"
           class="px-3 py-2 bg-black/85 hover:bg-black border border-white/10 rounded text-[10px] uppercase tracking-wider font-bold text-white/85 hover:text-white transition-colors"
         >
-          Pick
+          {{ t('settings.pick') }}
         </button>
       </div>
       <p class="text-[11px] text-white/55">
-        Upload a default background image for Speedtab. Individual pages can override it.
+        {{ t('settings.appBackgroundHelp') }}
       </p>
       <div
         v-if="isBackgroundPickerOpen && backgroundAssets.length"
@@ -738,7 +894,7 @@ async function handleSubmit() {
           >
             <img
               :src="backgroundPickerUrls[asset.id!] || ''"
-              alt="Background asset"
+              :alt="t('settings.backgroundAssetAlt')"
               class="w-full aspect-video object-cover"
             />
           </button>
@@ -747,9 +903,25 @@ async function handleSubmit() {
 
       <div v-if="previewUrl" class="space-y-2">
         <div class="aspect-video overflow-hidden border border-white/10 bg-black/40">
-          <img :src="previewUrl" alt="Background preview" class="w-full h-full object-cover" />
+          <img :src="previewUrl" :alt="t('settings.backgroundPreviewAlt')" class="w-full h-full object-cover" />
         </div>
       </div>
+    </div>
+
+    <hr class="border-white/10" />
+
+    <div class="space-y-2">
+      <label for="ui_language" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.language.label') }}</label>
+      <select
+        id="ui_language"
+        v-model="uiLanguage"
+        name="ui_language"
+        class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+      >
+        <option value="en">{{ t('settings.language.english') }}</option>
+        <option value="de">{{ t('settings.language.german') }}</option>
+      </select>
+      <p class="text-[11px] text-white/55">{{ t('settings.language.help') }}</p>
     </div>
 
     <hr class="border-white/10" />
@@ -763,14 +935,14 @@ async function handleSubmit() {
         class="rounded border-white/10 bg-surface-950 text-indigo-600 focus:ring-indigo-500"
       />
       <label for="open_bookmarks_new_tab" class="text-sm text-gray-300 select-none">
-        Open bookmarks in new tabs by default
+        {{ t('settings.openBookmarksInNewTab') }}
       </label>
     </div>
 
     <hr class="border-white/10" />
 
     <div class="space-y-2">
-      <label for="feed_search_url_template" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Feed Search URL</label>
+      <label for="feed_search_url_template" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.feedSearchUrl') }}</label>
       <input
         id="feed_search_url_template"
         v-model="feedSearchUrlTemplate"
@@ -780,7 +952,7 @@ async function handleSubmit() {
         class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
       />
       <p class="text-[11px] text-white/55">
-        Use <code>%s</code> as the placeholder for the encoded feed headline.
+        {{ t('settings.feedSearchHelp') }}
       </p>
     </div>
 
@@ -788,7 +960,7 @@ async function handleSubmit() {
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="space-y-2">
-        <label for="feed_content_scale" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Feeds Content Size</label>
+        <label for="feed_content_scale" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.feedsContentSize') }}</label>
         <select
           id="feed_content_scale"
           v-model.number="feedContentScale"
@@ -796,7 +968,7 @@ async function handleSubmit() {
           class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         >
           <option
-            v-for="option in CONTENT_SCALE_OPTIONS"
+            v-for="option in contentScaleOptions"
             :key="option.label"
             :value="option.value"
           >
@@ -806,7 +978,7 @@ async function handleSubmit() {
       </div>
 
       <div class="space-y-2">
-        <label for="note_content_scale" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Notes Content Size</label>
+        <label for="note_content_scale" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.notesContentSize') }}</label>
         <select
           id="note_content_scale"
           v-model.number="noteContentScale"
@@ -814,7 +986,7 @@ async function handleSubmit() {
           class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         >
           <option
-            v-for="option in CONTENT_SCALE_OPTIONS"
+            v-for="option in contentScaleOptions"
             :key="option.label"
             :value="option.value"
           >
@@ -829,8 +1001,8 @@ async function handleSubmit() {
     <div class="space-y-4">
       <div class="flex items-center justify-between gap-3">
         <div>
-          <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Widgets</p>
-          <p class="text-[11px] text-white/55 mt-1">Enable additional features</p>
+          <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('settings.widgets') }}</p>
+          <p class="text-[11px] text-white/55 mt-1">{{ t('settings.widgetsHelp') }}</p>
         </div>
         <label class="flex items-center gap-2 whitespace-nowrap text-sm text-gray-300">
           <input
@@ -840,7 +1012,7 @@ async function handleSubmit() {
             type="checkbox"
             class="rounded border-white/10 bg-surface-950 text-indigo-600 focus:ring-indigo-500"
           />
-          <span>Enable rail</span>
+          <span>{{ t('settings.enableRail') }}</span>
         </label>
       </div>
 
@@ -851,7 +1023,7 @@ async function handleSubmit() {
           :disabled="!widgetRailEnabled"
           @click="isWeatherConfiguratorOpen = !isWeatherConfiguratorOpen"
         >
-          Configure Widgets
+          {{ t('settings.configureWidgets') }}
         </button>
       </div>
     </div>
@@ -868,7 +1040,7 @@ async function handleSubmit() {
             @click="clearBackground"
             class="text-xs text-red-400 hover:text-red-300 transition-colors"
           >
-            Remove Background Image
+            {{ t('settings.removeBackgroundImage') }}
           </button>
         </div>
         <div class="flex items-center gap-3">
@@ -877,14 +1049,14 @@ async function handleSubmit() {
             @click="emit('cancel')"
             class="px-4 py-2 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors"
           >
-            Cancel
+            {{ t('common.cancel') }}
           </button>
           <button
             type="submit"
             :disabled="!hasSettingsChanges"
             class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-medium transition-all disabled:cursor-default disabled:opacity-45 disabled:hover:bg-indigo-600"
           >
-            Save Settings
+            {{ t('settings.saveSettings') }}
           </button>
         </div>
       </div>

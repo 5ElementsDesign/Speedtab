@@ -2,6 +2,7 @@
 import { loadAssetObjectUrl, storeOrGetAsset } from '@/composables/useAsset'
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import type { Page, PortableInput } from '@/types/db'
+import { useI18n } from 'vue-i18n'
 
 const PRESET_PAGE_ICONS = [
   '⭕', '⚡', '🏠', '⭐', '📁', '📌', '🧩', '📝', '📚', '📰',
@@ -24,6 +25,7 @@ const emit = defineEmits<{
   delete: [id: number]
   cancel: []
 }>()
+const { t } = useI18n()
 
 // Parse existing layout config (modulesPerRow, maxWidth, background) out of config_json.
 function parseConfig(): { modulesPerRow: number; maxWidth: number | null; backgroundAssetId: number | null } {
@@ -134,13 +136,13 @@ async function handleSubmit() {
 <template>
   <form @submit.prevent="handleSubmit" class="space-y-4">
     <div>
-      <label for="page_title" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Title</label>
+      <label for="page_title" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('pageForm.title') }}</label>
       <input
         id="page_title"
         ref="titleInput"
         v-model="form.title"
         type="text"
-        placeholder="Page name"
+        :placeholder="t('pageForm.titlePlaceholder')"
         class="w-full min-h-[40px] bg-surface-950 border border-white/10 rounded px-3 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         required
       />
@@ -148,7 +150,7 @@ async function handleSubmit() {
 
     <div class="grid grid-cols-2 gap-4 items-start">
       <div>
-        <label for="page_icon" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Icon (Emoji)</label>
+        <label for="page_icon" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('pageForm.icon') }}</label>
         <div class="flex gap-2">
           <input
             id="page_icon"
@@ -161,19 +163,19 @@ async function handleSubmit() {
             @click="isIconPickerOpen = !isIconPickerOpen"
             class="shrink-0 min-h-[40px] px-3 bg-white/10 hover:bg-white/15 border border-white/10 rounded text-[10px] uppercase tracking-wider text-white/80 hover:text-white transition-colors"
           >
-            Pick
+            {{ t('pageForm.pick') }}
           </button>
         </div>
       </div>
       <div>
-        <label for="page_nav_group" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Nav Group</label>
+        <label for="page_nav_group" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('pageForm.navGroup') }}</label>
         <select
           id="page_nav_group"
           v-model="form.nav_group"
           class="w-full min-h-[40px] bg-surface-950 border border-white/10 rounded px-3 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         >
-          <option value="main">Main Nav</option>
-          <option value="overflow">Overflow</option>
+          <option value="main">{{ t('pageForm.navGroups.main') }}</option>
+          <option value="overflow">{{ t('pageForm.navGroups.overflow') }}</option>
         </select>
       </div>
     </div>
@@ -200,12 +202,12 @@ async function handleSubmit() {
         @change="form.is_home = ($event.target as HTMLInputElement).checked ? 1 : 0"
         class="rounded border-white/10 bg-surface-950 text-indigo-600 focus:ring-indigo-500"
       />
-      <label for="is_home" class="text-sm text-gray-300 select-none">Set as Home Page</label>
+      <label for="is_home" class="text-sm text-gray-300 select-none">{{ t('pageForm.setAsHomePage') }}</label>
     </div>
 
     <div class="grid grid-cols-2 gap-4">
       <div>
-        <label for="page_modules_per_row" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Modules per row</label>
+        <label for="page_modules_per_row" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('pageForm.modulesPerRow') }}</label>
         <input
           id="page_modules_per_row"
           v-model.number="modulesPerRow"
@@ -216,21 +218,21 @@ async function handleSubmit() {
         />
       </div>
       <div>
-        <label for="page_max_width" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Max content width (px)</label>
+        <label for="page_max_width" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('pageForm.maxContentWidth') }}</label>
         <input
           id="page_max_width"
           v-model.number="maxWidth"
           type="number"
           min="300"
           max="2000"
-          placeholder="300 - 2000"
+          :placeholder="t('pageForm.maxContentWidthPlaceholder')"
           class="w-full min-h-[40px] bg-surface-950 border border-white/10 rounded px-3 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
       </div>
     </div>
 
     <div class="space-y-2">
-      <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Background Override</span>
+      <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('pageForm.backgroundOverride') }}</span>
       <input
         id="page_background_file"
         name="page_background_file"
@@ -240,10 +242,10 @@ async function handleSubmit() {
         class="block w-full text-sm text-gray-200 file:mr-3 file:px-3 file:py-2 file:border-0 file:bg-black/85 file:text-white/85 file:rounded file:cursor-pointer"
       />
       <p class="text-[11px] text-white/55">
-        Leave empty to use the global app background for this page.
+        {{ t('pageForm.backgroundOverrideHelp') }}
       </p>
       <div v-if="backgroundPreviewUrl" class="aspect-video overflow-hidden border border-white/10 bg-black/40">
-        <img :src="backgroundPreviewUrl" alt="Page background preview" class="w-full h-full object-cover" />
+        <img :src="backgroundPreviewUrl" :alt="t('pageForm.backgroundPreviewAlt')" class="w-full h-full object-cover" />
       </div>
       <button
         v-if="backgroundAssetId || backgroundPreviewUrl"
@@ -251,7 +253,7 @@ async function handleSubmit() {
         @click="clearBackgroundOverride"
         class="text-xs text-red-400 hover:text-red-300 transition-colors"
       >
-        Use App Background
+        {{ t('pageForm.useAppBackground') }}
       </button>
     </div>
 
@@ -262,7 +264,7 @@ async function handleSubmit() {
         @click="emit('delete', page.id!)"
         class="text-xs text-red-400 hover:text-red-300 transition-colors"
       >
-        Delete Page
+        {{ t('pageForm.deletePage') }}
       </button>
       <div v-else></div>
 
@@ -272,13 +274,13 @@ async function handleSubmit() {
           @click="emit('cancel')"
           class="px-4 py-2 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors"
         >
-          Cancel
+          {{ t('common.cancel') }}
         </button>
         <button
           type="submit"
           class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-medium shadow-lg shadow-indigo-900/20 transition-all"
         >
-          {{ page?.id ? 'Save Changes' : 'Create Page' }}
+          {{ page?.id ? t('pageForm.saveChanges') : t('pageForm.createPage') }}
         </button>
       </div>
     </div>

@@ -2,6 +2,7 @@
 import { useDragSort } from '@/composables/useDragSort'
 import type { Page } from '@/types/db'
 import { computed, nextTick, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Dropdown from './Dropdown.vue'
 
 // ─── Props & emits ────────────────────────────────────────────────────────────
@@ -17,8 +18,10 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const { t } = useI18n()
 
 const emit = defineEmits<{
+  toggleHelpers: []
   navigate:     [page: Page]
   addPage:      []
   editPage:     [page: Page]
@@ -57,6 +60,11 @@ const dnd = useDragSort({
 
 const searchInput = ref<HTMLInputElement | null>(null)
 const localSearchFocused = ref(false)
+const inboxItemsLabel = computed(() =>
+  (props.captureCount ?? 0) === 1
+    ? t('nav.inboxItemSingular')
+    : t('nav.inboxItemPlural'),
+)
 
 watch(() => props.searchOpen, async (open) => {
   if (!open) return
@@ -85,21 +93,27 @@ function handleSearchBlur() {
     class="
       st-app-header
       flex items-center gap-1 shrink-0
-      bg-black/65 backdrop-blur-xs border-b border-white/10 leading-none
+      bg-black/65 border-b border-white/10 leading-none
       px-3 h-10
     "
   >
     <!-- Brand mark -->
-    <h1 class="text-[11px] font-semibold text-white/90 select-none mr-3 shrink-0">
+    <button
+      type="button"
+      class="text-[11px] font-semibold text-white/90 select-none mr-3 shrink-0 flex items-center gap-1 hover:text-white hover:bg-white/5 px-1.5 min-h-[28px]"
+      :title="t('nav.helpers')"
+      :aria-label="t('nav.helpers')"
+      @click="emit('toggleHelpers')"
+    >
       <span class="st-h-icon">⚡</span> <span class="st-h-title hidden sm:inline">Speedtab</span>
-    </h1>
+    </button>
 
     <!-- Main nav page tabs (scrollable + drag-to-reorder) -->
     <nav
       class="flex items-center gap-1 flex-1 overflow-x-auto min-w-0 h-full"
       style="scrollbar-width: none"
       role="tablist"
-      aria-label="Pages"
+      :aria-label="t('nav.pages')"
     >
       <button
         v-for="(page, idx) in mainPages"
@@ -124,7 +138,7 @@ function handleSearchBlur() {
         ]"
         role="tab"
         :aria-selected="activePage?.id === page.id"
-        :title="page.title + ' (Right click to edit · drag to reorder)'"
+        :title="t('nav.rightClickDragHint', { title: page.title })"
       >
         <span v-if="page.icon" class="shrink-0">{{ page.icon }}</span>
         <span :class="page.icon && activePage?.id !== page.id ? 'hidden sm:inline' : 'inline'">{{ page.title }}</span>
@@ -132,12 +146,12 @@ function handleSearchBlur() {
 
       <Dropdown
         v-if="overflowPages.length > 0"
-        label="More pages"
-        title="More pages"
+        :label="t('nav.morePages')"
+        :title="t('nav.morePages')"
         align="left"
         trigger-class="px-3 min-h-[28px] text-[11px] text-[#a0a0a0] hover:text-white hover:bg-white/5 shrink-0 flex items-center"
       >
-        <template #trigger>More</template>
+        <template #trigger>{{ t('nav.more') }}</template>
 
         <div class="px-[0.1rem]">
           <button
@@ -161,9 +175,9 @@ function handleSearchBlur() {
       type="button"
       @click="emit('openCaptureInbox')"
       class="px-2 min-h-[28px] text-[10px] uppercase tracking-wider text-white/85 hover:text-white hover:bg-white/5 shrink-0 flex items-center gap-1"
-      :title="`${captureCount} captured item${captureCount === 1 ? '' : 's'} waiting`"
+      :title="t('nav.inboxWaiting', { count: captureCount ?? 0, itemsLabel: inboxItemsLabel })"
     >
-      Inbox
+      {{ t('nav.inbox') }}
       <span class="px-1 rounded-sm bg-white/15 text-[9px] leading-none">{{ captureCount }}</span>
     </button>
 
@@ -173,8 +187,8 @@ function handleSearchBlur() {
         type="button"
         @click="openSearch"
         class="px-2 min-h-[28px] text-white/70 hover:text-white hover:bg-white/5 shrink-0 flex items-center justify-center"
-        title="Search"
-        aria-label="Open search"
+        :title="t('common.search')"
+        :aria-label="t('nav.openSearch')"
       >
         <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path fill-rule="evenodd" d="M8.5 3a5.5 5.5 0 014.33 8.89l3.64 3.64a1 1 0 01-1.41 1.41l-3.64-3.64A5.5 5.5 0 118.5 3zm0 2a3.5 3.5 0 100 7 3.5 3.5 0 000-7z" clip-rule="evenodd" />
@@ -191,7 +205,7 @@ function handleSearchBlur() {
           name="workspace_search"
           :value="searchQuery || ''"
           type="search"
-          placeholder="Search…"
+          :placeholder="t('app.searchPlaceholder')"
           class="w-full h-7 px-2 text-[11px] bg-white/10 border border-white/10 text-white placeholder:text-white/35 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
           @focus="localSearchFocused = true; emit('updateSearchOpen', true); emit('searchFocus')"
           @click="emit('searchFocus')"
@@ -204,12 +218,12 @@ function handleSearchBlur() {
 
     <!-- Page-level actions dropdown -->
     <Dropdown
-      label="Page actions"
-      title="Page actions"
+      :label="t('nav.pageActions')"
+      :title="t('nav.pageActions')"
       align="right"
       trigger-class="px-3 min-h-[28px] text-[10px] leading-normal uppercase tracking-wider text-[#a0a0a0] hover:text-white hover:bg-white/5 shrink-0 flex items-center"
     >
-      <template #trigger>Page</template>
+      <template #trigger>{{ t('nav.page') }}</template>
 
       <div class="px-[0.1rem]">
         <button
@@ -219,7 +233,7 @@ function handleSearchBlur() {
           @click="activePage && emit('editPage', activePage)"
           class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent"
         >
-          Edit Page
+          {{ t('nav.actions.editPage') }}
         </button>
         <button
           type="button"
@@ -227,7 +241,7 @@ function handleSearchBlur() {
           @click="emit('addPage')"
           class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10"
         >
-          Add Page
+          {{ t('nav.actions.addPage') }}
         </button>
       </div>
       <hr class="my-1 border-0 border-t border-white/10" />
@@ -239,7 +253,7 @@ function handleSearchBlur() {
           @click="emit('addModule')"
           class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent"
         >
-          Add Module
+          {{ t('nav.actions.addModule') }}
         </button>
       </div>
       <hr class="my-1 border-0 border-t border-white/10" />
@@ -251,7 +265,7 @@ function handleSearchBlur() {
           @click="emit('copyUrl')"
           class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent"
         >
-          Copy URL
+          {{ t('nav.actions.copyUrl') }}
         </button>
       </div>
     </Dropdown>
@@ -259,8 +273,8 @@ function handleSearchBlur() {
     <!-- Utility / settings cluster -->
     <div class="ml-2 shrink-0 flex items-center gap-1">
       <Dropdown
-        label="Settings"
-        title="Settings and maintenance"
+        :label="t('common.settings')"
+        :title="t('nav.settingsAndMaintenance')"
         align="right"
         :hide-chevron="true"
         trigger-class="p-1.5 min-h-[28px] min-w-[28px] flex items-center justify-center text-white/70 hover:text-white hover:bg-white/5"
@@ -282,7 +296,7 @@ function handleSearchBlur() {
             @click="emit('openSettings')"
             class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10"
           >
-            Settings
+            {{ t('nav.actions.settings') }}
           </button>
         </div>
         <hr class="my-1 border-0 border-t border-white/10" />
@@ -293,13 +307,13 @@ function handleSearchBlur() {
             @click="emit('openDataExchange')"
             class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10 flex items-center justify-between gap-3"
           >
-            <span>Data Exchange</span>
+            <span>{{ t('nav.actions.dataExchange') }}</span>
             <span
               v-if="exportPending"
               class="rounded-sm bg-amber-400/20 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-amber-200"
-              :title="exportReminderLabel ? `Local export needed: ${exportReminderLabel}` : 'Local export needed'"
+              :title="exportReminderLabel ? `${t('nav.exportNeeded')}: ${exportReminderLabel}` : t('nav.exportNeeded')"
             >
-              Local Export
+              {{ t('nav.localExport') }}
             </span>
           </button>
         </div>
@@ -311,7 +325,7 @@ function handleSearchBlur() {
             @click="emit('openAssets')"
             class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10"
           >
-            Assets
+            {{ t('nav.actions.assets') }}
           </button>
           <button
             type="button"
@@ -319,7 +333,7 @@ function handleSearchBlur() {
             @click="emit('cleanupData')"
             class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10"
           >
-            Cleanup
+            {{ t('nav.actions.cleanup') }}
           </button>
         </div>
       </Dropdown>

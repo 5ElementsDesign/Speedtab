@@ -2,6 +2,17 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.3.0]
+
+### Added
+- Full application internationalization foundation with `vue-i18n`, including English and German locale support, persisted UI language selection, browser-language fallback on first run, and onboarding language selection for empty workspaces.
+- Custom background property input in Settings for valid CSS background values such as gradients, colors, and other browser-supported background declarations, with live validation and preview.
+- Background Archive for saving and reusing custom background values from a dedicated shelf in Settings.
+- Persistent local-only `Quicknote` scratchpad, opened from the header helper toggle and stored in `chrome.storage.local` outside workspace export/import.
+- Background archive entries are now included in the standard settings export/import flow via `BackupManifestV2`.
+- The UI was refined across the app, including layout and interaction polish around the new internationalization and appearance controls.
+
+
 ## [1.2.0]
 
 ### Added

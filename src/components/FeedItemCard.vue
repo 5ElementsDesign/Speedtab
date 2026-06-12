@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { useFavicon } from '@/composables/useFavicon';
+import { useLocaleFormatters } from '@/composables/useLocaleFormatters';
 import { sanitizeHtml } from '@/composables/useSanitize';
 import type { FeedItem } from '@/types/db';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   item: FeedItem
@@ -14,6 +16,8 @@ const props = defineProps<{
 }>()
 
 const { getFaviconUrl } = useFavicon()
+const { t } = useI18n()
+const { formatDate, formatDateTime, formatNumber } = useLocaleFormatters()
 
 const formattedDate = computed(() => {
   if (!props.item.published_at) return ''
@@ -24,12 +28,12 @@ const formattedDate = computed(() => {
   if (diff < 3600000) return `${Math.floor(diff / 60000)}m`
   if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`
 
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  return formatDate(date, { month: 'short', day: 'numeric' })
 })
 
 const longDate = computed(() => {
   if (!props.item.published_at) return ''
-  return new Date(props.item.published_at).toLocaleString()
+  return formatDateTime(props.item.published_at)
 })
 
 const domain = computed(() => {
@@ -41,7 +45,7 @@ const domain = computed(() => {
   }
 })
 
-const displaySource = computed(() => props.sourceTitle || domain.value || 'feed')
+const displaySource = computed(() => props.sourceTitle || domain.value || t('feedItem.fallbackSource'))
 
 const faviconUrl = computed(() => {
   return getFaviconUrl(props.item.url)
@@ -50,6 +54,33 @@ const faviconUrl = computed(() => {
 const contentHtml = computed(() => {
   const raw = props.item.content || props.item.summary || ''
   return raw ? sanitizeHtml(raw) : ''
+})
+
+function normalizeMediaUrl(value: string | null | undefined): string | null {
+  const raw = value?.trim()
+  if (!raw) return null
+  try {
+    const url = new URL(raw)
+    if (url.protocol === 'http:' || url.protocol === 'https:') return url.toString()
+  } catch {
+    return null
+  }
+  return null
+}
+
+function extractFirstMediaUrl(rawHtml: string): string | null {
+  if (!rawHtml) return null
+  try {
+    const doc = new DOMParser().parseFromString(rawHtml, 'text/html')
+    const imageUrl = doc.querySelector('img[src]')?.getAttribute('src')
+    return normalizeMediaUrl(imageUrl)
+  } catch {
+    return null
+  }
+}
+
+const firstMediaUrl = computed(() => {
+  return extractFirstMediaUrl(props.item.content || props.item.summary || '')
 })
 
 type YoutubePayload = {
@@ -87,14 +118,14 @@ const youtubeDescriptionHtml = computed(() => {
 const youtubeViewCountLabel = computed(() => {
   const views = youtubePayload.value?.view_count
   return typeof views === 'number' && Number.isFinite(views)
-    ? views.toLocaleString()
+    ? formatNumber(views)
     : null
 })
 
 const youtubeStarCountLabel = computed(() => {
   const stars = youtubePayload.value?.star_count
   return typeof stars === 'number' && Number.isFinite(stars)
-    ? stars.toLocaleString()
+    ? formatNumber(stars)
     : null
 })
 
@@ -116,11 +147,11 @@ const googleHeadlineUrl = computed(() => {
     :data-newly-fetched="props.isNewlyFetched ? 'true' : 'false'"
   >
     <div
-      class="st-module-feed-item-header group w-full min-w-0 px-1 py-1 transition-colors"
+      class="st-module-feed-item-header group w-full min-w-0 transition-colors pr-1"
       :data-expanded="props.expanded ? 'true' : 'false'"
     >
       <div
-        class="st-module-feed-item-icon shrink-0 w-5 h-5 rounded-sm border flex items-center justify-center"
+        class="st-module-feed-item-icon shrink-0 rounded-sm border flex items-center justify-center"
         :title="displaySource"
       >
         <img
@@ -135,7 +166,7 @@ const googleHeadlineUrl = computed(() => {
       <button
         type="button"
         data-click="toggleFeedItem"
-        class="st-module-feed-item-toggle min-w-0 w-full py-2 text-left"
+        class="st-module-feed-item-toggle min-w-0 w-full h-full text-left"
         :aria-expanded="props.expanded"
         :title="`${displaySource} · ${item.title}`"
       >
@@ -150,11 +181,11 @@ const googleHeadlineUrl = computed(() => {
       </button>
 
       <span
-        class="st-module-feed-item-read-indicator shrink-0 text-[9px] uppercase tracking-wider leading-none"
-        :class="item.read_at != null ? 'opacity-100' : 'opacity-0'"
+        class="st-module-feed-item-read-indicator shrink-0 text-[12px] uppercase tracking-wider leading-none"
+        :class="item.read_at != null ? 'opacity-70' : 'opacity-0'"
         aria-hidden="true"
       >
-        Read
+        {{ t('feedItem.read') }}
       </span>
 
       <span class="st-module-feed-item-date shrink-0 text-[9px] font-mono leading-none" :title="longDate">
@@ -165,10 +196,10 @@ const googleHeadlineUrl = computed(() => {
         type="button"
         data-click="archiveFeedItem"
         class="st-module-feed-item-save shrink-0 text-[9px] transition-colors px-1.5 py-0.5 rounded-sm border"
-        title="Archive this item"
-        aria-label="Archive this item"
+        :title="t('feedItem.archiveThisItem')"
+        :aria-label="t('feedItem.archiveThisItem')"
       >
-        Save
+        {{ t('feedItem.save') }}
       </button>
     </div>
 
@@ -204,8 +235,8 @@ const googleHeadlineUrl = computed(() => {
         <div class="st-module-feed-item-youtube-bar p-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[10px]">
           <span class="st-module-feed-item-byline">{{ item.author || displaySource }}</span>
           <span v-if="longDate" class="st-module-feed-item-domain">{{ longDate }}</span>
-          <span v-if="youtubeViewCountLabel" class="st-module-feed-item-domain">{{ youtubeViewCountLabel }} views</span>
-          <span v-if="youtubeStarCountLabel" class="st-module-feed-item-domain">{{ youtubeStarCountLabel }} likes</span>
+          <span v-if="youtubeViewCountLabel" class="st-module-feed-item-domain">{{ t('feedItem.views', { count: youtubeViewCountLabel }) }}</span>
+          <span v-if="youtubeStarCountLabel" class="st-module-feed-item-domain">{{ t('feedItem.likes', { count: youtubeStarCountLabel }) }}</span>
         </div>
 
         <div class="st-module-feed-item-actions flex flex-wrap items-center gap-2 px-3 pb-3">
@@ -215,7 +246,7 @@ const googleHeadlineUrl = computed(() => {
             rel="noopener noreferrer"
             class="st-module-feed-item-open px-2 py-1 rounded-sm text-[10px] uppercase tracking-wider transition-colors"
           >
-            Open
+            {{ t('feeds.open') }}
           </a>
           <button
             v-if="youtubeDescriptionHtml"
@@ -223,14 +254,14 @@ const googleHeadlineUrl = computed(() => {
             data-click="toggleFeedItemDescription"
             class="st-module-feed-item-action px-2 py-1 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
           >
-            {{ props.showYoutubeDescription ? 'Hide Description' : 'Description' }}
+            {{ props.showYoutubeDescription ? t('feedItem.hideDescription') : t('feedItem.description') }}
           </button>
           <button
             type="button"
             data-click="archiveFeedItem"
             class="st-module-feed-item-action px-2 py-1 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
           >
-            Archive
+            {{ t('feedItem.archive') }}
           </button>
           <a
             :href="googleHeadlineUrl"
@@ -238,7 +269,7 @@ const googleHeadlineUrl = computed(() => {
             rel="noopener noreferrer"
             class="st-module-feed-item-action px-2 py-1 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
           >
-            Search
+            {{ t('feedItem.search') }}
           </a>
         </div>
 
@@ -260,39 +291,48 @@ const googleHeadlineUrl = computed(() => {
         </p>
       </div>
 
+      <img
+        v-if="firstMediaUrl"
+        :src="firstMediaUrl"
+        :alt="item.title"
+        class="st-module-feed-item-media"
+        loading="lazy"
+        draggable="false"
+      />
+
       <div
         v-if="contentHtml"
         class="st-module-feed-item-copy feed-copy text-[12px] leading-snug"
         v-html="contentHtml"
       />
       <p v-else class="st-module-feed-item-empty text-[12px] italic">
-        No summary available.
+        {{ t('feedItem.noSummary') }}
       </p>
 
-      <div class="st-module-feed-item-actions flex flex-wrap items-center gap-2">
+      <div class="st-module-feed-item-actions flex flex-wrap items-center gap-2 leading-none">
         <a
           :href="googleHeadlineUrl"
           target="_blank"
           rel="noopener noreferrer"
-          class="st-module-feed-item-action px-2 py-1 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
+          class="st-module-feed-item-action px-2 py-2 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
         >
-          Search
+          {{ t('feedItem.search') }}
         </a>
         <a
           v-if="item.url"
           :href="item.url"
           target="_blank"
           rel="noopener noreferrer"
-          class="st-module-feed-item-open px-2 py-1 rounded-sm text-[10px] uppercase tracking-wider transition-colors"
+          class="st-module-feed-item-open px-2 py-2 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
         >
-          Open
+          {{ t('feedItem.open') }}
         </a>
         <button
           type="button"
           data-click="archiveFeedItem"
-          class="st-module-feed-item-action px-2 py-1 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
+          class="st-module-feed-item-action px-2 py-2 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
         >
-          Archive
+          {{ t('feedItem.archive') }}
         </button>
         <span class="st-module-feed-item-domain text-[10px] truncate">
           {{ domain }}
@@ -332,10 +372,6 @@ const googleHeadlineUrl = computed(() => {
   color: var(--st-feed-item-text-muted);
 }
 
-.st-module-feed-item[data-read='true'] .st-module-feed-item-header {
-  opacity: 0.88;
-}
-
 .st-module-feed-item[data-read='true'] .st-module-feed-item-date {
   color: rgba(255, 255, 255, 0.28);
 }
@@ -346,6 +382,15 @@ const googleHeadlineUrl = computed(() => {
 
 .st-module-feed-item-domain {
   color: var(--st-feed-item-text-muted);
+}
+
+.st-module-feed-item-media {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  border-radius: 0.125rem;
+  box-shadow: 0 0 4px var(--st-feed-item-text-muted);
 }
 
 .feed-copy :deep(p)  { margin: 0.25rem 0; }

@@ -12,6 +12,7 @@ import NavBar from '@/components/NavBar.vue'
 import OpenNotesHost from '@/components/OpenNotesHost.vue'
 import PageForm from '@/components/PageForm.vue'
 import SidePanel from '@/components/SidePanel.vue'
+import ScratchpadPanel from '@/components/ScratchpadPanel.vue'
 import WidgetRail from '@/components/WidgetRail.vue'
 import { loadAssetObjectUrl } from '@/composables/useAsset'
 import {
@@ -45,9 +46,17 @@ import {
   type ModuleColumnSpan,
 } from '@/composables/useModuleLayout'
 import { useReorder } from '@/composables/useReorder'
+import {
+  DEFAULT_SCRATCHPAD_STATE,
+  getScratchpadState,
+  SCRATCHPAD_STORAGE_KEY,
+  updateScratchpadState,
+  type ScratchpadState,
+} from '@/composables/useScratchpadLocal'
 import { getWeatherWidgetApiKey, setWeatherWidgetApiKey } from '@/composables/useWeatherWidgetLocal'
 import { parseWidgetSettings, saveWidgetSettings, WIDGET_SETTINGS_KEY } from '@/composables/useWidgetSettings'
 import { db, isActiveRecord, makeCreateMetadata, makeUpdatedAtPatch } from '@/db/db'
+import { loadLocaleMessages, resolveSupportedLocale, UI_LANGUAGE_SETTING_KEY, type SupportedLocale } from '@/i18n'
 import { DEFAULT_THEME_PRESET, normalizeThemePreset } from '@/themePresets'
 import type {
   AppSetting,
@@ -61,6 +70,7 @@ import type {
 } from '@/types/db'
 import type { WeatherWidgetLocation, WeatherWidgetUnits, WidgetRailAlign, WidgetRailPosition } from '@/types/widgets'
 import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 // ─── Hash navigation ──────────────────────────────────────────────────────────
 
@@ -205,6 +215,8 @@ const searchPanelVisible = ref(false)
 const searchQuery = ref('')
 const debouncedSearchQuery = ref('')
 const expandedSearchResultIds = ref<string[]>([])
+const showHelpersMenu = ref(false)
+const scratchpadState = ref<ScratchpadState>({ ...DEFAULT_SCRATCHPAD_STATE })
 const searchHighlight = ref<{
   moduleId: number | null
   collectionId: number | null
@@ -213,6 +225,7 @@ const searchHighlight = ref<{
 } | null>(null)
 let searchDebounceHandle: number | null = null
 let searchHighlightResetHandle: number | null = null
+let scratchpadSaveHandle: number | null = null
 
 watch(searchQuery, (value) => {
   if (searchDebounceHandle !== null) window.clearTimeout(searchDebounceHandle)
@@ -224,6 +237,7 @@ watch(searchQuery, (value) => {
 onUnmounted(() => {
   if (searchDebounceHandle !== null) window.clearTimeout(searchDebounceHandle)
   if (searchHighlightResetHandle !== null) window.clearTimeout(searchHighlightResetHandle)
+  if (scratchpadSaveHandle !== null) window.clearTimeout(scratchpadSaveHandle)
 })
 
 watch(searchOpen, (open) => {
@@ -337,7 +351,7 @@ const searchResults = computed<SearchResult[]>(() => {
     results.push({
       id: `archived_feed_item:${item.id}`,
       kind: 'archived_feed_item',
-      title: item.title || item.source_title || 'Archived feed item',
+      title: item.title || item.source_title || t('app.statuses.archivedFeedItemFallback'),
       path: pathInfo.path,
       pageSlug: pathInfo.pageSlug,
       moduleId: pathInfo.moduleId,
@@ -357,13 +371,14 @@ const searchPanelStyle = computed(() => ({
   top: '40px',
   height: '80%',
 }))
+const { t, locale, availableLocales, setLocaleMessage } = useI18n()
 
-const searchKindLabel: Record<SearchResult['kind'], string> = {
-  bookmark: 'Bookmark',
-  note: 'Note',
-  feed_source: 'Feed Source',
-  archived_feed_item: 'Archived Feed',
-}
+const searchKindLabel = computed<Record<SearchResult['kind'], string>>(() => ({
+  bookmark: t('app.searchKinds.bookmark'),
+  note: t('app.searchKinds.note'),
+  feed_source: t('app.searchKinds.feedSource'),
+  archived_feed_item: t('app.searchKinds.archivedFeedItem'),
+}))
 
 function toggleSearchResult(resultId: string) {
   if (expandedSearchResultIds.value.includes(resultId)) {
@@ -394,15 +409,65 @@ function handleSearchFocus() {
   searchPanelVisible.value = true
 }
 
+function persistScratchpadPatch(patch: Partial<ScratchpadState>) {
+  scratchpadState.value = {
+    ...scratchpadState.value,
+    ...patch,
+  }
+  if (scratchpadSaveHandle !== null) window.clearTimeout(scratchpadSaveHandle)
+  scratchpadSaveHandle = window.setTimeout(() => {
+    scratchpadSaveHandle = null
+    void updateScratchpadState(scratchpadState.value).catch(() => {})
+  }, 100)
+}
+
+async function refreshScratchpadState() {
+  try {
+    scratchpadState.value = await getScratchpadState()
+  } catch {
+    scratchpadState.value = { ...DEFAULT_SCRATCHPAD_STATE }
+  }
+}
+
+async function toggleHelpersMenu() {
+  if (!showHelpersMenu.value) {
+    await refreshScratchpadState()
+  }
+  showHelpersMenu.value = !showHelpersMenu.value
+}
+
+async function openScratchpad() {
+  await refreshScratchpadState()
+  showHelpersMenu.value = false
+  persistScratchpadPatch({ open: true })
+}
+
+function closeScratchpad() {
+  persistScratchpadPatch({ open: false })
+}
+
+function handleScratchpadStorageChange(
+  changes: Record<string, chrome.storage.StorageChange>,
+  areaName: string,
+) {
+  if (areaName !== 'local' || !changes[SCRATCHPAD_STORAGE_KEY]) return
+  void refreshScratchpadState()
+}
+
 function handleDocumentPointerDown(event: MouseEvent) {
   const target = event.target as HTMLElement | null
   if (!target) return
-  if (target.closest('.st-search-panel') || target.closest('[data-speedtab-search]')) return
+  if (
+    target.closest('.st-search-panel')
+    || target.closest('[data-speedtab-search]')
+    || target.closest('[data-speedtab-helpers]')
+  ) return
   searchPanelVisible.value = false
+  showHelpersMenu.value = false
 }
 
 watch(captureInboxItems, (items) => {
-  document.title = items.length > 0 ? `INBOX [${items.length}] - Speedtab` : 'Speedtab'
+  document.title = items.length > 0 ? `INBOX [${items.length}] - ${t('app.title')}` : t('app.title')
 }, { immediate: true })
 
 onMounted(() => window.addEventListener('mousedown', handleDocumentPointerDown))
@@ -419,6 +484,12 @@ onMounted(async () => {
     localWeatherApiKey.value = ''
   }
 })
+
+onMounted(async () => {
+  await refreshScratchpadState()
+  chrome.storage.onChanged.addListener(handleScratchpadStorageChange)
+})
+onUnmounted(() => chrome.storage.onChanged.removeListener(handleScratchpadStorageChange))
 
 // Drag-and-drop bindings for the module grid (one row per module)
 const moduleDnd = useDragSort({ onReorder: (f, t) => moveModule(f, t) })
@@ -440,12 +511,14 @@ type AppearanceState = {
   backgroundAssetId: number | null
   backgroundTheme: BackgroundTheme | null
   backgroundPreset: ThemePreset
+  backgroundProperties: string | null
   openBookmarksInNewTab: boolean
   feedSearchUrlTemplate: string
   feedContentScale: number
   noteContentScale: number
 }
 type SettingsState = AppearanceState & {
+  uiLanguage: string
   widgetRailEnabled: boolean
   widgetRailPosition: WidgetRailPosition
   widgetRailAlign: WidgetRailAlign
@@ -463,6 +536,8 @@ type SettingsDraftInput = {
   backgroundAssetId: number | null
   backgroundTheme: string | null
   backgroundPreset: string
+  backgroundProperties: string | null
+  uiLanguage: string
   openBookmarksInNewTab: boolean
   feedSearchUrlTemplate: string
   feedContentScale: number
@@ -789,7 +864,7 @@ async function savePage(data: PortableInput<Page>) {
 }
 
 async function deletePage(id: number) {
-  if (!confirm('Are you sure you want to delete this page? All modules and tabs will be lost.')) return
+  if (!confirm(t('app.confirms.deletePage'))) return
   await deletePageTree(id)
   await cleanupOrphans()
   await markExportDirty('pages:delete')
@@ -803,11 +878,11 @@ async function deletePage(id: number) {
 const isModuleModalOpen = ref(false)
 const editingModule = ref<Module | undefined>(undefined)
 const moduleFormType = ref<'tabs' | 'notes' | 'feeds'>('tabs')
-const moduleTypeLabels: Record<'tabs' | 'notes' | 'feeds', string> = {
-  tabs: 'Bookmarks',
-  notes: 'Notes',
-  feeds: 'Feeds',
-}
+const moduleTypeLabels = computed<Record<'tabs' | 'notes' | 'feeds', string>>(() => ({
+  tabs: t('app.moduleTypes.tabs'),
+  notes: t('app.moduleTypes.notes'),
+  feeds: t('app.moduleTypes.feeds'),
+}))
 
 watch(editingModule, (module) => {
   if (!module) return
@@ -842,7 +917,7 @@ async function saveModule(data: PortableInput<Module>) {
 }
 
 async function deleteModule(id: number) {
-  if (!confirm('Are you sure you want to delete this module? All tabs inside will be lost.')) return
+  if (!confirm(t('app.confirms.deleteModule'))) return
   await deleteModuleTree(id)
   await cleanupOrphans()
   await markExportDirty('modules:delete')
@@ -891,11 +966,16 @@ const isCleanupModalOpen = ref(false)
 const isLoadingExampleWorkspace = ref(false)
 const hasUnsavedSettingsChanges = ref(false)
 const settingsDraft = ref<SettingsDraft | null>(null)
+const settingsPanelSessionKey = ref(0)
 const localWeatherApiKey = ref('')
 const openWidgetConfiguratorInSettings = ref(false)
 
 const { data: appearanceSetting, loading: appearanceLoading } = useLiveQuery(
   () => db.app_settings.get('appearance'),
+  null as AppSetting | null,
+)
+const { data: uiLanguageSetting } = useLiveQuery(
+  () => db.app_settings.get(UI_LANGUAGE_SETTING_KEY),
   null as AppSetting | null,
 )
 
@@ -937,13 +1017,14 @@ function setBackupStatus(message: string | null, timeoutMs = 3000) {
 }
 
 function parseAppearanceSetting(setting: AppSetting | null | undefined): AppearanceState {
-  if (!setting?.value_json) return { backgroundAssetId: null, backgroundTheme: null, backgroundPreset: DEFAULT_THEME_PRESET, openBookmarksInNewTab: false, feedSearchUrlTemplate: 'https://www.google.com/search?q=%s', feedContentScale: DEFAULT_CONTENT_SCALE, noteContentScale: DEFAULT_CONTENT_SCALE }
+  if (!setting?.value_json) return { backgroundAssetId: null, backgroundTheme: null, backgroundPreset: DEFAULT_THEME_PRESET, backgroundProperties: null, openBookmarksInNewTab: false, feedSearchUrlTemplate: 'https://www.google.com/search?q=%s', feedContentScale: DEFAULT_CONTENT_SCALE, noteContentScale: DEFAULT_CONTENT_SCALE }
   try {
     const parsed = JSON.parse(setting.value_json)
     return {
       backgroundAssetId: typeof parsed.background_asset_id === 'number' ? parsed.background_asset_id : null,
       backgroundTheme: ['charcoal', 'ocean', 'moss', 'ember', 'sunshine', 'light', 'nordic'].includes(parsed.background_theme) ? parsed.background_theme as BackgroundTheme : null,
       backgroundPreset: normalizeThemePreset(parsed.background_preset),
+      backgroundProperties: typeof parsed.background_properties === 'string' && parsed.background_properties.trim() ? parsed.background_properties.trim() : null,
       openBookmarksInNewTab: parsed.open_bookmarks_in_new_tab === true,
       feedSearchUrlTemplate: typeof parsed.feed_search_url_template === 'string' && parsed.feed_search_url_template.trim()
         ? parsed.feed_search_url_template.trim()
@@ -952,14 +1033,24 @@ function parseAppearanceSetting(setting: AppSetting | null | undefined): Appeara
       noteContentScale: normalizeContentScale(parsed.note_content_scale),
     }
   } catch {
-    return { backgroundAssetId: null, backgroundTheme: null, backgroundPreset: DEFAULT_THEME_PRESET, openBookmarksInNewTab: false, feedSearchUrlTemplate: 'https://www.google.com/search?q=%s', feedContentScale: DEFAULT_CONTENT_SCALE, noteContentScale: DEFAULT_CONTENT_SCALE }
+    return { backgroundAssetId: null, backgroundTheme: null, backgroundPreset: DEFAULT_THEME_PRESET, backgroundProperties: null, openBookmarksInNewTab: false, feedSearchUrlTemplate: 'https://www.google.com/search?q=%s', feedContentScale: DEFAULT_CONTENT_SCALE, noteContentScale: DEFAULT_CONTENT_SCALE }
   }
 }
 
 const appAppearance = computed(() => parseAppearanceSetting(appearanceSetting.value))
 const appWidgetSettings = computed(() => parseWidgetSettings(widgetSetting.value?.value_json))
+const savedUiLanguage = computed(() => {
+  try {
+    return uiLanguageSetting.value?.value_json
+      ? resolveSupportedLocale(JSON.parse(uiLanguageSetting.value.value_json))
+      : resolveSupportedLocale(locale.value)
+  } catch {
+    return resolveSupportedLocale(locale.value)
+  }
+})
 const appSettingsState = computed<SettingsState>(() => ({
   ...appAppearance.value,
+  uiLanguage: savedUiLanguage.value,
   widgetRailEnabled: appWidgetSettings.value.rail_enabled,
   widgetRailPosition: appWidgetSettings.value.rail_position,
   widgetRailAlign: appWidgetSettings.value.rail_align,
@@ -978,6 +1069,7 @@ const effectiveAppearance = computed<AppearanceState>(() => ({
   backgroundAssetId: effectiveSettings.value.backgroundAssetId,
   backgroundTheme: effectiveSettings.value.backgroundTheme,
   backgroundPreset: effectiveSettings.value.backgroundPreset,
+  backgroundProperties: effectiveSettings.value.backgroundProperties,
   openBookmarksInNewTab: effectiveSettings.value.openBookmarksInNewTab,
   feedSearchUrlTemplate: effectiveSettings.value.feedSearchUrlTemplate,
   feedContentScale: effectiveSettings.value.feedContentScale,
@@ -999,9 +1091,23 @@ const effectiveWidgetSettings = computed(() => ({
     location: effectiveSettings.value.weatherLocation,
   },
 }))
-const appBackgroundThemeClass = computed(() =>
-  effectiveAppearance.value.backgroundTheme ? `st-bg-theme-${effectiveAppearance.value.backgroundTheme}` : ''
-)
+
+let localeSwitchVersion = 0
+watch(() => effectiveSettings.value.uiLanguage, async (value) => {
+  const targetLocale = resolveSupportedLocale(value)
+  const currentVersion = ++localeSwitchVersion
+
+  if (!availableLocales.includes(targetLocale)) {
+    setLocaleMessage(targetLocale, await loadLocaleMessages(targetLocale))
+  }
+  if (currentVersion !== localeSwitchVersion) return
+
+  locale.value = targetLocale
+}, { immediate: true })
+const appBackgroundThemeClass = computed(() => {
+  if (effectiveAppearance.value.backgroundProperties) return ''
+  return effectiveAppearance.value.backgroundTheme ? `st-bg-theme-${effectiveAppearance.value.backgroundTheme}` : ''
+})
 const appThemePresetClass = computed(() =>
   `theme-${effectiveAppearance.value.backgroundPreset}`
 )
@@ -1049,12 +1155,15 @@ watchEffect(() => {
 })
 
 const appShellStyle = computed(() => {
+  const hasCustomProperties = !!effectiveAppearance.value.backgroundProperties
+
   const shouldUseDefaultBackground =
     !appearanceLoading.value &&
     !pagesLoading.value &&
     !settingsDraft.value?.backgroundPreviewUrl &&
     effectiveBackgroundAssetId.value === null &&
-    !effectiveAppearance.value.backgroundTheme
+    !effectiveAppearance.value.backgroundTheme &&
+    !hasCustomProperties
 
   const resolvedBackgroundUrl = shouldUseDefaultBackground
     ? defaultBackgroundUrl.value
@@ -1065,18 +1174,25 @@ const appShellStyle = computed(() => {
     '--st-note-content-scale': String(effectiveAppearance.value.noteContentScale),
   }
 
-  if (!resolvedBackgroundUrl) {
-    return style
+  if (resolvedBackgroundUrl) {
+    return {
+      ...style,
+      backgroundImage: `url("${resolvedBackgroundUrl}")`,
+      backgroundPosition: 'center center',
+      backgroundRepeat: 'no-repeat',
+      backgroundSize: 'cover',
+      backgroundAttachment: 'fixed',
+    }
   }
 
-  return {
-    ...style,
-    backgroundImage: `url("${resolvedBackgroundUrl}")`,
-    backgroundPosition: 'center center',
-    backgroundRepeat: 'no-repeat',
-    backgroundSize: 'cover',
-    backgroundAttachment: 'fixed',
+  if (hasCustomProperties) {
+    return {
+      ...style,
+      background: effectiveAppearance.value.backgroundProperties!,
+    }
   }
+
+  return style
 })
 
 function readTimestampSetting(setting: AppSetting | undefined): number | null {
@@ -1099,9 +1215,9 @@ function formatImportReport(report: Awaited<ReturnType<typeof importAll>>, clean
   const details: string[] = []
 
   if (report.manifest_version === 1) {
-    summary.push('Imported legacy backup')
+    summary.push(t('app.statuses.importLegacyBackup'))
   } else {
-    summary.push('Imported backup')
+    summary.push(t('app.statuses.importBackup'))
   }
 
   const inserted =
@@ -1156,9 +1272,13 @@ async function handleExport() {
       exportedAt: manifest.exported_at,
       manifestVersion: manifest.version,
     })
-    setBackupStatus(`Exported ${manifest.pages.length} pages · ${manifest.saved_feed_items.length} archived items · ${manifest.assets.length} assets`)
+    setBackupStatus(t('app.statuses.exportSuccess', {
+      pages: manifest.pages.length,
+      archived: manifest.saved_feed_items.length,
+      assets: manifest.assets.length,
+    }))
   } catch (err) {
-    setBackupStatus(`Export failed: ${(err as Error).message}`, 5000)
+    setBackupStatus(t('app.statuses.exportFailed', { message: (err as Error).message }), 5000)
   }
 }
 
@@ -1168,14 +1288,14 @@ async function loadExampleWorkspace() {
   clearBackupStatus()
   try {
     const { seedExampleWorkspace } = await import('@/composables/useExampleWorkspace')
-    await seedExampleWorkspace()
+    await seedExampleWorkspace(db, { locale: locale.value })
     for (const reason of ['pages:create', 'modules:create', 'collections:create', 'tabs:create', 'notes:create', 'feed_sources:create']) {
       await markExportDirty(reason)
     }
     await new Promise((resolve) => window.setTimeout(resolve, 180))
-    setBackupStatus('Loaded example workspace')
+    setBackupStatus(t('app.statuses.exampleWorkspaceLoaded'))
   } catch (err) {
-    setBackupStatus(`Example workspace failed: ${(err as Error).message}`, 5000)
+    setBackupStatus(t('app.statuses.exampleWorkspaceFailed', { message: (err as Error).message }), 5000)
   } finally {
     isLoadingExampleWorkspace.value = false
   }
@@ -1195,21 +1315,25 @@ async function handleImportFile(e: Event) {
     const warnings: string[] = []
 
     if (manifest.version === 1) {
-      warnings.push('Legacy export detected. This format may duplicate content because it has no stable sync identities.')
+      warnings.push(t('app.confirms.legacyBackupWarning'))
     } else {
       const lastImportSetting = await db.app_settings.get(LAST_IMPORT_EXPORTED_AT_KEY)
       const lastImportedAt = readTimestampSetting(lastImportSetting)
       const incomingExportedAt = Date.parse(manifest.exported_at)
       if (lastImportedAt != null && Number.isFinite(incomingExportedAt) && incomingExportedAt < lastImportedAt) {
-        warnings.push('This backup is older than the most recently imported v2 backup. Importing it may skip newer local changes and reintroduce stale content.')
+        warnings.push(t('app.confirms.olderBackupWarning'))
       }
     }
 
     const confirmMessage = [
-      `Import ${manifest.pages.length} pages, ${manifest.modules.length} modules, ${manifest.assets.length} assets into the local workspace?`,
+      t('app.confirms.importWorkspace', {
+        pages: manifest.pages.length,
+        modules: manifest.modules.length,
+        assets: manifest.assets.length,
+      }),
       manifest.version === 1
-        ? 'Existing data will be preserved, but legacy rows may duplicate.'
-        : 'Existing data will be merged by stable identity.',
+        ? t('app.confirms.importLegacyMode')
+        : t('app.confirms.importIdentityMode'),
       ...warnings,
     ].join('\n\n')
 
@@ -1229,8 +1353,8 @@ async function handleImportFile(e: Event) {
     setBackupStatus(formatImportReport(report, cleaned), 5000)
   } catch (err) {
     setBackupStatus(err instanceof BackupValidationError
-      ? `Invalid backup: ${err.message}`
-      : `Import failed: ${(err as Error).message}`, 5000)
+      ? t('app.statuses.invalidBackup', { message: err.message })
+      : t('app.statuses.importFailed', { message: (err as Error).message }), 5000)
   } finally {
     if (importInput.value) importInput.value.value = ''
   }
@@ -1243,10 +1367,12 @@ async function handleCleanup() {
 function handleCleanupCompleted(report: Awaited<ReturnType<typeof cleanupOrphans>>, refreshedFavicons: number) {
   isCleanupModalOpen.value = false
   const total = Object.values(report).reduce((sum, value) => sum + value, 0)
-  const parts: string[] = ['Cleanup complete']
-  parts.push(total === 0 ? 'nothing removed' : `removed ${total} selected items`)
+  const parts: string[] = [t('app.statuses.cleanupComplete')]
+  parts.push(total === 0
+    ? t('app.statuses.cleanupNothingRemoved')
+    : t('app.statuses.cleanupRemoved', { count: total }))
   if (refreshedFavicons > 0) {
-    parts.push(`refreshed ${refreshedFavicons} stale favicons`)
+    parts.push(t('app.statuses.cleanupRefreshedFavicons', { count: refreshedFavicons }))
   }
   if (total > 0) {
     void markExportDirty('cleanup:workspace')
@@ -1267,12 +1393,12 @@ async function saveCaptureInboxItem(item: CaptureInboxItem, collectionId: number
       const existing = await db.notes.get(appendToNoteId)
       if (existing) {
         if (existing.type === 'crypt') {
-          throw new Error('Encrypted notes cannot be used as append targets')
+          throw new Error(t('app.statuses.encryptedAppendTargetError'))
         }
         const sourceLine = item.source_title || item.source_url
         const appendedParts = [existing.content]
         if (sourceLine) {
-          appendedParts.push(`\n\n---\n\nCaptured from: ${sourceLine}`)
+          appendedParts.push(`\n\n---\n\n${t('app.statuses.capturedFrom', { source: sourceLine })}`)
         } else {
           appendedParts.push('\n\n---')
         }
@@ -1294,7 +1420,7 @@ async function saveCaptureInboxItem(item: CaptureInboxItem, collectionId: number
       const sortOrder = await db.notes.where('collection_id').equals(collectionId).filter(isActiveRecord).count()
       const note: Note = {
         collection_id: collectionId,
-        title: item.title || 'Captured note',
+        title: item.title || t('app.statuses.capturedNoteTitle'),
         type: 'text',
         content: item.text || '',
         style_token: null,
@@ -1309,7 +1435,7 @@ async function saveCaptureInboxItem(item: CaptureInboxItem, collectionId: number
     const sortOrder = await db.tabs.where('collection_id').equals(collectionId).filter(isActiveRecord).count()
     const tab: Tab = {
       collection_id: collectionId,
-      title: item.title || item.url || 'Captured bookmark',
+      title: item.title || item.url || t('app.statuses.capturedBookmarkTitle'),
       url: item.url || '',
       description: item.text || item.source_title || null,
       favicon_asset_id: null,
@@ -1327,8 +1453,8 @@ async function saveCaptureInboxItem(item: CaptureInboxItem, collectionId: number
   }
 
   setBackupStatus(item.kind === 'note'
-    ? (appendToNoteId ? 'Captured note appended' : 'Captured note saved')
-    : 'Captured bookmark saved')
+    ? (appendToNoteId ? t('app.statuses.capturedNoteAppended') : t('app.statuses.capturedNoteSaved'))
+    : t('app.statuses.capturedBookmarkSaved'))
 
   if (captureInboxItems.value.length <= 1) {
     isCaptureInboxOpen.value = false
@@ -1337,13 +1463,14 @@ async function saveCaptureInboxItem(item: CaptureInboxItem, collectionId: number
 
 async function discardCaptureInboxItem(itemId: number) {
   await db.capture_inbox.delete(itemId)
-  setBackupStatus('Captured item discarded')
+  setBackupStatus(t('app.statuses.capturedItemDiscarded'))
   if (captureInboxItems.value.length <= 1) {
     isCaptureInboxOpen.value = false
   }
 }
 
 function openSettingsPanel(section: 'general' | 'widgets' = 'general') {
+  settingsPanelSessionKey.value += 1
   settingsDraft.value = {
     ...appSettingsState.value,
     backgroundPreviewUrl: null,
@@ -1367,6 +1494,8 @@ function handleSettingsPreview(draft: SettingsDraftInput) {
       ? draft.backgroundTheme as BackgroundTheme
       : null,
     backgroundPreset: normalizeThemePreset(draft.backgroundPreset),
+    backgroundProperties: typeof draft.backgroundProperties === 'string' && draft.backgroundProperties.trim() ? draft.backgroundProperties.trim() : null,
+    uiLanguage: resolveSupportedLocale(draft.uiLanguage),
     openBookmarksInNewTab: draft.openBookmarksInNewTab,
     feedSearchUrlTemplate: draft.feedSearchUrlTemplate.trim() || 'https://www.google.com/search?q=%s',
     feedContentScale: normalizeContentScale(draft.feedContentScale),
@@ -1396,6 +1525,7 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
     : null
   const normalizedPreset = normalizeThemePreset(draft.backgroundPreset)
   const normalizedSearchTemplate = draft.feedSearchUrlTemplate.trim() || 'https://www.google.com/search?q=%s'
+  const normalizedLanguage = resolveSupportedLocale(draft.uiLanguage)
   const updatedAt = Date.now()
   await Promise.all([
     db.app_settings.put({
@@ -1404,11 +1534,17 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
         background_asset_id: draft.backgroundAssetId,
         background_theme: normalizedTheme,
         background_preset: normalizedPreset,
+        background_properties: typeof draft.backgroundProperties === 'string' && draft.backgroundProperties.trim() ? draft.backgroundProperties.trim() : null,
         open_bookmarks_in_new_tab: draft.openBookmarksInNewTab,
         feed_search_url_template: normalizedSearchTemplate,
         feed_content_scale: normalizeContentScale(draft.feedContentScale),
         note_content_scale: normalizeContentScale(draft.noteContentScale),
       }),
+      updated_at: updatedAt,
+    }),
+    db.app_settings.put({
+      key: UI_LANGUAGE_SETTING_KEY,
+      value_json: JSON.stringify(normalizedLanguage),
       updated_at: updatedAt,
     }),
     saveWidgetSettings({
@@ -1428,9 +1564,20 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
     }),
     setWeatherWidgetApiKey(draft.weatherApiKey.trim() || null),
   ])
+  locale.value = normalizedLanguage
   localWeatherApiKey.value = draft.weatherApiKey.trim()
   hasUnsavedSettingsChanges.value = false
   closeSettingsPanel()
+}
+
+async function saveOnboardingLanguage(language: SupportedLocale) {
+  const normalizedLanguage = resolveSupportedLocale(language)
+  await db.app_settings.put({
+    key: UI_LANGUAGE_SETTING_KEY,
+    value_json: JSON.stringify(normalizedLanguage),
+    updated_at: Date.now(),
+  })
+  locale.value = normalizedLanguage
 }
 
 </script>
@@ -1461,7 +1608,24 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
       @update-search-open="searchOpen = $event"
       @update-search-query="searchQuery = $event"
       @search-focus="handleSearchFocus"
+      @toggle-helpers="toggleHelpersMenu"
     />
+
+    <div
+      v-if="showHelpersMenu"
+      data-speedtab-helpers
+      class="st-helpers-menu absolute left-2 top-11 z-[65] w-[220px] border px-3 py-3 shadow-2xl backdrop-blur-sm"
+    >
+      <p class="text-[10px] uppercase tracking-[0.18em] text-white/55">{{ t('scratchpad.helpersTitle') }}</p>
+      <p class="mt-2 text-[11px] leading-5 text-white/70">{{ t('scratchpad.helpersDescription') }}</p>
+      <button
+        type="button"
+        class="mt-3 w-full border px-3 py-2 text-left text-[11px] text-white/85 transition-colors hover:bg-white/5 hover:text-white"
+        @click="openScratchpad"
+      >
+        {{ scratchpadState.open ? t('scratchpad.openAction') : t('scratchpad.startAction') }}
+      </button>
+    </div>
 
     <DataExchangeModal
       :show="isDataExchangeOpen"
@@ -1492,7 +1656,7 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
       <button
         @click="clearBackupStatus"
         class="st-status-bar-dismiss"
-        aria-label="Dismiss"
+        :aria-label="t('app.dismiss')"
       >✕</button>
     </div>
 
@@ -1500,14 +1664,14 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
       v-if="showSearchPanel"
       class="st-search-panel absolute left-1/2 z-50 flex w-[min(1000px,calc(100%-1rem))] -translate-x-1/2 flex-col overflow-hidden border shadow-2xl backdrop-blur-sm"
       :style="searchPanelStyle"
-      aria-label="Search results"
+      :aria-label="t('app.searchAria')"
     >
       <div class="st-search-panel-header border-b px-3 py-2 text-[10px] uppercase tracking-wider">
         <template v-if="debouncedSearchQuery">
-          {{ searchResults.length }} result{{ searchResults.length === 1 ? '' : 's' }} for “{{ debouncedSearchQuery }}”
+          {{ t('app.searchResults', { count: searchResults.length, query: debouncedSearchQuery }) }}
         </template>
         <template v-else>
-          Search pages, modules, bookmarks, notes, feed sources, and archived feed items.
+          {{ t('app.searchPrompt') }}
         </template>
       </div>
 
@@ -1516,14 +1680,14 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
           v-if="!debouncedSearchQuery"
           class="st-search-panel-empty px-4 py-5 text-[11px]"
         >
-          Type to search across text and URL fields.
+          {{ t('app.searchHint') }}
         </div>
 
         <div
           v-else-if="!searchResults.length"
           class="st-search-panel-empty px-4 py-5 text-[11px]"
         >
-          No matches found.
+          {{ t('app.noMatches') }}
         </div>
 
         <div v-else class="st-search-panel-results divide-y">
@@ -1543,7 +1707,7 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
                     <span class="st-search-result-kind text-[10px] uppercase tracking-wider">{{ searchKindLabel[result.kind] }}</span>
                     <h3 class="st-search-result-title truncate text-[12px] font-medium">{{ result.title }}</h3>
                   </div>
-                  <p class="st-search-result-path truncate text-[10px]">{{ result.path || 'Workspace' }}</p>
+                  <p class="st-search-result-path truncate text-[10px]">{{ result.path || t('app.workspace') }}</p>
                 </div>
                 <span class="st-search-result-toggle shrink-0 text-[10px]">
                   {{ expandedSearchResultIds.includes(result.id) ? '−' : '+' }}
@@ -1557,7 +1721,7 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
             >
               <div class="space-y-3">
                 <div class="st-search-result-matches flex flex-wrap items-center gap-2 text-[10px]">
-                  <span>Matched:</span>
+                  <span>{{ t('app.matched') }}</span>
                   <span
                     v-for="field in result.fields"
                     :key="field"
@@ -1586,7 +1750,7 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
 
                 <div class="flex flex-wrap items-center justify-between gap-2">
                   <p class="st-search-result-footer text-[10px] uppercase tracking-wider">
-                    {{ result.path || 'Workspace root' }}
+                    {{ result.path || t('app.workspaceRoot') }}
                   </p>
                   <button
                     v-if="result.pageSlug"
@@ -1594,7 +1758,7 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
                     class="st-search-result-locate px-2 py-1 text-[10px] uppercase tracking-wider transition-colors"
                     @click.stop="navigateToSearchResult(result)"
                   >
-                    Locate
+                    {{ t('app.locate') }}
                   </button>
                 </div>
               </div>
@@ -1606,7 +1770,7 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
 
     <div
       v-if="expandedFeedState !== null"
-      class="fixed inset-0 z-50 bg-black/65 backdrop-blur-[2px]"
+      class="fixed inset-0 z-50 bg-black/85 backdrop-blur-[2px]"
       @click="collapseExpandedFeed"
     ></div>
 
@@ -1618,15 +1782,15 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
         class="flex items-center justify-center h-full"
       >
         <span class="text-xs text-gray-600 animate-pulse tracking-widest uppercase">
-          Loading…
+          {{ t('common.loading') }}
         </span>
       </div>
 
       <!-- ② No pages at all -->
       <EmptyState
         v-else-if="!pages.length"
-        title="No pages yet"
-        description="Add your first page to get started. Pages, modules, and tabs will appear here."
+        :title="t('app.noPagesTitle')"
+        :description="t('app.noPagesDescription')"
       >
         <template #action>
           <div class="flex flex-wrap items-center justify-center gap-2">
@@ -1638,7 +1802,7 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
                 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40
               "
             >
-              + New Page
+              {{ t('app.newPage') }}
             </button>
             <button
               @click="loadExampleWorkspace"
@@ -1650,8 +1814,37 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
                 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-white/10
               "
             >
-              {{ isLoadingExampleWorkspace ? 'Loading…' : 'Quick Start' }}
+              {{ isLoadingExampleWorkspace ? t('app.quickStartLoading') : t('app.quickStart') }}
             </button>
+          </div>
+        </template>
+        <template #after>
+          <div class="text-left">
+            <p class="text-[11px] text-white/65">
+              {{ t('app.onboardingLanguageDescription') }}
+            </p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                @click="saveOnboardingLanguage('en')"
+                class="px-2 py-1 text-[11px] font-normal border transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                :class="locale === 'en'
+                  ? 'bg-white/15 text-white border-white/20'
+                  : 'bg-white/5 hover:bg-white/10 text-white/85 border-white/10'"
+              >
+                {{ t('settings.language.english') }}
+              </button>
+              <button
+                type="button"
+                @click="saveOnboardingLanguage('de')"
+                class="px-2 py-1 text-[11px] font-normal border transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+                :class="locale === 'de'
+                  ? 'bg-white/15 text-white border-white/20'
+                  : 'bg-white/5 hover:bg-white/10 text-white/85 border-white/10'"
+              >
+                {{ t('settings.language.german') }}
+              </button>
+            </div>
           </div>
         </template>
       </EmptyState>
@@ -1661,7 +1854,7 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
       <Transition name="st-page-fade" mode="out-in" appear>
       <div
         :key="activePage.id"
-        class="st-page-panel w-full mx-auto flex flex-col justify-[safe_center] px-2"
+        class="st-page-panel w-full mx-auto flex flex-col justify-[safe_center]"
         :class="{ 'st-page-panel-mobile-spaced': showMobilePageSpacing }"
         :style="pagePanelStyle"
       >
@@ -1712,8 +1905,8 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
 
           <EmptyState
             v-else
-            title="No modules on this page"
-            description="Tabs, Notes, and Feeds modules will appear here. Add your first module to get started."
+            :title="t('app.noModulesTitle')"
+            :description="t('app.noModulesDescription')"
             icon="🧩"
           >
             <template #action>
@@ -1725,7 +1918,7 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
                   transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40
                 "
               >
-                + Add Module
+                {{ t('app.addModule') }}
               </button>
             </template>
           </EmptyState>
@@ -1758,7 +1951,7 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
     <!-- Page CRUD Modal -->
     <Modal
       :show="isPageModalOpen"
-      :title="editingPage ? 'Edit Page' : 'New Page'"
+      :title="editingPage ? t('app.editPage') : t('app.newPageTitle')"
       @close="isPageModalOpen = false"
     >
       <PageForm
@@ -1773,12 +1966,12 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
     <!-- Copy URL Modal -->
     <Modal
       :show="isUrlModalOpen"
-      title="Copy URL"
+      :title="t('app.copyUrlTitle')"
       @close="isUrlModalOpen = false"
     >
       <div class="space-y-2 px-0.5">
         <p class="text-[11px] text-white/60">
-          Paste this URL into a new tab to restore the current page and active tabs.
+          {{ t('app.copyUrlDescription') }}
         </p>
         <input
           id="copy-url-input"
@@ -1798,7 +1991,7 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
             rel="noopener noreferrer"
             class="text-[11px] text-white/70 hover:text-white underline underline-offset-2"
           >
-            Open in a new tab
+            {{ t('app.openInNewTab') }}
           </a>
           <div class="flex gap-2">
           <button
@@ -1806,14 +1999,14 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
             @click="isUrlModalOpen = false"
             class="px-3 py-1 text-[11px] text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
           >
-            Close
+            {{ t('common.close') }}
           </button>
           <button
             type="button"
             @click="copyCurrentUrl"
             class="px-3 py-1 text-[11px] text-white bg-white/15 hover:bg-white/25 border border-white/20 transition-colors"
           >
-            {{ urlCopied ? '✓ Copied!' : 'Copy' }}
+            {{ urlCopied ? t('app.copied') : t('common.copy') }}
           </button>
           </div>
         </div>
@@ -1823,11 +2016,11 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
     <!-- Module CRUD Modal -->
     <Modal
       :show="isModuleModalOpen"
-      :title="editingModule ? 'Edit Module' : 'New Module'"
+      :title="editingModule ? t('app.editModule') : t('app.newModule')"
       @close="isModuleModalOpen = false"
     >
       <template #header-meta>
-        <span class="uppercase tracking-wider mr-1">Type</span>
+        <span class="uppercase tracking-wider mr-1">{{ t('moduleForm.type') }}</span>
         <span class="st-text-bold">{{ moduleTypeLabels[moduleFormType] }}</span>
       </template>
       <ModuleForm
@@ -1844,14 +2037,17 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
 
     <SidePanel
       :show="isSettingsModalOpen"
-      title="Settings"
+      :title="t('app.settingsTitle')"
       :lock-backdrop-close="hasUnsavedSettingsChanges"
       @close="closeSettingsPanel"
     >
       <AppSettingsForm
+        :key="settingsPanelSessionKey"
         :background-asset-id="appSettingsState.backgroundAssetId"
         :background-theme="appSettingsState.backgroundTheme"
         :background-preset="appSettingsState.backgroundPreset"
+        :background-properties="appSettingsState.backgroundProperties"
+        :ui-language="appSettingsState.uiLanguage"
         :open-bookmarks-in-new-tab="appSettingsState.openBookmarksInNewTab"
         :feed-search-url-template="appSettingsState.feedSearchUrlTemplate"
         :feed-content-scale="appSettingsState.feedContentScale"
@@ -1896,11 +2092,30 @@ async function handleSaveSettings(draft: SettingsDraftInput) {
       @discard="discardCaptureInboxItem"
     />
 
+    <ScratchpadPanel
+      v-if="scratchpadState.open"
+      :state="scratchpadState"
+      @close="closeScratchpad"
+      @refresh="refreshScratchpadState"
+      @update="persistScratchpadPatch"
+    />
+
     <OpenNotesHost />
   </div>
 </template>
 
 <style scoped>
+.st-helpers-menu {
+  background: color-mix(in srgb, var(--st-theme-dropdown-bg) 94%, black 6%);
+  border-color: var(--st-theme-border);
+  color: var(--st-theme-text);
+}
+
+.st-helpers-menu button {
+  border-color: var(--st-theme-border);
+  background: color-mix(in srgb, var(--st-theme-module-bg) 84%, transparent);
+}
+
 .st-main-content {
   position: relative;
 }

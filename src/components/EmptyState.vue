@@ -11,7 +11,7 @@ defineProps<{
     class="st-empty-state flex w-full flex-col items-center justify-center h-full select-none text-center px-6"
   >
     <div class="st-empty-state-shell px-6 py-4 rounded-sm shadow-2xl flex flex-col items-center">
-    <!-- Icon bubble -->
+      <!-- Icon bubble -->
       <div
         class="st-empty-state-icon w-10 h-10 mb-3 rounded-sm flex items-center justify-center text-lg"
       >
@@ -30,6 +30,10 @@ defineProps<{
       <div v-if="$slots.action" class="mt-3">
         <slot name="action" />
       </div>
+    </div>
+
+    <div v-if="$slots.after" class="st-empty-state-shell mt-3 px-6 py-4 rounded-sm shadow-2xl flex flex-col">
+      <slot name="after" />
     </div>
   </div>
 </template>

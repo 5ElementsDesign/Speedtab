@@ -7,7 +7,7 @@ vi.mock('@/composables/useAsset', () => ({
   sha256hex: async (blob: Blob) => `hash-${blob.size}`,
 }))
 
-import { ensureFaviconAssetIdForUrl, getFallbackFaviconUrl, refreshStaleFavicons, shouldFetchFavicon } from './useFavicon'
+import { ensureFaviconAssetIdForUrl, getFallbackFaviconUrl, refreshStaleFavicons, resetFaviconStateForTests, shouldFetchFavicon } from './useFavicon'
 
 function fakePng(bytes: number[]) {
   return new Blob([new Uint8Array(bytes)], { type: 'image/png' })
@@ -24,6 +24,7 @@ describe('useFavicon', () => {
     URL.revokeObjectURL = vi.fn()
     globalThis.fetch = vi.fn()
     globalThis.createImageBitmap = undefined as never
+    resetFaviconStateForTests()
 
     await db.open()
     await db.assets.clear()
@@ -188,6 +189,17 @@ describe('useFavicon', () => {
       'cnn.com',
       'rss.cnn.com',
     ])
+  })
+
+  it('does not immediately retry the same host after a failed fetch attempt', async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue({ ok: false } as Response)
+
+    const firstAssetId = await ensureFaviconAssetIdForUrl('https://retry.test')
+    const secondAssetId = await ensureFaviconAssetIdForUrl('https://retry.test')
+
+    expect(firstAssetId).toBeNull()
+    expect(secondAssetId).toBeNull()
+    expect(vi.mocked(globalThis.fetch)).toHaveBeenCalledTimes(1)
   })
 
   it('skips excluded hosts and invalid urls', () => {

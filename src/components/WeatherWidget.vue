@@ -6,8 +6,10 @@ import {
   getWeatherWidgetCache,
   setWeatherWidgetCache,
 } from '@/composables/useWeatherWidgetLocal'
+import { useLocaleFormatters } from '@/composables/useLocaleFormatters'
 import type { WeatherWidgetConfig, WeatherWidgetData } from '@/types/widgets'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   config: WeatherWidgetConfig
@@ -16,6 +18,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   configure: []
 }>()
+const { t } = useI18n()
+const { formatTime } = useLocaleFormatters()
 
 const WEATHER_ICONS: Record<string, string> = {
   sun: '☀',
@@ -53,7 +57,7 @@ const conditionMeta = computed(() => {
 const conditionIcon = computed(() => conditionMeta.value ? (WEATHER_ICONS[conditionMeta.value.icon] ?? '☁') : '☁')
 const lastUpdatedLabel = computed(() => {
   if (!fetchedAt.value) return null
-  return new Date(fetchedAt.value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return formatTime(fetchedAt.value, { hour: '2-digit', minute: '2-digit' })
 })
 
 function isWeatherStaleNow() {
@@ -65,11 +69,11 @@ const isStale = computed(() => {
   return isWeatherStaleNow()
 })
 const statusLabel = computed(() => {
-  if (!isConfigured.value) return 'Set location'
-  if (loading.value && !weatherData.value) return 'Loading'
-  if (error.value && weatherData.value) return 'Stale'
-  if (usingCachedData.value && isStale.value) return 'Cached'
-  return 'Weather'
+  if (!isConfigured.value) return t('weather.setLocation')
+  if (loading.value && !weatherData.value) return t('weather.loading')
+  if (error.value && weatherData.value) return t('weather.stale')
+  if (usingCachedData.value && isStale.value) return t('weather.cached')
+  return t('weather.title')
 })
 
 function resetState() {
@@ -221,7 +225,7 @@ onUnmounted(() => {
   <section
     class="st-widget-card st-weather-widget"
     :class="{ 'is-loading': loading || refreshing }"
-    aria-label="Weather widget"
+    :aria-label="t('weather.widgetAria')"
   >
     <template v-if="!isConfigured">
       <button
@@ -229,8 +233,8 @@ onUnmounted(() => {
         class="st-weather-widget-empty"
         @click="emit('configure')"
       >
-        <span class="st-weather-widget-empty-label">Weather</span>
-        <span class="st-weather-widget-empty-copy">Set location to enable the widget.</span>
+        <span class="st-weather-widget-empty-label">{{ t('weather.title') }}</span>
+        <span class="st-weather-widget-empty-copy">{{ t('weather.emptyCopy') }}</span>
       </button>
     </template>
 
@@ -238,7 +242,7 @@ onUnmounted(() => {
       <div class="st-weather-widget-head">
         <div class="min-w-0">
           <h2 class="st-weather-widget-location truncate">
-            {{ weatherData?.location_label || 'Weather' }}
+            {{ weatherData?.location_label || t('weather.title') }}
           </h2>
         </div>
 
@@ -247,8 +251,8 @@ onUnmounted(() => {
           class="st-weather-widget-refresh"
           :disabled="loading || refreshing"
           @click="refreshWeather(true)"
-          aria-label="Refresh weather now"
-          title="Refresh weather now"
+          :aria-label="t('weather.refreshNow')"
+          :title="t('weather.refreshNow')"
         >
           ↻
         </button>
@@ -265,21 +269,21 @@ onUnmounted(() => {
 
         <div class="st-weather-widget-secondary">
           <span v-if="weatherData.high_temperature !== null && weatherData.low_temperature !== null">
-            H {{ Math.round(weatherData.high_temperature) }}° · L {{ Math.round(weatherData.low_temperature) }}°
+            {{ t('weather.highLow', { high: Math.round(weatherData.high_temperature), low: Math.round(weatherData.low_temperature) }) }}
           </span>
           <span v-if="lastUpdatedLabel">
-            Updated {{ lastUpdatedLabel }}
+            {{ t('weather.updatedAt', { time: lastUpdatedLabel }) }}
           </span>
-          <span v-if="error" class="st-weather-widget-stale">Using last good result</span>
+          <span v-if="error" class="st-weather-widget-stale">{{ t('weather.usingLastGoodResult') }}</span>
         </div>
       </div>
 
       <div v-else class="st-weather-widget-loading">
-        {{ loading ? 'Loading weather…' : (error || 'Weather unavailable.') }}
+        {{ loading ? t('weather.loadingWeather') : (error || t('weather.unavailable')) }}
       </div>
 
       <span
-        v-if="statusLabel !== 'Weather'"
+        v-if="statusLabel !== t('weather.title')"
         class="st-weather-widget-status"
       >
         {{ statusLabel }}

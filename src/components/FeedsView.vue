@@ -11,6 +11,7 @@ import { useReorder } from '@/composables/useReorder'
 import { db, isActiveRecord, makeCreateMetadata, makeUpdatedAtPatch } from '@/db/db'
 import type { Collection, FeedItem, FeedSource, PortableInput, SavedFeedItem } from '@/types/db'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import FeedArchiveForm from './FeedArchiveForm.vue'
 import FeedItemCard from './FeedItemCard.vue'
 import FeedSourceForm from './FeedSourceForm.vue'
@@ -27,6 +28,7 @@ const props = defineProps<{
   highlightSourceId?: number | null
   highlightArchivedItemId?: number | null
 }>()
+const { t } = useI18n()
 
 const { getFaviconUrl } = useFavicon()
 const { fetchFeed, parseFeed } = useFeed()
@@ -149,12 +151,12 @@ async function clearLoadedItems() {
   if (!targetSourceIds.length) return
 
   const scopeLabel = activeFilter.value.type === 'source'
-    ? `the loaded feed items for "${selectedSourceTitle.value}"`
+    ? t('feeds.clearLoadedForSource', { title: selectedSourceTitle.value })
     : activeFilter.value.type === 'new'
-      ? 'the newly fetched loaded items in this tab'
-      : 'all loaded feed items in this tab'
+      ? t('feeds.clearLoadedNew')
+      : t('feeds.clearLoadedAll')
 
-  if (!confirm(`Clear ${scopeLabel}?`)) return
+  if (!confirm(t('feeds.clearLoadedConfirm', { scope: scopeLabel }))) return
 
   await db.feed_items.where('feed_source_id').anyOf(targetSourceIds).delete()
 }
@@ -225,9 +227,9 @@ async function refreshSource(source: FeedSource): Promise<RefreshCandidate[]> {
       })
     })
   } catch (err: unknown) {
-    await db.feed_sources.update(source.id!, {
-      last_error_at: Date.now(),
-      last_error_message: err instanceof Error ? err.message : 'Refresh failed'
+      await db.feed_sources.update(source.id!, {
+        last_error_at: Date.now(),
+      last_error_message: err instanceof Error ? err.message : t('feeds.refreshFailed')
     })
   } finally {
     refreshingSourceIds.value = refreshingSourceIds.value.filter(sourceId => sourceId !== source.id)
@@ -381,7 +383,7 @@ async function saveArchivedItem(data: PortableInput<SavedFeedItem>) {
 }
 
 async function deleteArchivedItem(id: number) {
-  if (!confirm('Delete this archived feed item?')) return
+  if (!confirm(t('feeds.deleteArchivedFeedItemConfirm'))) return
   await db.saved_feed_items.delete(id)
   await markExportDirty('saved_feed_items:delete')
 }
@@ -614,14 +616,14 @@ const visibleItems = computed<FeedItem[]>(() => {
 
 const selectedSourceTitle = computed<string>(() =>
   props.filterQuery?.trim()
-    ? `Search: ${props.filterQuery.trim()}`
+    ? t('feeds.searchTitle', { query: props.filterQuery.trim() })
     : activeFilter.value.type === 'source'
     ? getSourceTitle(activeFilter.value.sourceId)
     : activeFilter.value.type === 'new'
-      ? 'Show New'
+      ? t('feeds.filterNew')
       : activeFilter.value.type === 'unread'
-        ? 'Unread'
-      : 'All sources'
+        ? t('feeds.filterUnread')
+      : t('feeds.filterAll')
 )
 
 const canToggleLoadedItems = computed<boolean>(() => scopedItems.value.length > 0)
@@ -643,8 +645,8 @@ const lastSuccessfulFetchAt = computed<number | null>(() => {
 
 const lastSuccessfulFetchTitle = computed<string>(() =>
   lastSuccessfulFetchAt.value
-    ? `Last fetch: ${new Date(lastSuccessfulFetchAt.value).toLocaleString()}`
-    : 'No successful fetch yet'
+    ? t('feeds.lastFetch', { value: new Date(lastSuccessfulFetchAt.value).toLocaleString() })
+    : t('feeds.noSuccessfulFetchYet')
 )
 
 const useCompactExpandedLayout = computed<boolean>(() =>
@@ -762,7 +764,7 @@ onBeforeUnmount(() => {
       class="st-module-feed-sidebar st-feed-grid--sidebar border-r border-white/10 bg-black/25 flex flex-col min-h-0"
     >
       <div class="st-feed-grid--sidebar-content h-full flex flex-col">
-      <nav class="st-module-feed-sources flex-1 min-h-0 overflow-y-auto px-2 py-2 space-y-1" aria-label="Feed sources">
+      <nav class="st-module-feed-sources flex-1 min-h-0 overflow-y-auto px-2 py-2 space-y-1" :aria-label="t('feeds.feedSourcesAria')">
         <div
           v-for="(source, idx) in sources"
           :key="source.id"
@@ -799,13 +801,13 @@ onBeforeUnmount(() => {
                 draggable="false"
               />
             </span>
-            <span class="st-module-feed-source-label block min-w-0 truncate px-2 py-1">{{ source.title }}</span>
+            <span class="st-module-feed-source-label inline-flex items-center min-w-0 truncate px-2 py-1">{{ source.title }}</span>
           </button>
           <button
             data-click="editFeedSource"
             class="st-module-feed-source-edit shrink-0 px-2 py-1 rounded-sm bg-black/85 hover:bg-black border border-white/10 text-[10px] text-white/60 hover:text-white transition-colors"
-            :aria-label="`Edit feed source ${source.title}`"
-            title="Edit source"
+            :aria-label="t('feeds.editSourceAria', { title: source.title })"
+            :title="t('feeds.editSource')"
           >
             ✎
           </button>
@@ -817,7 +819,7 @@ onBeforeUnmount(() => {
           class="st-module-feed-source-button w-full min-w-0 flex items-stretch text-left text-[10px] uppercase tracking-wider font-normal transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40 overflow-hidden"
           :class="activeFilter.type === 'new' ? 'bg-white text-black' : 'bg-transparent text-white/80 hover:bg-white/10 hover:text-white'"
           :aria-pressed="activeFilter.type === 'new'"
-          title="Show newly fetched items"
+          :title="t('feeds.showNewItems')"
         >
           <span
             class="st-module-feed-source-icon shrink-0 self-stretch w-7 flex items-center justify-center"
@@ -825,7 +827,7 @@ onBeforeUnmount(() => {
           >
             <span class="w-2 h-2 rounded-full bg-red-500" aria-hidden="true"></span>
           </span>
-          <span class="st-module-feed-source-label block min-w-0 truncate px-2 py-1">Show New</span>
+          <span class="st-module-feed-source-label block min-w-0 truncate px-2 py-1">{{ t('feeds.filterNew') }}</span>
           <span class="shrink-0 px-2 py-1 text-[9px] opacity-75">{{ showNewCount }}</span>
         </button>
       </nav>
@@ -834,7 +836,7 @@ onBeforeUnmount(() => {
           data-click="openAddFeedSource"
           class="st-module-feed-add-source w-full px-2 py-1 rounded-sm bg-[#0056b3] hover:bg-[#004494] text-[10px] uppercase tracking-wider font-normal text-white transition-colors"
         >
-          + Source
+          {{ t('feeds.addSource') }}
         </button>
       </div>
       </div>
@@ -849,7 +851,7 @@ onBeforeUnmount(() => {
             :disabled="!canToggleLoadedItems"
             class="st-module-feed-title text-[12px] font-bold truncate transition-colors"
             :class="canToggleLoadedItems ? 'hover:opacity-70' : 'cursor-default'"
-            :title="canToggleLoadedItems ? (showLoadedItems ? 'Hide loaded items' : 'Show loaded items') : selectedSourceTitle"
+            :title="canToggleLoadedItems ? (showLoadedItems ? t('feeds.hideLoadedItems') : t('feeds.showLoadedItems')) : selectedSourceTitle"
           >
             {{ selectedSourceTitle }}
           </button>
@@ -866,17 +868,17 @@ onBeforeUnmount(() => {
             :disabled="!hasUnreadItems"
             class="st-module-feed-toolbar-badge text-[9px] px-1 rounded-sm transition-colors"
             :class="activeFilter.type === 'unread' ? 'ring-1 ring-black/20' : ''"
-            :title="hasUnreadItems ? (activeFilter.type === 'unread' ? 'Show all items' : 'Show unread items') : 'No unread items'"
+            :title="hasUnreadItems ? (activeFilter.type === 'unread' ? t('feeds.showAllItems') : t('feeds.showUnreadItems')) : t('feeds.noUnreadItems')"
           >
-            {{ scopedUnreadCount }} unread
+            {{ t('feeds.unreadLabel', { count: scopedUnreadCount }) }}
           </button>
           <span
             v-if="isRefreshing"
             class="st-module-feed-toolbar-loading inline-flex items-center gap-1 text-[9px] uppercase tracking-wider"
-            :title="'Refreshing feed items'"
+            :title="t('feeds.refreshingFeedItems')"
           >
             <span class="w-1.5 h-1.5 rounded-full bg-red-500" aria-hidden="true"></span>
-            <span class="st-module-feed-toolbar-muted">Loading</span>
+            <span class="st-module-feed-toolbar-muted">{{ t('feeds.loading') }}</span>
           </span>
         </div>
         <div class="st-module-feed-actions flex items-center gap-2">
@@ -886,7 +888,7 @@ onBeforeUnmount(() => {
             :disabled="!visibleItems.some(isUnread)"
             class="st-module-feed-toolbar-button px-1 text-[10px] uppercase font-bold text-gray-500 hover:text-black disabled:opacity-30 transition-colors"
           >
-            Read
+            {{ t('feeds.markRead') }}
           </button>
           <button
             v-if="visibleItems.length > 0"
@@ -895,7 +897,7 @@ onBeforeUnmount(() => {
             :disabled="!visibleItems.some(item => !isUnread(item))"
             class="st-module-feed-toolbar-button px-1 text-[10px] uppercase font-bold text-gray-500 hover:text-black disabled:opacity-30 transition-colors"
           >
-            Unread
+            {{ t('feeds.markUnread') }}
           </button>
           <button
             type="button"
@@ -903,7 +905,7 @@ onBeforeUnmount(() => {
             :disabled="isRefreshing || sources.length === 0"
             class="st-module-feed-toolbar-button px-1 text-[10px] uppercase font-bold text-gray-500 hover:text-black disabled:opacity-30 transition-colors"
           >
-            {{ props.expanded ? (isRefreshing ? 'Refreshing' : 'Refresh') : (isRefreshing ? '...' : 'Refresh') }}
+            {{ props.expanded ? (isRefreshing ? t('feeds.refreshing') : t('feeds.refresh')) : (isRefreshing ? '...' : t('feeds.refresh')) }}
           </button>
         </div>
       </div>
@@ -934,18 +936,18 @@ onBeforeUnmount(() => {
           <p class="st-module-feed-empty-text text-[11px] text-white/50 italic mb-2">
             {{
               !sources.length
-                ? 'No feeds in this module'
+                ? t('feeds.noFeedsInModule')
                 : !showLoadedItems && scopedItems.length
-                  ? 'Loaded items are hidden.'
+                  ? t('feeds.loadedItemsHidden')
                 : hasFeedSearch
-                  ? 'No matching loaded feed items found.'
+                  ? t('feeds.noMatchingLoadedItems')
                 : activeFilter.type === 'source'
-                  ? 'No items for this source yet. Try refreshing or show all sources.'
+                  ? t('feeds.noItemsForSource')
                 : activeFilter.type === 'new'
-                  ? 'No newly fetched items are currently marked.'
+                  ? t('feeds.noNewItemsMarked')
                 : activeFilter.type === 'unread'
-                  ? 'No unread items found.'
-                  : 'No items found. Try refreshing.'
+                  ? t('feeds.noUnreadItemsFound')
+                  : t('feeds.noItemsFound')
             }}
           </p>
           <button
@@ -953,28 +955,28 @@ onBeforeUnmount(() => {
             data-click="openAddFeedSource"
             class="text-[10px] uppercase tracking-wider font-normal text-white/80 hover:text-white transition-colors"
           >
-            + Add Source
+            {{ t('feeds.addSource') }}
           </button>
           <button
             v-else-if="!showLoadedItems && scopedItems.length"
             data-click="showLoadedItems"
             class="text-[10px] uppercase tracking-wider font-normal text-white/80 hover:text-white transition-colors"
           >
-            Show Loaded Items
+            {{ t('feeds.showLoadedItems') }}
           </button>
           <button
             v-else-if="activeFilter.type === 'source' || activeFilter.type === 'new' || activeFilter.type === 'unread'"
             data-click="resetFeedFilter"
             class="text-[10px] uppercase tracking-wider font-normal text-white/80 hover:text-white transition-colors"
           >
-            Show All Sources
+            {{ t('feeds.showAllSources') }}
           </button>
         </div>
       </div>
     </div>
 
     <!-- CRUD Modal -->
-    <Modal :show="isModalOpen" :title="editingSource ? 'Edit Feed Source' : 'New Feed Source'" @close="isModalOpen = false">
+    <Modal :show="isModalOpen" :title="editingSource ? t('feeds.editFeedSourceTitle') : t('feeds.newFeedSourceTitle')" @close="isModalOpen = false">
       <FeedSourceForm
         :source="editingSource"
         :collection-id="collection.id!"
@@ -984,7 +986,7 @@ onBeforeUnmount(() => {
       />
     </Modal>
 
-    <Modal :show="isArchiveModalOpen && archivingItem !== null" title="Archive Feed Item" @close="isArchiveModalOpen = false; archivingItem = null">
+    <Modal :show="isArchiveModalOpen && archivingItem !== null" :title="t('feeds.archiveFeedItemTitle')" @close="isArchiveModalOpen = false; archivingItem = null">
       <FeedArchiveForm
         v-if="archivingItem"
         :item="archivingItem"
@@ -995,7 +997,7 @@ onBeforeUnmount(() => {
       />
     </Modal>
 
-    <Modal :show="isArchiveListOpen" title="Archived Feed Items" @close="isArchiveListOpen = false">
+    <Modal :show="isArchiveListOpen" :title="t('feeds.archivedFeedItemsTitle')" @close="isArchiveListOpen = false">
       <div v-if="archivedItems.length" class="space-y-3 max-h-[85vh] overflow-y-auto">
         <article
           v-for="item in archivedItems"
@@ -1007,7 +1009,7 @@ onBeforeUnmount(() => {
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <h3 class="st-module-feed-archive-title text-[12px] text-white font-semibold leading-snug">{{ item.title }}</h3>
-              <p class="st-module-feed-archive-source text-[10px] text-white/50">{{ item.source_title || 'Archived item' }}</p>
+              <p class="st-module-feed-archive-source text-[10px] text-white/50">{{ item.source_title || t('feeds.archivedItemFallback') }}</p>
             </div>
             <div class="shrink-0 flex items-center gap-2">
               <a
@@ -1017,14 +1019,14 @@ onBeforeUnmount(() => {
                 rel="noopener noreferrer"
                 class="st-module-feed-archive-link text-[10px] uppercase tracking-wider text-sky-400 hover:text-sky-300"
               >
-                Open
+                {{ t('feeds.open') }}
               </a>
               <button
                 type="button"
                 data-click="deleteArchivedFeedItem"
                 class="st-module-feed-archive-delete text-[10px] uppercase tracking-wider text-red-400 hover:text-red-300"
               >
-                Delete
+                {{ t('common.delete') }}
               </button>
             </div>
           </div>
@@ -1033,7 +1035,7 @@ onBeforeUnmount(() => {
         </article>
       </div>
       <div v-else class="text-center">
-        <p class="st-module-feed-archive-empty text-[11px] text-white/50 italic">No archived feed items yet</p>
+        <p class="st-module-feed-archive-empty text-[11px] text-white/50 italic">{{ t('feeds.noArchivedFeedItems') }}</p>
       </div>
     </Modal>
   </div>

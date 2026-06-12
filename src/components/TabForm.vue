@@ -5,6 +5,7 @@ import { TILE_W, TILE_H, storeOrGetAsset, canvasToWebpBlob, loadAssetObjectUrl }
 import { ensureFaviconAssetIdForUrl, getFaviconUrl } from '@/composables/useFavicon'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { db } from '@/db/db'
+import { useI18n } from 'vue-i18n'
 
 type CropperInstance = import('cropperjs').default
 type CropperConstructor = typeof import('cropperjs').default
@@ -31,6 +32,7 @@ const emit = defineEmits<{
   delete: [id: number]
   cancel: []
 }>()
+const { t } = useI18n()
 
 const FAVICON_SIZE = 48
 
@@ -46,8 +48,8 @@ const testSuccess = ref(false)
 const lastTestedUrl = ref(props.tab?.url ?? '')
 const urlStatusMessage = computed(() => {
   if (testError.value) return testError.value
-  if (testSuccess.value) return 'URL is reachable.'
-  return 'Click test to check connectivity'
+  if (testSuccess.value) return t('tabForm.statuses.reachable')
+  return t('tabForm.statuses.clickToTest')
 })
 const urlStatusClass = computed(() =>
   testError.value ? 'text-red-400' : testSuccess.value ? 'text-green-400' : 'text-white/40'
@@ -120,7 +122,7 @@ async function testUrl() {
   try {
     normalizedUrl = new URL(form.value.url).toString()
   } catch {
-    testError.value = 'Please enter a valid URL.'
+    testError.value = t('tabForm.statuses.invalidUrl')
     return
   }
 
@@ -136,7 +138,7 @@ async function testUrl() {
       : await fetchUrlMetaDirect(normalizedUrl)
 
     if (!response.ok) {
-      throw new Error(response.error || 'Failed to reach URL')
+      throw new Error(response.error || t('tabForm.statuses.failedToReach'))
     }
 
     form.value.url = normalizedUrl
@@ -148,7 +150,7 @@ async function testUrl() {
     lastTestedUrl.value = normalizedUrl
     hasUnlockedFaviconPicker.value = true
   } catch (err: unknown) {
-    testError.value = err instanceof Error ? err.message : 'Failed to test URL'
+    testError.value = err instanceof Error ? err.message : t('tabForm.statuses.failedToTest')
   } finally {
     isTesting.value = false
   }
@@ -181,9 +183,9 @@ const { data: faviconAssets } = useLiveQuery(
 )
 
 const groupedReusableAssets = computed(() => ([
-  { kind: 'preview', label: 'Bookmark Previews' },
-  { kind: 'background', label: 'Backgrounds' },
-  { kind: 'note_image', label: 'Note Images' },
+  { kind: 'preview', label: t('tabForm.assetGroups.preview') },
+  { kind: 'background', label: t('tabForm.assetGroups.background') },
+  { kind: 'note_image', label: t('tabForm.assetGroups.noteImage') },
 ]).map((group) => ({
   ...group,
   items: reusableAssets.value.filter((asset) => asset.kind === group.kind),
@@ -501,7 +503,7 @@ async function handleSubmit() {
   <form @submit.prevent="handleSubmit" class="space-y-4">
 
     <div>
-      <label for="tab_url" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">URL</label>
+      <label for="tab_url" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('tabForm.url') }}</label>
       <div class="flex gap-2 items-start">
         <div class="flex-1">
           <div class="flex min-h-[39px] items-stretch rounded border border-white/10 bg-surface-950 focus-within:ring-1 focus-within:ring-indigo-500">
@@ -511,11 +513,11 @@ async function handleSubmit() {
               :disabled="!hasUnlockedFaviconPicker"
               class="flex shrink-0 w-[44px] items-center justify-center overflow-hidden border-r border-white/10 bg-[#252525] transition-colors"
               :class="hasUnlockedFaviconPicker ? 'hover:bg-[#2c2c2c]' : 'cursor-not-allowed opacity-45'"
-              :title="hasUnlockedFaviconPicker ? 'Choose bookmark favicon' : 'Test the URL first to unlock custom favicon selection'"
+              :title="hasUnlockedFaviconPicker ? t('tabForm.faviconPickerTitle') : t('tabForm.faviconPickerLockedTitle')"
             >
               <img
                 :src="faviconPreviewUrl"
-                alt="Favicon preview"
+                :alt="t('tabForm.faviconPreviewAlt')"
                 class="h-full w-full max-h-[26px] object-contain"
                 draggable="false"
               />
@@ -524,7 +526,7 @@ async function handleSubmit() {
               id="tab_url"
               v-model="form.url"
               type="url"
-              placeholder="https://example.com"
+              :placeholder="t('tabForm.urlPlaceholder')"
               required
               class="flex-1 border-0 bg-transparent px-3 py-2 text-sm text-gray-100 focus:outline-none"
             />
@@ -545,7 +547,7 @@ async function handleSubmit() {
           :disabled="isTesting || !form.url"
           class="inline-flex min-h-[39px] shrink-0 items-center justify-center self-stretch rounded border border-white/10 bg-black/85 px-3 text-[10px] font-bold uppercase tracking-wider text-white/85 transition-colors hover:bg-black hover:text-white disabled:opacity-50"
         >
-          {{ isTesting ? '...' : 'Test' }}
+          {{ isTesting ? t('tabForm.testing') : t('tabForm.test') }}
         </button>
       </div>
       <div
@@ -553,7 +555,7 @@ async function handleSubmit() {
         class="mt-2 space-y-3 border border-white/10 bg-[#151515] p-2"
       >
         <section class="space-y-2">
-          <h4 class="text-[10px] uppercase tracking-wider text-white/60">Favicons</h4>
+          <h4 class="text-[10px] uppercase tracking-wider text-white/60">{{ t('tabForm.favicons') }}</h4>
           <div v-if="faviconAssets.length" class="st-favicon-picker-grid">
             <button
               v-for="asset in faviconAssets"
@@ -564,12 +566,12 @@ async function handleSubmit() {
             >
               <img
                 :src="faviconPickerUrls[asset.id!] || ''"
-                alt="Favicon asset"
+                :alt="t('tabForm.faviconAssetAlt')"
                 class="w-full h-full object-contain"
               />
             </button>
           </div>
-          <p v-else class="text-[11px] text-white/55">No favicon assets available yet.</p>
+          <p v-else class="text-[11px] text-white/55">{{ t('tabForm.noFaviconAssets') }}</p>
         </section>
 
         <section class="space-y-2 border-t border-white/10 pt-3">
@@ -580,14 +582,14 @@ async function handleSubmit() {
               @click="faviconFileInput?.click()"
               class="rounded border border-white/10 bg-black/45 px-3 py-1.5 text-[10px] uppercase tracking-wider text-white/85 transition-colors hover:bg-black/65 hover:text-white"
             >
-              Upload
+              {{ t('tabForm.upload') }}
             </button>
             <button
               type="button"
               @click="clearFavicon"
               class="rounded border border-white/10 bg-black/20 px-3 py-1.5 text-[10px] uppercase tracking-wider text-white/75 transition-colors hover:bg-black/45 hover:text-white"
             >
-              Clear
+              {{ t('tabForm.clear') }}
             </button>
             </div>
             <button
@@ -595,7 +597,7 @@ async function handleSubmit() {
               @click="isFaviconPickerOpen = false"
               class="rounded border border-white/10 bg-black/20 px-3 py-1.5 text-[10px] uppercase tracking-wider text-white/75 transition-colors hover:bg-black/45 hover:text-white"
             >
-              Close
+              {{ t('common.close') }}
             </button>
           </div>
         </section>
@@ -604,8 +606,8 @@ async function handleSubmit() {
     </div>
 
     <div>
-      <label for="tab_title" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Title</label>
-      <input id="tab_title" v-model="form.title" type="text" placeholder="Auto-detected from hostname"
+      <label for="tab_title" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('tabForm.title') }}</label>
+      <input id="tab_title" v-model="form.title" type="text" :placeholder="t('tabForm.titlePlaceholder')"
         class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100
                focus:outline-none focus:ring-1 focus:ring-indigo-500" />
     </div>
@@ -613,7 +615,7 @@ async function handleSubmit() {
     <!-- Preview image pipeline -->
     <div>
       <label for="tab_preview_file" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-        Preview Image <span class="normal-case font-normal text-gray-600">({{ TILE_W }}×{{ TILE_H }} WebP, high quality)</span>
+        {{ t('tabForm.previewImage') }} <span class="normal-case font-normal text-gray-600">{{ t('tabForm.previewImageMeta', { width: TILE_W, height: TILE_H }) }}</span>
       </label>
 
       <!-- Selected or cropped result preview -->
@@ -622,15 +624,15 @@ async function handleSubmit() {
           :src="croppedBlobUrl || selectedPreviewAssetUrl || ''"
           :style="{ width: `${TILE_W}px`, height: `${TILE_H}px` }"
           class="rounded object-cover border border-white/10"
-          alt="Preview"
+          :alt="t('tabForm.previewAlt')"
         />
-        <button type="button" @click="clearImage" class="text-xs text-red-400 hover:text-red-300 transition-colors">Remove</button>
+        <button type="button" @click="clearImage" class="text-xs text-red-400 hover:text-red-300 transition-colors">{{ t('tabForm.remove') }}</button>
       </div>
 
       <!-- Active cropper -->
       <div v-else-if="imageDataUrl" class="space-y-2">
         <div class="relative max-h-52 overflow-hidden rounded border border-white/10 bg-black">
-          <img ref="cropperImgEl" :src="imageDataUrl" class="block max-w-full" alt="Crop source" />
+          <img ref="cropperImgEl" :src="imageDataUrl" class="block max-w-full" :alt="t('tabForm.cropSourceAlt')" />
         </div>
         <div class="flex flex-wrap gap-2 text-[10px] uppercase tracking-wider text-white/70">
           <button
@@ -638,69 +640,69 @@ async function handleSubmit() {
             @click="zoomCropper(0.1)"
             class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
           >
-            Zoom +
+            {{ t('tabForm.zoomIn') }}
           </button>
           <button
             type="button"
             @click="zoomCropper(-0.1)"
             class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
           >
-            Zoom -
+            {{ t('tabForm.zoomOut') }}
           </button>
           <button
             type="button"
             @click="moveCropper(-20, 0)"
             class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
           >
-            Left
+            {{ t('tabForm.moveLeft') }}
           </button>
           <button
             type="button"
             @click="moveCropper(20, 0)"
             class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
           >
-            Right
+            {{ t('tabForm.moveRight') }}
           </button>
           <button
             type="button"
             @click="moveCropper(0, -20)"
             class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
           >
-            Up
+            {{ t('tabForm.moveUp') }}
           </button>
           <button
             type="button"
             @click="moveCropper(0, 20)"
             class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
           >
-            Down
+            {{ t('tabForm.moveDown') }}
           </button>
           <button
             type="button"
             @click="flipCropperX"
             class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
           >
-            Flip X
+            {{ t('tabForm.flipX') }}
           </button>
           <button
             type="button"
             @click="flipCropperY"
             class="px-2 py-1 border border-white/10 bg-black/35 hover:bg-black/55 transition-colors"
           >
-            Flip Y
+            {{ t('tabForm.flipY') }}
           </button>
         </div>
         <p class="text-[10px] text-amber-200/80">
-          Crop or cancel the image before saving this bookmark.
+          {{ t('tabForm.cropBeforeSaving') }}
         </p>
         <div class="flex gap-2">
           <button type="button" @click="applyCrop"
             class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-medium">
-            Apply Crop ({{ TILE_W }} × {{ TILE_H }})
+            {{ t('tabForm.applyCrop', { width: TILE_W, height: TILE_H }) }}
           </button>
           <button type="button" @click="clearImage"
             class="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition-colors">
-            Cancel
+            {{ t('common.cancel') }}
           </button>
         </div>
       </div>
@@ -712,14 +714,14 @@ async function handleSubmit() {
           <button type="button" @click="fileInput?.click()"
             class="flex-1 py-4 border border-dashed border-white/10 rounded text-xs text-gray-500
                    hover:text-gray-300 hover:border-white/20 transition-colors">
-            ↑ Upload screenshot or thumbnail
+            {{ t('tabForm.uploadScreenshot') }}
           </button>
           <button
             type="button"
             @click="isAssetPickerOpen = !isAssetPickerOpen"
             class="px-3 py-2 bg-black/85 hover:bg-black border border-white/10 rounded text-[10px] uppercase tracking-wider font-bold text-white/85 hover:text-white transition-colors"
           >
-            Pick Asset
+            {{ t('tabForm.pickAsset') }}
           </button>
         </div>
 
@@ -758,19 +760,19 @@ async function handleSubmit() {
     <div class="pt-4 mt-4 border-t border-white/10 flex items-center justify-between">
       <button v-if="tab?.id" type="button" @click="emit('delete', tab.id!)"
         class="text-xs text-red-400 hover:text-red-300 transition-colors">
-        Delete Bookmark
+        {{ t('tabForm.deleteBookmark') }}
       </button>
       <div v-else></div>
       <div class="flex gap-3">
         <button type="button" @click="emit('cancel')"
           class="px-4 py-2 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors">
-          Cancel
+          {{ t('common.cancel') }}
         </button>
         <button type="submit"
           :disabled="!canSubmit"
           class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-medium
                  shadow-lg shadow-indigo-900/20 transition-all disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-indigo-600">
-          {{ tab?.id ? 'Save Changes' : 'Add Bookmark' }}
+          {{ tab?.id ? t('tabForm.saveChanges') : t('tabForm.addBookmark') }}
         </button>
       </div>
     </div>

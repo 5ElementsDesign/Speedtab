@@ -23,11 +23,11 @@
   --st-feed-item-bg-hover: rgb(35 35 35 / 0.95);
   --st-feed-item-bg-active: rgb(20 20 20 / 0.98);
   --st-feed-item-text: rgb(255 255 255 / 0.92);
+
   --st-feed-item-text-muted: rgb(255 255 255 / 0.6);
   --st-feed-item-text-dim: rgb(255 255 255 / 0.4);
-
-  --st-feed-item-body-bg: rgb(15 15 15 / 0.98);
-  --st-feed-item-body-copy: rgb(255 255 255 / 0.85);
+  --st-feed-item-body-bg: rgba(255, 255, 255, 0.988);
+  --st-feed-item-body-copy: rgba(25, 23, 23, 0.8);
 
   --st-feed-item-button-bg: rgb(40 40 40 / 0.95);
   --st-feed-item-button-bg-hover: rgb(55 55 55 / 1);
@@ -37,4 +37,9 @@
   --st-feed-item-open-bg: #4f46e5;
   --st-feed-item-open-bg-hover: #4338ca;
   --st-feed-item-divider: rgb(255 255 255 / 0.08);
+}
+
+.st-module-feed-item-body {
+  --st-feed-item-text-muted: rgb(2 2 2 / 0.55);
+  --st-feed-item-text-dim: rgb(178 145 145 / 50%);
 }

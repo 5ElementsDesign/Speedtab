@@ -2,6 +2,7 @@
 import { useFeed } from '@/composables/useFeed';
 import type { FeedSource, PortableInput } from '@/types/db';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   source?: FeedSource
@@ -15,6 +16,7 @@ const emit = defineEmits<{
 }>()
 
 const { fetchFeed, parseFeed } = useFeed()
+const { t } = useI18n()
 
 const title = ref(props.source?.title || '')
 const feedUrl = ref(props.source?.feed_url || '')
@@ -145,7 +147,7 @@ async function testConnection() {
     const xml = await fetchFeed(feedUrl.value)
     const items = parseFeed(xml, 0)
     if (items.length === 0) {
-      throw new Error('Feed parsed but contains no items.')
+      throw new Error(t('feedForm.feedParsedNoItems'))
     }
     testSuccess.value = true
     // Try to auto-fill title if empty
@@ -155,7 +157,7 @@ async function testConnection() {
       title.value = doc.querySelector('channel > title, feed > title')?.textContent || ''
     }
   } catch (err: unknown) {
-    testError.value = err instanceof Error ? err.message : 'Failed to connect'
+    testError.value = err instanceof Error ? err.message : t('feedForm.failedToConnect')
     if (!siteUrl.value.trim() && feedUrl.value.trim()) {
       siteUrl.value = deriveLookupBaseUrl(feedUrl.value)
     }
@@ -181,21 +183,23 @@ async function lookupFeeds() {
     const finalUrl = response.finalUrl || lookupUrl
     const contentType = (response.contentType ?? '').toLowerCase()
     if (!contentType.includes('text/html')) {
-      lookupStatus.value = 'Lookup expects a homepage or website URL that returns HTML.'
+      lookupStatus.value = t('feedForm.lookupHtmlOnly')
       return
     }
     const html = typeof response.html === 'string' ? response.html : ''
     const candidates = discoverFeedCandidates(html, finalUrl)
 
     if (!candidates.length) {
-      lookupStatus.value = 'No feed links were discovered on this page.'
+      lookupStatus.value = t('feedForm.noFeedsDiscovered')
       return
     }
 
-    lookupStatus.value = `Found ${candidates.length} possible feed${candidates.length === 1 ? '' : 's'}.`
+    lookupStatus.value = candidates.length === 1
+      ? t('feedForm.foundPossibleFeed', { count: candidates.length })
+      : t('feedForm.foundPossibleFeeds', { count: candidates.length })
     discoveredFeeds.value = candidates
   } catch (err: unknown) {
-    lookupStatus.value = err instanceof Error ? err.message : 'Feed lookup failed'
+    lookupStatus.value = err instanceof Error ? err.message : t('feedForm.feedLookupFailed')
   } finally {
     isLookingUp.value = false
   }
@@ -227,7 +231,7 @@ function handleSave() {
 }
 
 function handleDelete() {
-  if (props.source?.id && confirm('Delete this feed source and all its cached items?')) {
+  if (props.source?.id && confirm(t('feedForm.deleteConfirm'))) {
     emit('delete', props.source.id)
   }
 }
@@ -244,7 +248,7 @@ const canSave = computed(() =>
   <form @submit.prevent="handleSave" class="flex flex-col gap-4">
     <div>
       <div class="mb-1 flex items-center justify-between gap-3">
-        <label for="feed_source_url" class="block text-[10px] uppercase tracking-wider font-bold text-gray-500">Feed URL</label>
+        <label for="feed_source_url" class="block text-[10px] uppercase tracking-wider font-bold text-gray-500">{{ t('feedForm.feedUrl') }}</label>
         <a
           v-if="lastTestedUrl"
           :href="lastTestedUrl"
@@ -253,7 +257,7 @@ const canSave = computed(() =>
           rel="noopener noreferrer"
           class="text-[9px] uppercase tracking-wider font-bold text-sky-300 hover:text-sky-200 transition-colors"
         >
-          Open URL
+          {{ t('common.openUrl') }}
         </a>
       </div>
       <div class="flex gap-2">
@@ -261,7 +265,7 @@ const canSave = computed(() =>
           id="feed_source_url"
           v-model="feedUrl"
           type="url"
-          placeholder="https://example.com/feed.xml"
+          :placeholder="t('feedForm.feedUrlPlaceholder')"
           required
           class="flex-1 bg-surface-950 text-white placeholder:text-white/35 border border-white/10 rounded px-2 py-1.5 text-xs focus:border-indigo-500 outline-none transition-colors"
         />
@@ -271,12 +275,12 @@ const canSave = computed(() =>
           :disabled="isTesting || !feedUrl"
           class="px-3 py-1.5 bg-black/85 hover:bg-black border border-white/10 rounded text-[10px] uppercase tracking-wider font-bold text-white/85 hover:text-white transition-colors disabled:opacity-50"
         >
-          {{ isTesting ? '...' : 'Test' }}
+          {{ isTesting ? '...' : t('common.test') }}
         </button>
       </div>
       <p v-if="testError" class="mt-1 text-[10px] text-red-400">{{ testError }}</p>
-      <p v-if="testSuccess" class="mt-1 text-[10px] text-green-400">Connection successful!</p>
-      <p v-else-if="!testError" class="mt-1 text-[10px] text-white/45">Test this URL before saving to make sure it is reachable and subscribable.</p>
+      <p v-if="testSuccess" class="mt-1 text-[10px] text-green-400">{{ t('feedForm.connectionSuccessful') }}</p>
+      <p v-else-if="!testError" class="mt-1 text-[10px] text-white/45">{{ t('feedForm.testBeforeSaving') }}</p>
       <div v-if="discoveredFeeds.length" class="mt-2 border-t border-white/10 pt-2">
         <p v-if="lookupStatus" class="text-[10px] text-white/65">{{ lookupStatus }}</p>
         <div class="flex max-h-[300px] flex-col gap-1 overflow-auto">
@@ -295,25 +299,25 @@ const canSave = computed(() =>
     </div>
 
     <div>
-      <label for="feed_source_title" class="block text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1">Display Title</label>
+      <label for="feed_source_title" class="block text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1">{{ t('feedForm.displayTitle') }}</label>
       <input
         id="feed_source_title"
         v-model="title"
         type="text"
-        placeholder="Feed Title"
+        :placeholder="t('feedForm.displayTitlePlaceholder')"
         required
         class="w-full bg-surface-950 text-white placeholder:text-white/35 border border-white/10 rounded px-2 py-1.5 text-xs focus:border-indigo-500 outline-none transition-colors"
       />
     </div>
 
     <div>
-      <label for="feed_source_site_url" class="block text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1">Site URL (Optional)</label>
+      <label for="feed_source_site_url" class="block text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1">{{ t('feedForm.siteUrl') }}</label>
       <div class="flex gap-2">
         <input
           id="feed_source_site_url"
           v-model="siteUrl"
           type="url"
-          placeholder="https://example.com"
+          :placeholder="t('feedForm.siteUrlPlaceholder')"
           class="flex-1 bg-surface-950 text-white placeholder:text-white/35 border border-white/10 rounded px-2 py-1.5 text-xs focus:border-indigo-500 outline-none transition-colors"
         />
         <button
@@ -322,10 +326,10 @@ const canSave = computed(() =>
           :disabled="isLookingUp || !siteUrl"
           class="px-3 py-1.5 bg-black/85 hover:bg-black border border-white/10 rounded text-[10px] uppercase tracking-wider font-bold text-white/85 hover:text-white transition-colors disabled:opacity-50"
         >
-          {{ isLookingUp ? '...' : 'Lookup' }}
+          {{ isLookingUp ? '...' : t('common.lookup') }}
         </button>
       </div>
-      <p class="mt-1 text-[10px] text-white/45">Use the homepage here to discover feed links without overwriting the feed URL field.</p>
+      <p class="mt-1 text-[10px] text-white/45">{{ t('feedForm.siteUrlHelp') }}</p>
       <p v-if="lookupStatus && !discoveredFeeds.length" class="mt-1 text-[10px] text-white/65">{{ lookupStatus }}</p>
     </div>
 
@@ -336,7 +340,7 @@ const canSave = computed(() =>
         @click="handleDelete"
         class="text-[10px] uppercase tracking-wider font-bold text-red-500 hover:text-red-400 transition-colors"
       >
-        Delete
+        {{ t('common.delete') }}
       </button>
       <div v-else></div>
 
@@ -346,7 +350,7 @@ const canSave = computed(() =>
           @click="emit('cancel')"
           class="text-[10px] uppercase tracking-wider font-bold text-gray-400 hover:text-white transition-colors"
         >
-          Cancel
+          {{ t('common.cancel') }}
         </button>
         <button
           type="submit"
@@ -354,7 +358,7 @@ const canSave = computed(() =>
           :class="canSave ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-white/10 text-white/45 cursor-not-allowed'"
           class="px-4 py-1.5 rounded text-[10px] uppercase tracking-wider font-bold transition-colors"
         >
-          Save Feed
+          {{ t('feedForm.saveFeed') }}
         </button>
       </div>
     </div>

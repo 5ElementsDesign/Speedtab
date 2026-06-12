@@ -1,5 +1,5 @@
-import { db } from '@/db/db'
 import { markExportDirty } from '@/composables/useExportState'
+import { db } from '@/db/db'
 import type { AssetKind } from '@/types/db'
 
 // ─── Tile dimensions ──────────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ export async function loadAssetObjectUrl(assetId: number | null): Promise<string
  */
 export function canvasToWebpBlob(
   canvas:  HTMLCanvasElement,
-  quality: number = 0.98,
+  quality: number = 0.97,
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(

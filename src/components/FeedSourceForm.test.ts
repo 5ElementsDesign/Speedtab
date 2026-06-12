@@ -2,6 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import FeedSourceForm from './FeedSourceForm.vue'
+import { createTestI18n } from '@/test/createTestI18n'
 
 const feedMocks = vi.hoisted(() => ({
   fetchFeed: vi.fn(),
@@ -39,6 +40,9 @@ describe('FeedSourceForm', () => {
     const wrapper = mount(FeedSourceForm, {
       props: {
         collectionId: 1,
+      },
+      global: {
+        plugins: [createTestI18n()],
       },
     })
 
@@ -80,6 +84,9 @@ describe('FeedSourceForm', () => {
     const wrapper = mount(FeedSourceForm, {
       props: {
         collectionId: 1,
+      },
+      global: {
+        plugins: [createTestI18n()],
       },
     })
 

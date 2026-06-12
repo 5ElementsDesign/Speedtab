@@ -11,6 +11,7 @@ import type {
   Asset,
   AppSetting,
   CaptureInboxItem,
+  BgArchiveItem,
 } from '@/types/db'
 
 const SYNC_METADATA_PENDING_KEY = 'pending_sync_metadata_migration'
@@ -48,6 +49,7 @@ export class SpeedtabDB extends Dexie {
   assets!:       Table<Asset>
   app_settings!: Table<AppSetting, string>
   capture_inbox!: Table<CaptureInboxItem>
+  bg_archive!:   Table<BgArchiveItem>
 
   constructor(options?: DexieOptions) {
     super('speedtab', options)
@@ -146,6 +148,21 @@ export class SpeedtabDB extends Dexie {
       assets:           '++id, &checksum, kind',
       app_settings:     '&key, updated_at',
       capture_inbox:    '++id, &external_hash, kind, created_at',
+    })
+
+    this.version(7).stores({
+      pages:            '++id, &slug, &sync_id, sort_order, is_home, updated_at, deleted_at',
+      modules:          '++id, &sync_id, page_id, type, sort_order, updated_at, deleted_at',
+      collections:      '++id, &sync_id, module_id, sort_order, updated_at, deleted_at',
+      tabs:             '++id, &sync_id, collection_id, url, sort_order, updated_at, deleted_at',
+      notes:            '++id, &sync_id, collection_id, type, sort_order, updated_at, deleted_at',
+      feed_sources:     '++id, &sync_id, collection_id, sort_order, last_fetched_at, updated_at, deleted_at',
+      feed_items:       '++id, feed_source_id, fetched_at, published_at, [feed_source_id+external_id]',
+      saved_feed_items: '++id, &sync_id, collection_id, saved_at, sort_order, updated_at, deleted_at',
+      assets:           '++id, &checksum, kind',
+      app_settings:     '&key, updated_at',
+      capture_inbox:    '++id, &external_hash, kind, created_at',
+      bg_archive:       '++id, created_at',
     })
   }
 }

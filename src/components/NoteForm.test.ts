@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 
 import NoteForm from './NoteForm.vue'
+import { createTestI18n } from '@/test/createTestI18n'
 
 vi.mock('./NoteViewerModal.vue', () => ({
   default: {
@@ -14,6 +15,9 @@ describe('NoteForm', () => {
     const wrapper = mount(NoteForm, {
       props: {
         collectionId: 1,
+      },
+      global: {
+        plugins: [createTestI18n()],
       },
     })
 

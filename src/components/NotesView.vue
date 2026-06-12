@@ -9,6 +9,7 @@ import { useReorder } from '@/composables/useReorder'
 import { db, isActiveRecord, makeCreateMetadata, makeUpdatedAtPatch } from '@/db/db'
 import type { Collection, Note, NoteType, PortableInput } from '@/types/db'
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Modal from './Modal.vue'
 import NoteForm from './NoteForm.vue'
 import NoteTile from './NoteTile.vue'
@@ -19,6 +20,7 @@ const props = defineProps<{
   showAddTile?: boolean
   highlightNoteId?: number | null
 }>()
+const { t } = useI18n()
 
 // ─── Live notes list ──────────────────────────────────────────────────────────
 
@@ -50,11 +52,11 @@ const editingNote = ref<Note | undefined>(undefined)
 const isPreviewMode = ref(false)
 const noteFormType = ref<NoteType>('text')
 const noteTypeLabels: Record<NoteType, string> = {
-  text: 'Text',
-  code: 'Code',
-  links: 'Links',
-  html: 'HTML',
-  crypt: 'Crypt',
+  text: t('noteForm.types.text'),
+  code: t('noteForm.types.code'),
+  links: t('noteForm.types.links'),
+  html: t('noteForm.types.html'),
+  crypt: t('noteForm.types.crypt'),
 }
 
 function openAdd() {
@@ -121,23 +123,23 @@ async function deleteNoteById(id: number) {
         class="st-content-trigger-button st-inline-add-content-trigger border
                flex items-center justify-center
                transition-colors shrink-0"
-        title="Add note"
+        :title="t('notesView.addNote')"
       >+</button>
     </div>
 
     <!-- ─── Empty state ──────────────────────────────────────────────────── -->
     <div v-else class="st-module-empty text-center">
-      <p class="text-[11px] text-white/50 italic mb-2">No notes in this module</p>
+      <p class="text-[11px] text-white/50 italic mb-2">{{ t('notesView.noNotes') }}</p>
       <button @click="openAdd"
         class="text-[10px] uppercase tracking-wider font-normal text-white/80 hover:text-white transition-colors">
-        + Add Note
+        {{ t('notesView.addNoteAction') }}
       </button>
     </div>
 
     <!-- ─── CRUD form modal ───────────────────────────────────────────────── -->
-    <Modal :show="isFormOpen" :dock-right="isPreviewMode" :title="editingNote ? 'Edit Note' : 'New Note'" @close="isFormOpen = false; isPreviewMode = false">
+    <Modal :show="isFormOpen" :dock-right="isPreviewMode" :title="editingNote ? t('notesView.editNoteTitle') : t('notesView.newNoteTitle')" @close="isFormOpen = false; isPreviewMode = false">
       <template #header-meta>
-        <span class="uppercase tracking-wider mr-1">Type</span>
+        <span class="uppercase tracking-wider mr-1">{{ t('notesView.type') }}</span>
         <span class="st-text-bold">{{ noteTypeLabels[noteFormType] }}</span>
       </template>
       <NoteForm

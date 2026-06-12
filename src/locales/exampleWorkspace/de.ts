@@ -1,0 +1,57 @@
+const exampleWorkspaceDe = {
+  page: {
+    mainTitle: 'Hauptseite',
+  },
+  modules: {
+    web: 'Web Links',
+    notes: 'Notizen',
+    qbox: 'Qbox',
+    news: 'Nachrichten',
+  },
+  collections: {
+    apps: 'Apps',
+    tools: 'Kommunikation',
+    start: 'Start',
+    features: 'Funktionen',
+    help: '❔',
+    qbox: 'KI',
+    breaking: 'Eilmeldungen',
+  },
+  bookmarks: {
+    google: 'Google',
+    gemini: 'Gemini',
+    googleMaps: 'Google Maps',
+    googleTranslate: 'Google Übersetzer',
+    youtube: 'YouTube',
+    whatsapp: 'WhatsApp',
+    telegram: 'Telegram',
+    discord: 'Discord',
+    slack: 'Slack',
+    chatgpt: 'ChatGPT',
+    claude: 'Claude',
+    grok: 'Grok',
+    qwen: 'Qwen',
+    duckAi: 'Duck.ai',
+  },
+  notes: {
+    firstNoteTitle: 'Meine erste Notiz',
+    firstNoteContent: "Nutze die Passphrase 'Geheimnis', um das Geheimnis zu entschlüsseln",
+    secretTitle: 'Geheimnis',
+    secretContent: 'Speedtab ist der Hammer!',
+    welcomeTitle: 'Willkommen bei Speedtab',
+    featureBookmarksTitle: 'Lesezeichen',
+    featureNotesTitle: 'Notizen',
+    featureFeedReaderTitle: 'Feed-Reader',
+    featureInboxTitle: 'INBOX',
+    featureWeatherWidgetTitle: 'Wetter-Widget',
+    featureAssetsTitle: 'Assets',
+    featureCleanupTitle: 'Bereinigung',
+    helpAboutTitle: 'Über Speedtab',
+    helpFaqTitle: 'FAQ',
+  },
+  feeds: {
+    gtmetrixBlog: 'GTmetrix Blog',
+  },
+} as const
+
+export default exampleWorkspaceDe

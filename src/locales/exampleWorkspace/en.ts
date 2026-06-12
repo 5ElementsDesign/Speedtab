@@ -1,0 +1,57 @@
+const exampleWorkspaceEn = {
+  page: {
+    mainTitle: 'Main',
+  },
+  modules: {
+    web: 'Web',
+    notes: 'Notes',
+    qbox: 'Qbox',
+    news: 'News',
+  },
+  collections: {
+    apps: 'Apps',
+    tools: 'Com',
+    start: 'Start',
+    features: 'Features',
+    help: '❔',
+    qbox: 'AI',
+    breaking: 'Breaking',
+  },
+  bookmarks: {
+    google: 'Google',
+    gemini: 'Gemini',
+    googleMaps: 'Google Maps',
+    googleTranslate: 'Google Translate',
+    youtube: 'YouTube',
+    whatsapp: 'WhatsApp',
+    telegram: 'Telegram',
+    discord: 'Discord',
+    slack: 'Slack',
+    chatgpt: 'ChatGPT',
+    claude: 'Claude',
+    grok: 'Grok',
+    qwen: 'Qwen',
+    duckAi: 'Duck.ai',
+  },
+  notes: {
+    firstNoteTitle: 'My first note',
+    firstNoteContent: "Use the passphrase 'Secret' to unlock the secret",
+    secretTitle: 'Secret',
+    secretContent: 'Speedtab is awesome!',
+    welcomeTitle: 'Welcome to Speedtab',
+    featureBookmarksTitle: 'Bookmarks',
+    featureNotesTitle: 'Notes',
+    featureFeedReaderTitle: 'Feed reader',
+    featureInboxTitle: 'INBOX',
+    featureWeatherWidgetTitle: 'Weather widget',
+    featureAssetsTitle: 'Assets',
+    featureCleanupTitle: 'CLEANUP',
+    helpAboutTitle: 'About Speedtab',
+    helpFaqTitle: 'FAQ',
+  },
+  feeds: {
+    gtmetrixBlog: 'GTmetrix Blog',
+  },
+} as const
+
+export default exampleWorkspaceEn

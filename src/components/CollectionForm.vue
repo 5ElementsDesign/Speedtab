@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
 import { transferCollectionContent, type CollectionTransferKey, type CollectionTransferMode } from '@/composables/useCollectionTransfer'
 import { useLiveQuery } from '@/composables/useLiveQuery'
 import { db, isActiveRecord } from '@/db/db'
 import type { Collection, Module, ModuleType, Page, PortableInput } from '@/types/db'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   collection?: Collection
@@ -16,6 +17,7 @@ const emit = defineEmits<{
   delete: [id: number]
   cancel: []
 }>()
+const { t } = useI18n()
 
 const form = ref<PortableInput<Collection>>({
   module_id:   props.moduleId,
@@ -50,13 +52,13 @@ const isTransferring = ref(false)
 const selectedTransferKeys = ref<CollectionTransferKey[]>([])
 
 const refreshIntervals = [
-  { value: 0, label: 'Off' },
-  { value: 60000, label: '1 minute' },
-  { value: 300000, label: '5 minutes' },
-  { value: 600000, label: '10 minutes' },
-  { value: 900000, label: '15 minutes' },
-  { value: 1800000, label: '30 minutes' },
-  { value: 3600000, label: '60 minutes' },
+  { value: 0, label: t('collectionForm.refreshIntervals.off') },
+  { value: 60000, label: t('collectionForm.refreshIntervals.m1') },
+  { value: 300000, label: t('collectionForm.refreshIntervals.m5') },
+  { value: 600000, label: t('collectionForm.refreshIntervals.m10') },
+  { value: 900000, label: t('collectionForm.refreshIntervals.m15') },
+  { value: 1800000, label: t('collectionForm.refreshIntervals.m30') },
+  { value: 3600000, label: t('collectionForm.refreshIntervals.h1') },
 ]
 
 const { data: pages } = useLiveQuery(
@@ -143,13 +145,18 @@ const transferItems = computed<TransferListItem[]>(() => {
     ...sourceSavedFeedItems.value.map((item) => ({
       key: `saved_feed_item:${item.id!}` as CollectionTransferKey,
       label: item.title,
-      sublabel: item.source_title ?? 'Archived feed item',
+      sublabel: item.source_title ?? t('collectionForm.items.archivedFeedItem'),
     })),
   ]
 })
 
 const allTransferKeys = computed<CollectionTransferKey[]>(() => transferItems.value.map((item) => item.key))
 const selectedTransferCount = computed(() => selectedTransferKeys.value.length)
+const selectedTransferItemsLabel = computed(() =>
+  selectedTransferCount.value === 1
+    ? t('collectionForm.transferItemSingular')
+    : t('collectionForm.transferItemPlural'),
+)
 const canExecuteTransfer = computed(() =>
   !!props.collection?.id &&
   !!selectedCollectionId.value &&
@@ -204,7 +211,13 @@ function handleSubmit() {
 
 async function executeTransfer() {
   if (!props.collection?.id || !selectedCollectionId.value || !canExecuteTransfer.value) return
-  if (transferMode.value === 'move' && !confirm(`Move ${selectedTransferCount.value} selected item(s) to the destination tab?`)) {
+  if (
+    transferMode.value === 'move'
+    && !confirm(t('collectionForm.transferConfirm', {
+      count: selectedTransferCount.value,
+      itemsLabel: selectedTransferItemsLabel.value,
+    }))
+  ) {
     return
   }
 
@@ -218,7 +231,13 @@ async function executeTransfer() {
       mode: transferMode.value,
       selectedKeys: selectedTransferKeys.value,
     })
-    transferStatus.value = `${result.mode === 'move' ? 'Moved' : 'Copied'} ${result.moved_items} item${result.moved_items === 1 ? '' : 's'}`
+    transferStatus.value = t('collectionForm.transferResult', {
+      mode: result.mode === 'move' ? t('collectionForm.modes.moved') : t('collectionForm.modes.copied'),
+      count: result.moved_items,
+      itemsLabel: result.moved_items === 1
+        ? t('collectionForm.transferItemSingular')
+        : t('collectionForm.transferItemPlural'),
+    })
     isTransferOpen.value = false
   } catch (error) {
     transferStatus.value = (error as Error).message
@@ -231,20 +250,20 @@ async function executeTransfer() {
 <template>
   <form @submit.prevent="handleSubmit" class="space-y-4">
     <div v-if="!isTransferOpen">
-      <label for="collection_title" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Tab Title</label>
+      <label for="collection_title" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('collectionForm.title') }}</label>
       <input
         id="collection_title"
         ref="titleInput"
         v-model="form.title"
         type="text"
-        placeholder="e.g. Daily, Favorites, Archived..."
+        :placeholder="t('collectionForm.titlePlaceholder')"
         class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         required
       />
     </div>
 
     <div v-if="props.moduleType === 'feeds'">
-      <label for="collection_refresh_interval" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Auto Refresh</label>
+      <label for="collection_refresh_interval" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('collectionForm.autoRefresh') }}</label>
       <select
         id="collection_refresh_interval"
         v-model.number="config.refresh_interval_ms"
@@ -259,7 +278,7 @@ async function executeTransfer() {
         </option>
       </select>
       <p class="mt-1 text-[11px] text-white/45">
-        Only runs while this feed tab is open and the browser tab is visible.
+        {{ t('collectionForm.autoRefreshHelp') }}
       </p>
     </div>
 
@@ -270,33 +289,33 @@ async function executeTransfer() {
           @click="toggleTransferPanel"
           class="px-3 py-2 bg-black/85 hover:bg-black border border-white/10 rounded text-[10px] uppercase tracking-wider font-bold text-white/85 hover:text-white transition-colors"
         >
-          Move Content
+          {{ t('collectionForm.moveContent') }}
         </button>
 
         <div v-if="isTransferOpen" class="space-y-4 border border-white/10 bg-black/20 p-3">
           <div class="space-y-2">
-            <label for="collection_transfer_mode" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Transfer Mode</label>
+            <label for="collection_transfer_mode" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('collectionForm.transferMode') }}</label>
             <select
               id="collection_transfer_mode"
               v-model="transferMode"
               name="collection_transfer_mode"
               class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
-              <option value="copy">Copy content</option>
-              <option value="move">Move content</option>
+              <option value="copy">{{ t('collectionForm.copyContent') }}</option>
+              <option value="move">{{ t('collectionForm.moveContentOption') }}</option>
             </select>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="space-y-2">
-              <label for="transfer_page_id" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Page</label>
+              <label for="transfer_page_id" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('collectionForm.page') }}</label>
               <select
                 id="transfer_page_id"
                 v-model.number="selectedPageId"
                 name="transfer_page_id"
                 class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
-                <option :value="null">Select page</option>
+                <option :value="null">{{ t('collectionForm.selectPage') }}</option>
                 <option v-for="page in destinationPages" :key="page.id" :value="page.id">
                   {{ page.title }}
                 </option>
@@ -304,14 +323,14 @@ async function executeTransfer() {
             </div>
 
             <div class="space-y-2">
-              <label for="transfer_module_id" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Module</label>
+              <label for="transfer_module_id" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('collectionForm.module') }}</label>
               <select
                 id="transfer_module_id"
                 v-model.number="selectedModuleId"
                 name="transfer_module_id"
                 class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
-                <option :value="null">Select module</option>
+                <option :value="null">{{ t('collectionForm.selectModule') }}</option>
                 <option v-for="module in destinationModules" :key="module.id" :value="module.id">
                   {{ module.title }}
                 </option>
@@ -319,21 +338,21 @@ async function executeTransfer() {
             </div>
 
             <div class="space-y-2">
-              <label for="transfer_collection_id" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">Tab</label>
+              <label for="transfer_collection_id" class="block text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('collectionForm.tab') }}</label>
               <select
                 id="transfer_collection_id"
                 v-model.number="selectedCollectionId"
                 name="transfer_collection_id"
                 class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
-                <option :value="null">Select tab</option>
+                <option :value="null">{{ t('collectionForm.selectTab') }}</option>
                 <option
                   v-for="targetCollection in destinationCollections"
                   :key="targetCollection.id"
                   :value="targetCollection.id"
                   :disabled="targetCollection.id === collection.id"
                 >
-                  {{ targetCollection.title }}{{ targetCollection.id === collection.id ? ' · current' : '' }}
+                  {{ targetCollection.title }}{{ targetCollection.id === collection.id ? t('collectionForm.currentSuffix') : '' }}
                 </option>
               </select>
             </div>
@@ -341,21 +360,21 @@ async function executeTransfer() {
 
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-3">
-              <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Select Items</p>
+              <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('collectionForm.selectItems') }}</p>
               <div class="flex gap-2">
                 <button
                   type="button"
                   @click="selectAllTransferItems"
                   class="text-[10px] uppercase tracking-wider text-white/70 hover:text-white transition-colors"
                 >
-                  Select All
+                  {{ t('collectionForm.selectAll') }}
                 </button>
                 <button
                   type="button"
                   @click="clearAllTransferItems"
                   class="text-[10px] uppercase tracking-wider text-white/70 hover:text-white transition-colors"
                 >
-                  Clear All
+                  {{ t('collectionForm.clearAll') }}
                 </button>
               </div>
             </div>
@@ -382,13 +401,17 @@ async function executeTransfer() {
                   <span v-if="item.sublabel" class="block text-[10px] text-white/55 truncate">{{ item.sublabel }}</span>
                 </span>
               </label>
-              <p v-if="!transferItems.length" class="text-[11px] text-white/50 italic">No content in this tab.</p>
+              <p v-if="!transferItems.length" class="text-[11px] text-white/50 italic">{{ t('collectionForm.noContent') }}</p>
             </div>
           </div>
 
           <div class="flex items-center justify-between gap-3 border-t border-white/10 pt-3">
             <p class="text-[11px] text-white/60">
-              {{ transferMode === 'move' ? 'Move' : 'Copy' }} {{ selectedTransferCount }} selected item{{ selectedTransferCount === 1 ? '' : 's' }} to the destination tab.
+              {{ t('collectionForm.transferSummary', {
+                mode: transferMode === 'move' ? t('collectionForm.modes.move') : t('collectionForm.modes.copy'),
+                count: selectedTransferCount,
+                itemsLabel: selectedTransferItemsLabel,
+              }) }}
             </p>
             <button
               type="button"
@@ -396,12 +419,12 @@ async function executeTransfer() {
               @click="executeTransfer"
               class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[10px] uppercase tracking-wider font-bold transition-colors disabled:opacity-40 disabled:hover:bg-indigo-600"
             >
-              {{ isTransferring ? 'Working…' : 'Execute' }}
+              {{ isTransferring ? t('collectionForm.working') : t('collectionForm.execute') }}
             </button>
           </div>
         </div>
 
-        <p v-if="transferStatus" class="text-[11px]" :class="transferStatus.startsWith('Moved') || transferStatus.startsWith('Copied') ? 'text-green-400' : 'text-red-300'">
+        <p v-if="transferStatus" class="text-[11px]" :class="transferStatus.startsWith(t('collectionForm.modes.moved')) || transferStatus.startsWith(t('collectionForm.modes.copied')) ? 'text-green-400' : 'text-red-300'">
           {{ transferStatus }}
         </p>
       </div>
@@ -414,7 +437,7 @@ async function executeTransfer() {
         @click="emit('delete', collection.id!)"
         class="text-xs text-red-400 hover:text-red-300 transition-colors"
       >
-        Delete Tab
+        {{ t('common.delete') }} {{ t('collectionForm.tab') }}
       </button>
       <div v-else></div>
 
@@ -424,7 +447,7 @@ async function executeTransfer() {
           @click="emit('cancel')"
           class="px-4 py-2 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors"
         >
-          Cancel
+          {{ t('common.cancel') }}
         </button>
         <button
           type="submit"
@@ -432,7 +455,7 @@ async function executeTransfer() {
           class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-medium shadow-lg shadow-indigo-900/20 transition-all"
           :class="isTransferOpen ? 'cursor-not-allowed opacity-45 hover:bg-indigo-600' : ''"
         >
-          {{ collection?.id ? 'Save Changes' : 'Create Tab' }}
+          {{ collection?.id ? t('collectionForm.saveChanges') : t('collectionForm.createTab') }}
         </button>
       </div>
     </div>

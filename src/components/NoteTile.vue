@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Note } from '@/types/db';
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   note:         Note
@@ -13,6 +14,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   view: [note: Note]
 }>()
+const { t } = useI18n()
 
 // ─── Style token → accent border color ────────────────────────────────────────
 
@@ -58,7 +60,7 @@ const preview = computed(() => {
       <span class="text-[10px] leading-tight truncate">
         {{ note.title }}
       </span>
-      <span class="text-[9px] opacity-70 hover:opacity-100">{{ props.isOpen ? 'OPEN' : '×' }}</span>
+      <span class="text-[9px] opacity-70 hover:opacity-100">{{ props.isOpen ? t('noteTile.open') : '×' }}</span>
     </div>
 
     <!-- Bottom half: content preview -->
@@ -73,7 +75,7 @@ const preview = computed(() => {
             v-if="note.type === 'crypt'"
             class="text-[9px] font-mono truncate leading-none h-full flex items-center"
           >
-            🔒 Encrypted
+            {{ t('noteTile.encrypted') }}
           </p>
           <p
             v-else

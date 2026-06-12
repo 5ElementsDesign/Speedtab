@@ -8,6 +8,7 @@ import { remapNoteImageTokens } from '@/composables/useNoteImages'
 import { db, makeUpdatedAtPatch } from '@/db/db'
 import type { AppSetting, Asset, FeedItem, FeedSource, Note, Page, Tab } from '@/types/db'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Modal from './Modal.vue'
 
 const props = defineProps<{
@@ -17,6 +18,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
 }>()
+const { t } = useI18n()
 
 const { data: assets } = useLiveQuery(() => db.assets.toArray(), [] as Asset[])
 const { data: tabs } = useLiveQuery(() => db.tabs.toArray(), [] as Tab[])
@@ -61,10 +63,10 @@ function revokePreviewUrls() {
 
 function kindLabel(kind: Asset['kind']) {
   switch (kind) {
-    case 'background': return 'Backgrounds'
-    case 'preview': return 'Bookmark Previews'
-    case 'note_image': return 'Note Images'
-    case 'favicon': return 'Favicons'
+    case 'background': return t('assets.kindLabels.background')
+    case 'preview': return t('assets.kindLabels.preview')
+    case 'note_image': return t('assets.kindLabels.noteImage')
+    case 'favicon': return t('assets.kindLabels.favicon')
   }
 }
 
@@ -193,7 +195,7 @@ function getReferenceSummary(assetId: number) {
 async function deleteSelectedAsset() {
   const asset = selectedAsset.value
   if (!asset?.id || deleting.value) return
-  if (!confirm('Delete this asset and clear any direct references to it?')) return
+  if (!confirm(t('assets.deleteConfirm'))) return
 
   deleting.value = true
   const assetId = asset.id
@@ -272,8 +274,8 @@ async function refreshFaviconAssets() {
     refreshFaviconStatus.value = null
     const refreshed = await refreshStaleFavicons()
     refreshFaviconStatus.value = refreshed > 0
-      ? `Refreshed ${refreshed} stale favicon${refreshed === 1 ? '' : 's'}.`
-      : 'No stale favicons needed refreshing.'
+      ? t('assets.refreshedFavicons', { count: refreshed })
+      : t('assets.noFaviconsNeeded')
   } finally {
     refreshingFavicons.value = false
   }
@@ -302,17 +304,17 @@ onBeforeUnmount(revokePreviewUrls)
 </script>
 
 <template>
-  <Modal :show="show" title="Assets" @close="emit('close')">
+  <Modal :show="show" :title="t('assets.title')" @close="emit('close')">
     <template #title>
-      Assets
+      {{ t('assets.title') }}
       <span class="ml-1 text-[10px] font-normal text-white/55">
-        (total: {{ assets.length }} assets, Size: {{ formatByteCount(totalAssetSize) }})
+        {{ t('assets.totalSummary', { count: assets.length, size: formatByteCount(totalAssetSize) }) }}
       </span>
     </template>
 
     <div class="space-y-4">
       <p class="text-[11px] text-white/60">
-        Cached and uploaded images stored inside Speedtab. Click an item for details or delete it.
+        {{ t('assets.intro') }}
       </p>
 
       <div class="overflow-y-auto space-y-5 pr-1">
@@ -333,7 +335,7 @@ onBeforeUnmount(revokePreviewUrls)
                 :disabled="refreshingFavicons"
                 class="px-2 py-1 text-[10px] text-white/75 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors disabled:opacity-50"
               >
-                {{ refreshingFavicons ? 'Refreshing…' : 'Refresh Stale Favicons' }}
+                {{ refreshingFavicons ? t('assets.refreshing') : t('assets.refreshStaleFavicons') }}
               </button>
               <span class="text-[10px] text-white/45">{{ group.items.length }}</span>
             </div>
@@ -342,7 +344,7 @@ onBeforeUnmount(revokePreviewUrls)
             v-if="group.kind === 'favicon'"
             class="text-[10px] text-white/45"
           >
-            Icons older than 90 days are refreshed here. Deleted favicon references are updated automatically when needed.
+            {{ t('assets.faviconRefreshHelp') }}
           </p>
           <p
             v-if="group.kind === 'favicon' && refreshFaviconStatus"
@@ -386,14 +388,14 @@ onBeforeUnmount(revokePreviewUrls)
             </button>
           </div>
 
-          <p v-else class="text-[11px] text-white/40 italic">No assets in this category.</p>
+          <p v-else class="text-[11px] text-white/40 italic">{{ t('assets.noAssetsInCategory') }}</p>
         </section>
       </div>
     </div>
 
     <Modal
       :show="selectedAsset !== null"
-      title="Asset Details"
+      :title="t('assets.detailsTitle')"
       @close="selectedAssetId = null"
     >
       <div v-if="selectedAsset" class="space-y-4">
@@ -412,46 +414,46 @@ onBeforeUnmount(revokePreviewUrls)
 
         <div class="grid grid-cols-2 gap-3 text-[11px]">
           <div>
-            <div class="text-white/45 uppercase tracking-wider">Kind</div>
-            <div class="text-white/90">{{ selectedAsset.kind }}</div>
+            <div class="text-white/45 uppercase tracking-wider">{{ t('assets.kind') }}</div>
+            <div class="text-white/90">{{ kindLabel(selectedAsset.kind) }}</div>
           </div>
           <div>
-            <div class="text-white/45 uppercase tracking-wider">ID</div>
+            <div class="text-white/45 uppercase tracking-wider">{{ t('assets.id') }}</div>
             <div class="text-white/90">#{{ selectedAsset.id }}</div>
           </div>
           <div>
-            <div class="text-white/45 uppercase tracking-wider">Size</div>
+            <div class="text-white/45 uppercase tracking-wider">{{ t('assets.size') }}</div>
             <div class="text-white/90">{{ formatBytes(selectedAsset.blob) }}</div>
           </div>
           <div>
-            <div class="text-white/45 uppercase tracking-wider">Dimensions</div>
+            <div class="text-white/45 uppercase tracking-wider">{{ t('assets.dimensions') }}</div>
             <div class="text-white/90">
-              {{ selectedAsset.width && selectedAsset.height ? `${selectedAsset.width} × ${selectedAsset.height}` : 'Unknown' }}
+              {{ selectedAsset.width && selectedAsset.height ? `${selectedAsset.width} × ${selectedAsset.height}` : t('assets.unknown') }}
             </div>
           </div>
         </div>
 
         <div class="space-y-1">
-          <div class="text-[10px] text-white/45 uppercase tracking-wider">Checksum</div>
+          <div class="text-[10px] text-white/45 uppercase tracking-wider">{{ t('assets.checksum') }}</div>
           <div class="text-[11px] font-mono text-white/85 break-all bg-black/25 border border-white/10 px-2 py-1.5">
             {{ selectedAsset.checksum }}
           </div>
         </div>
 
         <div class="space-y-1">
-          <div class="text-[10px] text-white/45 uppercase tracking-wider">References</div>
+          <div class="text-[10px] text-white/45 uppercase tracking-wider">{{ t('assets.references') }}</div>
           <div class="text-[11px] text-white/85 bg-black/25 border border-white/10 px-2 py-1.5 space-y-0.5">
-            <div>Backgrounds: {{ getReferenceSummary(selectedAsset.id!).backgrounds }}</div>
-            <div>Bookmark favicons: {{ getReferenceSummary(selectedAsset.id!).bookmarkFavicons }}</div>
-            <div>Bookmark previews: {{ getReferenceSummary(selectedAsset.id!).bookmarkPreviews }}</div>
-            <div>Feed favicons: {{ getReferenceSummary(selectedAsset.id!).feedFavicons }}</div>
-            <div>Link note favicons: {{ getReferenceSummary(selectedAsset.id!).noteLinkFavicons }}</div>
-            <div>Note images: {{ getReferenceSummary(selectedAsset.id!).noteImages }}</div>
+            <div>{{ t('assets.referenceLabels.backgrounds') }}: {{ getReferenceSummary(selectedAsset.id!).backgrounds }}</div>
+            <div>{{ t('assets.referenceLabels.bookmarkFavicons') }}: {{ getReferenceSummary(selectedAsset.id!).bookmarkFavicons }}</div>
+            <div>{{ t('assets.referenceLabels.bookmarkPreviews') }}: {{ getReferenceSummary(selectedAsset.id!).bookmarkPreviews }}</div>
+            <div>{{ t('assets.referenceLabels.feedFavicons') }}: {{ getReferenceSummary(selectedAsset.id!).feedFavicons }}</div>
+            <div>{{ t('assets.referenceLabels.noteLinkFavicons') }}: {{ getReferenceSummary(selectedAsset.id!).noteLinkFavicons }}</div>
+            <div>{{ t('assets.referenceLabels.noteImages') }}: {{ getReferenceSummary(selectedAsset.id!).noteImages }}</div>
           </div>
         </div>
 
         <div v-if="formatMeta(selectedAsset.meta_json)" class="space-y-1">
-          <div class="text-[10px] text-white/45 uppercase tracking-wider">Meta</div>
+          <div class="text-[10px] text-white/45 uppercase tracking-wider">{{ t('assets.meta') }}</div>
           <pre class="text-[11px] leading-snug text-white/80 bg-black/25 border border-white/10 px-2 py-1.5 overflow-x-auto whitespace-pre-wrap break-all">{{ formatMeta(selectedAsset.meta_json) }}</pre>
         </div>
 
@@ -462,7 +464,7 @@ onBeforeUnmount(revokePreviewUrls)
             :disabled="deleting"
             class="px-4 py-2 text-xs bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white transition-colors"
           >
-            {{ deleting ? 'Deleting…' : 'Delete Asset' }}
+            {{ deleting ? t('assets.deleting') : t('assets.deleteAsset') }}
           </button>
 
           <button
@@ -470,7 +472,7 @@ onBeforeUnmount(revokePreviewUrls)
             @click="selectedAssetId = null"
             class="px-4 py-2 text-xs text-white/70 hover:text-white transition-colors"
           >
-            Close
+            {{ t('common.close') }}
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { CaptureInboxItem, Collection, Module, Note, Page } from '@/types/db'
 import { computed, nextTick, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Modal from './Modal.vue'
 
 const props = defineProps<{
@@ -17,6 +18,7 @@ const emit = defineEmits<{
   save: [item: CaptureInboxItem, collectionId: number, appendToNoteId?: number | null]
   discard: [itemId: number]
 }>()
+const { t } = useI18n()
 
 const activeItemId = ref<number | null>(null)
 const selectedModuleId = ref<number | null>(null)
@@ -66,6 +68,10 @@ function noteCanAppend(note: Note) {
   return note.type !== 'crypt'
 }
 
+function kindLabel(kind: CaptureInboxItem['kind']) {
+  return kind === 'note' ? t('capture.note') : t('capture.bookmark')
+}
+
 function moduleLabel(module: Module) {
   const page = props.pages.find(candidate => candidate.id === module.page_id)
   return page ? `${page.title} › ${module.title}` : module.title
@@ -97,7 +103,7 @@ watch(activeItem, (item) => {
 </script>
 
 <template>
-  <Modal :show="show" title="Capture Inbox" @close="emit('close')">
+  <Modal :show="show" :title="t('capture.inboxTitle')" @close="emit('close')">
     <div v-if="items.length" class="space-y-4">
       <div class="grid grid-cols-[12rem_minmax(0,1fr)] gap-4 max-h-[85vh] min-h-[24rem]">
         <div class="border border-white/10 bg-black/20 overflow-y-auto">
@@ -109,14 +115,14 @@ watch(activeItem, (item) => {
             class="w-full text-left px-3 py-2 border-b border-white/10 transition-colors"
             :class="activeItemId === item.id ? 'bg-white/10 text-white' : 'text-white/75 hover:bg-white/5 hover:text-white'"
           >
-            <div class="text-[10px] uppercase tracking-wider text-white/45">{{ item.kind }}</div>
-            <div class="text-[11px] font-medium truncate">{{ item.title || item.url || 'Captured item' }}</div>
+            <div class="text-[10px] uppercase tracking-wider text-white/45">{{ kindLabel(item.kind) }}</div>
+            <div class="text-[11px] font-medium truncate">{{ item.title || item.url || t('capture.capturedItem') }}</div>
           </button>
         </div>
 
         <div v-if="activeItem" class="space-y-4 min-w-0">
           <div class="border border-white/10 bg-black/20 px-3 py-3 space-y-2">
-            <div class="text-[10px] uppercase tracking-wider text-white/45">Preview</div>
+            <div class="text-[10px] uppercase tracking-wider text-white/45">{{ t('capture.preview') }}</div>
             <div class="text-[11px] text-white/90 break-words">
               <template v-if="activeItem.kind === 'note'">
                 <textarea
@@ -125,7 +131,7 @@ watch(activeItem, (item) => {
                 />
               </template>
               <template v-else>
-                <div class="font-medium">{{ activeItem.title || 'Captured bookmark' }}</div>
+                <div class="font-medium">{{ activeItem.title || t('capture.capturedBookmark') }}</div>
                 <div class="text-white/60 break-all">{{ activeItem.url }}</div>
               </template>
             </div>
@@ -133,7 +139,7 @@ watch(activeItem, (item) => {
 
           <div class="space-y-3">
             <div>
-              <label for="capture_module" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Module</label>
+              <label for="capture_module" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('capture.module') }}</label>
               <select
                 id="capture_module"
                 v-model.number="selectedModuleId"
@@ -150,7 +156,7 @@ watch(activeItem, (item) => {
             </div>
 
             <div>
-              <label for="capture_collection" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Tab</label>
+              <label for="capture_collection" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('capture.tab') }}</label>
               <select
                 id="capture_collection"
                 v-model.number="selectedCollectionId"
@@ -167,20 +173,20 @@ watch(activeItem, (item) => {
             </div>
 
             <div v-if="activeItem.kind === 'note' && eligibleNotes.length">
-              <label for="capture_existing_note" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Existing Note</label>
+              <label for="capture_existing_note" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('capture.existingNote') }}</label>
               <select
                 id="capture_existing_note"
                 v-model.number="selectedNoteId"
                 class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
-                <option :value="null">Create new note</option>
+                <option :value="null">{{ t('capture.createNewNote') }}</option>
                 <option
                   v-for="note in eligibleNotes"
                   :key="note.id"
                   :value="note.id"
                   :disabled="!noteCanAppend(note)"
                 >
-                  {{ note.title || 'Untitled note' }}{{ noteCanAppend(note) ? '' : ' (Encrypted)' }}
+                  {{ note.title || t('capture.untitledNote') }}{{ noteCanAppend(note) ? '' : t('capture.encryptedSuffix') }}
                 </option>
               </select>
             </div>
@@ -192,7 +198,7 @@ watch(activeItem, (item) => {
               @click="activeItem.id && emit('discard', activeItem.id)"
               class="text-xs text-red-400 hover:text-red-300 transition-colors"
             >
-              Discard
+              {{ t('capture.discard') }}
             </button>
 
             <div class="flex gap-3">
@@ -201,7 +207,7 @@ watch(activeItem, (item) => {
                 @click="emit('close')"
                 class="px-4 py-2 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors"
               >
-                Close
+                {{ t('common.close') }}
               </button>
               <button
                 v-if="activeItem.kind !== 'note' || !selectedNoteId"
@@ -213,7 +219,7 @@ watch(activeItem, (item) => {
                 }, selectedCollectionId, null)"
                 class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded text-xs font-medium transition-all"
               >
-                {{ activeItem.kind === 'note' ? 'Create New Note' : 'Save to Speedtab' }}
+                {{ activeItem.kind === 'note' ? t('capture.createNewNoteAction') : t('capture.saveToSpeedtab') }}
               </button>
               <button
                 v-if="activeItem.kind === 'note' && selectedNoteId"
@@ -224,7 +230,7 @@ watch(activeItem, (item) => {
                 }, selectedCollectionId, selectedNoteId)"
                 class="px-4 py-2 bg-white/10 hover:bg-white/15 text-white rounded text-xs font-medium transition-all"
               >
-                Append
+                {{ t('capture.append') }}
               </button>
             </div>
           </div>
@@ -233,7 +239,7 @@ watch(activeItem, (item) => {
     </div>
 
     <div v-else class="text-center py-8">
-      <p class="text-[11px] text-white/50 italic">No captured items waiting.</p>
+      <p class="text-[11px] text-white/50 italic">{{ t('capture.noItemsWaiting') }}</p>
     </div>
   </Modal>
 </template>

@@ -12,10 +12,12 @@ const EXCLUDED_FAVICON_HOSTS = new Set([
 ])
 
 const FAVICON_TTL_MS = 90 * 24 * 60 * 60 * 1000
+const FAVICON_RETRY_COOLDOWN_MS = 5 * 60 * 1000
 const MAX_FAVICON_DIMENSION = 48
 const faviconVersion = ref(0)
 const objectUrlByHost = new Map<string, string>()
 const pendingByHost = new Map<string, Promise<void>>()
+const lastFetchAttemptByHost = new Map<string, number>()
 const aliasByHost = new Map<string, string>()
 
 export type FaviconMeta = {
@@ -296,6 +298,12 @@ async function ensureFaviconForHost(hostname: string) {
       await setCachedObjectUrlForHost(hostname, fallback.asset.blob)
     }
 
+    const lastAttemptAt = lastFetchAttemptByHost.get(hostname)
+    if (typeof lastAttemptAt === 'number' && (Date.now() - lastAttemptAt) < FAVICON_RETRY_COOLDOWN_MS) {
+      return
+    }
+
+    lastFetchAttemptByHost.set(hostname, Date.now())
     await refreshFaviconForHost(hostname)
   })().finally(() => {
     pendingByHost.delete(hostname)
@@ -356,6 +364,17 @@ export function getFaviconUrl(url: string | null | undefined): string {
 
 export function getFallbackFaviconUrl(): string {
   return fallbackFaviconUrl
+}
+
+export function resetFaviconStateForTests() {
+  for (const objectUrl of objectUrlByHost.values()) {
+    URL.revokeObjectURL(objectUrl)
+  }
+  objectUrlByHost.clear()
+  pendingByHost.clear()
+  lastFetchAttemptByHost.clear()
+  aliasByHost.clear()
+  faviconVersion.value = 0
 }
 
 export function useFavicon() {

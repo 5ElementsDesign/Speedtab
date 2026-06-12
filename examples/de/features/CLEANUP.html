@@ -1,0 +1,25 @@
+<h2>Bereinigung (Cleanup)</h2>
+
+<p>Speedtab versucht, Löschvorgänge berechenbar und sauber zu halten. Wenn du ein Element weiter oben in der Hierarchie löschst, verschwinden die zugehörigen Kind-Inhalte automatisch mit.</p>
+
+<ul>
+  <li><strong>Seite löschen</strong> entfernt die gesamte Seite, ihre Module, deren Tabs, Notizen, Feed-Quellen, Live-Feed-Einträge, archivierte Feeds und Sammlungen.</li>
+  <li><strong>Modul löschen</strong> entfernt das spezifische Modul und alles, was darin gespeichert ist, einschließlich Sammlungen, Lesezeichen, Notizen, Feeds und archivierten Einträgen.</li>
+  <li><strong>Tab löschen</strong> im Modul-Header bedeutet das Löschen eines Sammlungs-Tabs, wodurch folglich auch alle Inhalte innerhalb dieses Tabs entfernt werden.</li>
+</ul>
+
+<hr>
+
+<h3>Was passiert mit den Assets?</h3>
+
+<p>Assets wie Lesezeichen-Vorschauen, hochgeladene Favicons, Notiz-Bilder und Hintergründe werden nicht blind gelöscht, sobald ein einzelnes Item verschwindet. Speedtab führt eine intelligente Waisen-Bereinigung (Orphan Cleanup) aus, um Assets zu entfernen, die nirgendwo mehr referenziert werden.</p>
+
+<ul>
+  <li>Wenn ein anderes Lesezeichen, eine Notiz, ein Feed oder eine Seite das Asset noch verwendet, bleibt es erhalten.</li>
+  <li>Wenn kein Element mehr auf ein Asset verweist, wird es von der Bereinigung entfernt.</li>
+  <li>Dies verhindert fehlerhafte, abgebrochene Bild-Vorschauen, während gleichzeitig sichergestellt wird, dass die Datenbank nicht dauerhaft mit Datenleichen zumüllt.</li>
+</ul>
+
+<blockquote>
+  <p>Löschaktionen entfernen Inhalte sofort. Die Asset-Bereinigung arbeitet referenzbewusst.</p>
+</blockquote>

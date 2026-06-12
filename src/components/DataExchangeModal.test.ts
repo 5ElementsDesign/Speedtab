@@ -3,6 +3,7 @@ import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import DataExchangeModal from './DataExchangeModal.vue'
 import { DEFAULT_REMOTE_LOCAL_SETTINGS, type RemoteLocalSettings } from '@/types/remote'
+import { createTestI18n } from '@/test/createTestI18n'
 
 const exchangeMocks = vi.hoisted(() => ({
   inspectRemotePush: vi.fn(),
@@ -210,6 +211,17 @@ function findSelect(wrapper: VueWrapper) {
   return select
 }
 
+function mountDataExchangeModal() {
+  return mount(DataExchangeModal, {
+    props: {
+      show: true,
+    },
+    global: {
+      plugins: [createTestI18n()],
+    },
+  })
+}
+
 describe('DataExchangeModal', () => {
   beforeEach(() => {
     localSettingsMocks.getLocalSettings.mockResolvedValue(configuredSettings())
@@ -273,11 +285,7 @@ describe('DataExchangeModal', () => {
   })
 
   it('shows transfer progress while verify is in flight and settles after it resolves', async () => {
-    const wrapper = mount(DataExchangeModal, {
-      props: {
-        show: true,
-      },
-    })
+    const wrapper = mountDataExchangeModal()
 
     await flushPromises()
     const deferred = createDeferred<ReturnType<typeof makeInspection>>()
@@ -304,11 +312,7 @@ describe('DataExchangeModal', () => {
       archiveExists: true,
     })
 
-    const wrapper = mount(DataExchangeModal, {
-      props: {
-        show: true,
-      },
-    })
+    const wrapper = mountDataExchangeModal()
 
     await flushPromises()
     await wait(50)
@@ -324,11 +328,7 @@ describe('DataExchangeModal', () => {
   })
 
   it('cancels an in-flight verify when the user clicks Cancel Transfer', async () => {
-    const wrapper = mount(DataExchangeModal, {
-      props: {
-        show: true,
-      },
-    })
+    const wrapper = mountDataExchangeModal()
 
     await flushPromises()
     let aborted = false
@@ -353,11 +353,7 @@ describe('DataExchangeModal', () => {
   })
 
   it('aborts an in-flight verify when the modal closes', async () => {
-    const wrapper = mount(DataExchangeModal, {
-      props: {
-        show: true,
-      },
-    })
+    const wrapper = mountDataExchangeModal()
 
     await flushPromises()
     let aborted = false
@@ -380,9 +376,7 @@ describe('DataExchangeModal', () => {
   })
 
   it('saves remote configuration and clears remote certainty when endpoint identity changes', async () => {
-    const wrapper = mount(DataExchangeModal, {
-      props: { show: true },
-    })
+    const wrapper = mountDataExchangeModal()
 
     await flushPromises()
     await findButton(wrapper, 'Edit Remote').trigger('click')
@@ -417,9 +411,7 @@ describe('DataExchangeModal', () => {
       downloadExport: vi.fn(async () => ({ ok: true, value: new Blob(['{"version":2,"exported_at":"2026-05-31T09:00:00.000Z","pages":[],"modules":[],"collections":[],"tabs":[],"notes":[],"feed_sources":[],"saved_feed_items":[],"assets":[]}'], { type: 'application/json' }) })),
     }))
 
-    const wrapper = mount(DataExchangeModal, {
-      props: { show: true },
-    })
+    const wrapper = mountDataExchangeModal()
 
     await flushPromises()
     await findButton(wrapper, 'Edit Remote').trigger('click')
@@ -459,9 +451,7 @@ describe('DataExchangeModal', () => {
       last_known_local_checksum: null,
     }))
 
-    const wrapper = mount(DataExchangeModal, {
-      props: { show: true },
-    })
+    const wrapper = mountDataExchangeModal()
 
     await flushPromises()
     await findButton(wrapper, 'Edit Remote').trigger('click')
@@ -481,9 +471,7 @@ describe('DataExchangeModal', () => {
   })
 
   it('rejects malformed endpoint URLs before save or test', async () => {
-    const wrapper = mount(DataExchangeModal, {
-      props: { show: true },
-    })
+    const wrapper = mountDataExchangeModal()
 
     await flushPromises()
     await findButton(wrapper, 'Edit Remote').trigger('click')

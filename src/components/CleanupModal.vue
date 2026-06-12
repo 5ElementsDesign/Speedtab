@@ -4,6 +4,7 @@ import { type CleanupCandidates, getCleanupCandidates, type CleanupReport } from
 import { db } from '@/db/db'
 import type { Asset } from '@/types/db'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Modal from './Modal.vue'
 
 const props = defineProps<{
@@ -14,6 +15,7 @@ const emit = defineEmits<{
   close: []
   completed: [report: CleanupReport, refreshedFavicons: number]
 }>()
+const { t } = useI18n()
 
 const loading = ref(false)
 const applying = ref(false)
@@ -125,10 +127,10 @@ const unusedAssetsByKind = computed(() => {
 
 function kindLabel(kind: Asset['kind']) {
   switch (kind) {
-    case 'background': return 'Backgrounds'
-    case 'preview': return 'Bookmark Previews'
-    case 'note_image': return 'Note Images'
-    case 'favicon': return 'Favicons'
+    case 'background': return t('cleanup.assetKinds.background')
+    case 'preview': return t('cleanup.assetKinds.preview')
+    case 'note_image': return t('cleanup.assetKinds.noteImage')
+    case 'favicon': return t('cleanup.assetKinds.favicon')
   }
 }
 
@@ -239,7 +241,7 @@ async function applyCleanup() {
 async function resetDatabase() {
   if (resettingDatabase.value) return
   const confirmed = confirm(
-    'Reset the full Speedtab database?\n\nThis deletes all pages, modules, content, assets, settings, feeds, widget configuration, and local app data with no exception.'
+    t('cleanup.confirmReset')
   )
   if (!confirmed) return
 
@@ -255,20 +257,20 @@ async function resetDatabase() {
 </script>
 
 <template>
-  <Modal :show="show" title="Cleanup" @close="emit('close')">
+  <Modal :show="show" :title="t('cleanup.title')" @close="emit('close')">
     <div class="space-y-4">
       <p class="text-[11px] text-white/60">
-        Review orphaned records and unused assets before removing them. Image assets are no longer removed implicitly during normal edits.
+        {{ t('cleanup.intro') }}
       </p>
 
       <div v-if="loading" class="text-[11px] text-white/60 italic">
-        Scanning workspace…
+        {{ t('cleanup.scanning') }}
       </div>
 
       <template v-else>
         <div class="space-y-3">
           <div class="flex items-center justify-between">
-            <h3 class="text-[11px] uppercase tracking-wider text-white/75">Orphans</h3>
+            <h3 class="text-[11px] uppercase tracking-wider text-white/75">{{ t('cleanup.orphans') }}</h3>
             <span class="text-[10px] text-white/45">
               {{ candidates.modules.length + candidates.collections.length + candidates.tabs.length + candidates.notes.length + candidates.feedSources.length + candidates.feedItems.length + candidates.savedFeedItems.length }}
             </span>
@@ -276,23 +278,23 @@ async function resetDatabase() {
 
           <div class="max-h-80 overflow-y-auto space-y-3 pr-1">
             <section v-if="candidates.modules.length" class="space-y-1">
-              <h4 class="text-[10px] uppercase tracking-wider text-white/55">Modules</h4>
+              <h4 class="text-[10px] uppercase tracking-wider text-white/55">{{ t('cleanup.modules') }}</h4>
               <label v-for="item in candidates.modules" :key="item.id" class="flex items-start gap-2 text-[11px] text-white/85">
                 <input :id="`cleanup-module-${item.id}`" :name="`cleanup_module_${item.id}`" type="checkbox" :checked="selected.modules.has(item.id!)" @change="toggle(selected.modules, item.id!)" />
-                <span>{{ item.title || 'Untitled module' }}</span>
+                <span>{{ item.title || t('cleanup.untitledModule') }}</span>
               </label>
             </section>
 
             <section v-if="candidates.collections.length" class="space-y-1">
-              <h4 class="text-[10px] uppercase tracking-wider text-white/55">Collections</h4>
+              <h4 class="text-[10px] uppercase tracking-wider text-white/55">{{ t('cleanup.collections') }}</h4>
               <label v-for="item in candidates.collections" :key="item.id" class="flex items-start gap-2 text-[11px] text-white/85">
                 <input :id="`cleanup-collection-${item.id}`" :name="`cleanup_collection_${item.id}`" type="checkbox" :checked="selected.collections.has(item.id!)" @change="toggle(selected.collections, item.id!)" />
-                <span>{{ item.title || 'Untitled collection' }}</span>
+                <span>{{ item.title || t('cleanup.untitledCollection') }}</span>
               </label>
             </section>
 
             <section v-if="candidates.tabs.length" class="space-y-1">
-              <h4 class="text-[10px] uppercase tracking-wider text-white/55">Bookmarks</h4>
+              <h4 class="text-[10px] uppercase tracking-wider text-white/55">{{ t('cleanup.bookmarks') }}</h4>
               <label v-for="item in candidates.tabs" :key="item.id" class="flex items-start gap-2 text-[11px] text-white/85">
                 <input :id="`cleanup-tab-${item.id}`" :name="`cleanup_tab_${item.id}`" type="checkbox" :checked="selected.tabs.has(item.id!)" @change="toggle(selected.tabs, item.id!)" />
                 <span>{{ item.title || item.url }}</span>
@@ -300,15 +302,15 @@ async function resetDatabase() {
             </section>
 
             <section v-if="candidates.notes.length" class="space-y-1">
-              <h4 class="text-[10px] uppercase tracking-wider text-white/55">Notes</h4>
+              <h4 class="text-[10px] uppercase tracking-wider text-white/55">{{ t('cleanup.notes') }}</h4>
               <label v-for="item in candidates.notes" :key="item.id" class="flex items-start gap-2 text-[11px] text-white/85">
                 <input :id="`cleanup-note-${item.id}`" :name="`cleanup_note_${item.id}`" type="checkbox" :checked="selected.notes.has(item.id!)" @change="toggle(selected.notes, item.id!)" />
-                <span>{{ item.title || 'Untitled note' }}</span>
+                <span>{{ item.title || t('cleanup.untitledNote') }}</span>
               </label>
             </section>
 
             <section v-if="candidates.feedSources.length" class="space-y-1">
-              <h4 class="text-[10px] uppercase tracking-wider text-white/55">Feed Sources</h4>
+              <h4 class="text-[10px] uppercase tracking-wider text-white/55">{{ t('cleanup.feedSources') }}</h4>
               <label v-for="item in candidates.feedSources" :key="item.id" class="flex items-start gap-2 text-[11px] text-white/85">
                 <input :id="`cleanup-feed-source-${item.id}`" :name="`cleanup_feed_source_${item.id}`" type="checkbox" :checked="selected.feedSources.has(item.id!)" @change="toggle(selected.feedSources, item.id!)" />
                 <span>{{ item.title || item.feed_url }}</span>
@@ -316,18 +318,18 @@ async function resetDatabase() {
             </section>
 
             <section v-if="candidates.feedItems.length" class="space-y-1">
-              <h4 class="text-[10px] uppercase tracking-wider text-white/55">Feed Items</h4>
+              <h4 class="text-[10px] uppercase tracking-wider text-white/55">{{ t('cleanup.feedItems') }}</h4>
               <label v-for="item in candidates.feedItems" :key="item.id" class="flex items-start gap-2 text-[11px] text-white/85">
                 <input :id="`cleanup-feed-item-${item.id}`" :name="`cleanup_feed_item_${item.id}`" type="checkbox" :checked="selected.feedItems.has(item.id!)" @change="toggle(selected.feedItems, item.id!)" />
-                <span>{{ item.title || item.url || 'Untitled feed item' }}</span>
+                <span>{{ item.title || item.url || t('cleanup.untitledFeedItem') }}</span>
               </label>
             </section>
 
             <section v-if="candidates.savedFeedItems.length" class="space-y-1">
-              <h4 class="text-[10px] uppercase tracking-wider text-white/55">Archived Feed Items</h4>
+              <h4 class="text-[10px] uppercase tracking-wider text-white/55">{{ t('cleanup.archivedFeedItems') }}</h4>
               <label v-for="item in candidates.savedFeedItems" :key="item.id" class="flex items-start gap-2 text-[11px] text-white/85">
                 <input :id="`cleanup-saved-feed-item-${item.id}`" :name="`cleanup_saved_feed_item_${item.id}`" type="checkbox" :checked="selected.savedFeedItems.has(item.id!)" @change="toggle(selected.savedFeedItems, item.id!)" />
-                <span>{{ item.title || item.url || 'Untitled archived item' }}</span>
+                <span>{{ item.title || item.url || t('cleanup.untitledArchivedItem') }}</span>
               </label>
             </section>
 
@@ -335,7 +337,7 @@ async function resetDatabase() {
               v-if="!candidates.modules.length && !candidates.collections.length && !candidates.tabs.length && !candidates.notes.length && !candidates.feedSources.length && !candidates.feedItems.length && !candidates.savedFeedItems.length"
               class="text-[11px] text-white/40 italic"
             >
-              No orphaned records found.
+              {{ t('cleanup.noOrphans') }}
             </p>
           </div>
         </div>
@@ -347,7 +349,7 @@ async function resetDatabase() {
               @click="assetsExpanded = !assetsExpanded"
               class="text-[11px] uppercase tracking-wider text-white/75 hover:text-white transition-colors"
             >
-              {{ assetsExpanded ? 'Hide' : 'Show' }} Unused Assets ({{ candidates.unusedAssets.length }})
+              {{ assetsExpanded ? t('cleanup.hide') : t('cleanup.show') }} {{ t('cleanup.unusedAssets') }} ({{ candidates.unusedAssets.length }})
             </button>
             <button
               v-if="assetsExpanded && candidates.unusedAssets.length"
@@ -355,7 +357,7 @@ async function resetDatabase() {
               @click="toggleAllUnusedAssets"
               class="text-[10px] uppercase tracking-wider text-white/55 hover:text-white transition-colors"
             >
-              {{ allUnusedAssetsSelected ? 'Clear All' : 'Select All' }}
+              {{ allUnusedAssetsSelected ? t('cleanup.clearAll') : t('cleanup.selectAll') }}
             </button>
           </div>
 
@@ -389,14 +391,14 @@ async function resetDatabase() {
             </section>
 
             <p v-if="!candidates.unusedAssets.length" class="text-[11px] text-white/40 italic">
-              No unused assets found.
+              {{ t('cleanup.noUnusedAssets') }}
             </p>
           </div>
         </div>
 
         <label class="flex items-center gap-2 text-[11px] text-white/70">
           <input id="cleanup-refresh-favicons" v-model="refreshFavicons" name="cleanup_refresh_favicons" type="checkbox" />
-          Refresh stale favicons during cleanup
+          {{ t('cleanup.refreshFavicons') }}
         </label>
 
         <div class="space-y-3 border-t border-white/10 pt-3">
@@ -405,19 +407,19 @@ async function resetDatabase() {
             @click="resetOptionsOpen = !resetOptionsOpen"
             class="text-[11px] uppercase tracking-wider text-white/75 hover:text-white transition-colors"
           >
-            {{ resetOptionsOpen ? 'Hide' : 'Show' }} Reset Options
+            {{ resetOptionsOpen ? t('cleanup.hide') : t('cleanup.show') }} {{ t('cleanup.resetOptions') }}
           </button>
 
           <div v-if="resetOptionsOpen" class="space-y-3 border border-red-500/20 bg-red-950/15 p-3">
             <p class="text-[11px] text-red-100/85">
-              Warning: this deletes all local Speedtab data stored by the extension on this browser profile, with no exception.
+              {{ t('cleanup.resetWarning') }}
             </p>
 
             <div class="flex items-center justify-between gap-3 border-t border-red-500/20 pt-3">
               <div>
-                <p class="text-[10px] uppercase tracking-wider text-red-200/75">Reset Database</p>
+                <p class="text-[10px] uppercase tracking-wider text-red-200/75">{{ t('cleanup.resetDatabase') }}</p>
                 <p class="mt-1 text-[11px] text-red-100/65">
-                  Deletes the full Speedtab database, including pages, content, assets, settings, feeds, and widget data.
+                  {{ t('cleanup.resetDatabaseHelp') }}
                 </p>
               </div>
               <button
@@ -426,7 +428,7 @@ async function resetDatabase() {
                 @click="resetDatabase"
                 class="shrink-0 rounded border border-red-400/30 bg-red-700/80 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {{ resettingDatabase ? 'Resetting…' : 'Reset Database' }}
+                {{ resettingDatabase ? t('cleanup.resetting') : t('cleanup.resetDatabase') }}
               </button>
             </div>
           </div>
@@ -435,7 +437,7 @@ async function resetDatabase() {
 
       <div class="flex items-center justify-between pt-3 border-t border-white/10">
         <span class="text-[11px] text-white/55">
-          {{ totalSelected }} item{{ totalSelected === 1 ? '' : 's' }} selected
+          {{ t('cleanup.selectedItems', { count: totalSelected }) }}
         </span>
 
         <div class="flex items-center gap-3">
@@ -444,7 +446,7 @@ async function resetDatabase() {
             @click="emit('close')"
             class="px-4 py-2 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors"
           >
-            Close
+            {{ t('common.close') }}
           </button>
           <button
             type="button"
@@ -452,7 +454,7 @@ async function resetDatabase() {
             @click="applyCleanup"
             class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-medium transition-all disabled:opacity-50"
           >
-            {{ applying ? 'Cleaning…' : 'Apply Cleanup' }}
+            {{ applying ? t('cleanup.cleaning') : t('cleanup.applyCleanup') }}
           </button>
         </div>
       </div>

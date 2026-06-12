@@ -2,6 +2,7 @@ import 'fake-indexeddb/auto'
 
 import { db, makeCreateMetadata } from '@/db/db'
 import type { Collection, FeedItem, FeedSource } from '@/types/db'
+import { createTestI18n } from '@/test/createTestI18n'
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import FeedsView from './FeedsView.vue'
@@ -116,6 +117,7 @@ describe('FeedsView', () => {
         filterQuery: 'rust',
       },
       global: {
+        plugins: [createTestI18n()],
         stubs: {
           Modal: { template: '<div><slot /></div>' },
           FeedSourceForm: true,
@@ -148,6 +150,7 @@ describe('FeedsView', () => {
         collection: collectionA,
       },
       global: {
+        plugins: [createTestI18n()],
         stubs: {
           Modal: { template: '<div><slot /></div>' },
           FeedSourceForm: true,
@@ -191,6 +194,7 @@ describe('FeedsView', () => {
         collection: collectionA,
       },
       global: {
+        plugins: [createTestI18n()],
         stubs: {
           Modal: {
             props: ['show', 'title'],

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import type { Module, ModuleType, PortableInput } from '@/types/db'
+import { useI18n } from 'vue-i18n'
 
 type ModuleColumnSpan = number | 'full' | null
 
@@ -78,30 +79,31 @@ watch(() => form.value.type, (type) => {
 
 const titleInput = ref<HTMLInputElement | null>(null)
 onMounted(() => titleInput.value?.focus())
+const { t } = useI18n()
 
-const moduleTypes: { value: ModuleType; label: string }[] = [
-  { value: 'tabs',  label: 'Bookmarks' },
-  { value: 'notes', label: 'Notes' },
-  { value: 'feeds', label: 'Feeds' },
-]
+const moduleTypes = [
+  { value: 'tabs',  label: () => t('moduleForm.types.tabs') },
+  { value: 'notes', label: () => t('moduleForm.types.notes') },
+  { value: 'feeds', label: () => t('moduleForm.types.feeds') },
+] satisfies Array<{ value: ModuleType; label: () => string }>
 
 const feedItemLimits = [
-  { value: 10, label: '10 items' },
-  { value: 15, label: '15 items' },
-  { value: 20, label: '20 items' },
-  { value: 25, label: '25 items' },
-  { value: 50, label: '50 items' },
-  { value: 0, label: 'All items' },
+  { value: 10, label: t('moduleForm.feedItemLimits.count', { count: 10 }) },
+  { value: 15, label: t('moduleForm.feedItemLimits.count', { count: 15 }) },
+  { value: 20, label: t('moduleForm.feedItemLimits.count', { count: 20 }) },
+  { value: 25, label: t('moduleForm.feedItemLimits.count', { count: 25 }) },
+  { value: 50, label: t('moduleForm.feedItemLimits.count', { count: 50 }) },
+  { value: 0, label: t('moduleForm.feedItemLimits.all') },
 ]
 
 const bookmarkOpenModes = [
-  { value: 'default', label: 'Use app default' },
-  { value: 'same', label: 'Open in current tab' },
-  { value: 'new', label: 'Open in new tab' },
+  { value: 'default', label: t('moduleForm.bookmarkOpenModes.default') },
+  { value: 'same', label: t('moduleForm.bookmarkOpenModes.same') },
+  { value: 'new', label: t('moduleForm.bookmarkOpenModes.new') },
 ]
 
 const layoutOptions = [
-  { value: 1, label: 'List' },
+  { value: 1, label: t('moduleForm.layoutOptions.list') },
   { value: 2, label: '2' },
   { value: 3, label: '3' },
   { value: 4, label: '4' },
@@ -111,23 +113,23 @@ const layoutOptions = [
   { value: 8, label: '8' },
   { value: 9, label: '9' },
   { value: 10, label: '10' },
-  { value: 0, label: 'Infinite' },
+  { value: 0, label: t('moduleForm.layoutOptions.infinite') },
 ]
 
 const moduleWidthOptions: Array<{ value: 'auto' | 'full' | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12; label: string }> = [
-  { value: 'auto', label: 'Auto' },
-  { value: 2, label: '2 columns' },
-  { value: 3, label: '3 columns' },
-  { value: 4, label: '4 columns' },
-  { value: 5, label: '5 columns' },
-  { value: 6, label: '6 columns' },
-  { value: 7, label: '7 columns' },
-  { value: 8, label: '8 columns' },
-  { value: 9, label: '9 columns' },
-  { value: 10, label: '10 columns' },
-  { value: 11, label: '11 columns' },
-  { value: 12, label: '12 columns' },
-  { value: 'full', label: 'Full width' },
+  { value: 'auto', label: t('moduleForm.widthOptions.auto') },
+  { value: 2, label: t('moduleForm.widthOptions.columns', { count: 2 }) },
+  { value: 3, label: t('moduleForm.widthOptions.columns', { count: 3 }) },
+  { value: 4, label: t('moduleForm.widthOptions.columns', { count: 4 }) },
+  { value: 5, label: t('moduleForm.widthOptions.columns', { count: 5 }) },
+  { value: 6, label: t('moduleForm.widthOptions.columns', { count: 6 }) },
+  { value: 7, label: t('moduleForm.widthOptions.columns', { count: 7 }) },
+  { value: 8, label: t('moduleForm.widthOptions.columns', { count: 8 }) },
+  { value: 9, label: t('moduleForm.widthOptions.columns', { count: 9 }) },
+  { value: 10, label: t('moduleForm.widthOptions.columns', { count: 10 }) },
+  { value: 11, label: t('moduleForm.widthOptions.columns', { count: 11 }) },
+  { value: 12, label: t('moduleForm.widthOptions.columns', { count: 12 }) },
+  { value: 'full', label: t('moduleForm.widthOptions.full') },
 ]
 
 function handleSubmit() {
@@ -144,13 +146,13 @@ function handleSubmit() {
 <template>
   <form @submit.prevent="handleSubmit" class="space-y-4">
     <div>
-      <label for="module_title" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Module Title</label>
+      <label for="module_title" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('moduleForm.title') }}</label>
       <input
         id="module_title"
         ref="titleInput"
         v-model="form.title"
         type="text"
-        placeholder="e.g. Work Links, Quick Notes..."
+        :placeholder="t('moduleForm.titlePlaceholder')"
         class="w-full min-h-[40px] bg-surface-950 border border-white/10 rounded px-3 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         required
       />
@@ -158,10 +160,10 @@ function handleSubmit() {
 
     <div
       class="grid gap-3 sm:grid-cols-2"
-      title="Module min height is clamped between 130px and 1000px. Other modules in the same row will grow with it."
+      :title="t('moduleForm.minHeightTitle')"
     >
       <div>
-        <label for="module_column_span" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Module Width</label>
+        <label for="module_column_span" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('moduleForm.width') }}</label>
         <select
           id="module_column_span"
           :value="config.column_span === null ? 'auto' : config.column_span"
@@ -183,7 +185,7 @@ function handleSubmit() {
       </div>
 
       <div>
-        <label for="module_min_height_px" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Module Min Height</label>
+        <label for="module_min_height_px" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('moduleForm.minHeight') }}</label>
         <input
           id="module_min_height_px"
           :value="config.min_height_px ?? ''"
@@ -191,7 +193,7 @@ function handleSubmit() {
           min="130"
           max="1000"
           step="10"
-          placeholder="Auto"
+          :placeholder="t('moduleForm.minHeightPlaceholder')"
           class="w-full min-h-[40px] bg-surface-950 border border-white/10 rounded px-3 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           @input="config.min_height_px = ($event.target as HTMLInputElement).value === ''
             ? null
@@ -210,7 +212,7 @@ function handleSubmit() {
           class="rounded border-white/10 bg-surface-950 text-indigo-600 focus:ring-indigo-500"
         />
         <label for="show_add_tile" class="text-sm text-gray-300 select-none">
-          Show inline "+" Add tile
+          {{ t('moduleForm.showAddTile') }}
         </label>
       </div>
 
@@ -223,7 +225,7 @@ function handleSubmit() {
           class="rounded border-white/10 bg-surface-950 text-indigo-600 focus:ring-indigo-500"
         />
         <label for="module_show_hover_actions" class="text-sm text-gray-300 select-none">
-          Show bookmark hover action buttons
+          {{ t('moduleForm.showHoverActions') }}
         </label>
       </div>
 
@@ -237,7 +239,7 @@ function handleSubmit() {
             class="rounded border-white/10 bg-surface-950 text-indigo-600 focus:ring-indigo-500"
           />
           <span for="module_quicklinks" class="text-sm text-gray-300 select-none">
-            Quicklinks mode
+            {{ t('moduleForm.quicklinksMode') }}
           </span>
         </label>
 
@@ -251,7 +253,7 @@ function handleSubmit() {
             class="rounded border-white/10 bg-surface-950 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed"
           />
           <span class="text-sm text-gray-300 select-none">
-            Force Favicon
+            {{ t('moduleForm.forceFavicon') }}
           </span>
         </label>
       </div>
@@ -259,7 +261,7 @@ function handleSubmit() {
       <div v-if="form.type === 'tabs'" class="border-t border-white/10"></div>
 
       <div v-if="form.type !== 'feeds'">
-        <label for="module_layout_columns" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Layout Grid</label>
+        <label for="module_layout_columns" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('moduleForm.layoutGrid') }}</label>
         <select
           id="module_layout_columns"
           v-model.number="config.columns"
@@ -276,7 +278,7 @@ function handleSubmit() {
       </div>
 
       <div v-if="form.type === 'tabs'">
-        <label for="bookmark_open_mode" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Bookmark Open Behavior</label>
+        <label for="bookmark_open_mode" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('moduleForm.bookmarkOpenBehavior') }}</label>
         <select
           id="bookmark_open_mode"
           :value="config.open_in_new_tab === null ? 'default' : (config.open_in_new_tab ? 'new' : 'same')"
@@ -297,7 +299,7 @@ function handleSubmit() {
     </div>
 
     <div v-if="form.type === 'feeds'">
-      <label for="feed_item_limit" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Visible Feed Items</label>
+      <label for="feed_item_limit" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('moduleForm.visibleFeedItems') }}</label>
       <select
         id="feed_item_limit"
         v-model.number="config.feed_item_limit"
@@ -312,12 +314,12 @@ function handleSubmit() {
         </option>
       </select>
       <p class="mt-1 text-[11px] text-white/45">
-        Controls how many fetched items are shown in this feed module.
+        {{ t('moduleForm.visibleFeedItemsHelp') }}
       </p>
     </div>
 
     <div v-if="!module?.id">
-      <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Type</span>
+      <span class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('moduleForm.type') }}</span>
       <div id="module_type_group" class="grid grid-cols-3 gap-2">
         <button
           v-for="t in moduleTypes"
@@ -333,7 +335,7 @@ function handleSubmit() {
           <span v-if="t.value === 'tabs'" class="text-lg">🔖</span>
           <span v-if="t.value === 'notes'" class="text-lg">📝</span>
           <span v-if="t.value === 'feeds'" class="text-lg">📡</span>
-          {{ t.label }}
+          {{ t.label() }}
         </button>
       </div>
     </div>
@@ -345,7 +347,7 @@ function handleSubmit() {
         @click="emit('delete', module.id!)"
         class="text-xs text-red-400 hover:text-red-300 transition-colors"
       >
-        Delete Module
+        {{ t('moduleForm.deleteModule') }}
       </button>
       <div v-else></div>
 
@@ -355,13 +357,13 @@ function handleSubmit() {
           @click="emit('cancel')"
           class="px-4 py-2 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors"
         >
-          Cancel
+          {{ t('common.cancel') }}
         </button>
         <button
           type="submit"
           class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-medium shadow-lg shadow-indigo-900/20 transition-all"
         >
-          {{ module?.id ? 'Save Changes' : 'Create Module' }}
+          {{ module?.id ? t('moduleForm.saveChanges') : t('moduleForm.createModule') }}
         </button>
       </div>
     </div>

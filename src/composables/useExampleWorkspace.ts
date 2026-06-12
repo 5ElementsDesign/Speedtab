@@ -2,12 +2,32 @@ import { encryptNote, serialiseCryptPayload } from '@/composables/useCrypt'
 import { ensureFaviconAssetIdForUrl } from '@/composables/useFavicon'
 import { WIDGET_SETTINGS_KEY } from '@/composables/useWidgetSettings'
 import { db as defaultDb, makeCreateMetadata, type SpeedtabDB } from '@/db/db'
+import type { SupportedLocale } from '@/i18n'
+import { DEFAULT_LOCALE, resolveSupportedLocale } from '@/i18n'
+import exampleWorkspaceDe from '@/locales/exampleWorkspace/de'
+import exampleWorkspaceEn from '@/locales/exampleWorkspace/en'
 import exampleHtmlNote from '../../examples/HTML.example.md?raw'
+import exampleHtmlNoteDe from '../../examples/de/HTML.example.md?raw'
+import featureAssetsHtmlDe from '../../examples/de/features/ASSETS.html?raw'
+import featureBookmarksHtmlDe from '../../examples/de/features/BOOKMARKS.html?raw'
+import featureCleanUpHtmlDe from '../../examples/de/features/CLEANUP.html?raw'
+import featureFeedReaderHtmlDe from '../../examples/de/features/FEED-READER.html?raw'
+import featureHtmlCodeTextDe from '../../examples/de/features/HTML.code.txt?raw'
+import featureInboxHtmlDe from '../../examples/de/features/INBOX.html?raw'
+import featureNotesHtmlDe from '../../examples/de/features/NOTES.html?raw'
+import featureWeatherWidgetHtmlDe from '../../examples/de/features/WEATHER-WIDGET.html?raw'
+import helpAboutHtmlDe from '../../examples/de/help/ABOUT.speedtab.html?raw'
+import helpCodeSnippetsTextDe from '../../examples/de/help/CODE-SNIPPETS.code.txt?raw'
+import helpDataSafetyTextDe from '../../examples/de/help/DATA-SAFETY.md?raw'
+import helpFaqHtmlDe from '../../examples/de/help/FAQ.speedtab.html?raw'
+import helpLinkStackTextDe from '../../examples/de/help/LINK-STACK.links.txt?raw'
+import helpQuickStartTextDe from '../../examples/de/help/QUICK-START.tips.md?raw'
 import featureAssetsHtml from '../../examples/features/ASSETS.html?raw'
 import featureBookmarksHtml from '../../examples/features/BOOKMARKS.html?raw'
 import featureCleanUpHtml from '../../examples/features/CLEANUP.html?raw'
 import featureFeedReaderHtml from '../../examples/features/FEED-READER.html?raw'
 import featureHtmlCodeText from '../../examples/features/HTML.code.txt?raw'
+import featureInboxHtml from '../../examples/features/INBOX.html?raw'
 import featureNotesHtml from '../../examples/features/NOTES.html?raw'
 import featureWeatherWidgetHtml from '../../examples/features/WEATHER-WIDGET.html?raw'
 import helpAboutHtml from '../../examples/help/ABOUT.speedtab.html?raw'
@@ -29,6 +49,123 @@ type ExampleNoteSeed = {
 
 type SeedExampleWorkspaceOptions = {
   preloadFavicons?: boolean
+  locale?: SupportedLocale | string | null
+}
+
+type ExampleWorkspaceMessages = {
+  page: {
+    mainTitle: string
+  }
+  modules: {
+    web: string
+    notes: string
+    qbox: string
+    news: string
+  }
+  collections: {
+    apps: string
+    tools: string
+    start: string
+    features: string
+    help: string
+    qbox: string
+    breaking: string
+  }
+  bookmarks: {
+    google: string
+    gemini: string
+    googleMaps: string
+    googleTranslate: string
+    youtube: string
+    whatsapp: string
+    telegram: string
+    discord: string
+    slack: string
+    chatgpt: string
+    claude: string
+    grok: string
+    qwen: string
+    duckAi: string
+  }
+  notes: {
+    firstNoteTitle: string
+    firstNoteContent: string
+    secretTitle: string
+    secretContent: string
+    welcomeTitle: string
+    featureBookmarksTitle: string
+    featureNotesTitle: string
+    featureFeedReaderTitle: string
+    featureInboxTitle: string
+    featureWeatherWidgetTitle: string
+    featureAssetsTitle: string
+    featureCleanupTitle: string
+    helpAboutTitle: string
+    helpFaqTitle: string
+  }
+  feeds: {
+    gtmetrixBlog: string
+  }
+}
+
+type ExampleWorkspaceAssets = {
+  exampleHtmlNote: string
+  featureAssetsHtml: string
+  featureBookmarksHtml: string
+  featureCleanUpHtml: string
+  featureFeedReaderHtml: string
+  featureHtmlCodeText: string
+  featureInboxHtml: string
+  featureNotesHtml: string
+  featureWeatherWidgetHtml: string
+  helpAboutHtml: string
+  helpCodeSnippetsText: string
+  helpDataSafetyText: string
+  helpFaqHtml: string
+  helpLinkStackText: string
+  helpQuickStartText: string
+}
+
+const EXAMPLE_WORKSPACE_ASSETS: Record<SupportedLocale, ExampleWorkspaceAssets> = {
+  en: {
+    exampleHtmlNote,
+    featureAssetsHtml,
+    featureBookmarksHtml,
+    featureCleanUpHtml,
+    featureFeedReaderHtml,
+    featureHtmlCodeText,
+    featureInboxHtml,
+    featureNotesHtml,
+    featureWeatherWidgetHtml,
+    helpAboutHtml,
+    helpCodeSnippetsText,
+    helpDataSafetyText,
+    helpFaqHtml,
+    helpLinkStackText,
+    helpQuickStartText,
+  },
+  de: {
+    exampleHtmlNote: exampleHtmlNoteDe,
+    featureAssetsHtml: featureAssetsHtmlDe,
+    featureBookmarksHtml: featureBookmarksHtmlDe,
+    featureCleanUpHtml: featureCleanUpHtmlDe,
+    featureFeedReaderHtml: featureFeedReaderHtmlDe,
+    featureHtmlCodeText: featureHtmlCodeTextDe,
+    featureInboxHtml: featureInboxHtmlDe,
+    featureNotesHtml: featureNotesHtmlDe,
+    featureWeatherWidgetHtml: featureWeatherWidgetHtmlDe,
+    helpAboutHtml: helpAboutHtmlDe,
+    helpCodeSnippetsText: helpCodeSnippetsTextDe,
+    helpDataSafetyText: helpDataSafetyTextDe,
+    helpFaqHtml: helpFaqHtmlDe,
+    helpLinkStackText: helpLinkStackTextDe,
+    helpQuickStartText: helpQuickStartTextDe,
+  },
+}
+
+const EXAMPLE_WORKSPACE_MESSAGES: Record<SupportedLocale, ExampleWorkspaceMessages> = {
+  en: exampleWorkspaceEn,
+  de: exampleWorkspaceDe,
 }
 
 function parseStructuredExample(raw: string): ExampleNoteSeed {
@@ -95,14 +232,17 @@ export async function seedExampleWorkspace(
   database: SpeedtabDB = defaultDb,
   options: SeedExampleWorkspaceOptions = {},
 ): Promise<void> {
+  const locale = resolveSupportedLocale(options.locale ?? DEFAULT_LOCALE)
+  const exampleAssets = EXAMPLE_WORKSPACE_ASSETS[locale]
+  const messages = EXAMPLE_WORKSPACE_MESSAGES[locale]
   const now = Date.now()
-  const encryptedSecret = serialiseCryptPayload(await encryptNote('Speedtab is awesome!', 'Secret'))
+  const encryptedSecret = serialiseCryptPayload(await encryptNote(messages.notes.secretContent, messages.notes.secretTitle))
   const shouldPreloadFavicons = options.preloadFavicons ?? (database === defaultDb)
-  const helpQuickStart = parseStructuredExample(helpQuickStartText)
-  const helpLinkStack = parseStructuredExample(helpLinkStackText)
-  const helpCodeSnippets = parseStructuredExample(helpCodeSnippetsText)
-  const helpDataSafety = parseStructuredExample(helpDataSafetyText)
-  const featureHtmlCode = parseStructuredExample(featureHtmlCodeText)
+  const helpQuickStart = parseStructuredExample(exampleAssets.helpQuickStartText)
+  const helpLinkStack = parseStructuredExample(exampleAssets.helpLinkStackText)
+  const helpCodeSnippets = parseStructuredExample(exampleAssets.helpCodeSnippetsText)
+  const helpDataSafety = parseStructuredExample(exampleAssets.helpDataSafetyText)
+  const featureHtmlCode = parseStructuredExample(exampleAssets.featureHtmlCodeText)
   let welcomeNoteId: number | undefined
   const createdBookmarkTabs: Array<{ id: number; url: string }> = []
 
@@ -120,7 +260,7 @@ export async function seedExampleWorkspace(
     async () => {
       const pageId = await database.pages.add({
         slug: 'main',
-        title: 'Main',
+        title: messages.page.mainTitle,
         nav_group: 'main',
         icon: '⭕',
         is_home: 1,
@@ -136,7 +276,7 @@ export async function seedExampleWorkspace(
       const webModuleId = await database.modules.add({
         page_id: pageId as number,
         type: 'tabs',
-        title: 'Web',
+        title: messages.modules.web,
         sort_order: 0,
         config_json: JSON.stringify({
           columns: 0,
@@ -155,7 +295,7 @@ export async function seedExampleWorkspace(
       const notesModuleId = await database.modules.add({
         page_id: pageId as number,
         type: 'notes',
-        title: 'Notes',
+        title: messages.modules.notes,
         sort_order: 1,
         config_json: JSON.stringify({
           columns: 0,
@@ -173,7 +313,7 @@ export async function seedExampleWorkspace(
       const qboxModuleId = await database.modules.add({
         page_id: pageId as number,
         type: 'tabs',
-        title: 'Qbox',
+        title: messages.modules.qbox,
         sort_order: 2,
         config_json: JSON.stringify({
           columns: 0,
@@ -192,7 +332,7 @@ export async function seedExampleWorkspace(
       const newsModuleId = await database.modules.add({
         page_id: pageId as number,
         type: 'feeds',
-        title: 'News',
+        title: messages.modules.news,
         sort_order: 3,
         config_json: JSON.stringify({
           columns: 0,
@@ -209,7 +349,7 @@ export async function seedExampleWorkspace(
 
       const appsCollectionId = await database.collections.add({
         module_id: webModuleId as number,
-        title: 'Apps',
+        title: messages.collections.apps,
         sort_order: 0,
         config_json: null,
         ...makeCreateMetadata(now),
@@ -217,7 +357,7 @@ export async function seedExampleWorkspace(
 
       const toolsCollectionId = await database.collections.add({
         module_id: webModuleId as number,
-        title: 'Com',
+        title: messages.collections.tools,
         sort_order: 1,
         config_json: null,
         ...makeCreateMetadata(now),
@@ -225,7 +365,7 @@ export async function seedExampleWorkspace(
 
       const startCollectionId = await database.collections.add({
         module_id: notesModuleId as number,
-        title: 'Start',
+        title: messages.collections.start,
         sort_order: 0,
         config_json: null,
         ...makeCreateMetadata(now),
@@ -233,7 +373,7 @@ export async function seedExampleWorkspace(
 
       const featuresCollectionId = await database.collections.add({
         module_id: notesModuleId as number,
-        title: 'Features',
+        title: messages.collections.features,
         sort_order: 1,
         config_json: null,
         ...makeCreateMetadata(now),
@@ -241,7 +381,7 @@ export async function seedExampleWorkspace(
 
       const helpCollectionId = await database.collections.add({
         module_id: notesModuleId as number,
-        title: '❔', // Help
+        title: messages.collections.help,
         sort_order: 2,
         config_json: null,
         ...makeCreateMetadata(now),
@@ -249,7 +389,7 @@ export async function seedExampleWorkspace(
 
       const qboxCollectionId = await database.collections.add({
         module_id: qboxModuleId as number,
-        title: 'AI',
+        title: messages.collections.qbox,
         sort_order: 0,
         config_json: null,
         ...makeCreateMetadata(now),
@@ -257,27 +397,27 @@ export async function seedExampleWorkspace(
 
       const breakingCollectionId = await database.collections.add({
         module_id: newsModuleId as number,
-        title: 'Breaking',
+        title: messages.collections.breaking,
         sort_order: 0,
         config_json: null,
         ...makeCreateMetadata(now),
       })
 
       const bookmarks = [
-        { collection_id: appsCollectionId as number, sort_order: 0, title: 'Google', url: 'https://www.google.com/' },
-        { collection_id: appsCollectionId as number, sort_order: 1, title: 'Gemini', url: 'https://gemini.google.com/' },
-        { collection_id: appsCollectionId as number, sort_order: 2, title: 'Google Maps', url: 'https://maps.google.com/' },
-        { collection_id: appsCollectionId as number, sort_order: 3, title: 'Google Translate', url: 'https://translate.google.de/' },
-        { collection_id: appsCollectionId as number, sort_order: 4, title: 'YouTube', url: 'https://www.youtube.com/' },
-        { collection_id: toolsCollectionId as number, sort_order: 0, title: 'WhatsApp', url: 'https://web.whatsapp.com/' },
-        { collection_id: toolsCollectionId as number, sort_order: 1, title: 'Telegram', url: 'https://web.telegram.org/' },
-        { collection_id: toolsCollectionId as number, sort_order: 2, title: 'Discord', url: 'https://discord.com/app' },
-        { collection_id: toolsCollectionId as number, sort_order: 3, title: 'Slack', url: 'https://app.slack.com/' },
-        { collection_id: qboxCollectionId as number, sort_order: 0, title: 'ChatGPT', url: 'https://chatgpt.com/' },
-        { collection_id: qboxCollectionId as number, sort_order: 1, title: 'Claude', url: 'https://claude.ai/' },
-        { collection_id: qboxCollectionId as number, sort_order: 2, title: 'Grok', url: 'https://grok.com/' },
-        { collection_id: qboxCollectionId as number, sort_order: 3, title: 'Qwen', url: 'https://chat.qwen.ai/' },
-        { collection_id: qboxCollectionId as number, sort_order: 4, title: 'Duck.ai', url: 'https://duck.ai/' },
+        { collection_id: appsCollectionId as number, sort_order: 0, title: messages.bookmarks.google, url: 'https://www.google.com/' },
+        { collection_id: appsCollectionId as number, sort_order: 1, title: messages.bookmarks.gemini, url: 'https://gemini.google.com/' },
+        { collection_id: appsCollectionId as number, sort_order: 2, title: messages.bookmarks.googleMaps, url: 'https://maps.google.com/' },
+        { collection_id: appsCollectionId as number, sort_order: 3, title: messages.bookmarks.googleTranslate, url: 'https://translate.google.de/' },
+        { collection_id: appsCollectionId as number, sort_order: 4, title: messages.bookmarks.youtube, url: 'https://www.youtube.com/' },
+        { collection_id: toolsCollectionId as number, sort_order: 0, title: messages.bookmarks.whatsapp, url: 'https://whatsapp.com/' },
+        { collection_id: toolsCollectionId as number, sort_order: 1, title: messages.bookmarks.telegram, url: 'https://web.telegram.org/' },
+        { collection_id: toolsCollectionId as number, sort_order: 2, title: messages.bookmarks.discord, url: 'https://discord.com/app' },
+        { collection_id: toolsCollectionId as number, sort_order: 3, title: messages.bookmarks.slack, url: 'https://app.slack.com/' },
+        { collection_id: qboxCollectionId as number, sort_order: 0, title: messages.bookmarks.chatgpt, url: 'https://chatgpt.com/' },
+        { collection_id: qboxCollectionId as number, sort_order: 1, title: messages.bookmarks.claude, url: 'https://claude.ai/' },
+        { collection_id: qboxCollectionId as number, sort_order: 2, title: messages.bookmarks.grok, url: 'https://grok.com/' },
+        { collection_id: qboxCollectionId as number, sort_order: 3, title: messages.bookmarks.qwen, url: 'https://chat.qwen.ai/' },
+        { collection_id: qboxCollectionId as number, sort_order: 4, title: messages.bookmarks.duckAi, url: 'https://duck.ai/' },
       ] as const
 
       for (const bookmark of bookmarks) {
@@ -300,9 +440,9 @@ export async function seedExampleWorkspace(
 
       await database.notes.add({
         collection_id: startCollectionId as number,
-        title: 'My first note',
+        title: messages.notes.firstNoteTitle,
         type: 'text',
-        content: "Use the passphrase 'Secret' to unlock the secret",
+        content: messages.notes.firstNoteContent,
         style_token: 'success',
         sort_order: 0,
         meta_json: null,
@@ -311,7 +451,7 @@ export async function seedExampleWorkspace(
 
       await database.notes.add({
         collection_id: startCollectionId as number,
-        title: 'Secret',
+        title: messages.notes.secretTitle,
         type: 'crypt',
         content: encryptedSecret,
         style_token: 'danger',
@@ -322,9 +462,9 @@ export async function seedExampleWorkspace(
 
       welcomeNoteId = (await database.notes.add({
         collection_id: startCollectionId as number,
-        title: 'Welcome to Speedtab',
+        title: messages.notes.welcomeTitle,
         type: 'html',
-        content: exampleHtmlNote.trim(),
+        content: exampleAssets.exampleHtmlNote.trim(),
         style_token: 'default',
         sort_order: 2,
         meta_json: null,
@@ -334,9 +474,9 @@ export async function seedExampleWorkspace(
       await database.notes.bulkAdd([
         {
           collection_id: featuresCollectionId as number,
-          title: 'Bookmarks',
+          title: messages.notes.featureBookmarksTitle,
           type: 'html',
-          content: featureBookmarksHtml.trim(),
+          content: exampleAssets.featureBookmarksHtml.trim(),
           style_token: 'info',
           sort_order: 0,
           meta_json: null,
@@ -344,9 +484,9 @@ export async function seedExampleWorkspace(
         },
         {
           collection_id: featuresCollectionId as number,
-          title: 'Notes',
+          title: messages.notes.featureNotesTitle,
           type: 'html',
-          content: featureNotesHtml.trim(),
+          content: exampleAssets.featureNotesHtml.trim(),
           style_token: 'info',
           sort_order: 1,
           meta_json: null,
@@ -354,9 +494,9 @@ export async function seedExampleWorkspace(
         },
         {
           collection_id: featuresCollectionId as number,
-          title: 'Feed reader',
+          title: messages.notes.featureFeedReaderTitle,
           type: 'html',
-          content: featureFeedReaderHtml.trim(),
+          content: exampleAssets.featureFeedReaderHtml.trim(),
           style_token: 'info',
           sort_order: 2,
           meta_json: null,
@@ -364,11 +504,31 @@ export async function seedExampleWorkspace(
         },
         {
           collection_id: featuresCollectionId as number,
-          title: 'Weather widget',
+          title: messages.notes.featureWeatherWidgetTitle,
           type: 'html',
-          content: featureWeatherWidgetHtml.trim(),
+          content: exampleAssets.featureWeatherWidgetHtml.trim(),
           style_token: 'warning',
           sort_order: 3,
+          meta_json: null,
+          ...makeCreateMetadata(now),
+        },
+        {
+          collection_id: featuresCollectionId as number,
+          title: messages.notes.featureAssetsTitle,
+          type: 'html',
+          content: exampleAssets.featureAssetsHtml.trim(),
+          style_token: 'default',
+          sort_order: 4,
+          meta_json: null,
+          ...makeCreateMetadata(now),
+        },
+        {
+          collection_id: featuresCollectionId as number,
+          title: messages.notes.featureInboxTitle,
+          type: 'html',
+          content: exampleAssets.featureInboxHtml.trim(),
+          style_token: 'default',
+          sort_order: 5,
           meta_json: null,
           ...makeCreateMetadata(now),
         },
@@ -378,35 +538,25 @@ export async function seedExampleWorkspace(
           type: featureHtmlCode.type,
           content: featureHtmlCode.content,
           style_token: 'default',
-          sort_order: 4,
+          sort_order: 6,
           meta_json: featureHtmlCode.language ? JSON.stringify({ language: featureHtmlCode.language }) : null,
           ...makeCreateMetadata(now),
         },
         {
           collection_id: featuresCollectionId as number,
-          title: 'Assets',
+          title: messages.notes.featureCleanupTitle,
           type: 'html',
-          content: featureAssetsHtml.trim(),
-          style_token: 'default',
-          sort_order: 5,
-          meta_json: null,
-          ...makeCreateMetadata(now),
-        },
-        {
-          collection_id: featuresCollectionId as number,
-          title: 'CLEANUP',
-          type: 'html',
-          content: featureCleanUpHtml.trim(),
+          content: exampleAssets.featureCleanUpHtml.trim(),
           style_token: 'danger',
-          sort_order: 6,
+          sort_order: 7,
           meta_json: null,
           ...makeCreateMetadata(now),
         },
         {
           collection_id: helpCollectionId as number,
-          title: 'About Speedtab',
+          title: messages.notes.helpAboutTitle,
           type: 'html',
-          content: helpAboutHtml.trim(),
+          content: exampleAssets.helpAboutHtml.trim(),
           style_token: 'dark',
           sort_order: 0,
           meta_json: null,
@@ -424,9 +574,9 @@ export async function seedExampleWorkspace(
         },
         {
           collection_id: helpCollectionId as number,
-          title: 'FAQ',
+          title: messages.notes.helpFaqTitle,
           type: 'html',
-          content: helpFaqHtml.trim(),
+          content: exampleAssets.helpFaqHtml.trim(),
           style_token: null,
           sort_order: 2,
           meta_json: null,
@@ -466,7 +616,7 @@ export async function seedExampleWorkspace(
 
       await database.feed_sources.add({
         collection_id: breakingCollectionId as number,
-        title: 'GTmetrix Blog',
+        title: messages.feeds.gtmetrixBlog,
         feed_url: 'https://gtmetrix.com/blog/feed/',
         site_url: 'https://gtmetrix.com/blog/',
         sort_order: 0,
@@ -522,7 +672,7 @@ export async function seedExampleWorkspace(
   if (welcomeNoteId && seededFaviconAssetIds.length) {
     await database.notes.update(welcomeNoteId, {
       content: buildWelcomeNoteWithFaviconRow(
-        exampleHtmlNote,
+        exampleAssets.exampleHtmlNote,
         Array.from(new Set(seededFaviconAssetIds)),
       ),
     })

@@ -1,0 +1,17 @@
+Title: Link-Sammlung
+Type: links
+Color: light
+
+Speedtab
+https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff
+
+[hr]
+
+Speedtab Projekt
+https://github.com/5ElementsDesign/Speedtab/
+
+[hr]
+
+Nützliche Dienste
+https://app.koofr.net/app/
+https://open-meteo.com/

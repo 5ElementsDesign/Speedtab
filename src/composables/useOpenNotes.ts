@@ -36,7 +36,10 @@ function readViewportHeight() {
 
 function isSmallViewportForNotes() {
   if (typeof window === 'undefined') return false
-  return window.innerWidth < 740 || window.matchMedia('(pointer: coarse)').matches
+  return window.innerWidth < 740 || (
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(pointer: coarse)').matches
+  )
 }
 
 function readActivePageMaxWidth() {

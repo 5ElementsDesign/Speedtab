@@ -147,6 +147,13 @@ export interface AppSetting {
   updated_at: number
 }
 
+export interface BgArchiveItem {
+  id?:        number
+  name:       string
+  value:      string
+  created_at: number
+}
+
 export interface CaptureInboxItem {
   id?:           number
   kind:          CaptureKind

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{
   show: boolean
@@ -19,6 +20,7 @@ function onKeyDown(event: KeyboardEvent) {
 }
 
 const PANEL_WIDTH = 440
+const { t } = useI18n()
 
 function syncBodyOffset(show: boolean) {
   if (typeof document === 'undefined') return
@@ -61,7 +63,7 @@ onUnmounted(() => {
         >
           <aside
             v-if="show"
-            class="absolute right-0 top-0 h-full w-full max-w-[440px] bg-[#000000ee] backdrop-blur-xs border-l border-white/10 shadow-2xl flex flex-col"
+            class="absolute right-0 top-0 h-full w-full max-w-[440px] bg-[#000000ee] border-l border-white/10 shadow-2xl flex flex-col"
             :class="widthClass"
           >
             <header class="px-3 py-2 border-b border-white/10 flex items-center justify-between bg-black/30">
@@ -72,6 +74,7 @@ onUnmounted(() => {
                 type="button"
                 @click="emit('close')"
                 class="text-white/60 hover:text-white transition-colors"
+                :aria-label="t('common.close')"
               >
                 <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />

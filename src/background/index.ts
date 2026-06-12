@@ -16,6 +16,8 @@
  */
 
 import { db } from '@/db/db'
+import en from '@/locales/en'
+import { appendScratchpadContent } from '@/composables/useScratchpadLocal'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -60,31 +62,38 @@ type IncomingMessage = FetchFeedMessage | FetchUrlMetaMessage | FetchUrlContentM
 const CONTEXT_MENU_CAPTURE_NOTE = 'speedtab-capture-note'
 const CONTEXT_MENU_CAPTURE_BOOKMARK = 'speedtab-capture-bookmark'
 const CONTEXT_MENU_CAPTURE_PAGE_NOTE = 'speedtab-capture-page-note'
+const CONTEXT_MENU_APPEND_SELECTION_TO_QUICKNOTE = 'speedtab-append-selection-to-quicknote'
 const CONTEXT_MENU_PARENT = 'speedtab-parent'
 
 async function ensureContextMenus() {
   await chrome.contextMenus.removeAll()
   chrome.contextMenus.create({
     id: CONTEXT_MENU_PARENT,
-    title: 'Speedtab',
+    title: en.background.contextMenuRoot,
     contexts: ['selection', 'page'],
   })
   chrome.contextMenus.create({
     id: CONTEXT_MENU_CAPTURE_BOOKMARK,
     parentId: CONTEXT_MENU_PARENT,
-    title: 'Save current page as bookmark',
+    title: en.background.saveCurrentPageAsBookmark,
     contexts: ['page', 'selection'],
   })
   chrome.contextMenus.create({
     id: CONTEXT_MENU_CAPTURE_PAGE_NOTE,
     parentId: CONTEXT_MENU_PARENT,
-    title: 'Store current page as note',
+    title: en.background.storeCurrentPageAsNote,
     contexts: ['page', 'selection'],
   })
   chrome.contextMenus.create({
     id: CONTEXT_MENU_CAPTURE_NOTE,
     parentId: CONTEXT_MENU_PARENT,
-    title: 'Save selection as note',
+    title: en.background.saveSelectionAsNote,
+    contexts: ['selection'],
+  })
+  chrome.contextMenus.create({
+    id: CONTEXT_MENU_APPEND_SELECTION_TO_QUICKNOTE,
+    parentId: CONTEXT_MENU_PARENT,
+    title: en.background.appendSelectionToQuicknote,
     contexts: ['selection'],
   })
 }
@@ -125,15 +134,15 @@ function buildCapturedPageNote(input: {
   selection: string | null
 }) {
   const lines: string[] = []
-  lines.push(`Page: ${input.title || input.url}`)
-  lines.push(`URL: ${input.url}`)
+  lines.push(en.background.capturedPage.replace('{value}', input.title || input.url))
+  lines.push(en.background.capturedUrl.replace('{value}', input.url))
   if (input.description) {
     lines.push('')
-    lines.push(`Description: ${input.description}`)
+    lines.push(en.background.capturedDescription.replace('{value}', input.description))
   }
   if (input.selection) {
     lines.push('')
-    lines.push('Selection:')
+    lines.push(en.background.selection)
     lines.push(input.selection)
   }
   return lines.join('\n')
@@ -178,6 +187,15 @@ chrome.runtime.onStartup.addListener(() => {
 })
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === CONTEXT_MENU_APPEND_SELECTION_TO_QUICKNOTE) {
+    const text = info.selectionText?.trim()
+    if (!text) return
+    void appendScratchpadContent(text).catch((error) => {
+      console.error('[Speedtab SW] Failed to append selection to Quicknote', error)
+    })
+    return
+  }
+
   if (info.menuItemId === CONTEXT_MENU_CAPTURE_NOTE) {
     const text = info.selectionText?.trim()
     if (!text) return
@@ -299,16 +317,21 @@ async function handleFetchFeed(url: string): Promise<FetchFeedResponse> {
     clearTimeout(timeout)
 
     if (!response.ok) {
-      return { ok: false, error: `HTTP ${response.status}: ${response.statusText}` }
+      return {
+        ok: false,
+        error: en.background.httpError
+          .replace('{status}', String(response.status))
+          .replace('{statusText}', response.statusText),
+      }
     }
 
     const xml = await response.text()
     return { ok: true, xml }
   } catch (err: unknown) {
     if (err instanceof Error) {
-      return { ok: false, error: err.name === 'AbortError' ? 'Request timed out' : err.message }
+      return { ok: false, error: err.name === 'AbortError' ? en.background.requestTimedOut : err.message }
     }
-    return { ok: false, error: 'Request failed' }
+    return { ok: false, error: en.background.requestFailed }
   }
 }
 
@@ -324,7 +347,12 @@ async function handleFetchUrlMeta(url: string): Promise<FetchUrlMetaResponse> {
     clearTimeout(timeout)
 
     if (!response.ok) {
-      return { ok: false, error: `HTTP ${response.status}: ${response.statusText}` }
+      return {
+        ok: false,
+        error: en.background.httpError
+          .replace('{status}', String(response.status))
+          .replace('{statusText}', response.statusText),
+      }
     }
 
     const contentType = response.headers.get('content-type') ?? ''
@@ -342,9 +370,9 @@ async function handleFetchUrlMeta(url: string): Promise<FetchUrlMetaResponse> {
     return { ok: true, title, finalUrl }
   } catch (err: unknown) {
     if (err instanceof Error) {
-      return { ok: false, error: err.name === 'AbortError' ? 'Request timed out' : err.message }
+      return { ok: false, error: err.name === 'AbortError' ? en.background.requestTimedOut : err.message }
     }
-    return { ok: false, error: 'Request failed' }
+    return { ok: false, error: en.background.requestFailed }
   }
 }
 
@@ -360,7 +388,12 @@ async function handleFetchUrlContent(url: string): Promise<FetchUrlContentRespon
     clearTimeout(timeout)
 
     if (!response.ok) {
-      return { ok: false, error: `HTTP ${response.status}: ${response.statusText}` }
+      return {
+        ok: false,
+        error: en.background.httpError
+          .replace('{status}', String(response.status))
+          .replace('{statusText}', response.statusText),
+      }
     }
 
     const contentType = response.headers.get('content-type') ?? ''
@@ -374,8 +407,8 @@ async function handleFetchUrlContent(url: string): Promise<FetchUrlContentRespon
     }
   } catch (err: unknown) {
     if (err instanceof Error) {
-      return { ok: false, error: err.name === 'AbortError' ? 'Request timed out' : err.message }
+      return { ok: false, error: err.name === 'AbortError' ? en.background.requestTimedOut : err.message }
     }
-    return { ok: false, error: 'Request failed' }
+    return { ok: false, error: en.background.requestFailed }
   }
 }

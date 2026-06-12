@@ -9,8 +9,7 @@ It replaces the browser new tab page with three integrated building blocks:
 
 Everything runs in the browser. There is no backend, no account, and no required cloud service.
 
-Chrome Web Store:
-https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff
+Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff)
 
 ## Highlights
 
@@ -274,9 +273,3 @@ If you want a customizable new tab workspace instead of a generic start page, Sp
 - notes
 - productivity
 - local-first
-
-## Status
-
-Current version: `1.0.0`
-
-The extension is feature-complete for daily use and still evolving through polish, UX refinement, and broader release preparation.

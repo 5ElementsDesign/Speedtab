@@ -12,6 +12,7 @@ import { useReorder } from '@/composables/useReorder'
 import { db, isActiveRecord, makeCreateMetadata, makeUpdatedAtPatch } from '@/db/db'
 import type { Collection, Module, PortableInput } from '@/types/db'
 import { computed, nextTick, ref, useAttrs, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import CollectionCard from './CollectionCard.vue'
 import CollectionForm from './CollectionForm.vue'
 import Dropdown from './Dropdown.vue'
@@ -64,6 +65,7 @@ const props = defineProps<{
   isDragging?:         boolean
   isDragOver?:         boolean
 }>()
+const { t } = useI18n()
 
 const emit = defineEmits<{
   edit:         [module: Module]
@@ -242,7 +244,7 @@ async function saveCollection(data: PortableInput<Collection>) {
 }
 
 async function deleteCollection(id: number) {
-  if (!confirm('Are you sure you want to delete this collection?')) return
+  if (!confirm(t('moduleCard.deleteCollectionConfirm'))) return
   await deleteCollectionTree(id)
   await cleanupOrphans()
   await markExportDirty('collections:delete')
@@ -258,6 +260,7 @@ async function deleteCollection(id: number) {
     :data-module-type="module.type ?? 'type_error'"
     :class="[
       'bg-black/75 border transition-colors flex flex-col relative',
+      'st-modules-' + module.type + (quicklinks ? '-quicklinks' : ''),
       isFocused ? 'border-white/30' : 'border-white/10',
       isSearchHighlighted ? 'ring-1 ring-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.95),0_0_18px_rgba(239,68,68,0.4)]' : '',
       isExpandedFeedModule
@@ -273,7 +276,7 @@ async function deleteCollection(id: number) {
     <header
       class="st-module-header"
       v-bind="dragAttrs"
-      :title="module.title + ' (drag header to reorder)'"
+      :title="t('moduleCard.dragHeader', { title: module.title })"
       :class="'border-b flex items-center justify-between cursor-grab active:cursor-grabbing'"
     >
       <div class="st-module-header-main flex items-center w-full min-w-0 overflow-x-auto overflow-y-hidden" style="scrollbar-width: none">
@@ -282,7 +285,7 @@ async function deleteCollection(id: number) {
           v-if="collections.length > 0"
           class="st-module-tabs flex flex-nowrap items-center line-height-[1.5] whitespace-nowrap"
           role="tablist"
-          aria-label="Tabs"
+          :aria-label="t('moduleCard.tabsAria')"
         >
           <button
             v-for="(col, idx) in collections"
@@ -316,8 +319,8 @@ async function deleteCollection(id: number) {
             type="button"
             @click="toggleFeedSearch"
             class="h-full self-stretch px-2 py-1 text-white/70 hover:text-white flex items-center justify-center border-0 rounded-none"
-            :title="feedSearchQuery.trim() ? 'Feed search active' : 'Search loaded feed items'"
-            :aria-label="'Search loaded feed items'"
+            :title="feedSearchQuery.trim() ? t('moduleCard.feedSearchActive') : t('moduleCard.searchLoadedFeedItems')"
+            :aria-label="t('moduleCard.searchLoadedFeedItems')"
           >
             <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <circle cx="11" cy="11" r="7"></circle>
@@ -330,7 +333,7 @@ async function deleteCollection(id: number) {
               v-model="feedSearchQuery"
               type="search"
               name="searchInStoredFeedItems"
-              placeholder="Search"
+              :placeholder="t('moduleCard.searchPlaceholder')"
               class="h-full max-w-[220px] w-[140px] px-2 py-0.5 bg-black/20 text-[11px] text-white/90 border border-white/10 outline-none focus:border-white/25"
             />
             <button
@@ -338,8 +341,8 @@ async function deleteCollection(id: number) {
               type="button"
               @click="clearFeedSearch"
               class="h-full self-stretch px-1.5 py-1 text-white/55 hover:text-white border-0"
-              title="Clear feed search"
-              aria-label="Clear feed search"
+              :title="t('moduleCard.clearFeedSearch')"
+              :aria-label="t('moduleCard.clearFeedSearch')"
             >
               ×
             </button>
@@ -349,25 +352,25 @@ async function deleteCollection(id: number) {
           v-if="module.type === 'feeds' && collections.length > 0"
           :id="`feed-expand-width-${module.id}`"
           :name="`feed-expand-width-${module.id}`"
-          :title="'Expand feed module'"
-          :aria-label="'Expand feed module'"
+          :title="t('moduleCard.expandFeedModule')"
+          :aria-label="t('moduleCard.expandFeedModule')"
           :value="expandSelectValue"
           @change="handleExpandWidthSelect"
-          class="mr-[0.2rem] h-full self-stretch max-w-[100px] px-2 py-1 pr-6 text-[10px] uppercase tracking-wider bg-black/0 text-[color:var(--st-theme-text)] border-0 outline-none"
+          class="h-full self-stretch max-w-[114px] px-2 py-1 pr-6 text-[10px] uppercase tracking-wider bg-black/0 text-[color:var(--st-theme-text)] border-0 outline-none"
         >
-          <option value="" class="text-black bg-white">Expand</option>
+          <option value="" class="text-black bg-white">{{ t('moduleCard.expand') }}</option>
           <option
             v-for="width in EXPAND_WIDTH_OPTIONS"
             :key="width"
             :value="width"
             class="text-black bg-white"
           >
-            {{ width === 'max' ? 'max' : width }}{{ lastExpandedWidth === width ? ' · Last used' : '' }}
+            {{ width === 'max' ? t('moduleCard.max') : width }}{{ lastExpandedWidth === width ? t('moduleCard.lastUsed') : '' }}
           </option>
         </select>
         <Dropdown
-          label="Module actions"
-          title="Module actions"
+          :label="t('moduleCard.moduleActions')"
+          :title="t('moduleCard.moduleActions')"
           align="right"
           :hide-chevron="true"
           root-class="h-full"
@@ -383,7 +386,7 @@ async function deleteCollection(id: number) {
               @click="emit('edit', module)"
               class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10"
             >
-              Edit Module
+              {{ t('moduleCard.editModule') }}
             </button>
             <button
               type="button"
@@ -392,7 +395,7 @@ async function deleteCollection(id: number) {
               @click="activeCollection && openEditCollection(activeCollection)"
               class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent"
             >
-              Edit active Tab
+              {{ t('moduleCard.editActiveTab') }}
             </button>
             <button
               type="button"
@@ -400,7 +403,7 @@ async function deleteCollection(id: number) {
               @click="openAddCollection"
               class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10"
             >
-              Add Tab
+              {{ t('moduleCard.addTab') }}
             </button>
             <hr class="my-1 border-0 border-t border-white/10" />
             <button
@@ -410,7 +413,7 @@ async function deleteCollection(id: number) {
               @click="addContent.trigger()"
               class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10 disabled:opacity-40 disabled:hover:bg-transparent"
             >
-              Add Content
+              {{ t('moduleCard.addContent') }}
             </button>
             <button
               v-if="module.type === 'feeds'"
@@ -419,7 +422,7 @@ async function deleteCollection(id: number) {
               @click="feedArchive.trigger()"
               class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10"
             >
-              Archived Items
+              {{ t('moduleCard.archivedItems') }}
             </button>
             <hr
               v-if="module.type === 'feeds'"
@@ -432,7 +435,7 @@ async function deleteCollection(id: number) {
               @click="feedClear.trigger()"
               class="w-full text-left px-2 py-1 text-[11px] text-white/90 hover:bg-white/10"
             >
-              Clear Loaded Items
+              {{ t('moduleCard.clearLoadedItems') }}
             </button>
           </div>
         </Dropdown>
@@ -443,11 +446,12 @@ async function deleteCollection(id: number) {
     <div
       class="st-module-body min-h-0 h-full"
       :class="[
+        'st-module-body-of-type-' + module.type,
         isExpandedFeedModule ? 'flex-1 overflow-hidden' : '',
         module.type === 'feeds' && collections.length > 0
           ? ''
           : module.type === 'tabs' && quicklinks
-            ? 'px-2 py-2'
+            ? 'px-3 py-0'
             : 'px-4 py-4',
       ]"
     >
@@ -457,18 +461,40 @@ async function deleteCollection(id: number) {
       </div>
 
       <div v-else-if="!collections.length" class="st-module-empty text-center">
-        <p class="text-[11px] text-white/50 italic mb-2">No tabs in this module</p>
+        <p class="text-[11px] text-white/50 italic mb-2">{{ t('moduleCard.noTabs') }}</p>
         <button
           @click="openAddCollection"
           class="text-[10px] uppercase tracking-wider font-normal text-white/80 hover:text-white transition-colors"
         >
-          + Add Tab
+          {{ t('moduleCard.addTabAction') }}
         </button>
       </div>
 
       <div v-else class="st-module-content h-full" :class="isExpandedFeedModule ? 'min-h-0' : ''">
+        <KeepAlive v-if="module.type === 'tabs'">
+          <CollectionCard
+            v-if="activeCollection"
+            :key="activeCollection.id"
+            :collection="activeCollection"
+            :module-type="module.type"
+            :columns="moduleColumns"
+            :show-add-tile="showAddTile"
+            :is-expanded="props.isExpanded"
+            :expanded-width="props.expandedWidth"
+            :refresh-interval-ms="refreshIntervalMs"
+            :feed-item-limit="feedItemLimit"
+            :feed-filter-query="feedSearchQuery"
+            :feed-search-url-template="props.feedSearchUrlTemplate"
+            :open-in-new-tab="openInNewTab"
+            :quicklinks="quicklinks"
+            :force-favicon="forceFavicon"
+            :show-hover-actions="showHoverActions"
+            :highlight-kind="activeCollectionSearchHighlight?.kind ?? null"
+            :highlight-entity-id="activeCollectionSearchHighlight?.entityId ?? null"
+          />
+        </KeepAlive>
         <CollectionCard
-          v-if="activeCollection"
+          v-else-if="activeCollection"
           :collection="activeCollection"
           :module-type="module.type"
           :columns="moduleColumns"
@@ -490,14 +516,14 @@ async function deleteCollection(id: number) {
     </div>
 
     <!-- Module Title (Watermark at bottom right) -->
-    <div class="absolute bottom-0 right-0 px-1 py-0.5 pointer-events-none">
-      <span class="text-[10px] text-white/30 lowercase tracking-wider">{{ module.title }}</span>
+    <div class="st-module-watermark absolute bottom-0 right-0 px-1 py-0.5 pointer-events-none">
+      <span class="text-[10px] text-white/50 lowercase tracking-wider">{{ module.title }}</span>
     </div>
 
     <!-- Collection Modal -->
     <Modal
       :show="isCollectionModalOpen"
-      :title="editingCollection ? 'Edit Tab' : 'New Tab'"
+      :title="editingCollection ? t('moduleCard.editTabTitle') : t('moduleCard.newTabTitle')"
       @close="isCollectionModalOpen = false"
     >
       <CollectionForm

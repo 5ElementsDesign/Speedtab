@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { FeedItem, PortableInput, SavedFeedItem } from '@/types/db'
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   item: FeedItem
@@ -12,6 +13,7 @@ const emit = defineEmits<{
   save: [data: PortableInput<SavedFeedItem>]
   cancel: []
 }>()
+const { t } = useI18n()
 
 const comment = ref('')
 
@@ -39,17 +41,17 @@ function handleSubmit() {
   <form @submit.prevent="handleSubmit" class="space-y-4">
     <div class="space-y-1">
       <p class="text-[11px] text-white font-semibold leading-snug">{{ item.title }}</p>
-      <p class="text-[10px] text-white/55">{{ sourceTitle || 'Feed item' }}</p>
+      <p class="text-[10px] text-white/55">{{ sourceTitle || t('feedArchiveForm.sourceFallback') }}</p>
       <p v-if="previewSummary" class="text-[11px] text-white/65 leading-snug line-clamp-4">{{ previewSummary }}</p>
     </div>
 
     <div>
-      <label for="saved_feed_comment" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">Comment</label>
+      <label for="saved_feed_comment" class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">{{ t('feedArchiveForm.comment') }}</label>
       <textarea
         id="saved_feed_comment"
         v-model="comment"
         rows="4"
-        placeholder="Why do you want to keep this?"
+        :placeholder="t('feedArchiveForm.commentPlaceholder')"
         class="w-full bg-surface-950 border border-white/10 rounded px-3 py-2 text-sm text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
       />
     </div>
@@ -60,13 +62,13 @@ function handleSubmit() {
         @click="emit('cancel')"
         class="px-4 py-2 text-xs font-medium text-gray-400 hover:text-gray-200 transition-colors"
       >
-        Cancel
+        {{ t('common.cancel') }}
       </button>
       <button
         type="submit"
         class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-medium transition-colors"
       >
-        Archive Item
+        {{ t('feedArchiveForm.archiveItem') }}
       </button>
     </div>
   </form>
