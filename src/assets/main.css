@@ -693,7 +693,7 @@
       background: var(--st-feed-item-bg-hover);
     }
   }
-  [data-expanded="true"] .st-module-feed-item-icon {
+  &[data-expanded="true"] .st-module-feed-item-icon {
     background: var(--st-feed-item-list-favicon-bg-active);
   }
 }
