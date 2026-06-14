@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
 import type { Module, ModuleType, PortableInput } from '@/types/db'
+import { onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 type ModuleColumnSpan = number | 'full' | null
@@ -116,7 +116,7 @@ const layoutOptions = [
   { value: 0, label: t('moduleForm.layoutOptions.infinite') },
 ]
 
-const moduleWidthOptions: Array<{ value: 'auto' | 'full' | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12; label: string }> = [
+const moduleWidthOptions: Array<{ value: 'auto' | 'full' | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 ; label: string }> = [
   { value: 'auto', label: t('moduleForm.widthOptions.auto') },
   { value: 2, label: t('moduleForm.widthOptions.columns', { count: 2 }) },
   { value: 3, label: t('moduleForm.widthOptions.columns', { count: 3 }) },
@@ -128,7 +128,6 @@ const moduleWidthOptions: Array<{ value: 'auto' | 'full' | 2 | 3 | 4 | 5 | 6 | 7
   { value: 9, label: t('moduleForm.widthOptions.columns', { count: 9 }) },
   { value: 10, label: t('moduleForm.widthOptions.columns', { count: 10 }) },
   { value: 11, label: t('moduleForm.widthOptions.columns', { count: 11 }) },
-  { value: 12, label: t('moduleForm.widthOptions.columns', { count: 12 }) },
   { value: 'full', label: t('moduleForm.widthOptions.full') },
 ]
 

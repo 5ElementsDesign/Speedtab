@@ -1,9 +1,9 @@
-import { ref } from 'vue'
+import { createTestI18n } from '@/test/createTestI18n'
+import { DEFAULT_REMOTE_LOCAL_SETTINGS, type RemoteLocalSettings } from '@/types/remote'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ref } from 'vue'
 import DataExchangeModal from './DataExchangeModal.vue'
-import { DEFAULT_REMOTE_LOCAL_SETTINGS, type RemoteLocalSettings } from '@/types/remote'
-import { createTestI18n } from '@/test/createTestI18n'
 
 const exchangeMocks = vi.hoisted(() => ({
   inspectRemotePush: vi.fn(),
@@ -422,7 +422,7 @@ describe('DataExchangeModal', () => {
     await findInputByName(wrapper, 'remote_username').setValue('draft-user')
     await findInputByName(wrapper, 'remote_secret').setValue('draft-secret')
     await findInputByPlaceholder(wrapper, '/speedtab').setValue('/draft-speedtab')
-    await findButton(wrapper, 'Test Connection').trigger('click')
+    await findButton(wrapper, 'Test Remote').trigger('click')
     await flushPromises()
 
     expect(remoteProviderMocks.createRemoteExportProvider).toHaveBeenCalledWith(expect.objectContaining({
@@ -485,7 +485,7 @@ describe('DataExchangeModal', () => {
     expect(localSettingsMocks.updateLocalSettings).not.toHaveBeenCalled()
     expect(remoteProviderMocks.createRemoteExportProvider).not.toHaveBeenCalled()
 
-    await findButton(wrapper, 'Test Connection').trigger('click')
+    await findButton(wrapper, 'Test Remote').trigger('click')
     await flushPromises()
 
     expect(remoteProviderMocks.createRemoteExportProvider).not.toHaveBeenCalled()

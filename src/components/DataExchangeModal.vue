@@ -925,7 +925,7 @@ onUnmounted(() => {
           <button
             type="button"
             :disabled="remoteConfigBusy"
-            class="st-ui-btn st-ui-btn-light"
+            class="st-ui-btn st-ui-btn-primary"
             @click="saveRemoteConfig"
           >
             {{ t('dataExchange.saveRemote') }}
@@ -986,7 +986,7 @@ onUnmounted(() => {
         <div class="mt-3 flex flex-wrap items-center gap-2">
           <button
             type="button"
-            class="st-ui-btn st-ui-btn-light"
+            class="st-ui-btn st-ui-btn-warning"
             @click="emit('downloadExport')"
           >
             {{ t('dataExchange.downloadExportFile') }}

@@ -13,6 +13,7 @@ const LOCALE_LOADERS: Record<SupportedLocale, () => Promise<{ default: LocaleMes
 }
 
 const loadedLocaleMessages = new Map<SupportedLocale, LocaleMessages>()
+let speedtabI18n: I18n | null = null
 
 function normalizeLocale(value: string | null | undefined): SupportedLocale {
   if (!value) return DEFAULT_LOCALE
@@ -48,10 +49,15 @@ export async function createSpeedtabI18n(initialLocale?: string | null): Promise
     ),
   )
 
-  return createI18n({
+  speedtabI18n = createI18n({
     legacy: false,
     locale,
     fallbackLocale: DEFAULT_LOCALE,
     messages,
   })
+  return speedtabI18n
+}
+
+export function getSpeedtabI18n(): I18n | null {
+  return speedtabI18n
 }

@@ -1,4 +1,3 @@
-import { getWeatherCodeMeta } from '@/composables/useWeatherCodes'
 import type { WeatherWidgetCachePayload, WeatherWidgetConfig, WeatherWidgetData } from '@/types/widgets'
 
 export interface OpenMeteoGeocodeResult {
@@ -112,12 +111,10 @@ export async function fetchOpenMeteoWeather(
   }
 
   const isDay = current.is_day === 1
-  const meta = getWeatherCodeMeta(current.weather_code, isDay)
   return {
     location_label: buildLocationLabel(config),
     current_temperature: current.temperature_2m,
     temperature_unit_label: config.units === 'imperial' ? 'F' : 'C',
-    condition_label: meta.label,
     condition_code: current.weather_code,
     is_day: isDay,
     high_temperature: Array.isArray(daily?.temperature_2m_max) && typeof daily.temperature_2m_max[0] === 'number'

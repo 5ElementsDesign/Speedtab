@@ -18,7 +18,7 @@
     --st-theme-text-muted: rgb(255 255 255 / 0.7);
     --st-theme-module-bg: rgb(0 0 0 / 0.58);
     --st-theme-header-bg: rgb(0 0 0 / 0.68);
-    --st-theme-dropdown-bg: rgb(1 1 1 / 0.90);
+    --st-theme-dropdown-bg: rgb(1 1 1 / 0.93);
     --st-theme-status-bg: rgba(0, 0, 0, 0.594);
     --st-theme-border: #68656561;
     --st-theme-accent: #00d1b2;
@@ -713,8 +713,6 @@
 }
 
 .st-module-feed-item-body {
-  max-height: 740px;
-  overflow: auto;
   background: var(--st-feed-item-body-bg);
   border-top-color: var(--st-feed-item-divider);
 
@@ -722,6 +720,10 @@
   .st-module-feed-item-copy {
     color: var(--st-feed-item-body-copy);
     font-size: calc(.94rem * var(--st-feed-content-scale)) !important;
+  }
+  .st-module-feed-item-copy {
+    max-height: 320px;
+    overflow: auto;
   }
   .st-module-feed-item-actions {
     margin-top: 10px;
@@ -1488,3 +1490,7 @@
   width: var(--st-module-content-quicklink-width) !important;
   height: var(--st-module-content-quicklink-height) !important;
 }
+
+.st-fade-in { animation: st-fade-in var(--yai-timeout-1) ease-in-out; }
+
+@keyframes st-fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }

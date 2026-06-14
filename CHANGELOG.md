@@ -2,6 +2,13 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.3.1]
+
+- Added Chrome-native extension localization packaging with `/_locales/en/messages.json` and `/_locales/de/messages.json`, plus manifest `default_locale`, so Chrome and the Chrome Web Store can detect supported languages automatically.
+- Moved extension-level manifest and service-worker strings onto `chrome.i18n`.
+- Cleaned up duplicated background/runtime locale strings from `src/locales/en.ts` and `src/locales/de.ts`, documenting the final split between `chrome.i18n` and `vue-i18n`.
+- Fixed the Copy URL modal so the generated workspace URL now follows live module-tab state changes, and adjusted the URL field for better readability with long hash-based links.
+
 ## [1.3.0]
 
 ### Added
@@ -11,7 +18,6 @@ All notable changes to Speedtab will be documented in this file.
 - Persistent local-only `Quicknote` scratchpad, opened from the header helper toggle and stored in `chrome.storage.local` outside workspace export/import.
 - Background archive entries are now included in the standard settings export/import flow via `BackupManifestV2`.
 - The UI was refined across the app, including layout and interaction polish around the new internationalization and appearance controls.
-
 
 ## [1.2.0]
 

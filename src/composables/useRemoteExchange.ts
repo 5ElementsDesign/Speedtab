@@ -20,7 +20,7 @@ import {
 import { updateLocalSettings } from '@/composables/useLocalSettings'
 import { db as defaultDb, type SpeedtabDB } from '@/db/db'
 import { cleanupOrphans, type CleanupReport } from '@/composables/useMaintenance'
-import en from '@/locales/en'
+import { getSpeedtabI18n } from '@/i18n'
 import type { RemoteExportMetadata, RemoteProviderVerifyResult } from '@/types/remote'
 
 export type RemoteCompareState =
@@ -131,8 +131,81 @@ const defaultDeps: RemoteExchangeDeps = {
   noteImportedWorkspace: noteImportedWorkspaceDefault,
 }
 
-const remoteStatus = en.dataExchange.status
-const remoteConfirm = en.dataExchange.confirm
+const remoteFallbackMessages = {
+  dataExchange: {
+    status: {
+      providerNotConfigured: 'Remote provider is not configured',
+      remoteMissing: 'Remote missing',
+      remoteDownloadFailed: 'Remote download failed: {message}',
+      remoteArchiveUploadSkipped: 'Remote archive upload skipped: {message}',
+      remoteAlreadyMatchesLocal: 'Remote export already matches local state.',
+      remotePushCancelled: 'Remote push cancelled.',
+      exportUploadedRepairNeeded: 'Export uploaded; metadata sidecar still needs repair',
+      remoteProviderNotConfiguredGuidance: 'Configure the remote provider before verifying remote health.',
+      remoteAuthenticationFailed: 'Remote authentication failed.',
+      remoteAuthenticationGuidance: 'Check the configured endpoint, username, and secret before retrying verification.',
+      remoteMetadataCorrupt: 'Remote metadata sidecar is corrupt or unreadable.',
+      remoteMetadataCorruptGuidance: 'Push local state again to rewrite the metadata sidecar, or download the remote export for manual inspection first.',
+      remoteVerificationFailed: 'Remote verification failed.',
+      remoteVerificationGuidance: 'Retry verification after the network or server issue is resolved.',
+      remoteSidecarMissing: 'Remote export exists but the metadata sidecar is missing.',
+      remoteSidecarMissingGuidance: 'Push local state again to recreate the sidecar, or pull/download the remote export before deciding how to repair it.',
+      remoteExportFileMissing: 'Remote metadata exists but the export file is missing.',
+      remoteExportFileMissingGuidance: 'Push local state again to recreate the export file.',
+      remoteMetadataContextMismatch: 'Remote metadata points at a different endpoint context.',
+      remoteMetadataContextMismatchGuidance: 'Confirm that the remote endpoint is correct. If it is, push local state again to rewrite the sidecar for this endpoint.',
+      remoteHealthy: 'Remote export and metadata look healthy.',
+      remoteHealthyGuidance: 'You can push, pull, or verify again as needed.',
+      remoteMatchesLastPulled: 'Remote export matches the last pulled state.',
+      remotePullQuestion: 'Pull the remote workspace and merge it into the current local workspace?',
+      remoteExportedAtOnly: 'Exported at: {value}',
+      remoteMetadataUnavailable: 'Remote metadata unavailable.',
+      remotePullCancelled: 'Remote pull cancelled.',
+      legacyRemoteManifestDetected: 'Legacy remote manifest detected.',
+    },
+    confirm: {
+      noRemoteBaseline: 'This browser profile has no known remote baseline yet. Pushing now will replace the live remote workspace with the current local state.',
+      remoteMissingUpload: 'No remote export exists yet. Upload the current local workspace?',
+      remoteAlreadyMatchesWorkspace: 'Remote export already matches the current local workspace.',
+      remoteNewerOverwrite: 'Remote export appears newer than the current local workspace. Overwrite it anyway?',
+      localNewerUpload: 'Local workspace appears newer than the remote export. Upload it now?',
+      remoteDiffersOverwrite: 'Remote export differs from the current local workspace. Overwrite it anyway?',
+      versionMismatchOverwrite: 'Remote metadata uses a different manifest version. Overwrite it with the current local workspace?',
+      endpointContextOverwrite: 'Remote metadata appears to belong to a different endpoint context. Overwrite it anyway?',
+      providerNotConfigured: 'Remote provider is not configured.',
+    },
+  },
+} as const
+
+function resolveFallbackMessage(path: string): string {
+  const parts = path.split('.')
+  let current: unknown = remoteFallbackMessages
+  for (const part of parts) {
+    if (!current || typeof current !== 'object' || !(part in current)) return path
+    current = (current as Record<string, unknown>)[part]
+  }
+  return typeof current === 'string' ? current : path
+}
+
+function interpolateMessage(template: string, values?: Record<string, string | number>): string {
+  if (!values) return template
+  return Object.entries(values).reduce(
+    (message, [key, value]) => message.replaceAll(`{${key}}`, String(value)),
+    template,
+  )
+}
+
+function translateDataExchangeMessage(
+  path: string,
+  values?: Record<string, string | number>,
+): string {
+  const i18n = getSpeedtabI18n()
+  if (i18n) {
+    const translated = (i18n.global as { t: (key: string, values?: Record<string, string | number>) => string }).t(path, values ?? {})
+    if (typeof translated === 'string' && translated !== path) return translated
+  }
+  return interpolateMessage(resolveFallbackMessage(path), values)
+}
 
 export function getCompareActions(state: RemoteCompareState): Array<'push' | 'pull' | 'download_both' | 'download_remote'> {
   switch (state) {
@@ -164,7 +237,7 @@ async function blobToText(blob: Blob): Promise<string> {
     const reader = new FileReader()
     reader.onload = () => resolve(reader.result as string)
     reader.onerror = () => reject(
-      reader.error ?? new Error(remoteStatus.remoteDownloadFailed.replace('{message}', 'Failed to read remote export blob'))
+      reader.error ?? new Error(translateDataExchangeMessage('dataExchange.status.remoteDownloadFailed', { message: 'Failed to read remote export blob' }))
     )
     reader.readAsText(blob)
   })
@@ -254,28 +327,28 @@ function getNoBaselineOverwriteWarning(
   if (hasKnownRemoteBaseline(settings)) return null
   if (!shouldConfirmOverwrite(state)) return null
 
-  return remoteConfirm.noRemoteBaseline
+  return translateDataExchangeMessage('dataExchange.confirm.noRemoteBaseline')
 }
 
 function makeInspectionMessage(inspection: RemotePushInspection): string {
   switch (inspection.state) {
     case 'remote_missing':
-      return remoteConfirm.remoteMissingUpload
+      return translateDataExchangeMessage('dataExchange.confirm.remoteMissingUpload')
     case 'identical':
     case 'up_to_date':
-      return remoteConfirm.remoteAlreadyMatchesWorkspace
+      return translateDataExchangeMessage('dataExchange.confirm.remoteAlreadyMatchesWorkspace')
     case 'remote_newer':
-      return remoteConfirm.remoteNewerOverwrite
+      return translateDataExchangeMessage('dataExchange.confirm.remoteNewerOverwrite')
     case 'local_newer':
-      return remoteConfirm.localNewerUpload
+      return translateDataExchangeMessage('dataExchange.confirm.localNewerUpload')
     case 'divergent':
-      return remoteConfirm.remoteDiffersOverwrite
+      return translateDataExchangeMessage('dataExchange.confirm.remoteDiffersOverwrite')
     case 'version_mismatch':
-      return remoteConfirm.versionMismatchOverwrite
+      return translateDataExchangeMessage('dataExchange.confirm.versionMismatchOverwrite')
     case 'unknown_endpoint_context':
-      return remoteConfirm.endpointContextOverwrite
+      return translateDataExchangeMessage('dataExchange.confirm.endpointContextOverwrite')
     case 'not_configured':
-      return remoteConfirm.providerNotConfigured
+      return translateDataExchangeMessage('dataExchange.confirm.providerNotConfigured')
   }
 }
 
@@ -322,7 +395,7 @@ export async function inspectRemotePush(
       local,
       remote: null,
       archiveExists: false,
-      warnings: [remoteStatus.providerNotConfigured],
+      warnings: [translateDataExchangeMessage('dataExchange.status.providerNotConfigured')],
     }
   }
 
@@ -344,8 +417,8 @@ export async function inspectRemotePush(
         archiveExists: archiveResult.ok ? archiveResult.value : false,
         warnings: [
           ...(archiveResult.ok
-          ? [remoteStatus.remoteMissing]
-          : [remoteStatus.remoteMissing, archiveResult.error.message]),
+          ? [translateDataExchangeMessage('dataExchange.status.remoteMissing')]
+          : [translateDataExchangeMessage('dataExchange.status.remoteMissing'), archiveResult.error.message]),
           ...(noBaselineWarning ? [noBaselineWarning] : []),
         ],
       }
@@ -385,7 +458,7 @@ export async function pushToRemote(
   const inspection = await inspectRemotePush({ provider, database: options.database, ...requestOptions }, deps)
 
   if (inspection.state === 'not_configured') {
-    throw new Error(remoteStatus.providerNotConfigured)
+    throw new Error(translateDataExchangeMessage('dataExchange.status.providerNotConfigured'))
   }
 
   const ensureArchive = async () => {
@@ -406,7 +479,7 @@ export async function pushToRemote(
 
     return {
       archiveExists: false,
-      warnings: [remoteStatus.remoteArchiveUploadSkipped.replace('{message}', archiveUpload.error.message)],
+      warnings: [translateDataExchangeMessage('dataExchange.status.remoteArchiveUploadSkipped', { message: archiveUpload.error.message })],
     }
   }
 
@@ -419,7 +492,7 @@ export async function pushToRemote(
         archiveExists: archive.archiveExists,
       },
       warnings: [
-        remoteStatus.remoteAlreadyMatchesLocal,
+        translateDataExchangeMessage('dataExchange.status.remoteAlreadyMatchesLocal'),
         ...archive.warnings,
       ],
     }
@@ -428,7 +501,7 @@ export async function pushToRemote(
   if (shouldConfirmOverwrite(inspection.state)) {
     const confirmed = await (options.confirmOverwrite?.(inspection) ?? globalThis.confirm?.(makeInspectionMessage(inspection)) ?? false)
     if (!confirmed) {
-      throw new Error(remoteStatus.remotePushCancelled)
+      throw new Error(translateDataExchangeMessage('dataExchange.status.remotePushCancelled'))
     }
   }
 
@@ -464,7 +537,7 @@ export async function pushToRemote(
         },
       },
       warnings: [
-        remoteStatus.exportUploadedRepairNeeded,
+        translateDataExchangeMessage('dataExchange.status.exportUploadedRepairNeeded'),
         ...archive.warnings,
         metaUpload.error.message,
       ],
@@ -504,7 +577,7 @@ export async function downloadRemoteExportArtifact(
   }
   const preview = await previewRemotePull({ provider, ...requestOptions }, deps)
   if (preview.state === 'not_configured') {
-    throw new Error(remoteStatus.providerNotConfigured)
+    throw new Error(translateDataExchangeMessage('dataExchange.status.providerNotConfigured'))
   }
 
   const exportResult = await provider.downloadExport(requestOptions)
@@ -529,10 +602,10 @@ export async function verifyRemoteHealth(
       health: 'not_configured',
       providerId: null,
       remote: null,
-      message: remoteStatus.providerNotConfigured,
-      guidance: remoteStatus.remoteProviderNotConfiguredGuidance,
+      message: translateDataExchangeMessage('dataExchange.status.providerNotConfigured'),
+      guidance: translateDataExchangeMessage('dataExchange.status.remoteProviderNotConfiguredGuidance'),
       repairActions: [],
-      warnings: [remoteStatus.providerNotConfigured],
+      warnings: [translateDataExchangeMessage('dataExchange.status.providerNotConfigured')],
     }
   }
 
@@ -547,8 +620,8 @@ export async function verifyRemoteHealth(
           health: 'auth_failure',
           providerId: null,
           remote: null,
-          message: remoteStatus.remoteAuthenticationFailed,
-          guidance: remoteStatus.remoteAuthenticationGuidance,
+          message: translateDataExchangeMessage('dataExchange.status.remoteAuthenticationFailed'),
+          guidance: translateDataExchangeMessage('dataExchange.status.remoteAuthenticationGuidance'),
           repairActions: ['verify'],
           warnings: [verifyResult.error.message],
         }
@@ -557,8 +630,8 @@ export async function verifyRemoteHealth(
           health: 'corrupt_metadata',
           providerId: null,
           remote: null,
-          message: remoteStatus.remoteMetadataCorrupt,
-          guidance: remoteStatus.remoteMetadataCorruptGuidance,
+          message: translateDataExchangeMessage('dataExchange.status.remoteMetadataCorrupt'),
+          guidance: translateDataExchangeMessage('dataExchange.status.remoteMetadataCorruptGuidance'),
           repairActions: ['push', 'download_remote', 'verify'],
           warnings: [verifyResult.error.message],
         }
@@ -567,8 +640,8 @@ export async function verifyRemoteHealth(
           health: 'network_error',
           providerId: null,
           remote: null,
-          message: remoteStatus.remoteVerificationFailed,
-          guidance: remoteStatus.remoteVerificationGuidance,
+          message: translateDataExchangeMessage('dataExchange.status.remoteVerificationFailed'),
+          guidance: translateDataExchangeMessage('dataExchange.status.remoteVerificationGuidance'),
           repairActions: ['verify'],
           warnings: [verifyResult.error.message],
         }
@@ -581,8 +654,8 @@ export async function verifyRemoteHealth(
       health: 'sidecar_missing',
       providerId: remote.provider_id,
       remote,
-      message: remoteStatus.remoteSidecarMissing,
-      guidance: remoteStatus.remoteSidecarMissingGuidance,
+      message: translateDataExchangeMessage('dataExchange.status.remoteSidecarMissing'),
+      guidance: translateDataExchangeMessage('dataExchange.status.remoteSidecarMissingGuidance'),
       repairActions: ['push', 'pull', 'download_remote', 'verify'],
       warnings: remote.warnings,
     }
@@ -593,8 +666,8 @@ export async function verifyRemoteHealth(
       health: 'export_missing',
       providerId: remote.provider_id,
       remote,
-      message: remoteStatus.remoteExportFileMissing,
-      guidance: remoteStatus.remoteExportFileMissingGuidance,
+      message: translateDataExchangeMessage('dataExchange.status.remoteExportFileMissing'),
+      guidance: translateDataExchangeMessage('dataExchange.status.remoteExportFileMissingGuidance'),
       repairActions: ['push', 'verify'],
       warnings: remote.warnings,
     }
@@ -605,8 +678,8 @@ export async function verifyRemoteHealth(
       health: 'metadata_mismatch',
       providerId: remote.provider_id,
       remote,
-      message: remoteStatus.remoteMetadataContextMismatch,
-      guidance: remoteStatus.remoteMetadataContextMismatchGuidance,
+      message: translateDataExchangeMessage('dataExchange.status.remoteMetadataContextMismatch'),
+      guidance: translateDataExchangeMessage('dataExchange.status.remoteMetadataContextMismatchGuidance'),
       repairActions: ['push', 'download_remote', 'verify'],
       warnings: remote.warnings,
     }
@@ -616,8 +689,8 @@ export async function verifyRemoteHealth(
     health: 'healthy',
     providerId: remote.provider_id,
     remote,
-    message: remoteStatus.remoteHealthy,
-    guidance: remoteStatus.remoteHealthyGuidance,
+    message: translateDataExchangeMessage('dataExchange.status.remoteHealthy'),
+    guidance: translateDataExchangeMessage('dataExchange.status.remoteHealthyGuidance'),
     repairActions: ['verify', 'download_remote'],
     warnings: remote.warnings,
   }
@@ -632,7 +705,7 @@ function classifyRemotePullPreview(
       state: 'remote_missing',
       remoteMeta: remote.meta,
       providerId: remote.provider_id,
-      warnings: [remoteStatus.remoteMissing],
+      warnings: [translateDataExchangeMessage('dataExchange.status.remoteMissing')],
     }
   }
 
@@ -680,7 +753,7 @@ export async function previewRemotePull(
       state: 'not_configured',
       remoteMeta: null,
       providerId: null,
-      warnings: [remoteStatus.providerNotConfigured],
+      warnings: [translateDataExchangeMessage('dataExchange.status.providerNotConfigured')],
     }
   }
 
@@ -694,7 +767,7 @@ export async function previewRemotePull(
         state: 'remote_missing',
         remoteMeta: null,
         providerId: null,
-        warnings: [remoteStatus.remoteMissing],
+        warnings: [translateDataExchangeMessage('dataExchange.status.remoteMissing')],
       }
     }
     throw new Error(verifyResult.error.message)
@@ -721,23 +794,23 @@ export async function pullFromRemote(
   const preview = await previewRemotePull({ provider, ...requestOptions }, deps)
 
   if (preview.state === 'not_configured') {
-    throw new Error(remoteStatus.providerNotConfigured)
+    throw new Error(translateDataExchangeMessage('dataExchange.status.providerNotConfigured'))
   }
   if (preview.state === 'remote_missing') {
-    throw new Error(remoteStatus.remoteMissing)
+    throw new Error(translateDataExchangeMessage('dataExchange.status.remoteMissing'))
   }
 
   const confirmed = await (options.confirmImport?.(preview) ?? globalThis.confirm?.([
     preview.state === 'up_to_date'
-      ? remoteStatus.remoteMatchesLastPulled
-      : remoteStatus.remotePullQuestion,
+      ? translateDataExchangeMessage('dataExchange.status.remoteMatchesLastPulled')
+      : translateDataExchangeMessage('dataExchange.status.remotePullQuestion'),
     preview.remoteMeta
-      ? remoteStatus.remoteExportedAtOnly.replace('{value}', preview.remoteMeta.exported_at)
-      : remoteStatus.remoteMetadataUnavailable,
+      ? translateDataExchangeMessage('dataExchange.status.remoteExportedAtOnly', { value: preview.remoteMeta.exported_at })
+      : translateDataExchangeMessage('dataExchange.status.remoteMetadataUnavailable'),
   ].join('\n\n')) ?? false)
 
   if (!confirmed) {
-    throw new Error(remoteStatus.remotePullCancelled)
+    throw new Error(translateDataExchangeMessage('dataExchange.status.remotePullCancelled'))
   }
 
   const exportResult = await provider.downloadExport(requestOptions)
@@ -762,7 +835,7 @@ export async function pullFromRemote(
 
   return {
     preview: manifest.version === 1
-      ? { ...preview, state: 'legacy_manifest', warnings: [...preview.warnings, remoteStatus.legacyRemoteManifestDetected] }
+      ? { ...preview, state: 'legacy_manifest', warnings: [...preview.warnings, translateDataExchangeMessage('dataExchange.status.legacyRemoteManifestDetected')] }
       : preview,
     report,
     cleanup,

@@ -16,7 +16,6 @@
  */
 
 import { db } from '@/db/db'
-import en from '@/locales/en'
 import { appendScratchpadContent } from '@/composables/useScratchpadLocal'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -65,35 +64,39 @@ const CONTEXT_MENU_CAPTURE_PAGE_NOTE = 'speedtab-capture-page-note'
 const CONTEXT_MENU_APPEND_SELECTION_TO_QUICKNOTE = 'speedtab-append-selection-to-quicknote'
 const CONTEXT_MENU_PARENT = 'speedtab-parent'
 
+function msg(name: string, substitutions?: string | string[]): string {
+  return chrome.i18n.getMessage(name, substitutions) || name
+}
+
 async function ensureContextMenus() {
   await chrome.contextMenus.removeAll()
   chrome.contextMenus.create({
     id: CONTEXT_MENU_PARENT,
-    title: en.background.contextMenuRoot,
+    title: msg('contextMenuRoot'),
     contexts: ['selection', 'page'],
   })
   chrome.contextMenus.create({
     id: CONTEXT_MENU_CAPTURE_BOOKMARK,
     parentId: CONTEXT_MENU_PARENT,
-    title: en.background.saveCurrentPageAsBookmark,
+    title: msg('saveCurrentPageAsBookmark'),
     contexts: ['page', 'selection'],
   })
   chrome.contextMenus.create({
     id: CONTEXT_MENU_CAPTURE_PAGE_NOTE,
     parentId: CONTEXT_MENU_PARENT,
-    title: en.background.storeCurrentPageAsNote,
+    title: msg('storeCurrentPageAsNote'),
     contexts: ['page', 'selection'],
   })
   chrome.contextMenus.create({
     id: CONTEXT_MENU_CAPTURE_NOTE,
     parentId: CONTEXT_MENU_PARENT,
-    title: en.background.saveSelectionAsNote,
+    title: msg('saveSelectionAsNote'),
     contexts: ['selection'],
   })
   chrome.contextMenus.create({
     id: CONTEXT_MENU_APPEND_SELECTION_TO_QUICKNOTE,
     parentId: CONTEXT_MENU_PARENT,
-    title: en.background.appendSelectionToQuicknote,
+    title: msg('appendSelectionToQuicknote'),
     contexts: ['selection'],
   })
 }
@@ -134,15 +137,15 @@ function buildCapturedPageNote(input: {
   selection: string | null
 }) {
   const lines: string[] = []
-  lines.push(en.background.capturedPage.replace('{value}', input.title || input.url))
-  lines.push(en.background.capturedUrl.replace('{value}', input.url))
+  lines.push(msg('capturedPage', input.title || input.url))
+  lines.push(msg('capturedUrl', input.url))
   if (input.description) {
     lines.push('')
-    lines.push(en.background.capturedDescription.replace('{value}', input.description))
+    lines.push(msg('capturedDescription', input.description))
   }
   if (input.selection) {
     lines.push('')
-    lines.push(en.background.selection)
+    lines.push(msg('selectionLabel'))
     lines.push(input.selection)
   }
   return lines.join('\n')
@@ -319,9 +322,7 @@ async function handleFetchFeed(url: string): Promise<FetchFeedResponse> {
     if (!response.ok) {
       return {
         ok: false,
-        error: en.background.httpError
-          .replace('{status}', String(response.status))
-          .replace('{statusText}', response.statusText),
+        error: msg('httpError', [String(response.status), response.statusText]),
       }
     }
 
@@ -329,9 +330,9 @@ async function handleFetchFeed(url: string): Promise<FetchFeedResponse> {
     return { ok: true, xml }
   } catch (err: unknown) {
     if (err instanceof Error) {
-      return { ok: false, error: err.name === 'AbortError' ? en.background.requestTimedOut : err.message }
+      return { ok: false, error: err.name === 'AbortError' ? msg('requestTimedOut') : err.message }
     }
-    return { ok: false, error: en.background.requestFailed }
+    return { ok: false, error: msg('requestFailed') }
   }
 }
 
@@ -349,9 +350,7 @@ async function handleFetchUrlMeta(url: string): Promise<FetchUrlMetaResponse> {
     if (!response.ok) {
       return {
         ok: false,
-        error: en.background.httpError
-          .replace('{status}', String(response.status))
-          .replace('{statusText}', response.statusText),
+        error: msg('httpError', [String(response.status), response.statusText]),
       }
     }
 
@@ -370,9 +369,9 @@ async function handleFetchUrlMeta(url: string): Promise<FetchUrlMetaResponse> {
     return { ok: true, title, finalUrl }
   } catch (err: unknown) {
     if (err instanceof Error) {
-      return { ok: false, error: err.name === 'AbortError' ? en.background.requestTimedOut : err.message }
+      return { ok: false, error: err.name === 'AbortError' ? msg('requestTimedOut') : err.message }
     }
-    return { ok: false, error: en.background.requestFailed }
+    return { ok: false, error: msg('requestFailed') }
   }
 }
 
@@ -390,9 +389,7 @@ async function handleFetchUrlContent(url: string): Promise<FetchUrlContentRespon
     if (!response.ok) {
       return {
         ok: false,
-        error: en.background.httpError
-          .replace('{status}', String(response.status))
-          .replace('{statusText}', response.statusText),
+        error: msg('httpError', [String(response.status), response.statusText]),
       }
     }
 
@@ -407,8 +404,8 @@ async function handleFetchUrlContent(url: string): Promise<FetchUrlContentRespon
     }
   } catch (err: unknown) {
     if (err instanceof Error) {
-      return { ok: false, error: err.name === 'AbortError' ? en.background.requestTimedOut : err.message }
+      return { ok: false, error: err.name === 'AbortError' ? msg('requestTimedOut') : err.message }
     }
-    return { ok: false, error: en.background.requestFailed }
+    return { ok: false, error: msg('requestFailed') }
   }
 }

@@ -39,7 +39,6 @@ export interface WeatherWidgetData {
   location_label: string
   current_temperature: number
   temperature_unit_label: 'C' | 'F'
-  condition_label: string
   condition_code: number
   is_day: boolean
   high_temperature: number | null

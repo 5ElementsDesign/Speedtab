@@ -55,6 +55,7 @@ const conditionMeta = computed(() => {
   return getWeatherCodeMeta(weatherData.value.condition_code, weatherData.value.is_day)
 })
 const conditionIcon = computed(() => conditionMeta.value ? (WEATHER_ICONS[conditionMeta.value.icon] ?? '☁') : '☁')
+const conditionLabel = computed(() => conditionMeta.value ? t(conditionMeta.value.labelKey) : t('weather.conditions.unavailableLabel'))
 const lastUpdatedLabel = computed(() => {
   if (!fetchedAt.value) return null
   return formatTime(fetchedAt.value, { hour: '2-digit', minute: '2-digit' })
@@ -264,7 +265,7 @@ onUnmounted(() => {
           <span class="st-weather-widget-temp">
             {{ Math.round(weatherData.current_temperature) }}°{{ weatherData.temperature_unit_label }}
           </span>
-          <span class="st-weather-widget-condition">{{ weatherData.condition_label }}</span>
+          <span class="st-weather-widget-condition">{{ conditionLabel }}</span>
         </div>
 
         <div class="st-weather-widget-secondary">

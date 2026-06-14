@@ -11,8 +11,8 @@ import ModuleForm from '@/components/ModuleForm.vue'
 import NavBar from '@/components/NavBar.vue'
 import OpenNotesHost from '@/components/OpenNotesHost.vue'
 import PageForm from '@/components/PageForm.vue'
-import SidePanel from '@/components/SidePanel.vue'
 import ScratchpadPanel from '@/components/ScratchpadPanel.vue'
+import SidePanel from '@/components/SidePanel.vue'
 import WidgetRail from '@/components/WidgetRail.vue'
 import { loadAssetObjectUrl } from '@/composables/useAsset'
 import {
@@ -112,6 +112,15 @@ function parseHash(): HashState {
     pageSlug:      pageMatch ? decodeURIComponent(pageMatch[1]) : null,
     collectionIds,
   }
+}
+
+function stringifyHash(state: HashState): string {
+  if (!state.pageSlug) return ''
+  let hash = `#/page/${encodeURIComponent(state.pageSlug)}`
+  if (state.collectionIds.length) {
+    hash += `/tabs/${state.collectionIds.join(',')}`
+  }
+  return hash
 }
 
 const hashState = ref<HashState>(parseHash())
@@ -931,7 +940,7 @@ const isUrlModalOpen = ref(false)
 const urlCopied = ref(false)
 
 const currentUrl = computed(() => {
-  const hash = window.location.hash || ''
+  const hash = stringifyHash(hashState.value)
   if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
     return `${chrome.runtime.getURL('src/newtab.html')}${hash}`
   }
@@ -945,7 +954,7 @@ function openUrlModal() {
 
 async function copyCurrentUrl() {
   try {
-    await navigator.clipboard.writeText(window.location.href)
+    await navigator.clipboard.writeText(currentUrl.value)
     urlCopied.value = true
     setTimeout(() => { urlCopied.value = false }, 2000)
   } catch {
@@ -1977,6 +1986,7 @@ async function saveOnboardingLanguage(language: SupportedLocale) {
           id="copy-url-input"
           name="copy_url"
           readonly
+          style="direction: rtl;"
           class="
             w-full px-2 py-1.5 text-[11px] font-mono text-white/90
             bg-white/5 border border-white/15 focus:outline-none
@@ -2153,10 +2163,6 @@ async function saveOnboardingLanguage(language: SupportedLocale) {
   min-height: 0;
 }
 
-.st-page-panel-mobile-spaced {
-  padding-top: 2rem;
-}
-
 .st-modules-stage {
   height: calc(100% + var(--st-widget-stage-offset, 0px));
   display: flex;
@@ -2164,8 +2170,12 @@ async function saveOnboardingLanguage(language: SupportedLocale) {
   width: 100%;
 }
 
+.st-page-panel-mobile-spaced {
+  padding-top: 1rem;
+}
+
 .st-modules-stage-mobile-spaced {
-  padding-bottom: 2rem;
+  padding-bottom: 1rem;
 }
 
 @media (max-width: 740px) {

@@ -145,11 +145,9 @@ const googleHeadlineUrl = computed(() => {
     :data-feed-item-id="item.id"
     :data-read="item.read_at != null ? 'true' : 'false'"
     :data-newly-fetched="props.isNewlyFetched ? 'true' : 'false'"
+    :data-expanded="props.expanded ? 'true' : 'false'"
   >
-    <div
-      class="st-module-feed-item-header group w-full min-w-0 transition-colors pr-1"
-      :data-expanded="props.expanded ? 'true' : 'false'"
-    >
+    <div class="st-module-feed-item-header group w-full min-w-0 transition-colors pr-1">
       <div
         class="st-module-feed-item-icon shrink-0 rounded-sm border flex items-center justify-center"
         :title="displaySource"
@@ -205,7 +203,7 @@ const googleHeadlineUrl = computed(() => {
 
     <div
       v-if="props.expanded"
-      class="st-module-feed-item-body border-t"
+      class="st-module-feed-item-body st-fade-in border-t"
       :class="youtubePayload ? 'p-0 space-y-0' : 'px-4 py-4 space-y-3'"
     >
       <template v-if="youtubePayload">
@@ -281,63 +279,63 @@ const googleHeadlineUrl = computed(() => {
       </template>
 
       <template v-else>
-      <div class="st-module-feed-item-meta space-y-1">
-        <h3 class="st-module-feed-item-heading text-[13px] font-semibold leading-snug">{{ item.title }}</h3>
-        <p class="st-module-feed-item-byline text-[10px]">
-          <span v-if="longDate">{{ longDate }}</span>
-          <span v-if="item.author">
-            <span v-if="longDate"> · </span>{{ item.author }}
-          </span>
+        <div class="st-module-feed-item-meta space-y-1">
+          <h3 class="st-module-feed-item-heading text-[13px] font-semibold leading-snug">{{ item.title }}</h3>
+          <p class="st-module-feed-item-byline text-[10px]">
+            <span v-if="longDate">{{ longDate }}</span>
+            <span v-if="item.author">
+              <span v-if="longDate"> · </span>{{ item.author }}
+            </span>
+          </p>
+        </div>
+
+        <img
+          v-if="firstMediaUrl"
+          :src="firstMediaUrl"
+          :alt="item.title"
+          class="st-module-feed-item-media"
+          loading="lazy"
+          draggable="false"
+        />
+
+        <div
+          v-if="contentHtml"
+          class="st-module-feed-item-copy feed-copy text-[12px] leading-snug"
+          v-html="contentHtml"
+        />
+        <p v-else class="st-module-feed-item-empty text-[12px] italic">
+          {{ t('feedItem.noSummary') }}
         </p>
-      </div>
 
-      <img
-        v-if="firstMediaUrl"
-        :src="firstMediaUrl"
-        :alt="item.title"
-        class="st-module-feed-item-media"
-        loading="lazy"
-        draggable="false"
-      />
-
-      <div
-        v-if="contentHtml"
-        class="st-module-feed-item-copy feed-copy text-[12px] leading-snug"
-        v-html="contentHtml"
-      />
-      <p v-else class="st-module-feed-item-empty text-[12px] italic">
-        {{ t('feedItem.noSummary') }}
-      </p>
-
-      <div class="st-module-feed-item-actions flex flex-wrap items-center gap-2 leading-none">
-        <a
-          :href="googleHeadlineUrl"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="st-module-feed-item-action px-2 py-2 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
-        >
-          {{ t('feedItem.search') }}
-        </a>
-        <a
-          v-if="item.url"
-          :href="item.url"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="st-module-feed-item-open px-2 py-2 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
-        >
-          {{ t('feedItem.open') }}
-        </a>
-        <button
-          type="button"
-          data-click="archiveFeedItem"
-          class="st-module-feed-item-action px-2 py-2 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
-        >
-          {{ t('feedItem.archive') }}
-        </button>
-        <span class="st-module-feed-item-domain text-[10px] truncate">
-          {{ domain }}
-        </span>
-      </div>
+        <div class="st-module-feed-item-actions flex flex-wrap items-center gap-2 leading-none">
+          <a
+            v-if="item.url"
+            :href="item.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="st-module-feed-item-open px-2 py-2 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
+          >
+            {{ t('feedItem.open') }}
+          </a>
+          <a
+            :href="googleHeadlineUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="st-module-feed-item-action px-2 py-2 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
+          >
+            {{ t('feedItem.search') }}
+          </a>
+          <button
+            type="button"
+            data-click="archiveFeedItem"
+            class="st-module-feed-item-action px-2 py-2 rounded-sm border text-[10px] uppercase tracking-wider transition-colors"
+          >
+            {{ t('feedItem.archive') }}
+          </button>
+          <span class="st-module-feed-item-domain text-[10px] truncate">
+            {{ domain }}
+          </span>
+        </div>
       </template>
     </div>
   </article>
@@ -382,15 +380,16 @@ const googleHeadlineUrl = computed(() => {
 
 .st-module-feed-item-domain {
   color: var(--st-feed-item-text-muted);
+  margin-left: auto;
 }
 
 .st-module-feed-item-media {
   display: block;
-  width: 100%;
-  max-width: 400px;
-  height: auto;
+  width: auto;
+  height: 260px;
   border-radius: 0.125rem;
   box-shadow: 0 0 4px var(--st-feed-item-text-muted);
+  object-fit: cover;
 }
 
 .feed-copy :deep(p)  { margin: 0.25rem 0; }

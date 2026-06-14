@@ -388,6 +388,7 @@ async function deleteCollection(id: number) {
             >
               {{ t('moduleCard.editModule') }}
             </button>
+            <hr class="my-1 border-0 border-t border-white/10" />
             <button
               type="button"
               role="menuitem"

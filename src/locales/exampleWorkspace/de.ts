@@ -1,16 +1,16 @@
 const exampleWorkspaceDe = {
   page: {
-    mainTitle: 'Hauptseite',
+    mainTitle: 'Home',
   },
   modules: {
-    web: 'Web Links',
+    web: 'Web',
     notes: 'Notizen',
     qbox: 'Qbox',
     news: 'Nachrichten',
   },
   collections: {
     apps: 'Apps',
-    tools: 'Kommunikation',
+    tools: 'Messenger',
     start: 'Start',
     features: 'Funktionen',
     help: '❔',
