@@ -3,17 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!--
-      Security: No inline scripts, no eval.
-      All JS is bundled by Vite and loaded via the module script below.
-      CSP for extensions is enforced by Chrome MV3 automatically.
-    -->
+    <meta name="color-scheme" content="dark" />
     <title>Speedtab</title>
-    <meta name="description" content="Speedtab is a local-first Chrome new tab extension">
-    <link rel="icon" type="image/x-icon" href="/icons/icon48.png">
+    <meta name="description"
+      content="Build custom startpages for different contexts, split them into modular grids, and organize your content into tabs." />
+    <link rel="icon" type="image/x-icon" href="/icons/icon48.png" />
+    <link rel="stylesheet" href="/src/next/styles/next.css" />
   </head>
-  <body class="m-0 p-0">
+  <body>
     <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module">
+      import '/src/next/app/entry.js';
+    </script>
   </body>
 </html>

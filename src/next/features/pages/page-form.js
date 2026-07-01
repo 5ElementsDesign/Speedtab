@@ -1,0 +1,160 @@
+import {escapeHtml} from '../../utils/html.js'
+import {t} from '../../utils/i18n.js'
+import {renderFormActions} from '../forms/actions.js'
+import {customizerDivider, customizerField, customizerSection} from '../../ui/primitives.js'
+
+const PRESET_PAGE_ICONS = [
+  '⭕', '⚡', '🏠', '⭐', '📁', '📌', '🧩', '📝', '📚', '📰',
+  '📡', '🧠', '💼', '📊', '📈', '🛠️', '🔧', '🎯', '🚀', '🌐',
+  '🧭', '🗂️', '📂', '💡', '🔒', '🔖', '🗞️', '🧪', '🎨', '🧵',
+  '📷', '🎵', '🎬', '🛒', '💳', '🏦', '🧾', '🧰', '🖥️', '📱',
+  '⌨️', '🕹️', '☁️', '🌙', '☀️', '🔥', '🌿', '🌊', '📍', '✅',
+]
+
+function parsePageConfig(page) {
+  if (!page?.config_json) return {modulesPerRow: 2, maxWidth: null}
+  try {
+    const c = JSON.parse(page.config_json)
+    return {
+      modulesPerRow: typeof c.modulesPerRow === 'number' ? c.modulesPerRow : 2,
+      maxWidth: typeof c.maxWidth === 'number' ? c.maxWidth : null,
+    }
+  } catch {
+    return {modulesPerRow: 2, maxWidth: null}
+  }
+}
+
+export function renderPageForm(page, options = {}) {
+  const saveLabel = options.saveLabel ?? (page?.id ? t('next.pageForm.saveChanges') : t('next.pageForm.createPage'))
+  const title = page?.title ?? ''
+  const icon = page?.icon ?? ''
+  const navGroup = page?.nav_group ?? 'main'
+  const isHome = page?.is_home === 1
+  const config = parsePageConfig(page)
+
+  const iconPickerGrid = PRESET_PAGE_ICONS.map((emoji) =>
+    `<button type="button" data-click="pageFormPickIcon" data-icon="${escapeHtml(emoji)}" data-page-icon-btn title="${escapeHtml(emoji)}">${escapeHtml(emoji)}</button>`
+  ).join('')
+
+  return `
+    <form
+      data-page-form
+      data-submit="pageFormSave"
+      data-page-id="${escapeHtml(String(page?.id ?? ''))}"
+      data-page-sync-id="${escapeHtml(page?.sync_id ?? '')}"
+      data-page-slug="${escapeHtml(page?.slug ?? '')}"
+    >
+      ${customizerSection({
+        title: t('next.pageForm.sections.identity'),
+        section: 'identity',
+        children: `
+          ${customizerField({
+            type: 'text',
+            label: t('moduleForm.title'),
+            control: `<input type="text" name="page-title" value="${escapeHtml(title)}" autocomplete="off" required>`,
+          })}
+
+          <div data-customizer-field>
+            <span data-customizer-field-label>${t('next.pageForm.icon')}</span>
+            <div data-page-icon-row>
+              <input type="text" name="page-icon" value="${escapeHtml(icon)}" data-page-icon-input>
+              <button type="button" data-btn="light" data-click="pageFormToggleIconPicker" data-page-icon-pick-btn>${t('settings.pick')}</button>
+            </div>
+          </div>
+
+          <div data-icon-picker hidden>
+            <div data-icon-picker-grid>
+              ${iconPickerGrid}
+            </div>
+          </div>
+
+          ${customizerField({
+            label: t('next.pageForm.navGroup'),
+            control: `
+              <select name="page-nav-group">
+                <option value="main"${navGroup === 'main' ? ' selected' : ''}>${t('next.pageForm.navGroupOptions.main')}</option>
+                <option value="overflow"${navGroup === 'overflow' ? ' selected' : ''}>${t('next.pageForm.navGroupOptions.overflow')}</option>
+              </select>
+            `,
+          })}
+
+          ${customizerField({
+            type: 'boolean',
+            label: t('next.pageForm.defaultPage'),
+            control: `<input type="checkbox" name="page-is-home"${isHome ? ' checked' : ''}>`,
+          })}
+        `,
+      })}
+
+      ${customizerDivider()}
+
+      ${customizerSection({
+        title: t('next.pageForm.sections.layout'),
+        section: 'layout',
+        children: `
+          ${customizerField({
+            type: 'integer',
+            label: t('next.pageForm.columns'),
+            control: `<input type="number" name="page-modules-per-row" value="${config.modulesPerRow}" min="1" max="12">`,
+          })}
+          ${customizerField({
+            type: 'integer',
+            label: t('next.customizer.fields.shellMaxWidth'),
+            control: `<input type="number" name="page-max-width" value="${escapeHtml(String(config.maxWidth ?? ''))}" min="300" max="3840" placeholder="${escapeHtml(t('next.pageForm.globalDefault'))}">`,
+          })}
+        `,
+      })}
+
+      ${customizerDivider()}
+
+      ${renderFormActions({saveLabel})}
+    </form>
+  `
+}
+
+export function renderModuleCreateForm(page) {
+  return `
+    <form
+      data-page-module-form
+      data-submit="pageModuleCreateSave"
+      data-page-id="${escapeHtml(String(page?.id ?? ''))}"
+      data-page-sync-id="${escapeHtml(page?.sync_id ?? '')}"
+    >
+      ${customizerSection({
+        title: t('next.moduleCrud.sections.identity'),
+        section: 'identity',
+        children: `
+          ${customizerField({
+            label: t('moduleForm.type'),
+            control: `
+              <select name="module-type" required>
+                <option value="tabs">${t('moduleForm.types.tabs')}</option>
+                <option value="notes">${t('moduleForm.types.notes')}</option>
+                <option value="feeds">${t('moduleForm.types.feeds')}</option>
+              </select>
+            `,
+          })}
+
+          ${customizerField({
+            type: 'text',
+            label: t('moduleForm.title'),
+            control: `
+              <input
+                type="text"
+                name="module-title"
+                value="${escapeHtml(t('app.newModule'))}"
+                placeholder="${escapeHtml(t('moduleForm.titlePlaceholder'))}"
+                autocomplete="off"
+                required
+              >
+            `,
+          })}
+        `,
+      })}
+
+      ${customizerDivider()}
+
+      ${renderFormActions({saveLabel: t('moduleForm.createModule')})}
+    </form>
+  `
+}

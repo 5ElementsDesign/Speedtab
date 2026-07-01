@@ -153,6 +153,69 @@ function ensureUniqueSyncIds(rows: Array<Record<string, unknown>>, table: string
   }
 }
 
+function repairManifestV2StructuralOrphans(obj: unknown): unknown {
+  if (!isRecord(obj) || obj.version !== BACKUP_VERSION) return obj
+
+  const manifest = obj as Record<string, unknown>
+  if (
+    !Array.isArray(manifest.pages) ||
+    !Array.isArray(manifest.modules) ||
+    !Array.isArray(manifest.collections) ||
+    !Array.isArray(manifest.tabs) ||
+    !Array.isArray(manifest.notes) ||
+    !Array.isArray(manifest.feed_sources) ||
+    !Array.isArray(manifest.saved_feed_items)
+  ) {
+    return obj
+  }
+
+  const pages = manifest.pages.filter(isRecord)
+  const pageSyncIds = new Set(
+    pages
+      .map((row) => row.sync_id)
+      .filter((value): value is string => typeof value === 'string' && UUID_RE.test(value)),
+  )
+
+  const modules = manifest.modules.filter((row) =>
+    isRecord(row) &&
+    typeof row.page_sync_id === 'string' &&
+    pageSyncIds.has(row.page_sync_id),
+  )
+  const moduleSyncIds = new Set(
+    modules
+      .map((row) => row.sync_id)
+      .filter((value): value is string => typeof value === 'string' && UUID_RE.test(value)),
+  )
+
+  const collections = manifest.collections.filter((row) =>
+    isRecord(row) &&
+    typeof row.module_sync_id === 'string' &&
+    moduleSyncIds.has(row.module_sync_id),
+  )
+  const collectionSyncIds = new Set(
+    collections
+      .map((row) => row.sync_id)
+      .filter((value): value is string => typeof value === 'string' && UUID_RE.test(value)),
+  )
+
+  const filterCollectionChildren = (rows: unknown[]) => rows.filter((row) =>
+    isRecord(row) &&
+    typeof row.collection_sync_id === 'string' &&
+    collectionSyncIds.has(row.collection_sync_id),
+  )
+
+  return {
+    ...manifest,
+    pages,
+    modules,
+    collections,
+    tabs: filterCollectionChildren(manifest.tabs),
+    notes: filterCollectionChildren(manifest.notes),
+    feed_sources: filterCollectionChildren(manifest.feed_sources),
+    saved_feed_items: filterCollectionChildren(manifest.saved_feed_items),
+  }
+}
+
 function validateManifestV1(obj: unknown): asserts obj is BackupManifestV1 {
   const manifest = obj as Record<string, unknown>
   for (const key of LEGACY_TABLE_KEYS_V1) {
@@ -268,12 +331,23 @@ function checkFk(
   }
 }
 
+function throwExportIntegrityError(orphanCounts: Record<string, number>): never {
+  const details = Object.entries(orphanCounts)
+    .filter(([, count]) => count > 0)
+    .map(([label, count]) => `${label}:${count}`)
+    .join(', ')
+
+  throw new BackupValidationError(
+    `Export blocked: orphaned active rows detected (${details}). Run cleanup before exporting.`
+  )
+}
+
 // ─── Export ───────────────────────────────────────────────────────────────────
 
 export async function exportAll(database: SpeedtabDB = defaultDb): Promise<BackupManifestV2> {
   await ensureSyncMetadataMigration(database, { force: true })
 
-  const [pages, modules, collections, tabs, notes, feedSources, savedFeedItems, assets, bgArchive] =
+  const [rawPages, rawModules, rawCollections, rawTabs, rawNotes, rawFeedSources, rawSavedFeedItems, assets, bgArchive] =
     await Promise.all([
       database.pages.filter(isActiveRecord).toArray(),
       database.modules.filter(isActiveRecord).toArray(),
@@ -285,6 +359,43 @@ export async function exportAll(database: SpeedtabDB = defaultDb): Promise<Backu
       database.assets.toArray(),
       database.bg_archive.orderBy('created_at').toArray(),
     ])
+
+  const pages = rawPages.filter((row) => row.id != null)
+  const pageIdSet = new Set(pages.map((row) => row.id!))
+  const orphanModules = rawModules.filter((row) => row.id == null || !pageIdSet.has(row.page_id))
+  const modules = rawModules.filter((row) => row.id != null && pageIdSet.has(row.page_id))
+  const moduleIdSet = new Set(modules.map((row) => row.id!))
+
+  const orphanCollections = rawCollections.filter((row) => row.id == null || !moduleIdSet.has(row.module_id))
+  const collections = rawCollections.filter((row) => row.id != null && moduleIdSet.has(row.module_id))
+  const collectionIdSet = new Set(collections.map((row) => row.id!))
+
+  const orphanTabs = rawTabs.filter((row) => !collectionIdSet.has(row.collection_id))
+  const tabs = rawTabs.filter((row) => collectionIdSet.has(row.collection_id))
+  const orphanNotes = rawNotes.filter((row) => !collectionIdSet.has(row.collection_id))
+  const notes = rawNotes.filter((row) => collectionIdSet.has(row.collection_id))
+  const orphanFeedSources = rawFeedSources.filter((row) => !collectionIdSet.has(row.collection_id))
+  const feedSources = rawFeedSources.filter((row) => collectionIdSet.has(row.collection_id))
+  const orphanSavedFeedItems = rawSavedFeedItems.filter((row) => !collectionIdSet.has(row.collection_id))
+  const savedFeedItems = rawSavedFeedItems.filter((row) => collectionIdSet.has(row.collection_id))
+
+  if (
+    orphanModules.length ||
+    orphanCollections.length ||
+    orphanTabs.length ||
+    orphanNotes.length ||
+    orphanFeedSources.length ||
+    orphanSavedFeedItems.length
+  ) {
+    throwExportIntegrityError({
+      modules: orphanModules.length,
+      collections: orphanCollections.length,
+      tabs: orphanTabs.length,
+      notes: orphanNotes.length,
+      feed_sources: orphanFeedSources.length,
+      saved_feed_items: orphanSavedFeedItems.length,
+    })
+  }
 
   const pageSyncById = new Map(pages.filter((row) => row.id != null).map((row) => [row.id!, row.sync_id]))
   const moduleSyncById = new Map(modules.filter((row) => row.id != null).map((row) => [row.id!, row.sync_id]))
@@ -1171,6 +1282,7 @@ export function parseManifestText(text: string): BackupManifest {
   let parsed: unknown
   try { parsed = JSON.parse(text) }
   catch { throw new BackupValidationError('File is not valid JSON') }
+  parsed = repairManifestV2StructuralOrphans(parsed)
   validateManifest(parsed)
   return parsed
 }

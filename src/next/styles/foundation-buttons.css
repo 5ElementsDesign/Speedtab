@@ -1,0 +1,196 @@
+[data-btn] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--st-btn-gap);
+  min-height: var(--st-form-elements-min-height);
+  padding: var(--st-form-button-padding);
+  border: 1px solid transparent;
+  border-radius: var(--st-form-button-border-radius);
+  font-weight: var(--st-btn-font-weight);
+  cursor: pointer;
+  transition: all var(--st-form-transition);
+  background: var(--st-form-elements-bg-color);
+  border-color: var(--st-form-elements-border-color);
+  color: var(--st-color-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+[data-btn]:focus-visible {
+  outline: 2px solid var(--st-color-focus);
+  outline-offset: 2px;
+}
+
+[data-btn="funky"] {
+  background: var(--st-color-funky);
+  color: var(--st-color-funky-contrast);
+  border-color: var(--st-color-funky);
+}
+
+[data-btn="funky"]:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+:is([data-btn="primary"], [data-ui-btn="primary"], [yai-btn-primary], .st-color-primary, [data-ui-bg="primary"]) {
+  background: var(--st-color-primary);
+  color: var(--st-color-primary-contrast);
+  border-color: var(--st-color-primary);
+}
+
+:is([data-btn="primary"], [data-ui-btn="primary"], [yai-btn-primary]):hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+:is(.st-color-primary-border, [data-border-color="primary"], [data-ui-border="primary"]) {
+  border-color: var(--st-color-primary);
+}
+
+:is(.st-color-primary-text, [data-color-primary], [data-ui-color="primary"]) {
+  color: var(--st-color-primary);
+}
+
+:is([data-btn="secondary"], [data-ui-btn="secondary"], [yai-btn-secondary], .st-color-secondary, [data-ui-bg="secondary"]) {
+  background: var(--st-color-secondary);
+  color: var(--st-color-secondary-contrast);
+  border-color: var(--st-color-secondary);
+}
+
+:is([data-btn="secondary"], [data-ui-btn="secondary"], [yai-btn-secondary]):hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+:is(.st-color-secondary-border, [data-border-color="secondary"], [data-ui-border="secondary"]) {
+  border-color: var(--st-color-secondary);
+}
+
+:is(.st-color-secondary-text, [data-color-secondary], [data-ui-color="secondary"]) {
+  color: var(--st-color-secondary);
+}
+
+:is([data-btn="success"], [data-ui-btn="success"], [yai-btn-success], .st-color-success, [data-ui-bg="success"]) {
+  background: var(--st-color-success);
+  color: var(--st-color-success-contrast);
+  border-color: var(--st-color-success);
+}
+
+:is([data-btn="success"], [data-ui-btn="success"], [yai-btn-success]):hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+:is(.st-color-success-border, [data-border-color="success"], [data-ui-border="success"]) {
+  border-color: var(--st-color-success);
+}
+
+:is(.st-color-success-text, [data-color-success], [data-ui-color="success"]) {
+  color: var(--st-color-success);
+}
+
+:is([data-btn="warning"], [data-ui-btn="warning"], [yai-btn-warning], .st-color-warning, [data-ui-bg="warning"]) {
+  background: var(--st-color-warning);
+  color: var(--st-color-warning-contrast);
+  border-color: var(--st-color-warning);
+}
+
+:is([data-btn="warning"], [data-ui-btn="warning"], [yai-btn-warning]):hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+:is(.st-color-warning-border, [data-border-color="warning"], [data-ui-border="warning"]) {
+  border-color: var(--st-color-warning);
+}
+
+:is(.st-color-warning-text, [data-color-warning], [data-ui-color="warning"]) {
+  color: var(--st-color-warning);
+}
+
+:is([data-btn="danger"], [data-ui-btn="danger"], [yai-btn-danger], .st-color-danger, [data-ui-bg="danger"]) {
+  background: var(--st-color-danger);
+  color: var(--st-color-danger-contrast);
+  border-color: var(--st-color-danger);
+}
+
+:is([data-btn="danger"], [data-ui-btn="danger"], [yai-btn-danger]):hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+:is(.st-color-danger-border, [data-border-color="danger"], [data-ui-border="danger"]) {
+  border-color: var(--st-color-danger);
+}
+
+:is(.st-color-danger-text, [data-color-danger], [data-ui-color="danger"]) {
+  color: var(--st-color-danger);
+}
+
+:is([data-btn="dark"], [data-ui-btn="dark"], [yai-btn-dark], .st-color-dark, [data-ui-bg="dark"]) {
+  background: var(--st-color-dark);
+  color: var(--st-color-dark-contrast);
+  border-color: var(--st-color-dark);
+}
+
+:is([data-btn="dark"], [data-ui-btn="dark"], [yai-btn-dark]):hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+:is(.st-color-dark-border, [data-border-color="dark"], [data-ui-border="dark"]) {
+  border-color: var(--st-color-dark);
+}
+
+:is(.st-color-dark-text, [data-color-dark], [data-ui-color="dark"]) {
+  color: var(--st-color-dark);
+}
+
+:is([data-btn="light"], [data-ui-btn="light"], [yai-btn-light], .st-color-light, [data-ui-bg="light"]) {
+  background: var(--st-color-light);
+  color: var(--st-color-light-contrast);
+  border-color: var(--st-color-light);
+}
+
+:is([data-btn="light"], [data-ui-btn="light"], [yai-btn-light]):hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+:is(.st-color-light-border, [data-border-color="light"], [data-ui-border="light"]) {
+  border-color: var(--st-color-light);
+}
+
+:is(.st-color-light-text, [data-color-light], [data-ui-color="light"]) {
+  color: var(--st-color-light);
+}
+
+[data-btn="ghost"] {
+  background: color-mix(in srgb, var(--st-form-elements-bg-color) 24%, transparent);
+  border-color: color-mix(in srgb, var(--st-form-elements-border-color) 72%, transparent);
+  color: color-mix(in srgb, var(--st-color-text) 88%, white 12%);
+}
+
+[data-btn="ghost"]:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--st-form-elements-border-color) 88%, transparent);
+  border-color: var(--st-form-elements-border-color);
+}
+
+[data-btn="outline"] {
+  background: transparent;
+  border-color: var(--st-form-elements-border-color);
+}
+
+[data-btn="outline"]:hover:not(:disabled) {
+  background: var(--st-form-elements-border-color);
+}
+
+[data-btn-size="sm"] {
+  min-height: var(--st-btn-sm-min-height);
+  padding: var(--st-btn-sm-padding);
+  font-size: var(--st-btn-sm-font-size);
+}
+
+[data-btn-size="lg"] {
+  min-height: var(--st-btn-lg-min-height);
+  padding: var(--st-btn-lg-padding);
+  font-size: var(--st-btn-lg-font-size);
+}
+
+[data-focus-ring] {
+  outline: 2px solid var(--st-color-focus);
+  outline-offset: 2px;
+}

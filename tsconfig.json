@@ -12,13 +12,17 @@
     "isolatedModules": true,
     "useDefineForClassFields": true,
     "jsx": "preserve",
-    "jsxImportSource": "vue",
     "paths": {
       "@/*": ["./src/*"]
     },
     "skipLibCheck": true,
     "types": ["chrome", "vite/client", "node"]
   },
-  "include": ["src/**/*.ts", "src/**/*.vue", "vite.config.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "vite.config.ts", "vitest.config.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/**/*.test.ts",
+    "src/next/tests/**"
+  ]
 }

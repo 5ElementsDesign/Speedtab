@@ -1,9 +1,9 @@
 import DOMPurify from 'dompurify'
 
 // ─── Strict allowlist for html notes ──────────────────────────────────────────
-// Block-level tags for layout, inline tags for emphasis, lists, code, tables,
-// and anchors. Scripts, iframes, forms, event handlers, and javascript:/data:
-// URIs are all forbidden by virtue of not being in the allowlist.
+// Keep the markup strict, but DO NOT strip the data-* attributes that power
+// YAI / YEH / YaiTabs content inside html notes. Scripts, inline event
+// handlers, forms, and dangerous protocols still remain forbidden.
 
 const ALLOWED_TAGS = [
   'a', 'p', 'br', 'hr', 'span', 'div',
@@ -17,6 +17,7 @@ const ALLOWED_TAGS = [
   'details', 'summary',
   'nav', 'aside', 'article', 'address',
   'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  'button',
   'textarea',
 ]
 
@@ -32,6 +33,8 @@ const ALLOWED_ATTR = [
  *   - all event handlers (onerror, onclick, onload, …)
  *   - javascript: / vbscript: / data: URIs in href and src
  *   - any tag/attribute not in the allowlist above
+ *   - BUT preserves safe data-* attributes so html notes can host YAI / YEH
+ *     driven markup like nested tabs.
  *
  * `RETURN_TRUSTED_TYPE: false` keeps the API as a plain string, which is what
  * Vue's `v-html` binding consumes.
@@ -40,7 +43,7 @@ export function sanitizeHtml(dirty: string): string {
   return DOMPurify.sanitize(dirty, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
-    ALLOW_DATA_ATTR:         false,
+    ALLOW_DATA_ATTR:         true,
     ALLOW_UNKNOWN_PROTOCOLS: false,
   }) as unknown as string
 }

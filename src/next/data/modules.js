@@ -1,0 +1,67 @@
+import {db, isActiveRecord, makeCreateMetadata} from '../../db/db.ts'
+
+export async function loadModulesByPageId(pageId) {
+  if (!pageId) return []
+
+  return db.modules
+    .where('page_id')
+    .equals(pageId)
+    .filter(isActiveRecord)
+    .sortBy('sort_order')
+}
+
+export async function loadModuleBySyncId(syncId) {
+  if (!syncId) return null
+  return db.modules.where('sync_id').equals(syncId).first()
+}
+
+export async function createModuleData(pageId, payload = {}) {
+  if (!pageId) return null
+
+  const now = Date.now()
+
+  return db.transaction('rw', db.modules, db.collections, async () => {
+    const sortOrder = await db.modules
+      .where('page_id')
+      .equals(pageId)
+      .filter(isActiveRecord)
+      .count()
+
+    const moduleId = await db.modules.add({
+      page_id: pageId,
+      type: payload.type ?? 'tabs',
+      title: payload.title ?? 'Module',
+      sort_order: sortOrder,
+      config_json: payload.config_json ?? null,
+      ...makeCreateMetadata(now),
+    })
+
+    if (['tabs', 'notes', 'feeds'].includes(payload.type ?? 'tabs') && payload.createDefaultTab !== false) {
+      await db.collections.add({
+        module_id: moduleId,
+        title: payload.defaultTabTitle ?? 'Tab 1',
+        sort_order: 0,
+        config_json: null,
+        ...makeCreateMetadata(now),
+      })
+    }
+
+    return db.modules.get(moduleId)
+  })
+}
+
+export async function saveModuleData(id, updates) {
+  if (!id) return
+  await db.modules.update(id, {
+    ...updates,
+    updated_at: Date.now(),
+  })
+}
+
+export async function softDeleteModule(id) {
+  if (!id) return
+  await db.modules.update(id, {
+    updated_at: Date.now(),
+    deleted_at: Date.now(),
+  })
+}

@@ -1,0 +1,128 @@
+/* Color tokens — mapped to YaiTabs vars (dark-only app) */
+:root {
+  --st-color-text: var(--yai-tabs-color-text);
+  --st-color-text-muted: var(--yai-tabs-color-text-muted);
+  --st-color-background: var(--yai-tabs-color-background);
+  --st-color-surface: var(--yai-tabs-color-surface);
+  --st-color-surface-alt: var(--yai-tabs-color-surface-alt);
+
+  --st-color-primary: var(--yai-tabs-color-primary);
+  --st-color-primary-contrast: var(--yai-tabs-color-primary-contrast);
+  --st-color-secondary: var(--yai-tabs-color-secondary);
+  --st-color-secondary-contrast: var(--yai-tabs-color-secondary-contrast);
+  --st-color-accent: var(--yai-tabs-color-accent);
+  --st-color-accent-contrast: var(--yai-tabs-color-accent-contrast);
+  --st-color-success: var(--yai-tabs-color-success);
+  --st-color-success-contrast: var(--yai-tabs-color-success-contrast);
+  --st-color-warning: var(--yai-tabs-color-warning);
+  --st-color-warning-contrast: var(--yai-tabs-color-warning-contrast);
+  --st-color-danger: var(--yai-tabs-color-danger);
+  --st-color-danger-contrast: var(--yai-tabs-color-danger-contrast);
+  --st-color-dark: var(--yai-tabs-color-dark);
+  --st-color-dark-contrast: var(--yai-tabs-color-dark-contrast);
+  --st-color-light: var(--yai-tabs-color-light);
+  --st-color-light-contrast: var(--yai-tabs-color-light-contrast);
+
+  --st-color-focus: var(--yai-tabs-color-focus);
+  --st-color-focus-ring: var(--yai-tabs-color-focus-ring);
+
+  --st-shadow-subtle-color: rgba(0, 0, 0, 0.4);
+  --st-shadow-medium-color: rgba(0, 0, 0, 0.6);
+  --st-shadow-accent: rgba(2, 255, 178, 0.5);
+
+  --st-form-bg-color: transparent;
+  --st-form-border-color: transparent;
+  --st-form-elements-bg-color: transparent;
+  --st-form-elements-border-color: rgba(255, 255, 255, 0.08);
+  --st-form-disabled-bg-color: var(--st-color-surface-alt);
+
+  --st-html-layer-bg-color: var(--st-color-surface-alt);
+  --st-html-border-color: rgba(255, 255, 255, 0.06);
+
+  --st-font-weight-bold: var(--yai-font-weight-bold);
+  --st-font-weight-bolder: var(--yai-font-weight-bolder);
+  --st-font-weight-boldest: var(--yai-font-weight-boldest);
+
+  --st-form-elements-min-height: 30px;
+  --st-form-input-min-height: var(--st-form-elements-min-height);
+  --st-form-select-min-height: var(--st-form-elements-min-height);
+  --st-form-button-min-height: var(--st-form-elements-min-height);
+  --st-textarea-min-height: 80px;
+  --st-checkbox-size: 1.1rem;
+
+  --st-form-input-padding: 0 10px;
+  --st-form-textarea-padding: 8px 10px;
+  --st-form-select-padding-right: 24px;
+  --st-form-button-padding: 0 16px;
+
+  --st-form-elements-border-radius: 0;
+  --st-form-button-border-radius: var(--st-form-elements-border-radius);
+  --st-form-button-border: 0 none;
+
+  --st-form-transition: 0.15s ease-in-out;
+  --st-form-elements-border-hover: #555;
+  --st-textarea-resize: vertical;
+  --st-select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  --st-select-appearance: none;
+  --st-disabled-opacity: 0.65;
+
+  --st-form-group-margin: 0 0 1rem 0;
+  --st-form-label-margin: 0 0 0.25rem 0;
+  --st-form-hint-margin: 0.25rem 0 0 0;
+  --st-form-inline-gap: 0.5rem;
+  --st-label-font-weight: 500;
+  --st-hint-font-size: 0.85rem;
+  --st-hint-opacity: 0.7;
+
+  --st-error-message-size: 0.85rem;
+  --st-error-message-margin: 0.25rem 0 0 0;
+  --st-success-message-size: 0.85rem;
+  --st-success-message-margin: 0.25rem 0 0 0;
+
+  --st-h1-margin: 1.25em 0 0.1em 0;
+  --st-h2-margin: 1.25em 0 0.5em 0;
+  --st-h3-margin: 1.25em 0 0.5em 0;
+  --st-h4-margin: 1.25em 0 0.5em 0;
+  --st-h5-margin: 1.25em 0 0.5em 0;
+  --st-h6-margin: 1.25em 0 0.5em 0;
+  --st-p-margin: 0 0 1em 0;
+  --st-list-margin: 0.75em 0 1.25em 0;
+  --st-list-padding-left: 1.25rem;
+  --st-list-item-margin: 0 0 0.4em 0;
+  --st-hr-margin: 1rem 0;
+  --st-hr-opacity: 0.6;
+  --st-heading-font-weight: 600;
+  --st-heading-line-height: 1.3;
+  --st-p-line-height: 1.6;
+  --st-list-line-height: 1.6;
+  --st-ul-list-style: square;
+  --st-ol-list-style: decimal;
+  --st-list-item-line-height: 1.45;
+  --st-pre-padding: 0.75rem 1rem;
+  --st-pre-border-radius: 0;
+  --st-code-padding: 0.1rem 0.3rem;
+  --st-code-font-size: 85%;
+  --st-code-border-radius: 0;
+  --st-strong-font-weight: 600;
+  --st-blockquote-margin: 1em 0;
+  --st-blockquote-padding: 0.5em 1em;
+  --st-blockquote-border-left: 3px solid;
+
+  --st-table-th-padding: 0.6rem 0.75rem;
+  --st-table-td-padding: 0.65rem 0.75rem;
+  --st-table-font-size: 0.9rem;
+  --st-table-th-font-size: 0.85rem;
+
+  --st-btn-sm-min-height: 30px;
+  --st-btn-sm-padding: 0 12px;
+  --st-btn-sm-font-size: 0.85rem;
+  --st-btn-lg-min-height: 44px;
+  --st-btn-lg-padding: 0 24px;
+  --st-btn-lg-font-size: 1.1rem;
+  --st-btn-gap: 0.25rem;
+  --st-btn-font-weight: 500;
+
+  --st-link-color: var(--st-color-primary);
+  --st-small-font-size: 85%;
+  --st-small-opacity: 0.85;
+}

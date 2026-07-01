@@ -1,0 +1,321 @@
+import {db} from '../../db/db.ts'
+import {sha256hex} from '../data/assets.js'
+
+const EXCLUDED_HOSTS = new Set(['example.com', 'example.net', 'example.org', 'feeds.feedburner.com', 'localhost'])
+const FAVICON_TTL_MS            = 90 * 24 * 60 * 60 * 1000
+const FAVICON_RETRY_COOLDOWN_MS =  5 * 60 * 1000
+const MAX_FAVICON_DIMENSION     = 48
+
+// In-memory caches
+const objectUrlByHost        = new Map() // hostname → blob: URL
+const pendingByHost          = new Map() // hostname → Promise (deduplicates concurrent reqs)
+const lastFetchAttemptByHost = new Map()
+const aliasByHost            = new Map() // subdomain → parent hostname
+const listenersByHost        = new Map() // hostname → Set<HTMLImageElement>
+
+function isHiddenByTabState(element) {
+  return !!element?.closest?.('[aria-hidden="true"], [inert]')
+}
+
+// ─── Hostname helpers ─────────────────────────────────────────────────────────
+
+export function normalizeFaviconHostname(value) {
+  return String(value).trim().toLowerCase().replace(/^www\./, '')
+}
+
+function isExcludedHost(hostname) {
+  return EXCLUDED_HOSTS.has(hostname) || hostname.endsWith('.loc')
+}
+
+function getHostnameCandidates(hostname) {
+  const normalized = normalizeFaviconHostname(hostname)
+  const parts = normalized.split('.').filter(Boolean)
+  const candidates = [normalized]
+  if (parts.length >= 3) candidates.push(parts.slice(1).join('.'))
+  return [...new Set(candidates)]
+}
+
+export function getFaviconHostnameCandidatesForUrl(url) {
+  const hostname = getHostnameFromUrl(url)
+  return hostname ? getHostnameCandidates(hostname) : []
+}
+
+function getHostnameFromUrl(url) {
+  if (!url) return null
+  try {
+    const host = normalizeFaviconHostname(new URL(url).hostname)
+    if (!host || isExcludedHost(host)) return null
+    return host
+  } catch { return null }
+}
+
+// ─── Meta JSON ────────────────────────────────────────────────────────────────
+
+export function parseFaviconMeta(value) {
+  if (!value) return null
+  try {
+    const parsed = JSON.parse(value)
+    if (typeof parsed?.fetched_at !== 'number') return null
+    const hostnames = Array.isArray(parsed?.hostnames)
+      ? parsed.hostnames.filter(h => typeof h === 'string').map(normalizeFaviconHostname)
+      : typeof parsed?.hostname === 'string'
+        ? [normalizeFaviconHostname(parsed.hostname)]
+        : []
+    if (!hostnames.length) return null
+    return {hostnames: [...new Set(hostnames)], fetched_at: parsed.fetched_at}
+  } catch { return null }
+}
+
+function makeFaviconMeta(hostnames) {
+  return JSON.stringify({
+    hostnames: [...new Set(hostnames.map(normalizeFaviconHostname))].filter(Boolean),
+    fetched_at: Date.now(),
+  })
+}
+
+function isFresh(meta) {
+  return !!meta && (Date.now() - meta.fetched_at) < FAVICON_TTL_MS
+}
+
+// ─── IndexedDB ───────────────────────────────────────────────────────────────
+
+async function findFaviconByHostname(hostname) {
+  const all = await db.assets.where('kind').equals('favicon').toArray()
+  return all.find(a => parseFaviconMeta(a.meta_json)?.hostnames.includes(hostname)) ?? null
+}
+
+async function findFaviconFallback(hostname) {
+  const all = await db.assets.where('kind').equals('favicon').toArray()
+  for (const candidate of getHostnameCandidates(hostname)) {
+    if (candidate === hostname) continue
+    const asset = all.find(a => parseFaviconMeta(a.meta_json)?.hostnames.includes(candidate)) ?? null
+    if (asset) return {asset, candidate}
+  }
+  return null
+}
+
+async function updateAssetHostnames(assetId, hostnames) {
+  await db.assets.update(assetId, {meta_json: makeFaviconMeta(hostnames)})
+}
+
+// ─── Object URL management ───────────────────────────────────────────────────
+
+function revokeHostObjectUrl(hostname) {
+  const existing = objectUrlByHost.get(hostname)
+  if (existing) { URL.revokeObjectURL(existing); objectUrlByHost.delete(hostname) }
+}
+
+function setObjectUrlForHost(hostname, blob) {
+  if (!blob) return
+  revokeHostObjectUrl(hostname)
+  const url = URL.createObjectURL(blob)
+  objectUrlByHost.set(hostname, url)
+  notifyListeners(hostname, url)
+}
+
+// ─── DOM listener system ─────────────────────────────────────────────────────
+
+function notifyListeners(hostname, url) {
+  const listeners = listenersByHost.get(hostname)
+  if (!listeners) return
+  for (const img of listeners) {
+    if (img.isConnected) img.src = url
+  }
+  listenersByHost.delete(hostname)
+}
+
+function registerListener(hostname, img) {
+  if (!listenersByHost.has(hostname)) listenersByHost.set(hostname, new Set())
+  listenersByHost.get(hostname).add(img)
+}
+
+// ─── Fetch & normalize ───────────────────────────────────────────────────────
+
+async function fetchRemoteFaviconBlob(hostname) {
+  for (const candidate of getHostnameCandidates(hostname)) {
+    try {
+      const response = await fetch(`https://icons.duckduckgo.com/ip3/${encodeURIComponent(candidate)}.ico`)
+      if (!response.ok) continue
+      const blob = await response.blob()
+      if (blob.size > 0) return {blob, resolvedHostname: candidate}
+    } catch {}
+  }
+  return null
+}
+
+async function normalizeFaviconBlob(blob) {
+  if (typeof createImageBitmap !== 'function') return {blob, width: null, height: null}
+  try {
+    const bitmap = await createImageBitmap(blob)
+    const {width, height} = bitmap
+    if (width <= MAX_FAVICON_DIMENSION && height <= MAX_FAVICON_DIMENSION) {
+      bitmap.close()
+      return {blob, width, height}
+    }
+    const scale = Math.min(MAX_FAVICON_DIMENSION / width, MAX_FAVICON_DIMENSION / height)
+    const tw = Math.max(1, Math.round(width * scale))
+    const th = Math.max(1, Math.round(height * scale))
+    const canvas = document.createElement('canvas')
+    canvas.width = tw; canvas.height = th
+    const ctx = canvas.getContext('2d')
+    if (!ctx) { bitmap.close(); return {blob, width, height} }
+    ctx.drawImage(bitmap, 0, 0, tw, th)
+    bitmap.close()
+    const normalized = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+    return {blob: normalized ?? blob, width: tw, height: th}
+  } catch { return {blob, width: null, height: null} }
+}
+
+// ─── Refresh: fetch remote, deduplicate, store ────────────────────────────────
+
+async function refreshFaviconForHost(hostname) {
+  const remoteFavicon = await fetchRemoteFaviconBlob(hostname)
+  if (!remoteFavicon) return
+
+  const {blob: remoteBlob, resolvedHostname} = remoteFavicon
+  const normalized = await normalizeFaviconBlob(remoteBlob)
+  const faviconBlob = normalized.blob
+  const storageHostname = normalizeFaviconHostname(resolvedHostname)
+  const associatedHostnames = [...new Set([normalizeFaviconHostname(hostname), storageHostname])]
+
+  if (storageHostname !== hostname) aliasByHost.set(hostname, storageHostname)
+  else aliasByHost.delete(hostname)
+
+  const checksum = await sha256hex(faviconBlob)
+  const [existingForHost, existingForChecksum] = await Promise.all([
+    findFaviconByHostname(storageHostname),
+    db.assets.where('checksum').equals(checksum).first(),
+  ])
+
+  // Same blob already stored under a different hostname — merge
+  if (existingForChecksum?.id != null && existingForChecksum.id !== existingForHost?.id) {
+    if (existingForHost?.id != null) {
+      const fromMeta = parseFaviconMeta(existingForHost.meta_json)
+      const remaining = (fromMeta?.hostnames ?? []).filter(h => h !== storageHostname)
+      if (!remaining.length) await db.assets.delete(existingForHost.id)
+      else await updateAssetHostnames(existingForHost.id, remaining)
+    }
+    const toMeta = parseFaviconMeta(existingForChecksum.meta_json)
+    await updateAssetHostnames(existingForChecksum.id, [
+      ...(toMeta?.hostnames ?? []),
+      ...associatedHostnames,
+    ])
+    setObjectUrlForHost(hostname, existingForChecksum.blob)
+    return
+  }
+
+  if (existingForHost?.id != null) {
+    const hostnames = [...new Set([...(parseFaviconMeta(existingForHost.meta_json)?.hostnames ?? []), ...associatedHostnames])]
+    await db.assets.update(existingForHost.id, {checksum, blob: faviconBlob, width: normalized.width, height: normalized.height, meta_json: makeFaviconMeta(hostnames)})
+  } else if (existingForChecksum?.id != null) {
+    const hostnames = parseFaviconMeta(existingForChecksum.meta_json)?.hostnames ?? []
+    await db.assets.update(existingForChecksum.id, {meta_json: makeFaviconMeta([...hostnames, ...associatedHostnames])})
+  } else {
+    await db.assets.add({kind: 'favicon', checksum, blob: faviconBlob, width: normalized.width, height: normalized.height, meta_json: makeFaviconMeta(associatedHostnames)})
+  }
+
+  setObjectUrlForHost(hostname, faviconBlob)
+}
+
+// ─── Ensure: cache-first, then fetch ─────────────────────────────────────────
+
+async function ensureFaviconForHost(hostname) {
+  const pending = pendingByHost.get(hostname)
+  if (pending) return pending
+
+  const run = (async () => {
+    const existing = await findFaviconByHostname(hostname)
+    const meta = parseFaviconMeta(existing?.meta_json)
+
+    if (existing?.blob) {
+      aliasByHost.delete(hostname)
+      setObjectUrlForHost(hostname, existing.blob)
+      if (isFresh(meta)) return
+    }
+
+    const fallback = await findFaviconFallback(hostname)
+    if (!existing?.blob && fallback?.asset.blob) {
+      aliasByHost.set(hostname, fallback.candidate)
+      setObjectUrlForHost(hostname, fallback.asset.blob)
+    }
+
+    const lastAttempt = lastFetchAttemptByHost.get(hostname)
+    if (typeof lastAttempt === 'number' && (Date.now() - lastAttempt) < FAVICON_RETRY_COOLDOWN_MS) return
+
+    lastFetchAttemptByHost.set(hostname, Date.now())
+    await refreshFaviconForHost(hostname)
+  })().finally(() => pendingByHost.delete(hostname))
+
+  pendingByHost.set(hostname, run)
+  return run
+}
+
+export async function refreshStaleFavicons() {
+  const faviconAssets = await db.assets.where('kind').equals('favicon').toArray()
+  let refreshed = 0
+
+  for (const asset of faviconAssets) {
+    const meta = parseFaviconMeta(asset.meta_json)
+    if (!meta || isFresh(meta)) continue
+
+    try {
+      for (const hostname of meta.hostnames) {
+        await refreshFaviconForHost(hostname)
+        refreshed += 1
+      }
+    } catch {
+      // Keep the current favicon blob in place on refresh failure so live references stay usable.
+    }
+  }
+
+  return refreshed
+}
+
+// ─── Public API ──────────────────────────────────────────────────────────────
+
+/**
+ * Wire up a single <img data-favicon-url="..."> element.
+ * Sets src immediately from cache, or registers for async update once fetched.
+ */
+export function loadFaviconImg(img) {
+  const url = img.dataset.faviconUrl
+  const hostname = getHostnameFromUrl(url)
+  if (!hostname) return
+
+  const getCachedUrl = () => {
+    const alias = aliasByHost.get(hostname)
+    return objectUrlByHost.get(hostname) ?? (alias ? objectUrlByHost.get(alias) : null)
+  }
+
+  const cached = getCachedUrl()
+  if (cached) { img.src = cached; return }
+
+  registerListener(hostname, img)
+  ensureFaviconForHost(hostname).then(() => {
+    if (!img.isConnected) return
+    const finalUrl = getCachedUrl()
+    if (finalUrl) img.src = finalUrl
+  })
+}
+
+export function initFavicons(container, options = {}) {
+  const {force = false} = options
+  container.querySelectorAll('img[data-favicon-url]').forEach((img) => {
+    if (img.hasAttribute('data-bookmark-media')) return
+    if (img.getAttribute('src')) return
+    if (!force && isHiddenByTabState(img)) return
+    loadFaviconImg(img)
+  })
+}
+
+export async function ensureFaviconAssetIdForUrl(url) {
+  const hostname = getHostnameFromUrl(url)
+  if (!hostname) return null
+
+  await ensureFaviconForHost(hostname)
+  const asset = await findFaviconByHostname(hostname)
+  if (asset?.id) return asset.id
+  const fallback = await findFaviconFallback(hostname)
+  if (fallback?.asset?.id) return fallback.asset.id
+  return null
+}

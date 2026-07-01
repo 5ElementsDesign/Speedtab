@@ -16,7 +16,7 @@
  */
 
 import { db } from '@/db/db'
-import { appendScratchpadContent } from '@/composables/useScratchpadLocal'
+import { loadLocalToolsState, saveLocalToolsState } from '../next/data/local-tools.js'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,6 +44,7 @@ interface FetchFeedResponse {
 interface FetchUrlMetaResponse {
   ok: boolean
   title?: string | null
+  description?: string | null
   finalUrl?: string
   error?: string
 }
@@ -63,6 +64,35 @@ const CONTEXT_MENU_CAPTURE_BOOKMARK = 'speedtab-capture-bookmark'
 const CONTEXT_MENU_CAPTURE_PAGE_NOTE = 'speedtab-capture-page-note'
 const CONTEXT_MENU_APPEND_SELECTION_TO_QUICKNOTE = 'speedtab-append-selection-to-quicknote'
 const CONTEXT_MENU_PARENT = 'speedtab-parent'
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function findMetaContent(html: string, attribute: 'name' | 'property' | 'itemprop', value: string): string | null {
+  const escapedValue = escapeRegex(value)
+  const patterns = [
+    new RegExp(`<meta\\b[^>]*\\b${attribute}\\s*=\\s*(["'])${escapedValue}\\1[^>]*\\bcontent\\s*=\\s*(["'])([\\s\\S]*?)\\2[^>]*>`, 'i'),
+    new RegExp(`<meta\\b[^>]*\\bcontent\\s*=\\s*(["'])([\\s\\S]*?)\\1[^>]*\\b${attribute}\\s*=\\s*(["'])${escapedValue}\\3[^>]*>`, 'i'),
+    new RegExp(`<meta\\b[^>]*\\b${attribute}\\s*=\\s*(?:["']${escapedValue}["']|${escapedValue})[^>]*\\bcontent\\s*=\\s*(["'])([\\s\\S]*?)\\1[^>]*>`, 'i'),
+    new RegExp(`<meta\\b[^>]*\\bcontent\\s*=\\s*(["'])([\\s\\S]*?)\\1[^>]*\\b${attribute}\\s*=\\s*(?:["']${escapedValue}["']|${escapedValue})[^>]*>`, 'i'),
+  ]
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern)
+    const content = match?.[3] ?? match?.[2] ?? null
+    if (content?.trim()) return content.replace(/\s+/g, ' ').trim()
+  }
+
+  return null
+}
+
+function extractDescription(html: string): string | null {
+  return findMetaContent(html, 'name', 'description')
+    || findMetaContent(html, 'property', 'og:description')
+    || findMetaContent(html, 'name', 'twitter:description')
+    || findMetaContent(html, 'itemprop', 'description')
+}
 
 function msg(name: string, substitutions?: string | string[]): string {
   return chrome.i18n.getMessage(name, substitutions) || name
@@ -117,12 +147,11 @@ async function fetchPageMeta(url: string) {
 
     const html = await response.text()
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
-    const metaDescriptionMatch = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([\s\S]*?)["'][^>]*>/i)
-      || html.match(/<meta[^>]+content=["']([\s\S]*?)["'][^>]+name=["']description["'][^>]*>/i)
+    const description = extractDescription(html)
 
     return {
       title: titleMatch?.[1]?.replace(/\s+/g, ' ').trim() || null,
-      description: metaDescriptionMatch?.[1]?.replace(/\s+/g, ' ').trim() || null,
+      description,
       finalUrl,
     }
   } catch {
@@ -168,7 +197,10 @@ async function storeCaptureItem(input: {
 }) {
   const external_hash = await sha256Hex(JSON.stringify(input))
   const existing = await db.capture_inbox.where('external_hash').equals(external_hash).first()
-  if (existing) return
+  if (existing) {
+    await notifyCaptureInboxUpdated()
+    return
+  }
 
   await db.capture_inbox.add({
     ...input,
@@ -176,6 +208,49 @@ async function storeCaptureItem(input: {
     created_at: Date.now(),
     meta_json: null,
   })
+  await notifyCaptureInboxUpdated()
+}
+
+async function notifyCaptureInboxUpdated() {
+  try {
+    const count = await db.capture_inbox.count()
+    await chrome.runtime.sendMessage({
+      type: 'CAPTURE_INBOX_UPDATED',
+      count,
+    })
+  } catch {
+    // Ignore delivery errors when no extension page is listening.
+  }
+}
+
+async function notifyQuicknoteUpdated() {
+  try {
+    await chrome.runtime.sendMessage({
+      type: 'QUICKNOTE_UPDATED',
+    })
+  } catch {
+    // Ignore delivery errors when no extension page is listening.
+  }
+}
+
+async function appendQuicknoteContent(text: string) {
+  const nextText = text.trim()
+  if (!nextText) return
+
+  const currentState = await loadLocalToolsState()
+  const currentContent = currentState.quicknote?.content?.trim?.() ?? ''
+  const content = currentContent
+    ? `${currentState.quicknote.content}\n\n----\n\n${nextText}`
+    : nextText
+
+  await saveLocalToolsState({
+    ...currentState,
+    quicknote: {
+      ...currentState.quicknote,
+      content,
+    },
+  })
+  await notifyQuicknoteUpdated()
 }
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
@@ -193,7 +268,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === CONTEXT_MENU_APPEND_SELECTION_TO_QUICKNOTE) {
     const text = info.selectionText?.trim()
     if (!text) return
-    void appendScratchpadContent(text).catch((error) => {
+    void appendQuicknoteContent(text).catch((error) => {
       console.error('[Speedtab SW] Failed to append selection to Quicknote', error)
     })
     return
@@ -357,7 +432,7 @@ async function handleFetchUrlMeta(url: string): Promise<FetchUrlMetaResponse> {
     const contentType = response.headers.get('content-type') ?? ''
     const finalUrl = response.url || url
     if (!contentType.includes('text/html')) {
-      return { ok: true, title: null, finalUrl }
+      return { ok: true, title: null, description: null, finalUrl }
     }
 
     const html = await response.text()
@@ -365,8 +440,9 @@ async function handleFetchUrlMeta(url: string): Promise<FetchUrlMetaResponse> {
     const title = titleMatch?.[1]
       ?.replace(/\s+/g, ' ')
       .trim() || null
+    const description = extractDescription(html)
 
-    return { ok: true, title, finalUrl }
+    return { ok: true, title, description, finalUrl }
   } catch (err: unknown) {
     if (err instanceof Error) {
       return { ok: false, error: err.name === 'AbortError' ? msg('requestTimedOut') : err.message }

@@ -48,6 +48,7 @@ import {
     importAll,
     manifestChecksum,
     manifestToJsonString,
+    parseManifestText,
     readManifestFile,
     validateManifest,
     type BackupManifest,
@@ -228,6 +229,77 @@ describe('validateManifest', () => {
     const m = emptyManifest()
     m.modules = [{ ...withMeta({ page_id: 999, type: 'tabs' as const, title: 'M', sort_order: 0, config_json: null }), original_id: 1, id: 1 }]
     expect(() => validateManifest(m)).toThrow(BackupValidationError)
+  })
+})
+
+describe('exportAll', () => {
+  it('blocks export when active orphaned structural rows exist', async () => {
+    const db = makeDb()
+
+    const pageId = await db.pages.add(withMeta({
+      slug: 'home',
+      title: 'Home',
+      nav_group: 'main',
+      icon: null,
+      is_home: 1,
+      sort_order: 0,
+    }))
+
+    const validModuleId = await db.modules.add(withMeta({
+      page_id: pageId as number,
+      type: 'tabs',
+      title: 'Valid module',
+      sort_order: 0,
+      config_json: null,
+    }))
+
+    const validCollectionId = await db.collections.add(withMeta({
+      module_id: validModuleId as number,
+      title: 'Valid collection',
+      sort_order: 0,
+      config_json: null,
+    }))
+
+    await db.tabs.add(withMeta({
+      collection_id: validCollectionId as number,
+      title: 'Valid tab',
+      url: 'https://example.com',
+      description: null,
+      favicon_asset_id: null,
+      preview_asset_id: null,
+      sort_order: 0,
+      meta_json: null,
+    }))
+
+    const orphanModuleId = await db.modules.add(withMeta({
+      page_id: 999999,
+      type: 'tabs',
+      title: 'Orphan module',
+      sort_order: 1,
+      config_json: null,
+    }))
+
+    const orphanCollectionId = await db.collections.add(withMeta({
+      module_id: orphanModuleId as number,
+      title: 'Orphan collection',
+      sort_order: 0,
+      config_json: null,
+    }))
+
+    await db.tabs.add(withMeta({
+      collection_id: orphanCollectionId as number,
+      title: 'Orphan tab',
+      url: 'https://orphan.example.com',
+      description: null,
+      favicon_asset_id: null,
+      preview_asset_id: null,
+      sort_order: 0,
+      meta_json: null,
+    }))
+
+    await expect(exportAll(db)).rejects.toThrow(
+      'Export blocked: orphaned active rows detected (modules:1, collections:1, tabs:1). Run cleanup before exporting.'
+    )
   })
 })
 
@@ -797,5 +869,110 @@ describe('readManifestFile', () => {
     const file = new File([JSON.stringify(manifest)], 'export.json', { type: 'application/json' })
     const result = await readManifestFile(file)
     expect(result.version).toBe(BACKUP_VERSION)
+  })
+})
+
+describe('parseManifestText', () => {
+  it('repairs v2 orphaned child rows before validation', () => {
+    const now = 1_782_554_278_267
+    const manifestText = JSON.stringify({
+      version: BACKUP_VERSION,
+      exported_at: new Date(now).toISOString(),
+      pages: [
+        {
+          created_at: now,
+          deleted_at: null,
+          icon: null,
+          is_home: 1,
+          nav_group: 'main',
+          slug: 'home',
+          sort_order: 0,
+          sync_id: '11111111-1111-4111-8111-111111111111',
+          title: 'Home',
+          updated_at: now,
+        },
+      ],
+      modules: [
+        {
+          config_json: null,
+          created_at: now,
+          deleted_at: null,
+          original_id: 99,
+          page_sync_id: '11111111-1111-4111-8111-111111111111',
+          sort_order: 0,
+          sync_id: '22222222-2222-4222-8222-222222222222',
+          title: 'Module',
+          type: 'tabs',
+          updated_at: now,
+        },
+      ],
+      collections: [
+        {
+          config_json: null,
+          created_at: now,
+          deleted_at: null,
+          original_id: 1,
+          sort_order: 0,
+          sync_id: '33333333-3333-4333-8333-333333333333',
+          title: 'New Tab',
+          updated_at: now,
+        },
+        {
+          config_json: null,
+          created_at: now,
+          deleted_at: null,
+          module_sync_id: '22222222-2222-4222-8222-222222222222',
+          original_id: 2,
+          sort_order: 1,
+          sync_id: '44444444-4444-4444-8444-444444444444',
+          title: 'main',
+          updated_at: now,
+        },
+      ],
+      tabs: [
+        {
+          collection_sync_id: '33333333-3333-4333-8333-333333333333',
+          created_at: now,
+          deleted_at: null,
+          description: null,
+          favicon_asset_id: null,
+          meta_json: null,
+          original_id: 4,
+          preview_asset_id: null,
+          sort_order: 0,
+          sync_id: '55555555-5555-4555-8555-555555555555',
+          title: 'Orphan tab',
+          updated_at: now,
+          url: 'https://orphan.example.com',
+        },
+        {
+          collection_sync_id: '44444444-4444-4444-8444-444444444444',
+          created_at: now,
+          deleted_at: null,
+          description: null,
+          favicon_asset_id: null,
+          meta_json: null,
+          original_id: 5,
+          preview_asset_id: null,
+          sort_order: 0,
+          sync_id: '66666666-6666-4666-8666-666666666666',
+          title: 'Valid tab',
+          updated_at: now,
+          url: 'https://valid.example.com',
+        },
+      ],
+      notes: [],
+      feed_sources: [],
+      saved_feed_items: [],
+      assets: [],
+    })
+
+    const manifest = parseManifestText(manifestText)
+
+    expect(manifest.version).toBe(BACKUP_VERSION)
+    expect(manifest.collections).toHaveLength(1)
+    expect(manifest.collections[0].title).toBe('main')
+    expect(manifest.tabs).toHaveLength(1)
+    expect(manifest.tabs[0].title).toBe('Valid tab')
   })
 })

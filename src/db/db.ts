@@ -12,6 +12,7 @@ import type {
   AppSetting,
   CaptureInboxItem,
   BgArchiveItem,
+  NextUiConfig,
 } from '@/types/db'
 
 const SYNC_METADATA_PENDING_KEY = 'pending_sync_metadata_migration'
@@ -50,6 +51,7 @@ export class SpeedtabDB extends Dexie {
   app_settings!: Table<AppSetting, string>
   capture_inbox!: Table<CaptureInboxItem>
   bg_archive!:   Table<BgArchiveItem>
+  next_ui_config!: Table<NextUiConfig>
 
   constructor(options?: DexieOptions) {
     super('speedtab', options)
@@ -164,12 +166,72 @@ export class SpeedtabDB extends Dexie {
       capture_inbox:    '++id, &external_hash, kind, created_at',
       bg_archive:       '++id, created_at',
     })
+
+    this.version(8).stores({
+      pages:            '++id, &slug, &sync_id, sort_order, is_home, updated_at, deleted_at',
+      modules:          '++id, &sync_id, page_id, type, sort_order, updated_at, deleted_at',
+      collections:      '++id, &sync_id, module_id, sort_order, updated_at, deleted_at',
+      tabs:             '++id, &sync_id, collection_id, url, sort_order, updated_at, deleted_at',
+      notes:            '++id, &sync_id, collection_id, type, sort_order, updated_at, deleted_at',
+      feed_sources:     '++id, &sync_id, collection_id, sort_order, last_fetched_at, updated_at, deleted_at',
+      feed_items:       '++id, feed_source_id, fetched_at, published_at, [feed_source_id+external_id]',
+      saved_feed_items: '++id, &sync_id, collection_id, saved_at, sort_order, updated_at, deleted_at',
+      assets:           '++id, &checksum, kind',
+      app_settings:     '&key, updated_at',
+      capture_inbox:    '++id, &external_hash, kind, created_at',
+      bg_archive:       '++id, created_at',
+      next_ui_config:   '++id, [workspace_id+entity_sync_id], entity_type, entity_subtype, device_id, updated_at',
+    })
+
+    // Dedup any next_ui_config records that share the same [workspace_id+entity_sync_id].
+    // The unique index is NOT added here — Dexie creates indexes before the upgrade handler
+    // runs, so a unique constraint would fail if duplicates exist. The upsertUiConfig
+    // function prevents future duplicates via a transaction instead.
+    this.version(9).stores({}).upgrade(async (tx) => {
+      const all = await tx.table('next_ui_config').toArray()
+      const seen = new Map<string, typeof all[number]>()
+      const toDelete: number[] = []
+      for (const row of all) {
+        const key = `${row.workspace_id}::${row.entity_sync_id}`
+        const existing = seen.get(key)
+        if (!existing) {
+          seen.set(key, row)
+        } else if (row.updated_at > existing.updated_at) {
+          toDelete.push(existing.id)
+          seen.set(key, row)
+        } else {
+          toDelete.push(row.id)
+        }
+      }
+      if (toDelete.length) await tx.table('next_ui_config').bulkDelete(toDelete)
+    })
   }
 }
 
 // ─── Application singleton ─────────────────────────────────────────────────────
 // Components and composables import this. Tests create their own instances.
 export const db = new SpeedtabDB()
+
+db.on('versionchange', (event) => {
+  console.warn(
+    '[speedtab:db] Another extension context requested a database reset or schema change. Closing this connection; reload the page if needed.',
+    {
+      oldVersion: event.oldVersion,
+      newVersion: event.newVersion,
+    },
+  )
+  db.close()
+})
+
+db.on('blocked', (event) => {
+  console.warn(
+    '[speedtab:db] Database reset or upgrade is blocked by another open Speedtab context.',
+    {
+      oldVersion: event.oldVersion,
+      newVersion: event.newVersion,
+    },
+  )
+})
 
 type PortableTableName =
   | 'pages'

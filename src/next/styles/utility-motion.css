@@ -1,0 +1,286 @@
+:root {
+  --st-fade-in-timer: 0.25s;
+  --st-fade-out-timer: 0.2s;
+  --st-fade-in-up-timer: 0.3s;
+  --st-fade-in-down-timer: 0.3s;
+  --st-fade-out-up-timer: 0.25s;
+  --st-fade-out-down-timer: 0.25s;
+
+  --st-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --st-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --st-ease-in: cubic-bezier(0.4, 0, 1, 1);
+}
+
+.fade-in,
+.fade-out,
+.fade-in-up,
+.fade-in-down,
+.fade-out-up,
+.fade-out-down {
+  &.hide-on-init {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+.fade-in {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  transition:
+    opacity var(--st-fade-in-timer) var(--st-ease-in-out),
+    max-height var(--st-fade-in-timer) var(--st-ease-in-out),
+    visibility 0s var(--st-fade-in-timer);
+
+  &.show,
+  &.is-visible {
+    opacity: 1;
+    max-height: 1000px;
+    visibility: visible;
+    overflow: visible;
+    transition:
+      opacity var(--st-fade-in-timer) var(--st-ease-in-out),
+      max-height var(--st-fade-in-timer) var(--st-ease-in-out),
+      visibility 0s 0s;
+  }
+}
+
+@starting-style {
+  .fade-in.show,
+  .fade-in.is-visible {
+    opacity: 0;
+    max-height: 0;
+    visibility: hidden;
+  }
+}
+
+.fade-out {
+  opacity: 1;
+  max-height: 1000px;
+  visibility: visible;
+  transition:
+    opacity var(--st-fade-out-timer) var(--st-ease-in-out),
+    max-height var(--st-fade-out-timer) var(--st-ease-in-out),
+    margin var(--st-fade-out-timer) var(--st-ease-in-out),
+    padding var(--st-fade-out-timer) var(--st-ease-in-out),
+    visibility 0s var(--st-fade-out-timer);
+
+  &.hide,
+  &.is-hidden {
+    opacity: 0;
+    max-height: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+    visibility: hidden;
+    overflow: hidden;
+    transition:
+      opacity var(--st-fade-out-timer) var(--st-ease-in-out),
+      max-height var(--st-fade-out-timer) var(--st-ease-in-out),
+      margin var(--st-fade-out-timer) var(--st-ease-in-out),
+      padding var(--st-fade-out-timer) var(--st-ease-in-out),
+      visibility 0s 0s;
+  }
+}
+
+@starting-style {
+  .fade-out.hide,
+  .fade-out.is-hidden {
+    opacity: 1;
+    max-height: 1000px;
+    visibility: visible;
+  }
+}
+
+.fade-in-up {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--st-fade-in-up-timer) var(--st-ease-out),
+    visibility 0s var(--st-fade-in-up-timer);
+
+  &.show,
+  &.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity var(--st-fade-in-up-timer) var(--st-ease-out),
+      visibility 0s 0s;
+  }
+}
+
+@starting-style {
+  .fade-in-up.show,
+  .fade-in-up.is-visible {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.fade-out-up {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity var(--st-fade-out-up-timer) var(--st-ease-in),
+    max-height var(--st-fade-out-up-timer) var(--st-ease-in),
+    visibility 0s var(--st-fade-out-up-timer);
+
+  &.hide,
+  &.is-hidden {
+    opacity: 0;
+    max-height: 0;
+    visibility: hidden;
+    overflow: hidden;
+    margin: 0 !important;
+    padding: 0 !important;
+    transition:
+      opacity var(--st-fade-out-up-timer) var(--st-ease-in),
+      max-height var(--st-fade-out-up-timer) var(--st-ease-in),
+      visibility 0s 0s;
+  }
+}
+
+@starting-style {
+  .fade-out-up.hide,
+  .fade-out-up.is-hidden {
+    opacity: 1;
+    max-height: 1000px;
+    visibility: visible;
+  }
+}
+
+.fade-in-down {
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--st-fade-in-down-timer) var(--st-ease-out),
+    visibility 0s var(--st-fade-in-down-timer);
+
+  &.show,
+  &.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transition:
+      opacity var(--st-fade-in-down-timer) var(--st-ease-out),
+      visibility 0s 0s;
+  }
+}
+
+@starting-style {
+  .fade-in-down.show,
+  .fade-in-down.is-visible {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.fade-out-down {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity var(--st-fade-out-down-timer) var(--st-ease-in),
+    max-height var(--st-fade-out-down-timer) var(--st-ease-in),
+    visibility 0s var(--st-fade-out-down-timer);
+
+  &.hide,
+  &.is-hidden {
+    opacity: 0;
+    max-height: 0;
+    visibility: hidden;
+    overflow: hidden;
+    margin: 0 !important;
+    padding: 0 !important;
+    transition:
+      opacity var(--st-fade-out-down-timer) var(--st-ease-in),
+      max-height var(--st-fade-out-down-timer) var(--st-ease-in),
+      visibility 0s 0s;
+  }
+}
+
+@starting-style {
+  .fade-out-down.hide,
+  .fade-out-down.is-hidden {
+    opacity: 1;
+    max-height: 1000px;
+    visibility: visible;
+  }
+}
+
+.animation-paused {
+  animation-play-state: paused;
+}
+
+.animation-running {
+  animation-play-state: running;
+}
+
+.animation-delay-100 { animation-delay: 0.1s; }
+.animation-delay-200 { animation-delay: 0.2s; }
+.animation-delay-300 { animation-delay: 0.3s; }
+.animation-delay-500 { animation-delay: 0.5s; }
+.animation-delay-700 { animation-delay: 0.7s; }
+.animation-delay-1000 { animation-delay: 1s; }
+
+.stagger-children > * {
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+.stagger-children.show > *,
+.stagger-children.is-visible > * {
+  opacity: 1;
+}
+
+.stagger-children > *:nth-child(1) { transition-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { transition-delay: 0.1s; }
+.stagger-children > *:nth-child(3) { transition-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { transition-delay: 0.2s; }
+.stagger-children > *:nth-child(5) { transition-delay: 0.25s; }
+.stagger-children > *:nth-child(6) { transition-delay: 0.3s; }
+.stagger-children > *:nth-child(7) { transition-delay: 0.35s; }
+.stagger-children > *:nth-child(8) { transition-delay: 0.4s; }
+.stagger-children > *:nth-child(9) { transition-delay: 0.45s; }
+.stagger-children > *:nth-child(10) { transition-delay: 0.5s; }
+
+@starting-style {
+  .stagger-children.show > *,
+  .stagger-children.is-visible > * {
+    opacity: 0;
+  }
+}
+
+.animate-once {
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;
+}
+
+.animate-infinite {
+  animation-iteration-count: infinite;
+}
+
+.pulse-attention {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.slide-in-right {
+  opacity: 0;
+  transition: opacity 0.3s var(--st-ease-out);
+}
+
+.slide-in-right.show,
+.slide-in-right.is-visible {
+  opacity: 1;
+}
+
+@starting-style {
+  .slide-in-right.show,
+  .slide-in-right.is-visible {
+    opacity: 0;
+  }
+}

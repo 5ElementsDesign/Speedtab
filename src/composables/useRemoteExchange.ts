@@ -20,7 +20,6 @@ import {
 import { updateLocalSettings } from '@/composables/useLocalSettings'
 import { db as defaultDb, type SpeedtabDB } from '@/db/db'
 import { cleanupOrphans, type CleanupReport } from '@/composables/useMaintenance'
-import { getSpeedtabI18n } from '@/i18n'
 import type { RemoteExportMetadata, RemoteProviderVerifyResult } from '@/types/remote'
 
 export type RemoteCompareState =
@@ -199,11 +198,6 @@ function translateDataExchangeMessage(
   path: string,
   values?: Record<string, string | number>,
 ): string {
-  const i18n = getSpeedtabI18n()
-  if (i18n) {
-    const translated = (i18n.global as { t: (key: string, values?: Record<string, string | number>) => string }).t(path, values ?? {})
-    if (typeof translated === 'string' && translated !== path) return translated
-  }
   return interpolateMessage(resolveFallbackMessage(path), values)
 }
 

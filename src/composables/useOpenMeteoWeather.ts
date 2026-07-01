@@ -1,4 +1,5 @@
 import type { WeatherWidgetCachePayload, WeatherWidgetConfig, WeatherWidgetData } from '@/types/widgets'
+import { getLocale } from '../next/utils/i18n.js'
 
 export interface OpenMeteoGeocodeResult {
   id: number
@@ -16,7 +17,9 @@ export async function searchOpenMeteoLocations(
   const trimmed = query.trim()
   if (trimmed.length < 2) return []
 
-  const language = (globalThis.navigator?.language ?? 'en').slice(0, 2).toLowerCase()
+  const language = String(getLocale?.() || globalThis.navigator?.language || 'en')
+    .slice(0, 2)
+    .toLowerCase()
   const url = new URL('https://geocoding-api.open-meteo.com/v1/search')
   url.searchParams.set('name', trimmed)
   url.searchParams.set('count', '5')
@@ -95,6 +98,8 @@ export async function fetchOpenMeteoWeather(
       time?: string
     }
     daily?: {
+      time?: string[]
+      weather_code?: number[]
       temperature_2m_max?: number[]
       temperature_2m_min?: number[]
     }
@@ -111,6 +116,11 @@ export async function fetchOpenMeteoWeather(
   }
 
   const isDay = current.is_day === 1
+  const forecastDates = Array.isArray(daily?.time) ? daily.time : []
+  const forecastCodes = Array.isArray(daily?.weather_code) ? daily.weather_code : []
+  const forecastHighs = Array.isArray(daily?.temperature_2m_max) ? daily.temperature_2m_max : []
+  const forecastLows = Array.isArray(daily?.temperature_2m_min) ? daily.temperature_2m_min : []
+
   return {
     location_label: buildLocationLabel(config),
     current_temperature: current.temperature_2m,
@@ -123,6 +133,12 @@ export async function fetchOpenMeteoWeather(
     low_temperature: Array.isArray(daily?.temperature_2m_min) && typeof daily.temperature_2m_min[0] === 'number'
       ? daily.temperature_2m_min[0]
       : null,
+    daily_forecast: forecastDates.map((date, index) => ({
+      date,
+      condition_code: typeof forecastCodes[index] === 'number' ? forecastCodes[index] : -1,
+      high_temperature: typeof forecastHighs[index] === 'number' ? forecastHighs[index] : null,
+      low_temperature: typeof forecastLows[index] === 'number' ? forecastLows[index] : null,
+    })),
     updated_at: current.time ? Date.parse(current.time) : Date.now(),
   }
 }

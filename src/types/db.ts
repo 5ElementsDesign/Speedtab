@@ -5,6 +5,7 @@ export type NoteType   = 'text' | 'code' | 'links' | 'crypt' | 'html'
 export type AssetKind  = 'favicon' | 'preview' | 'background' | 'note_image'
 export type NavGroup   = 'main' | 'overflow'
 export type CaptureKind = 'note' | 'bookmark'
+export type UiConfigEntityType = 'page' | 'module'
 
 export interface SyncMetadata {
   sync_id:    string
@@ -165,4 +166,23 @@ export interface CaptureInboxItem {
   source_title:  string | null
   created_at:    number
   meta_json:     string | null
+}
+
+export interface UiConfigPayload {
+  behavior: Record<string, boolean | string | number | null>
+  layout: Record<string, boolean | string | number | null>
+  appearance: Record<string, boolean | string | number | null>
+}
+
+export interface NextUiConfig {
+  id?:            number
+  workspace_id:   string
+  device_id:      string
+  entity_type:    UiConfigEntityType
+  entity_subtype: string | null
+  entity_sync_id: string
+  version:        number
+  preset_id:      string | null
+  config:         UiConfigPayload
+  updated_at:     number
 }

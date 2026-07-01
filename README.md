@@ -27,25 +27,25 @@ Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/a
 
 ## Screenshots
 
-### Start Page
+### Speedtab - Speed Dial 4.0
 
-![Speedtab start page](screenshots/1-speedtab-start.jpg)
+![Speedtab start page](screenshots/1-speedtab-start.1.jpg)
 
-### Note Viewer
+### Notes Viewer
 
-![Speedtab open note](screenshots/2-speedtab-open-notes-feeds.jpg)
+![Speedtab open notes](screenshots/2-speedtab-open-notes.1.jpg)
 
 ### Expanded Feed Reader
 
-![Speedtab maximized feeds module](screenshots/3-speedtab-expanded-feed-reader.jpg)
+![Speedtab maximized feeds module](screenshots/3-speedtab-expanded-feed-reader.1.jpg)
 
-### Search Filter
+### Custom Speedtab
 
-![Speedtab with search results](screenshots/4-speedtab-search-filter.jpg)
+![Speedtab Custom](screenshots/4-speedtab-theme-customizable.1.jpg)
 
-### Theme Charcoal
+### Sort Speedtab
 
-![Speedtab themes, Charcoal](screenshots/5-speedtab-theme-charcoal.jpg)
+![Speedtab Sorter](screenshots/5-speedtab-manage-content.1.jpg)
 
 ## Privacy
 

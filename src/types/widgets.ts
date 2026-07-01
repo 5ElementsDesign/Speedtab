@@ -43,12 +43,18 @@ export interface WeatherWidgetData {
   is_day: boolean
   high_temperature: number | null
   low_temperature: number | null
+  daily_forecast: Array<{
+    date: string
+    condition_code: number
+    high_temperature: number | null
+    low_temperature: number | null
+  }>
   updated_at: number
 }
 
 export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
   rail_enabled: false,
-  rail_position: 'top',
+  rail_position: 'bottom',
   rail_align: 'left',
   weather: {
     enabled: false,

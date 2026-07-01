@@ -1,0 +1,239 @@
+/**
+ * Bookmark tiles
+ */
+.st-module-content-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0;
+  min-height: 100%;
+  align-content: center;
+  justify-content: center;
+}
+
+.st-trigger-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--st-module-content-trigger-width);
+  height: var(--st-module-content-trigger-height);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: var(--st-motion-colors);
+
+  &:hover {
+    border-color: #00d2ff;
+    box-shadow: inset 0 0 0 1px rgb(0 210 255 / 0.16);
+  }
+}
+
+[data-bookmark-actions],
+[data-bookmark-actions]:hover {
+  transition: opacity var(--st-timeout-2) ease-in-out;
+}
+
+[data-bookmark-actions] button,
+[data-bookmark-actions] svgs {
+  transition: var(--st-motion-colors-fast), var(--st-motion-fade);
+}
+
+[data-bookmark-tile] {
+  position: relative;
+  isolation: isolate;
+}
+
+[data-bookmark-actions] {
+  --st-form-elements-min-height: 0;
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  gap: 1px;
+  padding: 2px 0;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 0 0 0 6px;
+  background: rgba(0, 0, 0, .65);
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  pointer-events: auto;
+
+  button {
+    width: 24px;
+    height: 28px;
+    max-height: 5px;
+    overflow: hidden;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0 none;
+    border-radius: 0;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.78);
+    background: rgb(14, 14, 14);
+
+    svg {
+      width: 14px;
+      height: 14px;
+      display: block;
+    }
+
+    &:hover {
+      color: #fff;
+      background: rgb(10, 10, 10);
+    }
+  }
+
+  &:hover {
+    overflow: visible;
+  }
+}
+
+[data-bookmarks-quicklinks] {
+  [data-bookmark-actions] {
+    display: none;
+  }
+}
+
+[data-module-tabs-bookmarks] {
+  &[data-bookmarks-empty] {
+    .st-bookmarks-empty {
+      display: flex;
+    }
+  }
+
+  [data-bookmark-add-tile] {
+    display: none;
+  }
+
+  [data-bookmark-tile]:focus-within [data-bookmark-actions],
+  [data-bookmark-tile]:hover [data-bookmark-actions] {
+    opacity: 0;
+  }
+
+  [data-bookmark-tile]:hover [data-bookmark-actions]:hover,
+  [data-bookmark-actions]:focus-within,
+  [data-bookmark-actions]:hover {
+    height: auto;
+    opacity: 1;
+    transition-delay: 0s;
+
+    button {
+      max-height: 50px;
+    }
+  }
+
+  .st-trigger-tab {
+    background: var(--st-module-bookmark-preview-background-color, var(--yai-tabs-nav-background));
+    transition: var(--st-motion-colors);
+
+    .st-bookmark-media[data-media-kind="preview"] {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.94;
+      transition: var(--st-motion-filter);
+    }
+
+    .st-bookmark-media[data-media-kind="favicon"] {
+      position: relative;
+      z-index: 1;
+      width: var(--st-bookmark-image-surface-favicon-width);
+      height: var(--st-bookmark-image-surface-favicon-height);
+      object-fit: contain;
+      transition: var(--st-motion-filter);
+
+      &:not([src]) {
+        background-image: url('../../../assets/st-favicon.ico');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-color: #fff;
+      }
+    }
+
+    [data-title] {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 3px 4px;
+      font-size: 9px;
+      line-height: 1.2;
+      color: transparent;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      background: linear-gradient(to bottom, transparent, var(--st-module-bookmark-preview-title-background-color, rgba(50, 50, 50, .6)));
+      transition: color var(--yai-timeout-2) ease-in-out;
+      border-width: 1px;
+    }
+
+    &:focus,
+    &:hover,
+    &:active {
+      background-color: var(--st-module-bookmark-preview-hover-background-color, var(--yai-tabs-nav-button-hover-background));
+      border-color: color-mix(in srgb, #00d2ff 80%, rgba(255, 255, 255, 0.7));
+      box-shadow: inset 0 0 0 1px rgb(0 210 255 / 0.18);
+
+      .st-bookmark-media[data-media-kind="preview"] {
+        opacity: 1;
+        filter: saturate(1.04) contrast(1.02);
+      }
+
+      .st-bookmark-media[data-media-kind="favicon"] {
+        filter: saturate(1.06);
+      }
+
+      [data-title] {
+        color: var(--st-ws-module-text-color);
+      }
+    }
+  }
+
+  [data-bookmark-inline-add] {
+    justify-content: center;
+    border: 1px dashed color-mix(in srgb, var(--yai-tabs-color-text-muted) 24%, transparent);
+    background: var(--st-module-bookmark-preview-background-color, color-mix(in srgb, var(--yai-tabs-nav-background) 66%, transparent));
+    color: var(--yai-tabs-color-text-muted);
+
+    svg {
+      width: 20px;
+      height: 20px;
+      display: block;
+      opacity: 0.68;
+    }
+
+    &:focus,
+    &:hover,
+    &:active {
+      color: var(--st-ws-module-text-color);
+      border-color: color-mix(in srgb, #00d2ff 70%, rgba(255, 255, 255, 0.2));
+    }
+  }
+}
+
+[data-module-sub-type="quicklinks"] {
+  [data-module-tabs-bookmarks] {
+    .st-trigger-tab {
+      width: var(--st-module-content-quicklink-width);
+      height: var(--st-module-content-quicklink-height);
+
+      [data-title] {
+        display: none;
+      }
+
+      .st-bookmark-media[data-media-kind="favicon"] {
+        width: calc(var(--st-module-content-quicklink-width) - 16px);
+        height: calc(var(--st-module-content-quicklink-height) - 16px);
+      }
+    }
+  }
+}

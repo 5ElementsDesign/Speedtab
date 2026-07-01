@@ -1,0 +1,592 @@
+/* ==========================================================================
+   Speedtab Feed Module Layout System
+   ========================================================================== */
+
+/* Content body */
+.st-module-feed-item-body {
+  --st-feed-item-text-muted: #777;
+  --st-feed-item-text-dim: #c5c5c5;
+  --yai-tabs-color-text: #333;
+
+  color: var(--yai-tabs-color-text);
+  background: var(--st-feed-item-body-bg);
+  padding: 1rem 1.5rem;
+
+  .st-module-feed-item-heading,
+  .st-module-feed-item-copy {
+    color: var(--st-feed-item-body-copy);
+  }
+  .st-module-feed-item-copy {
+    margin-bottom: 15px;
+    max-height: 320px;
+    overflow: auto;
+
+    p:last-of-type {
+      margin-bottom: 0;
+    }
+  }
+  .st-module-feed-item-byline {
+    color: var(--st-feed-item-body-copy);
+  }
+  .st-module-feed-item-actions {
+    padding-top: 15px;
+    border-top: 1px solid var(--st-feed-item-text-dim);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .st-module-feed-item-open {
+    background: var(--st-feed-item-open-bg);
+  }
+}
+
+.st-module-feed-empty {
+  padding: 10px 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Main Container Module Grid Split */
+.st-module-feed.st-feed-grid {
+  display: grid;
+  grid-template-columns: var(--st-feed-sidebar-width, 220px) 1fr;
+  min-height: 0;
+  border: 1px solid var(--st-feed-item-divider);
+  box-sizing: border-box;
+
+  &[data-focus-width] {
+    .st-module-feed-item:last-of-type {
+      margin-bottom: 100%;
+    }
+    [data-click="openFeedFocusQuick"] {
+      display: none;
+    }
+  }
+  &[data-focus-width="320"],
+  &[data-focus-width="480"] {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   1. Left Sidebar (Sources List)
+   -------------------------------------------------------------------------- */
+
+.st-module-feed-sidebar.st-feed-grid--sidebar {
+  background-color: var(--st-feed-sidebar-bg);
+  border-right: 1px solid var(--st-feed-item-divider);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  min-height: fit-content;
+}
+
+.st-feed-grid--sidebar-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.st-module-feed-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+/* Sidebar Row Structure */
+.st-module-feed-source-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 4px;
+  transition: background-color var(--st-timeout-auto-reset, 0.15s) ease;
+}
+
+.st-module-feed-source-row:hover {
+  background-color: var(--st-feed-item-bg-hover);
+}
+
+/* Source Action Buttons */
+.st-module-feed-source-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  color: var(--st-feed-item-text-muted);
+  font-size: 0.85rem;
+  padding: 6px 8px;
+  cursor: pointer;
+  text-align: left;
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.st-module-feed-source-button[aria-pressed="true"] {
+  color: var(--st-feed-item-text);
+  font-weight: bold;
+}
+
+.st-module-feed-source-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: var(--st-feed-item-list-favicon-bg);
+  flex-shrink: 0;
+}
+
+.st-module-feed-source-icon img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.st-module-feed-source-row.is-loading .st-module-feed-source-icon {
+  background-color: color-mix(in srgb, var(--st-color-danger) 22%, var(--st-feed-item-list-favicon-bg));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--st-color-danger) 45%, transparent);
+}
+
+.st-module-feed-source-row.is-loading .st-module-feed-source-icon img {
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--st-color-danger) 55%, transparent));
+}
+
+/* Edit / Quick actions inside row */
+.st-module-feed-source-edit {
+  background: none;
+  border: none;
+  color: var(--st-feed-item-text-dim);
+  padding: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  opacity: 0; /* Hidden until row hover for visual cleanlines */
+  transition: opacity var(--st-timeout-auto-reset, 0.15s) ease, color var(--st-timeout-auto-reset, 0.15s) ease;
+}
+
+.st-module-feed-source-row:hover .st-module-feed-source-edit,
+.st-module-feed-source-edit:focus-visible {
+  opacity: 1;
+}
+
+.st-module-feed-source-edit:hover {
+  color: var(--st-feed-item-text);
+}
+
+/* Sidebar Bottom Footer Container */
+.st-module-feed-sidebar-footer {
+  padding: 8px;
+  border-top: 1px solid var(--st-feed-item-divider);
+}
+
+.st-module-feed-add-source {
+  width: 100%;
+  background-color: var(--st-feed-item-button-bg);
+  border: 1px solid var(--st-feed-item-button-border);
+  color: var(--st-feed-item-button-text);
+  padding: 6px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color var(--st-timeout-auto-reset, 0.15s) ease;
+}
+
+.st-module-feed-add-source:hover {
+  background-color: var(--st-feed-item-button-bg-hover);
+}
+
+/* --------------------------------------------------------------------------
+   2. Main Content & Right Pane Module Toolbar
+   -------------------------------------------------------------------------- */
+
+.st-module-feed-main.st-feed-grid--content {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--st-feed-item-bg-active);
+  overflow: hidden;
+}
+
+/* Right Header Control Shelf */
+.st-module-feed-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--st-feed-toolbar-bg);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--st-feed-item-divider);
+  box-sizing: border-box;
+  min-height: fit-content;
+}
+
+.st-module-feed-meta,
+.st-module-feed-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.st-module-feed-focus-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.st-module-feed-focus-controls select {
+  min-width: 88px;
+}
+
+.st-module-feed-title {
+  background: none;
+  border: none;
+  color: var(--st-feed-toolbar-text);
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* Badges & Toolbar Interaction States */
+.st-module-feed-toolbar-badge {
+  background-color: var(--st-feed-toolbar-badge-bg);
+  color: var(--st-feed-toolbar-badge-text);
+  border: none;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+.st-module-feed-toolbar-badge:disabled {
+  color: var(--st-feed-toolbar-muted);
+  opacity: 0.6;
+}
+
+.st-module-feed-toolbar-button {
+  background-color: var(--st-feed-item-button-bg);
+  border: 1px solid var(--st-feed-item-button-border);
+  color: var(--st-feed-item-button-text);
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.st-module-feed-toolbar-button:hover:not(:disabled) {
+  background-color: var(--st-feed-item-button-bg-hover);
+}
+
+.st-module-feed-toolbar-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* --------------------------------------------------------------------------
+   3. Feed Item List Rows
+   -------------------------------------------------------------------------- */
+
+.st-module-feed-list.st-feed-grid--content-fetched {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.st-module-feed-list-inner.st-feed-grid-ajax-response {
+  display: flex;
+  flex-direction: column;
+  max-height: 360px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+/* Article Row Structure */
+.st-module-feed-item {
+  border-bottom: 1px solid var(--st-feed-item-divider);
+  transition: background-color var(--st-timeout-auto-reset, 0.12s) ease;
+  background-color: var(--st-feed-item-bg);
+
+  &:hover {
+    background-color: var(--st-feed-item-bg-hover);
+  }
+  &[data-expanded="true"] {
+    .st-module-feed-item-icon {
+        background: var(--st-feed-item-list-favicon-bg-active);
+    }
+  }
+  /* Read/Unread State Indicators via attributes */
+  &[data-read="true"] .st-module-feed-item-title {
+    color: var(--st-feed-item-text-muted);
+    font-weight: normal;
+  }
+  &[data-read="false"] .st-module-feed-item-title {
+    color: var(--st-feed-item-text);
+    font-weight: 600;
+  }
+}
+
+.st-module-feed-item-header {
+  display: flex;
+  align-items: center;
+  padding: 0 12px 0 0;
+  gap: 12px;
+  position: relative;
+}
+
+/* Content Element Targets inside item rows */
+.st-module-feed-item-icon {
+  width: 50px;
+  height: 50px;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  img {
+      width: 32px;
+      height: 32px;
+      object-fit: cover;
+  }
+}
+
+.st-module-feed-item-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  cursor: pointer;
+  flex-grow: 1;
+  overflow: hidden;
+  height: 50px;
+}
+
+.st-module-feed-item-title {
+  display: block;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--st-feed-item-text);
+}
+
+.st-module-feed-item-read-indicator {
+  color: var(--st-feed-item-open-bg);
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+[data-read="false"] {
+  .st-module-feed-item-read-indicator {
+    display: none;
+  }
+}
+
+.st-module-feed-item-date {
+  font-size: 0.75rem;
+  color: var(--st-feed-item-text-dim);
+  white-space: nowrap;
+}
+
+/* Action Trigger within the Row */
+.st-module-feed-item-save {
+  background: none;
+  border: 1px solid var(--st-feed-item-button-border);
+  color: var(--st-feed-item-text-muted);
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: color var(--st-timeout-auto-reset, 0.1s) ease, background-color var(--st-timeout-auto-reset, 0.1s) ease;
+}
+
+.st-module-feed-item-save:hover {
+  background-color: var(--st-feed-item-button-bg-hover);
+  color: var(--st-feed-item-text);
+}
+
+.st-module-feed-item-save:disabled,
+.st-module-feed-item-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background-color: transparent;
+  color: var(--st-feed-item-text-dim);
+}
+
+.st-module-feed-item-save:disabled:hover,
+.st-module-feed-item-action:disabled:hover {
+  background-color: transparent;
+  color: var(--st-feed-item-text-dim);
+}
+
+.st-module-feed-item-header button[data-click="toggleFeedItem"][aria-expanded="true"] {
+  opacity: 0;
+}
+
+/* Native Target Focus States for Framework-free keyboard interaction */
+.st-module-feed-source-button:focus-visible,
+.st-module-feed-toolbar-button:focus-visible,
+.st-module-feed-item-toggle:focus-visible,
+.st-module-feed-item-save:focus-visible {
+  outline: 2px solid var(--st-feed-item-open-bg);
+  outline-offset: -2px;
+}
+
+[data-feed-archived-items] {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+[data-feed-archived-items-list] {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+[data-feed-archived-item] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--st-feed-item-divider);
+  background: var(--st-feed-item-bg);
+}
+
+[data-feed-archived-item-main] {
+  flex: 1;
+  min-width: 0;
+}
+
+[data-feed-archived-item-title] {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--st-feed-item-text);
+}
+
+[data-feed-archived-item-meta] {
+  margin: 0;
+  font-size: 12px;
+  color: var(--st-feed-item-text-dim);
+}
+
+[data-feed-archived-item-actions],
+[data-feed-archived-items-actions] {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+[data-feed-archived-item-actions] .st-btn {
+  min-height: 28px;
+}
+
+[data-feed-archived-item-actions] button.st-btn {
+  padding: 0 8px;
+}
+
+[data-grid-col][data-feed-focus-placeholder] {
+  min-height: var(--st-feed-focus-placeholder-height);
+}
+
+main[data-app-content][data-feed-focus-app-open] {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+[data-app][data-feed-focus-root-open] > header[data-app-brand-wrap],
+[data-app][data-feed-focus-root-open] > [data-app-header-actions],
+[data-app][data-feed-focus-root-open] > [data-search-panel],
+[data-app][data-feed-focus-root-open] > nav[data-app-header-nav],
+[data-app][data-feed-focus-root-open] > footer[data-app-footer] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+[data-app][data-feed-focus-root-open] [data-app-tab-content] {
+  background: #000000e5;
+}
+
+[data-app][data-feed-focus-root-open] [data-grid-col]:not([data-feed-focus-placeholder]),
+[data-app][data-feed-focus-root-open] [data-module-card]:not([data-feed-focus-open]) {
+  display: none !important;
+}
+
+.st-module-feed.st-feed-grid {
+  height: 100%;
+}
+
+[data-module-card][data-feed-focus-open] {
+  [data-yai-tabs] {
+    background-color: transparent;
+    box-shadow: none;
+  }
+
+  [data-yai-tabs] > nav[data-controller] {
+    display: none;
+  }
+
+  [data-module-actions] [data-dropdown] {
+    visibility: hidden;
+  }
+
+  [data-yai-tabs],
+  [data-content],
+  [data-module-tabs-shell] {
+    height: 100%;
+  }
+
+  [data-tab].active {
+    position: fixed;
+    top: 10px;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    width: var(--st-feed-focus-width, 740px);
+    max-width: calc(100vw - 30px);
+    margin-inline: auto;
+    transform: none;
+    min-height: auto;
+    height: auto;
+    z-index: 1001;
+    background-color: var(--st-feed-item-bg);
+  }
+
+  .st-module-feed-list-inner.st-feed-grid-ajax-response {
+    max-height: none;
+    height: 100%;
+  }
+
+  [data-module-card-title],
+  [data-module-card-actions-host] {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &[data-focus-width="320"],
+  &[data-focus-width="480"] {
+    .st-feed-grid--sidebar-content {
+      max-height: 140px;
+    }
+  }
+}
+
+@media (max-width: 900px) {
+  .st-module-feed.st-feed-grid {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: none;
+  }
+}

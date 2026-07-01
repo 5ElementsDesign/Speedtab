@@ -1,5 +1,5 @@
-import { db as defaultDb, type SpeedtabDB } from '@/db/db'
-import { getFaviconHostnameCandidatesForUrl, parseFaviconMeta } from '@/composables/useFavicon'
+import { db as defaultDb, isActiveRecord, type SpeedtabDB } from '@/db/db'
+import { getFaviconHostnameCandidatesForUrl, parseFaviconMeta } from '@/next/utils/favicon.js'
 import { extractLinkNoteUrls } from '@/composables/useNoteLinks'
 import { extractNoteImageAssetIds } from '@/composables/useNoteImages'
 import type { Asset, Collection, FeedItem, FeedSource, Module, Note, SavedFeedItem, Tab } from '@/types/db'
@@ -66,10 +66,11 @@ function getPageBackgroundAssetId(configJson: string | null | undefined): number
   }
 }
 
-function getAppBackgroundAssetId(valueJson: string | null | undefined): number | null {
+function getAppBackgroundAssetId(key: string | null | undefined, valueJson: string | null | undefined): number | null {
   if (!valueJson) return null
   try {
     const parsed = JSON.parse(valueJson)
+    if (key === 'background_asset_id' && typeof parsed === 'number') return parsed
     return typeof parsed.background_asset_id === 'number' ? parsed.background_asset_id : null
   } catch {
     return null
@@ -111,7 +112,7 @@ function collectReferencedFaviconAssetIds(
     if (asset.kind !== 'favicon' || asset.id == null) continue
     const meta = parseFaviconMeta(asset.meta_json)
     if (!meta) continue
-    if (meta.hostnames.some((hostname) => referencedHosts.has(hostname))) {
+    if (meta.hostnames.some((hostname: string) => referencedHosts.has(hostname))) {
       referencedAssetIds.add(asset.id)
     }
   }
@@ -295,7 +296,7 @@ export async function cleanupOrphans(
         if (pageBackgroundAssetId != null) referencedAssetIds.add(pageBackgroundAssetId)
       }
       for (const setting of await database.app_settings.toArray()) {
-        const appBackgroundAssetId = getAppBackgroundAssetId(setting.value_json)
+        const appBackgroundAssetId = getAppBackgroundAssetId(setting.key, setting.value_json)
         if (appBackgroundAssetId != null) referencedAssetIds.add(appBackgroundAssetId)
       }
 
@@ -331,14 +332,14 @@ export async function getCleanupCandidates(
     assets,
     appSettings,
   ] = await Promise.all([
-    database.pages.toArray(),
-    database.modules.toArray(),
-    database.collections.toArray(),
-    database.tabs.toArray(),
-    database.notes.toArray(),
-    database.feed_sources.toArray(),
+    database.pages.filter(isActiveRecord).toArray(),
+    database.modules.filter(isActiveRecord).toArray(),
+    database.collections.filter(isActiveRecord).toArray(),
+    database.tabs.filter(isActiveRecord).toArray(),
+    database.notes.filter(isActiveRecord).toArray(),
+    database.feed_sources.filter(isActiveRecord).toArray(),
     database.feed_items.toArray(),
-    database.saved_feed_items.toArray(),
+    database.saved_feed_items.filter(isActiveRecord).toArray(),
     database.assets.toArray(),
     database.app_settings.toArray(),
   ])
@@ -370,7 +371,7 @@ export async function getCleanupCandidates(
     if (pageBackgroundAssetId != null) referencedAssetIds.add(pageBackgroundAssetId)
   }
   for (const setting of appSettings) {
-    const appBackgroundAssetId = getAppBackgroundAssetId(setting.value_json)
+    const appBackgroundAssetId = getAppBackgroundAssetId(setting.key, setting.value_json)
     if (appBackgroundAssetId != null) referencedAssetIds.add(appBackgroundAssetId)
   }
   candidates.unusedAssets = assets.filter((asset) => asset.id != null && !referencedAssetIds.has(asset.id))

@@ -103,6 +103,29 @@ describe('useSanitize – allowlist preservation', () => {
     expect(out).toContain('<cite>Source</cite>')
     expect(out).toContain('<textarea>Example</textarea>')
   })
+
+  it('keeps YaiTabs-style data markup for interactive html notes', () => {
+    const html = `
+      <div data-yai-tabs>
+        <nav data-controller>
+          <button data-tab-action="open" data-open="1">Tab A</button>
+          <button data-tab-action="open" data-open="2">Tab B</button>
+        </nav>
+        <div data-content>
+          <div data-tab="1">Content A</div>
+          <div data-tab="2">Content B</div>
+        </div>
+      </div>
+    `
+    const out = sanitizeHtml(html)
+    expect(out).toContain('<div data-yai-tabs="">')
+    expect(out).toContain('<nav data-controller="">')
+    expect(out).toContain('<button data-tab-action="open" data-open="1">Tab A</button>')
+    expect(out).toContain('<button data-tab-action="open" data-open="2">Tab B</button>')
+    expect(out).toContain('<div data-content="">')
+    expect(out).toContain('<div data-tab="1">Content A</div>')
+    expect(out).toContain('<div data-tab="2">Content B</div>')
+  })
 })
 
 describe('useSanitize – anchor hardening hook', () => {

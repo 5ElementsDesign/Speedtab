@@ -1,0 +1,226 @@
+@import "./ui.css";
+@import "./utilities.css";
+@import "./components.css";
+@import "highlight.js/styles/atom-one-dark.css";
+@import "../../lib/color-picker/index.css";
+
+html.dark {
+  background-color: #111111;
+  background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.04) 1px, transparent 0);
+  background-size: 24px 24px;
+  color-scheme: dark;
+}
+
+:root {
+  --yai-timeout-1: 0.2s;
+  --yai-timeout-2: 0.3s;
+  --st-timeout-s: 0.07s;
+  --st-timeout-1: var(--yai-timeout-1);
+  --st-timeout-2: var(--yai-timeout-2);
+  --st-motion-fade-fast: opacity var(--st-timeout-1) ease;
+  --st-motion-fade: opacity var(--st-timeout-2) ease;
+  --st-motion-colors-fast: background-color var(--st-timeout-1) ease-in-out, color var(--st-timeout-2) ease-in-out, border-color var(--st-timeout-2) ease-in-out;
+  --st-motion-colors: background-color var(--st-timeout-2) ease, color var(--st-timeout-2) ease, border-color var(--st-timeout-2) ease, box-shadow var(--st-timeout-2) ease;
+  --st-motion-filter: opacity var(--st-timeout-2) ease, filter var(--st-timeout-2) ease;
+  --st-font-family: -apple-system, BlinkMacSystemFont, "Ubuntu", "Segoe UI", "Roboto", "Oxygen", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", "Helvetica", Arial, sans-serif;
+  --st-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --st-content-font-size: 14px;
+  --st-content-line-height: 1.6;
+  --st-content-title-font-size: 14px;
+  --st-content-muted-font-size: 14px;
+  --st-content-control-font-size: 14px;
+}
+
+/**
+ * Component variables — rules live in components.css
+ */
+:root {
+  /* Dropdown */
+  --st-dropdown-list-gap: 4px;
+  --st-dropdown-background-color: rgba(12, 12, 13, 0.97);
+  --st-dropdown-border-color: rgba(255, 255, 255, 0.08);
+  /* Dropdown trigger button */
+  --st-dropdown-button-padding: 6px 10px;
+  --st-dropdown-button-transition: var(--yai-tabs-nav-button-transition);
+  --st-dropdown-button-font-size: var(--yai-tabs-button-font-size);
+  --st-dropdown-trigger-gap: 4px;
+  --st-dropdown-trigger-button-color: rgba(180, 180, 180, 1);
+  --st-dropdown-trigger-button-background-color: transparent;
+  --st-dropdown-trigger-button-color-active: rgba(255, 255, 255, 1);
+  --st-dropdown-trigger-button-background-color-active: rgba(255, 255, 255, 0.10);
+  /* Dropdown panel menu buttons */
+  --st-dropdown-panel-button-padding: 7px 10px;
+  --st-dropdown-panel-button-text-align: left;
+  --st-dropdown-panel-button-line-height: 1.25;
+  --st-dropdown-panel-button-font-size: 0.875rem;
+  --st-dropdown-panel-button-color: rgba(175, 175, 175, 1);
+  --st-dropdown-panel-button-background-color: transparent;
+  --st-dropdown-panel-button-color-hover: rgba(255, 255, 255, 1);
+  --st-dropdown-panel-button-background-color-hover: rgba(255, 255, 255, 0.08);
+
+  /* Modal */
+  --st-modal-backdrop-color: rgba(0, 0, 0, .85);
+  --st-modal-background-color: rgba(10, 10, 10, .97);
+  --st-modal-border-color: rgba(64, 63, 63, .4);
+  --st-modal-max-width: 35rem;
+  --st-modal-header-padding: 6px 10px;
+  --st-modal-body-padding: 14px;
+  --st-modal-title-color: rgb(229, 231, 235);
+  --st-modal-close-color: rgba(175, 175, 175, 1);
+  --st-modal-close-color-hover: rgba(250, 250, 250, 1);
+
+  /* Widgets */
+  --st-widget-border: rgba(255, 255, 255, 0.10);
+  --st-widget-bg: rgba(10, 10, 10, 0.60);
+  --st-widget-backdrop-blur: 14px;
+  --st-widget-text: var(--yai-tabs-color-text);
+  --st-widget-text-muted: var(--yai-tabs-color-text-muted);
+  --st-widget-button-bg: rgba(255, 255, 255, 0.06);
+  --st-widget-button-bg-hover: rgba(255, 255, 255, 0.12);
+  --st-widget-button-text: var(--yai-tabs-color-text);
+
+  /* Sidepanel */
+  --st-sidepanel-width: 360px;
+  --st-sidepanel-background-color: rgba(10, 10, 10, .97);
+  --st-sidepanel-border-color: rgba(64, 63, 63, .4);
+  --st-sidepanel-header-padding: 8px 12px;
+  --st-sidepanel-body-padding: 12px 6px 12px 12px;
+  --st-sidepanel-text-color: rgb(229, 231, 235);
+  --st-sidepanel-title-color: rgb(229, 231, 235);
+  --st-sidepanel-close-color: rgba(175, 175, 175, 1);
+  --st-sidepanel-close-color-hover: rgba(250, 250, 250, 1);
+  --st-sidepanel-z-index: 150;
+
+  /* Page grid / module cards */
+  --st-page-grid-max-width: 1500px;
+  --st-page-grid-padding: 1rem .5rem;
+  --st-page-grid-row-gap: 1rem;
+  --st-page-grid-col-gap: 1rem;
+  --st-app-header-height: 44px;
+  --st-grid-col-span: 12;
+  --st-module-min-height: initial;
+  --st-module-shell-min-height: 76px;
+  --st-module-card-min-height: initial;
+  --st-module-card-padding: 1rem;
+  --st-module-card-border-radius: 0;
+  --st-module-card-background: rgba(22,22,22,0.7);
+  --st-module-card-border-color: rgba(255, 255, 255, 0.08);
+  --st-module-card-title-color: var(--yai-tabs-color-text-muted);
+  --st-module-card-body-color: var(--yai-tabs-color-text-muted);
+  --st-ws-module-background-color: var(--st-module-card-background);
+  --st-ws-module-text-color: var(--st-ws-shell-text-color, var(--st-module-card-body-color));
+  --st-ws-module-header-background-color: transparent;
+  --st-ws-module-header-text-color: var(--st-ws-shell-header-text-color, var(--st-module-card-title-color));
+  --st-ws-module-content-background-color: transparent;
+  --st-ws-module-content-text-color: var(--st-module-card-body-color);
+  --st-module-bookmark-preview-background-color: rgba(15, 15, 15, .8);
+}
+
+/* All YaiTabs theming scoped here — single source of truth for the dark theme.
+   When a light theme is added, a [data-app].light { } block overrides these.
+   Customizer workspace overrides are applied inline by applyShellUiConfig. */
+[data-app] {
+  --yai-tabs-color-text:                   #eef1f4;
+  --yai-tabs-color-background:             var(--st-ws-module-background-color, linear-gradient(180deg, #090b0d, #0d1116 40%, #0b0e12));
+  --yai-tabs-color-surface:                #1c1c1d;
+  --yai-tabs-color-surface-alt:            #252526;
+  --yai-tabs-content-inactive-background:  #0e0e0fd1;
+  --yai-tabs-color-text-muted:             #b6b9bc;
+  --yai-tabs-color-accent:                 #00d1b2;
+  --yai-tabs-shadow-subtle-color:          var(--st-ws-module-shadow-color, rgba(55, 53, 53, 0.4));
+  --yai-tabs-shadow-medium-color:          var(--st-ws-module-shadow-color, rgba(15, 15, 15, 0.8));
+  --yai-tabs-shadow-subtle:                0 0 4px 1px var(--yai-tabs-shadow-subtle-color);
+  --yai-tabs-shadow-medium:                0 2px 8px 1px var(--yai-tabs-shadow-medium-color);
+  --yai-tabs-nav-background:               var(--st-ws-shell-header-background-color, rgba(0, 0, 0, 0.40));
+  --yai-tabs-nav-button-color:             var(--st-ws-shell-nav-text-color, var(--yai-tabs-color-text-muted));
+  --yai-tabs-nav-button-background:        var(--st-ws-shell-nav-background-color, rgba(1, 1, 1, 0.40));
+  --yai-tabs-nav-button-hover-color:       var(--st-ws-shell-nav-text-color, var(--yai-tabs-color-text));
+  --yai-tabs-nav-button-active-color:      var(--st-ws-shell-nav-active-text-color, var(--yai-tabs-color-accent));
+  --yai-tabs-nav-button-active-background: var(--st-ws-shell-nav-active-background-color, rgba(0, 0, 0, 0.65));
+  --yai-tabs-nav-button-hover-background:  var(--st-ws-shell-nav-hover-background-color, rgba(44, 42, 42, 0.75));
+  --yai-tabs-nav-border-bottom:            rgba(255, 255, 255, 0.07);
+  --yai-tabs-nav-box-shadow:               rgba(255, 255, 255, 0.07);
+  --yai-tabs-nav-button-transition:        all var(--yai-timeout-2) ease-in-out;
+
+  background: var(--yai-tabs-color-background);
+  color: var(--yai-tabs-color-text);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font: 1rem/1.5 var(--st-font-family);
+  color: var(--yai-tabs-color-text);
+}
+
+/*
+  Global control baseline for the whole extension UI.
+  Modal, sidepanel, sorter and floating windows must inherit the same control
+  skin without caring where they are mounted in the DOM.
+*/
+:root {
+  --st-form-elements-bg-color: #202020;
+  --st-form-elements-border-color: rgba(255, 255, 255, 0.14);
+  --st-form-elements-border-hover: rgba(255, 255, 255, 0.24);
+  --st-form-button-border: 0 none;
+}
+
+button,
+select {
+  transition: var(--st-motion-colors-fast), var(--st-motion-fade);
+}
+
+/*
+  Extras
+*/
+
+[data-prefers-reduced-motion] {
+  /* The only time, where `!important` is allowed */
+  --st-timeout-auto-reset: 0s !important;
+  --yai-timeout-s: 0s !important;
+  --yai-timeout-1: 0s !important;
+  --yai-timeout-2: 0s !important;
+  transition-duration: 0s !important;
+  animation-duration: 0s !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    /* The only time, where `!important` is allowed */
+    --st-timeout-auto-reset: 0s !important;
+    --yai-timeout-s: 0s !important;
+    --yai-timeout-1: 0s !important;
+    --yai-timeout-2: 0s !important;
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (max-width: 900px) {
+  [data-app] {
+    --st-page-grid-padding: 64px 1.5rem;
+
+    [data-grid-row] {
+      --st-page-grid-col-gap: 64px;
+    }
+    [data-controller] {
+      --yai-tabs-button-min-height: 44px;
+      display: flex;
+      flex-direction: row;
+    }
+    [data-content] {
+      --yai-tabs-content-padding: 48px 8px;
+    }
+  }
+  [data-yai-tabs][data-nav] {
+    height: auto;
+  }
+}

@@ -1,0 +1,44 @@
+@keyframes st-floating-window-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes st-floating-window-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.985);
+  }
+}
+
+@keyframes st-bookmark-add-tile-border-settle {
+  to {
+    border-style: solid;
+  }
+}
+
+@keyframes st-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes st-modal-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes st-contrast-block {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}

@@ -2,6 +2,31 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.4.0] [UNRELEASED]
+
+### Changed
+- Rebuilt the extension on a new YaiJS/YEH-based architecture, removing the previous framework-heavy runtime in favor of delegated event handling and a lighter startup path.
+- Reduced extension weight while restoring and extending the full Speedtab feature set, improving startup performance and lowering runtime overhead.
+- Ported the main Speedtab workspace features onto the new engine, including bookmarks, notes, feeds, widgets, assets, sorting, data exchange, and onboarding flows.
+
+### Added
+- Added support for deeply nested interactive tab structures inside HTML notes, using the shared YaiTabs event model without per-component listener registration.
+- Added full WAI-ARIA tab semantics and keyboard navigation support across the dashboard shell and nested tab interfaces.
+- Added persistent floating note window lifecycle storage, preserving open state, position, size, and z-order across reloads and browser restarts.
+- Added a weather forecast modal opened from the compact rail temperature, using cached Open-Meteo data and localized forecast labels.
+- Added delegated swipe navigation across page and module tab interfaces with improved drag cancellation and stuck-state recovery.
+- Added a dedicated workspace sorter view (`sorter.html`) for rearranging pages, modules, tabs, and content outside the live dashboard shell.
+- Added a dedicated data exchange view (`import-export.html`) for local backup, restore, cleanup, remote sync, and integrity workflows.
+- Added a richer Quick Start example workspace with localized onboarding notes and example module content.
+
+### Fixed
+- Fixed multiple nested tab, swipe, focus, and event-bubbling regressions introduced during the engine migration.
+- Fixed bookmark and feed asset-loading behavior so only required visible media is loaded while preserving correct thumbnail/favicon fallback behavior.
+- Fixed feed focus mode rendering, layout isolation, and expanded-reader behavior inside the main app shell.
+- Fixed weather widget localization, forecast fetching, and compact rail interactions.
+- Fixed floating note sizing, persistence, and resize behavior, including incorrect minimum-height reapplication from persisted local state.
+- Fixed module and page customization regressions across shell appearance, module behavior, and widget configuration flows.
+
 ## [1.3.1]
 
 - Added Chrome-native extension localization packaging with `/_locales/en/messages.json` and `/_locales/de/messages.json`, plus manifest `default_locale`, so Chrome and the Chrome Web Store can detect supported languages automatically.
