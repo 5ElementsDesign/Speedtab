@@ -2,7 +2,7 @@
 
 All notable changes to Speedtab will be documented in this file.
 
-## [1.4.1] [UNRELEASED]
+## [1.4.1]
 
 ### Added
 - Added Turkish and Hindi UI translations, plus localized example-workspace support and empty-state example language selection.
