@@ -4,11 +4,12 @@ import {loadAppSettings, loadBgArchive} from '../../data/app-settings.js'
 import {loadAssetObjectUrl, loadBgAssets} from '../../data/assets.js'
 import {loadPageBySyncId} from '../../data/pages.js'
 import {loadModuleBySyncId} from '../../data/modules.js'
+import {getUiConfigSpec} from '../../config/ui-config-spec.js'
 import {loadStoredUiConfigsByEntitySyncIds, loadUiConfigsByEntitySyncIds} from '../../data/ui-config.js'
 import {closeColorPicker, initColorPicker, wrapColorPicker} from '../../utils/color-picker.js'
 import {t} from '../../utils/i18n.js'
 import {hasCustomUiConfig} from './normalize.js'
-import {renderCustomizerForm, renderCustomizerList, SHELL_SYNC_ID} from './render.js'
+import {renderCustomizerAppearancePanel, renderCustomizerForm, renderCustomizerList, SHELL_SYNC_ID} from './render.js'
 
 let activeCustomizerTrigger = null
 
@@ -28,7 +29,7 @@ function renderCustomizerListFooter(showResetOptions = false) {
         data-change="toggleCustomizerListOptions"
         ${showResetOptions ? 'checked' : ''}
       >
-      <span>${t('next.customizer.moreOptions')}</span>
+      <span>${t('customizer.moreOptions')}</span>
     </label>
   `
 }
@@ -87,6 +88,32 @@ async function renderCustomizerListBody(body, showResetOptions = false) {
   body.innerHTML = renderCustomizerList(moduleCards, shellHasConfig, pageLabel, pageSyncId, showResetOptions)
 }
 
+function colorToHex(value = '') {
+  const normalized = value.trim()
+  if (!normalized) return ''
+  if (/^#[0-9a-fA-F]{6,8}$/.test(normalized)) return normalized
+  if (/^#[0-9a-fA-F]{3}$/.test(normalized)) {
+    const [, r, g, b] = normalized
+    return `#${r}${r}${g}${g}${b}${b}`
+  }
+
+  const match = normalized.match(/^rgba?\(([^)]+)\)$/i)
+  if (!match) return ''
+
+  const parts = match[1].split(',').map((part) => part.trim())
+  if (parts.length < 3) return ''
+
+  const [r, g, b] = parts.slice(0, 3).map((part) => Math.max(0, Math.min(255, Number.parseInt(part, 10) || 0)))
+  const alpha = parts[3] == null ? null : Math.max(0, Math.min(1, Number.parseFloat(parts[3]) || 0))
+  const toHex = (channel) => channel.toString(16).padStart(2, '0')
+
+  if (alpha == null || alpha >= 1) {
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+  }
+
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}${toHex(Math.round(alpha * 255))}`
+}
+
 async function loadShellBgData() {
   const [settings, bgArchive, assets] = await Promise.all([
     loadAppSettings(),
@@ -102,6 +129,82 @@ async function loadShellBgData() {
     bgArchive,
     bgAssets,
   }
+}
+
+function resolveCssVariableColor(target, cssVarName) {
+  if (!(target instanceof Element) || !cssVarName) return ''
+  const probe = document.createElement('span')
+  probe.style.color = `var(${cssVarName})`
+  probe.style.position = 'absolute'
+  probe.style.opacity = '0'
+  probe.style.pointerEvents = 'none'
+  probe.style.inset = '0 auto auto 0'
+  target.appendChild(probe)
+  const resolved = getComputedStyle(probe).color
+  probe.remove()
+  return colorToHex(resolved)
+}
+
+function resolveElementPropertyColor(selector, property) {
+  const el = document.querySelector(selector)
+  if (!(el instanceof Element)) return ''
+  return colorToHex(getComputedStyle(el)[property] || '')
+}
+
+function resolveComputedVarColor(selector, cssVarName) {
+  const el = document.querySelector(selector)
+  if (!(el instanceof Element) || !cssVarName) return ''
+  return colorToHex(getComputedStyle(el).getPropertyValue(cssVarName) || '')
+}
+
+function resolveShellAppearanceField(key, fieldSpec, shellRoot, docRoot) {
+  const sampleResolvers = {
+    '--st-ws-shell-header-background-color': () => resolveElementPropertyColor('[data-app-brand-wrap]', 'backgroundColor'),
+    '--st-ws-shell-header-text-color': () => resolveElementPropertyColor('[data-app-brand-wrap]', 'color'),
+    '--st-ws-shell-nav-background-color': () => resolveElementPropertyColor('[data-app-header-nav] [data-open]:not(.active)', 'backgroundColor')
+      || resolveElementPropertyColor('[data-app-header-nav] [data-open]', 'backgroundColor'),
+    '--st-ws-shell-nav-text-color': () => resolveElementPropertyColor('[data-app-header-nav] [data-open]:not(.active)', 'color')
+      || resolveElementPropertyColor('[data-app-header-nav] [data-open]', 'color'),
+    '--st-ws-shell-nav-active-background-color': () => resolveElementPropertyColor('[data-app-header-nav] [data-open].active', 'backgroundColor'),
+    '--st-ws-shell-nav-active-text-color': () => resolveElementPropertyColor('[data-app-header-nav] [data-open].active', 'color'),
+    '--st-module-bookmark-preview-background-color': () => resolveElementPropertyColor('[data-bookmark-tile] .st-trigger-tab-title', 'backgroundColor')
+      || resolveElementPropertyColor('[data-bookmark-tile] .st-trigger-tab', 'backgroundColor'),
+    '--st-module-bookmark-preview-text-color': () => resolveElementPropertyColor('[data-bookmark-tile] .st-trigger-tab-title', 'color')
+      || resolveElementPropertyColor('[data-bookmark-tile] [data-title]', 'color'),
+    '--st-ws-module-shadow-color': () => resolveComputedVarColor('[data-module-card] [data-yai-tabs]', '--yai-tabs-shadow-medium-color')
+      || resolveComputedVarColor('[data-app]', '--st-ws-module-shadow-color'),
+  }
+
+  const resolver = sampleResolvers[key]
+  if (resolver) {
+    const resolved = resolver()
+    if (resolved) return resolved
+  }
+
+  const applyName = fieldSpec.applyAs?.name
+  const target = fieldSpec.target === 'document-root' ? docRoot : shellRoot
+  return resolveCssVariableColor(target, applyName)
+}
+
+function resolveShellAppearancePreview(config = {}) {
+  const spec = getUiConfigSpec('shell', 'app')
+  const shellRoot = document.querySelector('[data-app]')
+  const docRoot = document.documentElement
+  const resolved = {
+    behavior: {...(config.behavior ?? {})},
+    layout: {...(config.layout ?? {})},
+    appearance: {...(config.appearance ?? {})},
+  }
+
+  for (const [key, fieldSpec] of Object.entries(spec.appearance ?? {})) {
+    if (fieldSpec.valueType !== 'color') continue
+    if (resolved.appearance[key]) continue
+
+    const value = resolveShellAppearanceField(key, fieldSpec, shellRoot, docRoot)
+    if (value) resolved.appearance[key] = value
+  }
+
+  return resolved
 }
 
 export function openCustomizerListPanel(showResetOptions = false, trigger = activeCustomizerTrigger) {
@@ -183,6 +286,58 @@ export async function openCustomizerFormPanel(syncId, moduleType, trigger = acti
       bgData,
       moduleData,
       effectiveConfig,
+    )
+    await initColorPicker()
+    wrapColorPicker(body)
+  }
+}
+
+export async function openCustomizerAppearancePanel(syncId = SHELL_SYNC_ID, moduleType = 'app', trigger = activeCustomizerTrigger) {
+  const isShell = syncId === SHELL_SYNC_ID
+  if (!isShell) return
+
+  const panelEl = openSidepanel({
+    title: t('common.appearance'),
+    meta: t('app.shell'),
+    syncId,
+    moduleType,
+    panelKind: 'customizer-appearance',
+    panelSize: 'wide',
+    showBack: true,
+    backAction: 'openShellCustomizer',
+  })
+
+  onSidepanelClose(clearCustomizerFocus)
+  onSidepanelClose(() => closeColorPicker())
+  onSidepanelClose((reason) => {
+    if (reason === 'close') {
+      releaseActiveCustomizerTrigger()
+      return
+    }
+    removeActiveCustomizerDropdownUi()
+  })
+  if (trigger) activeCustomizerTrigger = trigger
+  syncActiveCustomizerTrigger(trigger)
+
+  const body = panelEl.querySelector('[data-sidepanel-body]')
+  if (body) body.innerHTML = `<p data-customizer-loading>${t('common.loading')}</p>`
+
+  const [effectiveConfigMap, storedConfigMap, bgData] = await Promise.all([
+    loadUiConfigsByEntitySyncIds('shell', [{sync_id: syncId, type: 'app'}]),
+    loadStoredUiConfigsByEntitySyncIds([{sync_id: syncId, type: 'app'}]),
+    loadShellBgData(),
+  ])
+  const effectiveConfig = effectiveConfigMap.get(syncId)
+  const storedConfig = storedConfigMap.get(syncId)
+  const resolvedEffectiveConfig = resolveShellAppearancePreview(effectiveConfig)
+
+  if (body && isSidepanelOpen()) {
+    body.innerHTML = renderCustomizerAppearancePanel(
+      'shell',
+      'app',
+      storedConfig ?? {behavior: {}, layout: {}, appearance: {}},
+      bgData,
+      resolvedEffectiveConfig,
     )
     await initColorPicker()
     wrapColorPicker(body)

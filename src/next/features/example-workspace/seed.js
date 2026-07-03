@@ -87,6 +87,43 @@ function noteDefinitionPath(locale, workspaceId) {
   return `../../../../examples/${locale}/${workspaceId}/example-workspace.js`
 }
 
+function isPlainObject(value) {
+  return value != null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function mergeExampleValue(baseValue, overrideValue) {
+  if (overrideValue === undefined) return baseValue
+  if (baseValue === undefined) return overrideValue
+
+  if (Array.isArray(baseValue) && Array.isArray(overrideValue)) {
+    const maxLength = Math.max(baseValue.length, overrideValue.length)
+    return Array.from({length: maxLength}, (_, index) => mergeExampleValue(baseValue[index], overrideValue[index]))
+      .filter((value) => value !== undefined)
+  }
+
+  if (isPlainObject(baseValue) && isPlainObject(overrideValue)) {
+    const merged = {...baseValue}
+    for (const key of Object.keys(overrideValue)) {
+      merged[key] = mergeExampleValue(baseValue[key], overrideValue[key])
+    }
+    return merged
+  }
+
+  return overrideValue
+}
+
+async function loadOptionalManifest(locale, workspaceId) {
+  const loader = MANIFEST_LOADERS[manifestPath(locale, workspaceId)]
+  return loader ? loader() : null
+}
+
+async function loadOptionalNoteDefinitions(locale, workspaceId) {
+  const loader = NOTE_DEFINITION_LOADERS[noteDefinitionPath(locale, workspaceId)]
+  if (!loader) return null
+  const definitions = await loader()
+  return Array.isArray(definitions) ? definitions : []
+}
+
 export function parseExampleNote(path, raw) {
   const extension = getFileExtension(path)
   const type = TEXT_NOTE_EXTENSIONS.has(extension)
@@ -139,16 +176,51 @@ function faviconSeedPriority(url) {
 }
 
 async function loadExampleManifest(locale, workspaceId) {
-  const loader = MANIFEST_LOADERS[manifestPath(locale, workspaceId)]
-  if (!loader) throw new Error(`Missing example workspace manifest: ${workspaceId} (${locale})`)
-  return loader()
+  const baseManifest = await loadOptionalManifest(DEFAULT_LOCALE, workspaceId)
+  if (!baseManifest) throw new Error(`Missing example workspace manifest: ${workspaceId} (${DEFAULT_LOCALE})`)
+  if (locale === DEFAULT_LOCALE) return baseManifest
+  const overrideManifest = await loadOptionalManifest(locale, workspaceId)
+  return overrideManifest ? mergeExampleValue(baseManifest, overrideManifest) : baseManifest
 }
 
-async function loadExampleNoteDefinitions(locale, workspaceId) {
-  const loader = NOTE_DEFINITION_LOADERS[noteDefinitionPath(locale, workspaceId)]
-  if (!loader) return []
-  const definitions = await loader()
-  return Array.isArray(definitions) ? definitions : []
+function remapDefinitionTitlesToManifest(definitions = [], baseManifest = {}, mergedManifest = {}) {
+  return definitions.map((definition) => {
+    const pageIndex = (baseManifest.pages ?? []).findIndex((page) => page?.title === definition.page)
+    if (pageIndex === -1) return definition
+
+    const basePage = baseManifest.pages?.[pageIndex]
+    const mergedPage = mergedManifest.pages?.[pageIndex]
+    if (!basePage || !mergedPage) return definition
+
+    const moduleIndex = (basePage.modules ?? []).findIndex((module) => module?.title === definition.module)
+    if (moduleIndex === -1) return definition
+
+    const baseModule = basePage.modules?.[moduleIndex]
+    const mergedModule = mergedPage.modules?.[moduleIndex]
+    if (!baseModule || !mergedModule) return definition
+
+    const tabIndex = (baseModule.tabs ?? []).findIndex((tab) => tab?.title === definition.tab)
+    if (tabIndex === -1) return definition
+
+    const mergedTab = mergedModule.tabs?.[tabIndex]
+    if (!mergedTab) return definition
+
+    return {
+      ...definition,
+      page: mergedPage.title,
+      module: mergedModule.title,
+      tab: mergedTab.title,
+    }
+  })
+}
+
+async function loadExampleNoteDefinitions(locale, workspaceId, mergedManifest) {
+  const baseManifest = await loadOptionalManifest(DEFAULT_LOCALE, workspaceId)
+  const baseDefinitionsRaw = await loadOptionalNoteDefinitions(DEFAULT_LOCALE, workspaceId) ?? []
+  const baseDefinitions = remapDefinitionTitlesToManifest(baseDefinitionsRaw, baseManifest ?? {}, mergedManifest ?? {})
+  if (locale === DEFAULT_LOCALE) return baseDefinitions
+  const overrideDefinitions = await loadOptionalNoteDefinitions(locale, workspaceId)
+  return overrideDefinitions ? mergeExampleValue(baseDefinitions, overrideDefinitions) : baseDefinitions
 }
 
 function buildDefinitionKey(pageTitle, moduleTitle, tabTitle) {
@@ -183,7 +255,7 @@ async function loadNotesForTab(locale, workspaceId, pageTitle, moduleTitle, modu
 }
 
 async function preloadWorkspaceSeed(locale, workspaceId, manifest) {
-  const noteDefinitionMap = buildExampleDefinitionMap(await loadExampleNoteDefinitions(locale, workspaceId))
+  const noteDefinitionMap = buildExampleDefinitionMap(await loadExampleNoteDefinitions(locale, workspaceId, manifest))
   const pageSeeds = []
 
   for (const pageDef of manifest.pages ?? []) {
@@ -297,7 +369,7 @@ export async function seedExampleWorkspace(database = defaultDb, options = {}) {
           icon: pageDef.icon ?? null,
           is_home: pageDef.is_home ? 1 : 0,
           sort_order: pageSortOrder++,
-          config_json: JSON.stringify(pageDef.config ?? {modulesPerRow: 12, maxWidth: 1500}),
+          config_json: JSON.stringify(pageDef.config ?? {modulesPerRow: 12, maxWidth: null}),
           ...makeCreateMetadata(now),
         })
 

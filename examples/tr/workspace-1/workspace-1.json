@@ -1,0 +1,96 @@
+{
+  "pages": [
+    {
+      "title": "Ana",
+      "modules": [
+        {
+          "title": "web",
+          "tabs": [
+            {
+              "title": "Uygulamalar",
+              "bookmarks": [
+                {"title": "Google", "url": "https://www.google.com/"},
+                {"title": "Gemini", "url": "https://gemini.google.com/"},
+                {"title": "Google Haritalar", "url": "https://maps.google.com/"},
+                {"title": "Google Çeviri", "url": "https://translate.google.com/"},
+                {"title": "YouTube", "url": "https://www.youtube.com/"}
+              ]
+            },
+            {
+              "title": "İletişim",
+              "bookmarks": [
+                {"title": "WhatsApp", "url": "https://www.whatsapp.com/"},
+                {"title": "Telegram", "url": "https://web.telegram.org/"},
+                {"title": "Discord", "url": "https://discord.com/app"},
+                {"title": "Slack", "url": "https://app.slack.com/"}
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Notlar",
+          "tabs": [
+            {"title": "Başlangıç"},
+            {"title": "Özellikler"},
+            {"title": "❔"}
+          ]
+        },
+        {
+          "title": "qbox",
+          "tabs": [
+            {
+              "title": "YZ",
+              "bookmarks": [
+                {"title": "ChatGPT", "url": "https://chatgpt.com/"},
+                {"title": "Claude", "url": "https://claude.ai/"},
+                {"title": "Grok", "url": "https://grok.com/"},
+                {"title": "Qwen", "url": "https://qwen.ai/"},
+                {"title": "Duck.ai", "url": "https://duck.ai/"}
+              ]
+            }
+          ]
+        },
+        {
+          "title": "haberler",
+          "tabs": [
+            {
+              "title": "Gündem",
+              "sources": [
+                {
+                  "title": "GTmetrix Blog",
+                  "feed_url": "https://gtmetrix.com/blog/feed/",
+                  "site_url": "https://gtmetrix.com/blog/"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "İş",
+      "modules": [
+        {
+          "title": "worker",
+          "tabs": [
+            {
+              "title": "Şirket",
+              "bookmarks": [
+                {"title": "GitHub", "url": "https://github.com/"},
+                {"title": "GitLab", "url": "https://gitlab.com/"},
+                {"title": "Atlassian", "url": "https://www.atlassian.com/"},
+                {"title": "Notion", "url": "https://www.notion.so/"}
+              ]
+            }
+          ]
+        },
+        {
+          "title": "todo",
+          "tabs": [
+            {"title": "Yapılacaklar"}
+          ]
+        }
+      ]
+    }
+  ]
+}

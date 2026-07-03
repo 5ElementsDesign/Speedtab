@@ -2,7 +2,35 @@
 
 All notable changes to Speedtab will be documented in this file.
 
-## [1.4.0] [UNRELEASED]
+## [1.4.1] [UNRELEASED]
+
+### Added
+- Added Turkish and Hindi UI translations, plus localized example-workspace support and empty-state example language selection.
+- Added module quick settings directly inside module action dropdowns for fast toggles such as quicklinks, force-favicon, inline add tile visibility, hide-header, and column span.
+- Added bookmark tile option to render the title below full-size visual bookmarks.
+- Added feed-item media rendering for embedded feed images and improved YouTube-specific feed extras, including thumbnail-first previews and expandable descriptions.
+- Added asset-browser favicon background repair controls for fixing unreadable transparent favicons in-place.
+
+### Changed
+- Refined module dropdown quick settings into a flatter, faster control surface with inline column-span selection instead of deeper nested flyouts.
+- Updated favicon normalization so dark transparent favicons can be stored with a white backing, improving visibility on dark UI surfaces.
+- Improved feed reader patching to mutate live DOM surgically instead of replacing larger UI regions during refresh cycles.
+- Adjusted example workspace seeding, translations, and onboarding flows to better support localized starter content.
+
+### Fixed
+- Fixed multiple feed-reader flicker and refresh regressions, including unnecessary toolbar/footer replacement, image flicker on open items, and focus-mode control desync.
+- Fixed focused feed-reader close-button behavior after refresh-state patching.
+- Fixed bookmark media rendering regressions around force-favicon mode, thumbnail fallback, and visible-only asset loading.
+- Fixed feed-source favicon initialization so source icons load correctly on initial render.
+- Fixed HTML note preview syncing during inline editing and improved note window sizing, persistence, and mobile behavior.
+- Fixed empty-state example workspace language switching, locale fallback/merging, and document `lang` synchronization.
+- Fixed asset-loading duplication and page/module hydration glitches that caused avoidable requests or visual jumps.
+- Fixed search, dropdown, and sidepanel close interactions after later event-handler refinements.
+- Fixed weather-widget localization details, widget configuration flow, and expanded forecast modal behavior.
+- Fixed various mobile-shell, module-header, and feed-focus UI regressions introduced by the 1.4.0 engine migration.
+
+
+## [1.4.0]
 
 ### Changed
 - Rebuilt the extension on a new YaiJS/YEH-based architecture, removing the previous framework-heavy runtime in favor of delegated event handling and a lighter startup path.

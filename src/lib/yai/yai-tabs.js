@@ -898,7 +898,7 @@ class YaiTabs extends YaiCore {
                 } else {
                     // URL validation failed - treat as static content
                     console.error('YaiTabs: Dynamic content loading blocked due to invalid URL:', target.dataset.url);
-                    this._resetContentHeight(container);
+                    this._scheduleResetContentHeight(container);
                     this._executeHook('contentReady', { content, target, container });
                 }
             }
@@ -914,7 +914,7 @@ class YaiTabs extends YaiCore {
             if (!url) {
                 // For static content, manually trigger contentReady hook
                 this._executeHook('contentReady', { content, target, container });
-                this._resetContentHeight(container);
+                this._scheduleResetContentHeight(container);
 
                 // Post-process content
                 super._postProcessContent(content);

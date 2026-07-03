@@ -1,6 +1,6 @@
 import {db} from '../../db/db.ts'
 
-export const SUPPORTED_LOCALES = ['en', 'de']
+export const SUPPORTED_LOCALES = ['en', 'de', 'tr', 'hi']
 export const DEFAULT_LOCALE = 'en'
 const UI_LANGUAGE_SETTING_KEY = 'ui_language'
 
@@ -10,19 +10,8 @@ const UI_LANGUAGE_SETTING_KEY = 'ui_language'
 const CORE_LOADERS = {
   en: () => import('../../locales/en.ts'),
   de: () => import('../../locales/de.ts'),
-}
-
-// Namespaces that aren't core UI — only needed once, for a rare flow. Loaded
-// via loadNamespace(), never pulled in by initI18n(). exampleWorkspace's
-// *labels* live here; note that's only the small text file. The actual heavy
-// seed-data builder is useExampleWorkspace.ts (assets/pages/modules content),
-// which isn't a translation concern and needs its own dynamic import when
-// next/ grows a "seed example workspace" action.
-const NAMESPACE_LOADERS = {
-  exampleWorkspace: {
-    en: () => import('../../locales/exampleWorkspace/en.ts'),
-    de: () => import('../../locales/exampleWorkspace/de.ts'),
-  },
+  tr: () => import('../../locales/tr.ts'),
+  hi: () => import('../../locales/hi.ts'),
 }
 
 let locale = DEFAULT_LOCALE
@@ -46,6 +35,9 @@ export async function initI18n() {
   const saved = await readSavedLocale()
   locale = normalizeLocale(saved ?? navigator.language)
   messages = (await CORE_LOADERS[locale]()).default
+  if (document?.documentElement) {
+    document.documentElement.lang = locale
+  }
 }
 
 export function getLocale() {
@@ -56,15 +48,4 @@ export function t(key, params = {}) {
   const value = key.split('.').reduce((node, part) => node?.[part], messages)
   if (typeof value !== 'string') return key
   return value.replace(/\{(\w+)\}/g, (match, name) => (name in params ? String(params[name]) : match))
-}
-
-// On-demand namespace loading. Call once before a rarely-used feature needs
-// its strings (e.g. right before offering "load example workspace" on an
-// empty page list) — results are cached, so a second call is free.
-export async function loadNamespace(name) {
-  if (messages[name]) return messages[name]
-  const loader = NAMESPACE_LOADERS[name]?.[locale] ?? NAMESPACE_LOADERS[name]?.[DEFAULT_LOCALE]
-  if (!loader) return null
-  messages[name] = (await loader()).default
-  return messages[name]
 }

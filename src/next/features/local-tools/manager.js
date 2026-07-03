@@ -8,7 +8,7 @@ import {t} from '../../utils/i18n.js'
 import {initFormDirtyState} from '../forms/actions.js'
 import {buildNotePayload} from '../modules/note-form.js'
 import {getNoteAccentCssValue, getNoteBorderClass, getNoteTokenClass} from '../modules/notes-shared.js'
-import {renderLocalToolsRoot} from './render.js'
+import {renderLocalToolsRoot, renderQuicknoteWindow} from './render.js'
 
 const WINDOW_ROOT_ATTR = 'data-floating-windows'
 const MIN_WIDTH = 240
@@ -89,6 +89,20 @@ function revokeAllNoteHtmlRenderers() {
   noteHtmlRenderRevokes.clear()
 }
 
+function revokeNoteHtmlRenderers(noteId) {
+  const prefixView = `note-view:${noteId}`
+  const prefixPreview = `note-preview:${noteId}`
+  for (const [key, revoke] of noteHtmlRenderRevokes.entries()) {
+    if (key !== prefixView && key !== prefixPreview) continue
+    try {
+      revoke?.()
+    } catch {
+      // ignore cleanup failures
+    }
+    noteHtmlRenderRevokes.delete(key)
+  }
+}
+
 async function ensureCachedNotes(noteIds = []) {
   const missingIds = noteIds.filter((noteId) => !noteRecords.has(noteId))
   if (!missingIds.length) return
@@ -108,6 +122,18 @@ function getOpenNotesById() {
       .map((windowState) => [windowState.noteId, noteRecords.get(windowState.noteId)])
       .filter(([, note]) => !!note)
   )
+}
+
+function renderSingleFloatingNoteHtml(noteId) {
+  const notesById = getOpenNotesById()
+  const renderable = getRenderableNotes(notesById).find((note) => note.id === noteId)
+  if (!renderable) return ''
+  return renderLocalToolsRoot({notes: [renderable]})
+}
+
+function renderQuicknoteHtml() {
+  if (!state.quicknote?.open) return ''
+  return renderQuicknoteWindow(state.quicknote)
 }
 
 function syncOpenNotePreviewState() {
@@ -196,7 +222,7 @@ async function render({reloadNotes = false} = {}) {
   initFavicons(el)
   void hydrateNoteHtmlRenders(el)
   void hydrateNoteCodeBlocks(el)
-  autoFitNoteWindows(notesById)
+  autoFitNoteWindows()
   syncZTracker()
   syncOpenNotePreviewState()
   enteringWindowIds.clear()
@@ -444,63 +470,132 @@ function measureNoteWindowTargetSize(windowEl, viewportMaxWidth, viewportMaxHeig
   }
 }
 
-function autoFitNoteWindows(notesById) {
-  const viewportMaxWidth = Math.max(300, window.innerWidth - 80)
+function autoFitNoteWindows() {
+  state.noteWindows.forEach((windowState) => {
+    autoFitSingleNoteWindow(windowState.noteId)
+  })
+}
+
+function autoFitSingleNoteWindow(noteId) {
+  const windowState = state.noteWindows.find((entry) => entry.noteId === noteId)
+  if (!windowState || (!windowState.autoHeight && !windowState.autoWidth)) return
+
+  const note = noteRecords.get(noteId)
+  if (!note) return
+
+  const autoFitMaxWidth = note.type === 'html'
+    ? Math.min(Math.max(300, window.innerWidth - 80), 650)
+    : Math.max(300, window.innerWidth - 80)
   const viewportMaxHeight = Math.max(NOTE_MIN_HEIGHT, window.innerHeight - 20)
-  let changed = false
+  const windowEl = root?.querySelector?.(`[data-window-id="note:${CSS.escape(String(noteId))}"]`)
+  if (!(windowEl instanceof HTMLElement)) return
 
-  state.noteWindows = state.noteWindows.map((windowState) => {
-    if (!windowState.autoHeight && !windowState.autoWidth) return windowState
+  const measured = measureNoteWindowTargetSize(windowEl, autoFitMaxWidth, viewportMaxHeight)
+  if (!measured) return
 
-    const note = notesById.get(windowState.noteId)
-    if (!note) return windowState
-    const autoFitMaxWidth = note.type === 'html'
-      ? Math.min(viewportMaxWidth, 650)
-      : viewportMaxWidth
-
-    const windowEl = root?.querySelector?.(`[data-window-id="note:${CSS.escape(String(windowState.noteId))}"]`)
-    if (!(windowEl instanceof HTMLElement)) return windowState
-
-    const header = windowEl.querySelector('[data-window-header]')
-    const body = windowEl.querySelector('[data-note-window-body]')
-    if (!(body instanceof HTMLElement)) return windowState
-
-    const measured = measureNoteWindowTargetSize(windowEl, autoFitMaxWidth, viewportMaxHeight)
-    const headerHeight = header instanceof HTMLElement ? header.offsetHeight : 0
-    const headerWidth = header instanceof HTMLElement ? header.scrollWidth : 0
-    const extraHeight = note.type === 'html' ? 25 : 0
-    const fallbackWidth = Math.max(
-      300,
-      Math.min(autoFitMaxWidth, Math.ceil(Math.max(headerWidth + 16, body.scrollWidth + 28)))
-    )
-    const fallbackHeight = Math.max(
-      NOTE_MIN_HEIGHT,
-      Math.min(viewportMaxHeight, Math.ceil(headerHeight + body.scrollHeight + 24 + extraHeight))
-    )
-    const targetWidth = measured?.width ?? fallbackWidth
-    const targetHeight = measured?.height ?? fallbackHeight
-
-    changed = true
-    return clampWindowState({
-      ...windowState,
-      width: targetWidth,
-      height: targetHeight,
-      autoHeight: false,
-      autoWidth: false,
-      windowId: `note:${windowState.noteId}`,
-    })
+  const nextState = clampWindowState({
+    ...windowState,
+    width: measured.width,
+    height: measured.height,
+    autoHeight: false,
+    autoWidth: false,
+    windowId: `note:${noteId}`,
   })
 
-  if (!changed) return
+  setWindowState(`note:${noteId}`, nextState)
+  windowEl.style.left = `${nextState.x}px`
+  windowEl.style.top = `${nextState.y}px`
+  windowEl.style.width = `${nextState.width}px`
+  windowEl.style.height = `${nextState.height}px`
+  if (Number.isFinite(nextState.z)) windowEl.style.zIndex = String(nextState.z)
+}
 
-  root.innerHTML = renderLocalToolsRoot({
-    ...state,
-    notes: getRenderableNotes(notesById),
+async function mountSingleFloatingNoteWindow(noteId) {
+  const el = ensureRoot()
+  revokeNoteHtmlRenderers(noteId)
+  const noteHtml = renderSingleFloatingNoteHtml(noteId)
+  if (!noteHtml) return
+
+  const existing = el.querySelector(`[data-window-id="note:${CSS.escape(String(noteId))}"]`)
+  if (existing instanceof HTMLElement) existing.remove()
+
+  el.insertAdjacentHTML('beforeend', noteHtml)
+  const windowEl = el.querySelector(`[data-window-id="note:${CSS.escape(String(noteId))}"]`)
+  if (!(windowEl instanceof HTMLElement)) return
+
+  if (enteringWindowIds.has(`note:${noteId}`)) {
+    windowEl.setAttribute('data-window-entering', '')
+  }
+
+  windowEl.querySelectorAll('[data-floating-note-form]').forEach((form) => {
+    initFormDirtyState(form)
   })
-  syncNestedTabsInFloatingWindows(root)
-  initFavicons(root)
-  void hydrateNoteHtmlRenders(root)
-  void hydrateNoteCodeBlocks(root)
+
+  syncNestedTabsInFloatingWindows(windowEl)
+  initFavicons(windowEl)
+  await hydrateNoteHtmlRenders(windowEl)
+  await hydrateNoteCodeBlocks(windowEl)
+  autoFitSingleNoteWindow(noteId)
+  syncZTracker()
+  syncOpenNotePreviewState()
+  enteringWindowIds.delete(`note:${noteId}`)
+}
+
+function getQuicknoteWindowElement() {
+  return root?.querySelector?.('[data-window-id="quicknote"]') ?? null
+}
+
+async function mountQuicknoteWindow() {
+  const el = ensureRoot()
+  const quicknoteHtml = renderQuicknoteHtml()
+  const existing = getQuicknoteWindowElement()
+
+  if (!quicknoteHtml) {
+    if (existing instanceof HTMLElement) existing.remove()
+    syncZTracker()
+    return
+  }
+
+  if (existing instanceof HTMLElement) {
+    existing.remove()
+  }
+
+  el.insertAdjacentHTML('afterbegin', quicknoteHtml)
+  const windowEl = getQuicknoteWindowElement()
+  if (!(windowEl instanceof HTMLElement)) return
+  if (enteringWindowIds.has('quicknote')) {
+    windowEl.setAttribute('data-window-entering', '')
+  }
+  syncZTracker()
+  enteringWindowIds.delete('quicknote')
+}
+
+function removeFloatingNoteWindowDom(noteId) {
+  revokeNoteHtmlRenderers(noteId)
+  const windowEl = root?.querySelector?.(`[data-window-id="note:${CSS.escape(String(noteId))}"]`)
+  if (windowEl instanceof HTMLElement) {
+    windowEl.remove()
+  }
+}
+
+function removeQuicknoteWindowDom() {
+  const windowEl = getQuicknoteWindowElement()
+  if (windowEl instanceof HTMLElement) {
+    windowEl.remove()
+  }
+}
+
+async function rerenderWindowById(windowId) {
+  const parsed = parseWindowId(windowId)
+  if (parsed.type === 'quicknote') {
+    await mountQuicknoteWindow()
+    return
+  }
+  if (parsed.type === 'note' && parsed.key != null) {
+    await mountSingleFloatingNoteWindow(parsed.key)
+    return
+  }
+  await render()
 }
 
 function bringToFront(windowId, {persist = true, rerender = true} = {}) {
@@ -509,14 +604,14 @@ function bringToFront(windowId, {persist = true, rerender = true} = {}) {
 
   if (current.z >= state.zIndexTracker) {
     syncZTracker()
-    if (rerender) void render()
     if (persist) queueSave()
     return
   }
 
   const nextZ = Math.max(state.zIndexTracker + 1, 221)
   state.zIndexTracker = nextZ
-  applyWindowPatch(windowId, {z: nextZ}, {persist, rerender})
+  applyWindowPatch(windowId, {z: nextZ}, {persist, rerender: false})
+  if (rerender) void rerenderWindowById(windowId)
 }
 
 function applyLiveZIndex(windowEl, zIndex) {
@@ -634,25 +729,29 @@ export function openQuicknote() {
   if (!state.quicknote.open) {
     state.quicknote.open = true
     enteringWindowIds.add('quicknote')
-    bringToFront('quicknote', {persist: true, rerender: true})
+    const nextZ = Math.max(state.zIndexTracker + 1, 221)
+    state.zIndexTracker = nextZ
+    state.quicknote.z = nextZ
+    void mountQuicknoteWindow()
     queueSave()
     focusQuicknoteTextarea({moveCaretToEnd: true})
     return
   }
 
-  bringToFront('quicknote', {persist: true, rerender: true})
+  bringToFront('quicknote', {persist: true, rerender: false})
   focusQuicknoteTextarea({moveCaretToEnd: true})
 }
 
 export function closeQuicknoteWindow() {
   state.quicknote.open = false
-  void render()
+  removeQuicknoteWindowDom()
+  syncZTracker()
   queueSave()
 }
 
 export async function refreshQuicknoteWindow() {
   state = await loadLocalToolsState()
-  await render()
+  await mountQuicknoteWindow()
 }
 
 export function updateQuicknoteContent(value) {
@@ -664,11 +763,21 @@ export function openFloatingNote(noteId) {
   const parsedNoteId = parseInt(String(noteId), 10)
   if (!Number.isInteger(parsedNoteId) || parsedNoteId <= 0) return
   if (isMobileNoteViewport()) {
+    const removedIds = state.noteWindows
+      .map((entry) => entry.noteId)
+      .filter((id) => id !== parsedNoteId)
+    removedIds.forEach((id) => {
+      cryptSessions.delete(id)
+      editorSessions.delete(id)
+      removeFloatingNoteWindowDom(id)
+      removeCachedNote(id)
+    })
     state.noteWindows = state.noteWindows.filter((entry) => entry.noteId === parsedNoteId)
   }
   const existing = state.noteWindows.find((entry) => entry.noteId === parsedNoteId)
   if (existing) {
-    bringToFront(`note:${parsedNoteId}`, {persist: true, rerender: true})
+    bringToFront(`note:${parsedNoteId}`, {persist: true, rerender: false})
+    syncOpenNotePreviewState()
     return
   }
 
@@ -690,7 +799,12 @@ export function openFloatingNote(noteId) {
     },
   ]
   enteringWindowIds.add(`note:${parsedNoteId}`)
-  void render({reloadNotes: true})
+  void (async () => {
+    const note = await loadNoteById(parsedNoteId)
+    if (!note) return
+    noteRecords.set(parsedNoteId, note)
+    await mountSingleFloatingNoteWindow(parsedNoteId)
+  })()
   queueSave()
 }
 
@@ -703,10 +817,13 @@ export function closeFloatingNote(noteId) {
   if (existing) saveNoteLayout(existing)
   const windowEl = getWindowElement(windowId)
   if (!(windowEl instanceof HTMLElement)) {
+    removeFloatingNoteWindowDom(parsedNoteId)
     cryptSessions.delete(parsedNoteId)
     editorSessions.delete(parsedNoteId)
     state.noteWindows = state.noteWindows.filter((entry) => entry.noteId !== parsedNoteId)
-    void render()
+    removeCachedNote(parsedNoteId)
+    syncOpenNotePreviewState()
+    syncZTracker()
     queueSave()
     return
   }
@@ -715,10 +832,13 @@ export function closeFloatingNote(noteId) {
   windowEl.setAttribute('data-window-closing', '')
   window.setTimeout(() => {
     closingWindowIds.delete(windowId)
+    removeFloatingNoteWindowDom(parsedNoteId)
     cryptSessions.delete(parsedNoteId)
     editorSessions.delete(parsedNoteId)
     state.noteWindows = state.noteWindows.filter((entry) => entry.noteId !== parsedNoteId)
-    void render()
+    removeCachedNote(parsedNoteId)
+    syncOpenNotePreviewState()
+    syncZTracker()
     queueSave()
   }, WINDOW_CLOSE_ANIMATION_MS)
 }
@@ -733,13 +853,13 @@ export async function unlockFloatingCryptNote(noteId, passphrase = '') {
     unlockError: '',
     unlocking: true,
   })
-  await render()
+  await mountSingleFloatingNoteWindow(parsedNoteId)
 
   try {
     const note = await loadNoteById(parsedNoteId)
     if (!note || note.type !== 'crypt') {
       cryptSessions.delete(parsedNoteId)
-      await render()
+      await mountSingleFloatingNoteWindow(parsedNoteId)
       return false
     }
 
@@ -759,7 +879,7 @@ export async function unlockFloatingCryptNote(noteId, passphrase = '') {
         editError: '',
       })
     }
-    await render()
+    await mountSingleFloatingNoteWindow(parsedNoteId)
     return true
   } catch {
     cryptSessions.set(parsedNoteId, {
@@ -767,7 +887,7 @@ export async function unlockFloatingCryptNote(noteId, passphrase = '') {
       unlockError: t('noteViewer.wrongPassphrase'),
       unlocking: false,
     })
-    await render()
+    await mountSingleFloatingNoteWindow(parsedNoteId)
     return false
   }
 }
@@ -777,7 +897,7 @@ export async function lockFloatingCryptNote(noteId) {
   if (!Number.isInteger(parsedNoteId) || parsedNoteId <= 0) return
   if (!cryptSessions.has(parsedNoteId)) return
   cryptSessions.delete(parsedNoteId)
-  await render()
+  await mountSingleFloatingNoteWindow(parsedNoteId)
 }
 
 export async function toggleFloatingCryptPassphrase(noteId, passphrase = '') {
@@ -789,7 +909,7 @@ export async function toggleFloatingCryptPassphrase(noteId, passphrase = '') {
     unlockPassphrase: String(passphrase ?? current.unlockPassphrase ?? ''),
     revealPassphrase: current.revealPassphrase !== true,
   })
-  await render()
+  await mountSingleFloatingNoteWindow(parsedNoteId)
 }
 
 export async function startFloatingNoteEdit(noteId) {
@@ -807,11 +927,11 @@ export async function startFloatingNoteEdit(noteId) {
       editContent: '',
       editError: '',
     })
-    await render()
+    await mountSingleFloatingNoteWindow(parsedNoteId)
     return
   }
   setEditorSession(parsedNoteId, normalizeEditorSession(note))
-  await render()
+  await mountSingleFloatingNoteWindow(parsedNoteId)
   requestAnimationFrame(() => {
     const form = root?.querySelector?.(`[data-floating-note-form][data-note-id="${parsedNoteId}"]`)
     const content = form?.querySelector?.('[name="content"]')
@@ -832,7 +952,7 @@ export async function cancelFloatingNoteEdit(noteId) {
   if (note?.type === 'crypt') {
     cryptSessions.delete(parsedNoteId)
   }
-  await render()
+  await mountSingleFloatingNoteWindow(parsedNoteId)
 }
 
 export function syncFloatingNoteEditorField(noteId, field, value) {
@@ -887,7 +1007,7 @@ export async function toggleFloatingNotePreview(noteId) {
   const current = getEditorSession(parsedNoteId)
   if (!current) return
   setEditorSession(parsedNoteId, {previewMode: current.previewMode !== true})
-  await render()
+  await mountSingleFloatingNoteWindow(parsedNoteId)
 }
 
 export async function saveFloatingNoteEdit(noteId, form) {
@@ -904,7 +1024,7 @@ export async function saveFloatingNoteEdit(noteId, form) {
 
   if (!title) {
     setEditorSession(parsedNoteId, {editError: t('noteForm.title')})
-    await render()
+    await mountSingleFloatingNoteWindow(parsedNoteId)
     return false
   }
 
@@ -924,7 +1044,7 @@ export async function saveFloatingNoteEdit(noteId, form) {
   })
 
   if (!payload) {
-    await render()
+    await mountSingleFloatingNoteWindow(parsedNoteId)
     return false
   }
 
@@ -939,7 +1059,7 @@ export async function saveFloatingNoteEdit(noteId, form) {
   }
 
   editorSessions.delete(parsedNoteId)
-  await render()
+  await mountSingleFloatingNoteWindow(parsedNoteId)
   const moduleSyncId = document.querySelector(`[data-note-id="${CSS.escape(String(parsedNoteId))}"][data-module-sync-id]`)?.getAttribute('data-module-sync-id')
   if (moduleSyncId) {
     const {refreshModuleContent} = await import('../../app/bootstrap.js')

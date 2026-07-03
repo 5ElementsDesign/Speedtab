@@ -84,9 +84,29 @@ function applyModuleSubtype(moduleRoot, effectiveConfig) {
   moduleRoot.removeAttribute('data-quicklinks')
 }
 
+function applyInlineAddTileVisibility(moduleRoot, moduleType, effectiveConfig) {
+  if (!moduleRoot) return
+  const showAddTile = effectiveConfig?.behavior?.['module-tabs-show-add-tile'] !== false
+
+  if (moduleType === 'tabs') {
+    moduleRoot.querySelectorAll('[data-bookmark-add-tile]').forEach((tile) => {
+      tile.toggleAttribute('hidden', !showAddTile)
+    })
+    return
+  }
+
+  if (moduleType === 'notes') {
+    moduleRoot.querySelectorAll('[data-note-add-tile]').forEach((tile) => {
+      tile.toggleAttribute('hidden', !showAddTile)
+    })
+  }
+}
+
 function getApplyTarget(moduleRoot, targetName) {
+  if (targetName === 'document-root') return document.documentElement
   if (targetName === 'grid-col') return moduleRoot.closest('[data-grid-col]')
   if (targetName === 'tabs-root') return moduleRoot.querySelector('[data-yai-tabs]')
+  if (targetName === 'controller') return moduleRoot.querySelector('[data-yai-tabs] > [data-controller]')
   return moduleRoot
 }
 
@@ -134,9 +154,10 @@ export function applyModuleUiConfig(moduleRoot, effectiveConfig) {
   if (moduleType === 'tabs') {
     applyLinkTarget(moduleRoot, linkBehavior)
   }
+  applyInlineAddTileVisibility(moduleRoot, moduleType, effectiveConfig)
   if (moduleType === 'tabs') {
     const mediaScope = getVisibleBookmarkMediaScope(moduleRoot.querySelector?.('[data-yai-tabs]') ?? moduleRoot)
-    if (mediaScope) initBookmarkMedia(mediaScope, {force: true})
+    if (mediaScope) initBookmarkMedia(mediaScope)
   }
 }
 

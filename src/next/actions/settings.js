@@ -12,6 +12,7 @@ import {openWeatherForecastModal, refreshWeatherWidgetNow} from '../features/wid
 import {getWidgetSettings, saveWidgetSettings} from '../../composables/useWidgetSettings.ts'
 import {searchOpenMeteoLocations} from '../../composables/useOpenMeteoWeather.ts'
 import {t} from '../utils/i18n.js'
+import defaultWallpaperUrl from '../../assets/wallpaper-y-tree.webp'
 
 const weatherSearchState = {
   query: '',
@@ -140,6 +141,11 @@ async function rerenderAppAndReopenSettings() {
   await settingsActions.openSettings()
 }
 
+async function rerenderAppOnly() {
+  const {renderNextRoot} = await import('../app/bootstrap.js')
+  await renderNextRoot()
+}
+
 function setWidgetSetting(target, settings) {
   const path = target.dataset.widgetPath
   if (!path) return settings
@@ -197,7 +203,11 @@ export const settingsActions = {
 
   async changeUiLanguage(target) {
     await saveAppSetting('ui_language', target.value?.trim() || null)
-    await rerenderAppAndReopenSettings()
+    if (target.closest?.('[data-sidepanel][data-panel-kind]')) {
+      await rerenderAppAndReopenSettings()
+      return
+    }
+    await rerenderAppOnly()
   },
 
   async changeAppSetting(target) {
@@ -318,7 +328,7 @@ export const settingsActions = {
 
   clearBgProperty() {
     syncBgInputs('')
-    applyBg('')
+    applyBg(`url('${defaultWallpaperUrl}') center/cover no-repeat`)
     saveAppSetting('background_properties', null)
     saveAppSetting('background_asset_id', null)
   },
@@ -394,8 +404,8 @@ export const settingsActions = {
 
   openAbout() {
     openModal({
-      title: t('next.settings.aboutTitle'),
-      content: `<p>${t('next.settings.aboutCopy')}</p>`,
+      title: t('settings.aboutTitle'),
+      content: `<p>${t('settings.aboutCopy')}</p>`,
     })
   },
 }

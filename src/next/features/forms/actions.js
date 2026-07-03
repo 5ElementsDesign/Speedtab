@@ -202,11 +202,12 @@ export function initFormDirtyState(root, options = {}) {
     const currentState = stringifyFormState(form)
     const currentHash = hashFormState(form)
     const existingEntry = store[stateKey]
+    const useExistingBaseline = options.useExistingBaseline === true
     const initialState = options.initialState
-      ?? existingEntry?.initialState
+      ?? (useExistingBaseline ? existingEntry?.initialState : undefined)
       ?? currentState
     const initialHash = options.initialHash
-      ?? existingEntry?.initialHash
+      ?? (useExistingBaseline ? existingEntry?.initialHash : undefined)
       ?? currentHash
 
     store[stateKey] = {

@@ -291,10 +291,26 @@ export function openSearch() {
   focusSearchInput({select: true})
 }
 
+function resetSearchState() {
+  state.query = ''
+  state.results = []
+  state.expandedIds = new Set()
+}
+
+function collapseSearchPanel() {
+  state.panelVisible = false
+  renderSearchPanelUi()
+}
+
 export function closeSearch() {
+  resetSearchState()
   state.open = false
   state.panelVisible = false
   renderSearchUi()
+}
+
+export function isSearchOpen() {
+  return state.open === true
 }
 
 export function searchFocus() {
@@ -339,5 +355,5 @@ export async function locateSearchResult(resultId) {
 export function handleOutsideSearchClick(target) {
   if (state.open !== true) return
   if (target?.closest?.('[data-speedtab-search], [data-search-panel]')) return
-  closeSearch()
+  collapseSearchPanel()
 }

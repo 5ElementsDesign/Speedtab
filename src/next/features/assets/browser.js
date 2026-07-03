@@ -4,7 +4,7 @@ import {closeModal, openModal} from '../../components/modal.js'
 import {loadAssetObjectUrl} from '../../data/assets.js'
 import {escapeHtml} from '../../utils/html.js'
 import {getLocale, t} from '../../utils/i18n.js'
-import {getFaviconHostnameCandidatesForUrl, parseFaviconMeta, refreshStaleFavicons} from '../../utils/favicon.js'
+import {fixFaviconAssetBackground, getFaviconHostnameCandidatesForUrl, parseFaviconMeta, refreshStaleFavicons} from '../../utils/favicon.js'
 
 const ORDERED_KINDS = ['background', 'preview', 'note_image', 'favicon']
 const NOTE_IMAGE_TOKEN_RE = /{{asset:image:(\d+)}}/g
@@ -14,6 +14,20 @@ const state = {
   refreshStatus: '',
   previewUrls: new Map(),
   data: null,
+}
+
+function formatAssetBrowserError(error) {
+  if (error instanceof Error && error.message) return error.message
+  if (typeof error === 'string' && error.trim()) return error
+  if (error && typeof error === 'object') {
+    if (typeof error.message === 'string' && error.message.trim()) return error.message
+    try {
+      return JSON.stringify(error)
+    } catch {
+      return String(error)
+    }
+  }
+  return String(error)
 }
 
 function revokePreviewUrls() {
@@ -288,18 +302,25 @@ function renderAssetDetails(selectedAsset, data) {
         : ''}
 
       <div data-asset-browser-actions>
-        <button type="button" class="st-btn" data-btn="danger" data-click="deleteAssetBrowserAsset" data-asset-id="${escapeHtml(String(selectedAsset.id))}">
-          ${escapeHtml(t('assets.deleteAsset'))}
-        </button>
-        <button type="button" class="st-btn" data-modal-close>${escapeHtml(t('common.close'))}</button>
+        <div data-asset-browser-actions-left>
+          <button type="button" class="st-btn" data-btn="danger" data-click="deleteAssetBrowserAsset" data-asset-id="${escapeHtml(String(selectedAsset.id))}">
+            ${escapeHtml(t('assets.deleteAsset'))}
+          </button>
+        </div>
+        <div data-asset-browser-actions-right>
+          ${selectedAsset.kind === 'favicon' ? `
+            <button type="button" class="st-btn" data-btn="ghost" data-click="fixAssetBrowserFaviconBackground" data-asset-id="${escapeHtml(String(selectedAsset.id))}">
+              ${escapeHtml(t('assets.fixFaviconBackground'))}
+            </button>
+          ` : ''}
+          <button type="button" class="st-btn" data-modal-close>${escapeHtml(t('common.close'))}</button>
+        </div>
       </div>
     </div>
   `
 }
 
-export async function renderAssetBrowserModal() {
-  const data = await loadAssetBrowserData()
-  state.data = data
+function renderAssetBrowserContent(data) {
   const groupedAssets = ORDERED_KINDS.map((kind) => ({
     kind,
     items: data.assets
@@ -307,13 +328,8 @@ export async function renderAssetBrowserModal() {
       .sort((a, b) => (b.id ?? 0) - (a.id ?? 0)),
   }))
   const totalAssetSize = data.assets.reduce((sum, asset) => sum + (asset.blob?.size ?? 0), 0)
-  const selectedAsset = data.assets.find((asset) => asset.id === state.selectedAssetId) ?? null
 
-  if (!selectedAsset && data.assets.length) {
-    state.selectedAssetId = data.assets[0].id ?? null
-  }
-
-  const content = `
+  return `
     <div data-asset-browser>
       <div data-asset-browser-summary>
         <span>${escapeHtml(t('assets.totalSummary', {count: data.assets.length, size: formatByteCount(totalAssetSize)}))}</span>
@@ -330,10 +346,37 @@ export async function renderAssetBrowserModal() {
       </div>
     </div>
   `
+}
+
+function getOpenAssetBrowserPanel() {
+  return document.querySelector('[data-modal][data-modal-open] [data-modal-body]')
+}
+
+async function refreshAssetBrowserDom({full = false} = {}) {
+  const data = await loadAssetBrowserData()
+  state.data = data
+
+  if (!data.assets.some((asset) => asset.id === state.selectedAssetId)) {
+    state.selectedAssetId = data.assets[0]?.id ?? null
+  }
+
+  const panel = getOpenAssetBrowserPanel()
+  if (!panel || full) return false
+  panel.innerHTML = renderAssetBrowserContent(data)
+  return true
+}
+
+export async function renderAssetBrowserModal() {
+  const data = await loadAssetBrowserData()
+  state.data = data
+
+  if (!data.assets.find((asset) => asset.id === state.selectedAssetId) && data.assets.length) {
+    state.selectedAssetId = data.assets[0].id ?? null
+  }
 
   openModal({
     title: t('assets.title'),
-    content,
+    content: renderAssetBrowserContent(data),
     panelClass: 'st-asset-browser-modal',
     panelStyle: '--st-modal-max-width: 72rem;',
     onClose: () => {
@@ -393,6 +436,24 @@ function buildRefreshMessage(count) {
 export async function refreshAssetBrowserFaviconSet() {
   const refreshed = await refreshStaleFavicons()
   state.refreshStatus = buildRefreshMessage(refreshed)
+  if (await refreshAssetBrowserDom()) return
+  await renderAssetBrowserModal()
+}
+
+export async function fixAssetBrowserFaviconBackgroundById(assetId) {
+  try {
+    const fixed = await fixFaviconAssetBackground(assetId)
+    state.refreshStatus = fixed
+      ? t('assets.fixedFaviconBackground')
+      : t('assets.noFaviconFixNeeded')
+  } catch (error) {
+    console.error('Failed to fix favicon background', error)
+    state.refreshStatus = t('assets.fixFaviconBackgroundFailed', {
+      message: formatAssetBrowserError(error),
+    })
+  }
+
+  if (await refreshAssetBrowserDom()) return
   await renderAssetBrowserModal()
 }
 
@@ -465,6 +526,7 @@ export async function deleteAssetById(assetId) {
 
   await markExportDirty('assets:delete')
   state.selectedAssetId = null
+  if (await refreshAssetBrowserDom()) return
   await renderAssetBrowserModal()
 }
 

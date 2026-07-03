@@ -26,6 +26,8 @@ export function wcagLevel(ratio) {
 
 // Which grouped module color pair an appearance key belongs to
 export function getGroupForKey(key) {
+  if (key.startsWith('--st-notes-preview-content-')) return 'notePreview'
+  if (key.startsWith('--st-notes-open-content-') || key === '--st-notes-open-link-color') return 'noteOpen'
   if (key.startsWith('--st-ws-module-content-')) return 'content'
   if (key.startsWith('--st-ws-module-header-')) return 'header'
   if (key.startsWith('--st-ws-module-')) return 'card'
@@ -34,6 +36,8 @@ export function getGroupForKey(key) {
 
 // The bg+text key pair for each group
 export const GROUP_PAIR_KEYS = {
+  notePreview: {bg: '--st-notes-preview-content-bg', text: '--st-notes-preview-content-color'},
+  noteOpen: {bg: '--st-notes-open-content-bg', text: '--st-notes-open-content-color'},
   card: {bg: '--st-ws-module-background-color', text: '--st-ws-module-text-color'},
   header: {bg: '--st-ws-module-header-background-color', text: '--st-ws-module-header-text-color'},
   content: {bg: '--st-ws-module-content-background-color', text: '--st-ws-module-content-text-color'},

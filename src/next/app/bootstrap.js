@@ -6,7 +6,7 @@ import {assetActions} from '../actions/assets.js'
 import {captureActions} from '../actions/capture.js'
 import {customizerActions} from '../actions/customizer.js'
 import {localToolsActions} from '../actions/local-tools.js'
-import {moduleCrudActions} from '../actions/module-crud.js'
+import {ensureFeedCollectionLoaded, moduleCrudActions} from '../actions/module-crud.js'
 import {pageActions} from '../actions/pages.js'
 import {searchActions} from '../actions/search.js'
 import {settingsActions} from '../actions/settings.js'
@@ -31,12 +31,34 @@ import {initializeWidgetRail} from '../features/widgets/manager.js'
 import {renderWidgetRailShell} from '../features/widgets/render.js'
 import {initBookmarkMedia} from '../utils/bookmark-media.js'
 import {initFavicons} from '../utils/favicon.js'
-import {initI18n, t} from '../utils/i18n.js'
+import {getLocale, initI18n, t} from '../utils/i18n.js'
 import {dispatch} from './dispatch.js'
 import {createHandler} from './handler.js'
 
 const ORPHANS_PAGE_SLUG = 'orphans-detected'
 let runtimeInboxListenerBound = false
+
+function renderExampleWorkspaceLocaleSelect() {
+  const locale = getLocale()
+  const selected = ['en', 'de', 'tr', 'hi'].includes(locale) ? locale : 'en'
+
+  return `
+    <label class="st-app-empty-language">
+      <span>${t('settings.language.label')}</span>
+      <select
+        name="st-app-select-ui-locale"
+        data-example-workspace-locale
+        data-change="changeUiLanguage"
+      >
+        <option value="en" lang="en"${selected === 'en' ? ' selected' : ''}>English</option>
+        <option value="de" lang="de"${selected === 'de' ? ' selected' : ''}>Deutsch</option>
+        <option value="tr" lang="tr"${selected === 'tr' ? ' selected' : ''}>Türkçe</option>
+        <option value="hi" lang="hi"${selected === 'hi' ? ' selected' : ''}>हिन्दी</option>
+      </select>
+      <small>${t('app.onboardingLanguageDescription')}</small>
+    </label>
+  `
+}
 
 function updateInboxTitle(count = 0) {
   const appTitle = t('app.title')
@@ -118,10 +140,28 @@ function hydrateModuleTabBookmarks(content, container = null, context = null) {
     initBookmarkMedia(content, {force: true})
     initFavicons(content, {force: true})
     content.removeAttribute('data-page-loading')
-    if (container && context?._resetContentHeight) {
+    if (container && context?._scheduleResetContentHeight) {
+      context._scheduleResetContentHeight(container)
+    } else if (container && context?._resetContentHeight) {
       requestAnimationFrame(() => context._resetContentHeight(container))
     }
   }))
+}
+
+function isHiddenByTabState(element) {
+  return !!element?.closest?.('[aria-hidden="true"], [inert]')
+}
+
+function hydrateVisibleFeedCollections(scope) {
+  if (!(scope instanceof HTMLElement)) return
+  scope.querySelectorAll('[data-feed-collection-id][data-feed-module-sync-id]').forEach((collectionRoot) => {
+    if (!(collectionRoot instanceof HTMLElement)) return
+    if (isHiddenByTabState(collectionRoot)) return
+    const moduleSyncId = collectionRoot.dataset.feedModuleSyncId || ''
+    const collectionId = parseInt(collectionRoot.dataset.feedCollectionId ?? '', 10)
+    if (!moduleSyncId || !collectionId) return
+    void ensureFeedCollectionLoaded(moduleSyncId, collectionId)
+  })
 }
 
 function hydrateModuleBodies(pageContent, modules = []) {
@@ -139,7 +179,6 @@ function hydrateModuleBodies(pageContent, modules = []) {
 
     bodyEl.innerHTML = renderModuleCardBody(adaptModule(module), {hydrateBodies: true})
     initFavicons(bodyEl)
-    card.setAttribute('data-module-cached', '')
   })
 }
 
@@ -221,6 +260,7 @@ export function initializeNextTabs(mount, pages) {
         content?.removeAttribute('inert')
         if (container?.dataset?.refPath !== 'pages') {
           hydrateModuleTabBookmarks(content, container, context)
+          hydrateVisibleFeedCollections(content)
           return
         }
 
@@ -240,6 +280,13 @@ export function initializeNextTabs(mount, pages) {
   const swype = new YaiTabsSwipe({
     axis: YaiDevice.hasTouch ? 'horizontal' : 'auto',
     ignoreClosestSelector: 'nav[data-controller], [data-app-footer], [data-dropdown]',
+    cancelDragClickSelector: [
+      'a.st-trigger-tab',
+      'button.st-trigger-note',
+      'button[data-bookmark-inline-add]',
+      'button[data-note-inline-add]',
+    ].join(', '),
+    clickCancelThreshold: 8,
     boundaryBehavior: {
       circular: true,
       descendIntoNested: false,
@@ -323,7 +370,8 @@ async function hydrateOpenedPagePanel(target, content, container, pageMap, conte
     }))
   const uiConfigMap = await loadUiConfigsByEntitySyncIds('module', modulesForUiConfig)
   applyModuleUiConfigMap(pageContent, uiConfigMap)
-  initFavicons(pageContent, {force: true})
+  initFavicons(pageContent)
+  hydrateVisibleFeedCollections(pageContent)
 }
 
 async function applyPageModuleUiConfig(root, modules) {
@@ -406,7 +454,6 @@ export async function renderNextRoot() {
     pages: renderPages,
     activePage,
     pageModulesBySlug,
-    hydrateBodies: true,
     hydratedPageSlugs,
     orphanCandidates,
     captureInboxCount,
@@ -450,7 +497,7 @@ export async function renderNextRoot() {
     mount.innerHTML = `
       <div class="st-app-empty">
         <div class="st-app-empty-card">
-          <h1><span aria-hidden="true">⚡</span> ${t('app.title')}</h1>
+          <h1><span>${t('app.title')}</span></h1>
           <p>${t('app.noPagesTitle')}</p>
           <p>${t('app.noPagesDescription')}</p>
           <div class="st-app-empty-actions">
@@ -459,6 +506,9 @@ export async function renderNextRoot() {
               ? `<button type="button" data-btn="primary" data-click="loadExampleWorkspace">${t('app.quickStart')}</button>`
               : ''}
           </div>
+        </div>
+        <div class="st-app-empty-card st-app-card-select-locale-container">
+          ${canLoadExampleWorkspace ? renderExampleWorkspaceLocaleSelect() : ''}
         </div>
       </div>
     `
@@ -502,8 +552,6 @@ export async function refreshModuleContent(syncId) {
   }
 
   refreshOpenNotePreviewState()
-
-  card.setAttribute('data-module-cached', '')
 }
 
 // YEH: dropdown toggle + resize/scroll repositioning

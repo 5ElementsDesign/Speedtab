@@ -8,42 +8,143 @@ import {renderTabsModule} from '../pages/modules/tabs/render.js'
 
 const MODULE_ACTION_ITEMS = {
   tabs: [
-    {labelKey: 'next.modules.actions.addTab', action: 'addModuleTab'},
-    {labelKey: 'next.modules.actions.editTab', action: 'editCurrentModuleTab'},
-    {labelKey: 'next.modules.actions.addBookmark', action: 'addModuleBookmark', dividerTop: true},
+    {labelKey: 'modules.actions.addTab', action: 'addModuleTab'},
+    {labelKey: 'modules.actions.editTab', action: 'editCurrentModuleTab'},
+    {labelKey: 'modules.actions.addBookmark', action: 'addModuleBookmark', dividerTop: true},
     {labelKey: 'common.customize', action: 'openCustomizer', dividerTop: true},
+    {labelKey: 'modules.actions.quickSettings', submenu: 'moduleQuickSettings', dividerTop: true},
   ],
   notes: [
-    {labelKey: 'next.modules.actions.addTab', action: 'addModuleTab'},
-    {labelKey: 'next.modules.actions.editTab', action: 'editCurrentModuleTab'},
-    {labelKey: 'next.modules.actions.addNote', action: 'addModuleNote', dividerTop: true},
+    {labelKey: 'modules.actions.addTab', action: 'addModuleTab'},
+    {labelKey: 'modules.actions.editTab', action: 'editCurrentModuleTab'},
+    {labelKey: 'modules.actions.addNote', action: 'addModuleNote', dividerTop: true},
     {labelKey: 'common.customize', action: 'openCustomizer', dividerTop: true},
+    {labelKey: 'modules.actions.quickSettings', submenu: 'moduleQuickSettings', dividerTop: true},
   ],
   feeds: [
-    {labelKey: 'next.modules.actions.addTab', action: 'addModuleTab'},
-    {labelKey: 'next.modules.actions.editTab', action: 'editCurrentModuleTab'},
-    {labelKey: 'next.modules.actions.addSource', action: 'addModuleFeed', dividerTop: true},
+    {labelKey: 'modules.actions.addTab', action: 'addModuleTab'},
+    {labelKey: 'modules.actions.editTab', action: 'editCurrentModuleTab'},
+    {labelKey: 'modules.actions.addSource', action: 'addModuleFeed', dividerTop: true},
     {labelKey: 'feeds.archivedFeedItemsTitle', action: 'openArchivedFeedItems'},
     {labelKey: 'feeds.clearLoaded', action: 'clearModuleFeedItems', dividerTop: true},
     {labelKey: 'common.customize', action: 'openCustomizer', dividerTop: true},
+    {labelKey: 'modules.actions.quickSettings', submenu: 'moduleQuickSettings', dividerTop: true},
   ],
+}
+
+function renderQuickSettingsColumnGrid(sharedAttributes) {
+  const columnButtons = Array.from({length: 12}, (_, index) => {
+    const value = index + 1
+    const attrs = Object.entries({
+      ...sharedAttributes,
+      'data-click': 'setQuickModuleColumnSpan',
+      'data-quick-setting-key': 'module-column-span',
+      'data-quick-setting-value': String(value),
+      'data-column-span': String(value),
+      type: 'button',
+    }).map(([key, attrValue]) => `${key}="${escapeHtml(String(attrValue))}"`).join(' ')
+
+    return `<button ${attrs}>${value}</button>`
+  }).join('')
+
+  return `
+    <div data-quick-setting-columns>
+      <span data-quick-setting-columns-label>${escapeHtml(t('customizer.fields.moduleColumnSpan'))}</span>
+      <div data-quick-setting-columns-grid>
+        ${columnButtons}
+      </div>
+    </div>
+  `
+}
+
+function buildModuleQuickSettings(viewModel) {
+  const sharedAttributes = {
+    'data-sync-id': viewModel.syncId,
+    'data-module-id': String(viewModel.moduleId ?? ''),
+    'data-module-type': viewModel.type,
+  }
+
+  const items = []
+
+  if (viewModel.type === 'tabs') {
+    items.push(
+      {
+        label: t('moduleForm.quicklinksMode'),
+        action: 'toggleQuickModuleSetting',
+        attributes: {
+          ...sharedAttributes,
+          'data-quick-setting-key': 'module-tabs-quicklinks',
+        },
+      },
+      {
+        label: t('moduleForm.forceFavicon'),
+        action: 'toggleQuickModuleSetting',
+        attributes: {
+          ...sharedAttributes,
+          'data-quick-setting-key': 'module-tabs-force-favicon',
+        },
+      },
+    )
+  }
+
+  if (viewModel.type === 'tabs' || viewModel.type === 'notes') {
+    items.push({
+      label: t('moduleForm.showAddTile'),
+      action: 'toggleQuickModuleSetting',
+      attributes: {
+        ...sharedAttributes,
+        'data-quick-setting-key': 'module-tabs-show-add-tile',
+      },
+    })
+  }
+
+  items.push(
+    {
+      label: t('customizer.fields.moduleHideHeader'),
+      action: 'toggleQuickModuleSetting',
+      attributes: {
+        ...sharedAttributes,
+        'data-quick-setting-key': 'module-hide-header',
+      },
+    },
+    {
+      dividerTop: true,
+      content: renderQuickSettingsColumnGrid(sharedAttributes),
+    },
+  )
+
+  return items
 }
 
 function buildModuleActions(viewModel) {
   if (!viewModel.syncId) return ''
   return buildDropdown({
     trigger: SPEEDTAB_SVG.plus,
-    ariaLabel: t('next.modules.actions.aria'),
-    items: (MODULE_ACTION_ITEMS[viewModel.type] ?? [{labelKey: 'common.customize', action: 'openCustomizer'}]).map((item) => ({
-      ...item,
-      label: t(item.labelKey),
-      attributes: {
-        'data-sync-id': viewModel.syncId,
-        'data-module-id': String(viewModel.moduleId ?? ''),
-        'data-module-type': viewModel.type,
-        ...(item.attributes ?? {}),
-      },
-    })),
+    ariaLabel: t('modules.actions.aria'),
+    items: (MODULE_ACTION_ITEMS[viewModel.type] ?? [{labelKey: 'common.customize', action: 'openCustomizer'}]).map((item) => {
+      const base = {
+        label: item.label ?? t(item.labelKey),
+        action: item.action,
+        href: item.href,
+        dividerTop: item.dividerTop,
+        dividerBottom: item.dividerBottom,
+        attributes: {
+          'data-sync-id': viewModel.syncId,
+          'data-module-id': String(viewModel.moduleId ?? ''),
+          'data-module-type': viewModel.type,
+          ...(item.attributes ?? {}),
+        },
+      }
+
+      if (item.submenu === 'moduleQuickSettings') {
+        return {
+          ...base,
+          submenu: buildModuleQuickSettings(viewModel),
+        }
+      }
+
+      return base
+    }),
   })
 }
 
@@ -58,7 +159,7 @@ function createBaseViewModel(module) {
   }
 
   return {
-    title: module.title || t('next.modules.untitled'),
+    title: module.title || t('modules.untitled'),
     body: module.body ?? '',
     type: module.type || 'module',
     syncId: module.sync_id || '',
@@ -97,7 +198,7 @@ const MODULE_DEFINITIONS = {
       return createBaseViewModel(module)
     },
     renderBody(viewModel) {
-      return renderNotesModule(viewModel.tabs, buildModuleActions(viewModel), viewModel.moduleId, viewModel.syncId)
+      return renderNotesModule(viewModel.tabs, buildModuleActions(viewModel), viewModel.moduleId, viewModel.syncId, viewModel.config)
     },
   },
   feeds: {
@@ -106,12 +207,15 @@ const MODULE_DEFINITIONS = {
       const tabsWithFeeds = await Promise.all(
         tabs.map(async (tab) => {
           const feedSources = await context.loadFeedSourcesByCollectionId(tab.id)
-          const feedItems = await context.loadFeedItemsBySourceIds(feedSources.map((source) => source.id).filter((id) => typeof id === 'number'))
+          const sourceIds = feedSources.map((source) => source.id).filter((id) => typeof id === 'number')
+          const feedItemCount = await context.countFeedItemsBySourceIds(sourceIds)
           const savedFeedItems = await context.loadSavedFeedItemsByCollectionId(tab.id)
           return {
             ...tab,
             feedSources,
-            feedItems,
+            feedItems: null,
+            feedItemsLoaded: false,
+            feedItemCount,
             savedFeedItems,
           }
         }),
@@ -151,7 +255,7 @@ export function renderModuleBody(viewModel) {
 }
 
 export function renderModuleBodyShell(viewModel) {
-  const label = viewModel?.title || t('next.modules.untitled')
+  const label = viewModel?.title || t('modules.untitled')
   return `
     <div class="st-module-body-shell" aria-hidden="true">
       <div class="st-module-body-shell-line"></div>

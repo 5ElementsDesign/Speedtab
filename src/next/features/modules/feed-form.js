@@ -97,6 +97,7 @@ function discoverFeedCandidates(html, baseUrl) {
 }
 
 function buildInitialState({record = null, moduleSyncId = '', parentId = '', parentSyncId = '', parentTitle = ''}) {
+  const existingFeedUrl = record?.feed_url || ''
   return {
     record,
     moduleSyncId,
@@ -111,8 +112,8 @@ function buildInitialState({record = null, moduleSyncId = '', parentId = '', par
     isTesting: false,
     isLookingUp: false,
     testError: null,
-    testSuccess: false,
-    lastTestedUrl: record?.feed_url || '',
+    testSuccess: !!existingFeedUrl,
+    lastTestedUrl: existingFeedUrl,
   }
 }
 
@@ -277,7 +278,7 @@ export function renderFeedSourceCrudForm(state) {
       data-feed-last-tested-url="${escapeHtml(state.lastTestedUrl || '')}"
     >
       ${customizerSection({
-        title: t('next.moduleCrud.sections.identity'),
+        title: t('moduleCrud.sections.identity'),
         section: 'identity',
         children: `
           <div data-customizer-field data-customizer-field-layout="stack" data-feed-form-field>

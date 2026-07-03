@@ -9,7 +9,7 @@
 
 [data-page-grid] {
   width: 100%;
-  max-width: var(--st-page-grid-max-width);
+  max-width: var(--st-page-grid-max-width-local, var(--st-page-grid-max-width));
   min-height: 100%;
   margin: 0 auto;
   padding: var(--st-page-grid-padding);
@@ -60,9 +60,15 @@
 
 /* Module cards */
 [data-module-tabs-shell],
-[data-module-tabs-shell],
 [data-content] [data-yai-tabs] {
   height: 100%;
+}
+
+[data-module-card] {
+  --yai-tabs-color-background: var(--st-ws-module-background-color, var(--st-module-card-background));
+  --yai-tabs-shadow-subtle-color: var(--st-ws-module-shadow-color, rgba(55, 53, 53, 0.35));
+  --yai-tabs-shadow-medium-color: var(--st-ws-module-shadow-color, rgba(0, 0, 0, 0.9));
+  box-shadow: 0 4px 8px 1px var(--st-ws-module-shadow-color, rgba(0, 0, 0, 0.9));
 }
 
 [data-module-tabs-shell] > [data-yai-tabs] {
@@ -74,12 +80,15 @@
     "content content";
   min-height: 100%;
   height: 100%;
+  background-color: var(--st-ws-module-background-color, var(--st-module-card-background));
+  box-shadow: none;
 }
 
-[data-module-tabs-shell] > [data-yai-tabs][data-nav="top"],
-[data-module-tabs-shell] > [data-yai-tabs][data-nav="bottom"],
-[data-module-tabs-shell] > [data-yai-tabs][data-nav="left"],
-[data-module-tabs-shell] > [data-yai-tabs][data-nav="right"] {
+[data-module-tabs-shell] > [data-yai-tabs][data-theme] {
+  box-shadow: none;
+}
+
+[data-module-tabs-shell] > [data-yai-tabs][data-nav="top"] {
   display: grid;
 }
 
@@ -207,6 +216,7 @@
     opacity: 0;
     pointer-events: none;
     min-height: 0;
+    transition: opacity var(--yai-timeout-2) ease;
   }
 }
 
@@ -244,27 +254,30 @@
   }
 }
 
-[data-module-card][data-hide-header] {
-  &:focus-within,
-  &:hover {
-    [data-module-card-actions-host] {
-      transition: all var(--st-timeout-2) ease-in-out 1s;
-    }
-  }
-}
-
 [data-module-card][data-hide-header]:focus-within [data-module-card-actions-host],
-[data-module-card][data-hide-header]:hover [data-module-card-actions-host],
 [data-module-card][data-hide-header][data-customizer-focus] [data-module-card-actions-host] {
   opacity: 0.35;
   pointer-events: auto;
+  transition-delay: 0s;
+}
+
+[data-module-card][data-hide-header]:hover [data-module-card-actions-host] {
+  opacity: 0.35;
+  pointer-events: auto;
+  transition-delay: 2s;
 }
 
 [data-module-card][data-hide-header]:focus-within [data-yai-tabs] > [data-module-actions],
-[data-module-card][data-hide-header]:hover [data-yai-tabs] > [data-module-actions],
 [data-module-card][data-hide-header][data-customizer-focus] [data-yai-tabs] > [data-module-actions] {
   opacity: 0.35;
   pointer-events: auto;
+  transition-delay: 0s;
+}
+
+[data-module-card][data-hide-header]:hover [data-yai-tabs] > [data-module-actions] {
+  opacity: 0.35;
+  pointer-events: auto;
+  transition-delay: 2s;
 }
 
 [data-module-card][data-hide-header] [data-module-card-actions-host]:focus-within,

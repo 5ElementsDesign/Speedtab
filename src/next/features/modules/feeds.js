@@ -40,7 +40,10 @@ function createDefaultState(key = '') {
   return {
     activeSourceId: null,
     loadingSourceId: null,
+    refreshing: false,
     unreadOnly: false,
+    latestOnly: false,
+    latestItemIds: [],
     showLoadedItems: true,
     expandedItemIds: [],
     focusWidth: readStoredFocusWidth(key),
@@ -64,7 +67,10 @@ function cloneState(state) {
   return {
     activeSourceId: state.activeSourceId,
     loadingSourceId: state.loadingSourceId,
+    refreshing: state.refreshing === true,
     unreadOnly: state.unreadOnly,
+    latestOnly: state.latestOnly === true,
+    latestItemIds: [...(state.latestItemIds ?? [])],
     showLoadedItems: state.showLoadedItems,
     expandedItemIds: [...state.expandedItemIds],
     focusWidth: state.focusWidth ?? '',
@@ -84,6 +90,7 @@ export function setFeedUiState(moduleSyncId, collectionId, nextState) {
   feedUiStateByKey.set(makeStateKey(moduleSyncId, collectionId), {
     ...createDefaultState(makeStateKey(moduleSyncId, collectionId)),
     ...nextState,
+    latestItemIds: [...(nextState.latestItemIds ?? [])],
     expandedItemIds: [...(nextState.expandedItemIds ?? [])],
   })
 }
@@ -110,9 +117,40 @@ export function setFeedSourceLoadingState(moduleSyncId, collectionId, sourceId =
   })
 }
 
+export function setFeedRefreshingState(moduleSyncId, collectionId, refreshing = false) {
+  return updateFeedUiState(moduleSyncId, collectionId, (state) => {
+    state.refreshing = refreshing === true
+    return state
+  })
+}
+
 export function toggleFeedUnreadState(moduleSyncId, collectionId) {
   return updateFeedUiState(moduleSyncId, collectionId, (state) => {
     state.unreadOnly = !state.unreadOnly
+    return state
+  })
+}
+
+export function toggleFeedLatestState(moduleSyncId, collectionId) {
+  return updateFeedUiState(moduleSyncId, collectionId, (state) => {
+    const nextActive = !state.latestOnly
+    state.latestOnly = nextActive
+    if (!nextActive) {
+      state.latestItemIds = []
+    }
+    return state
+  })
+}
+
+export function addFeedLatestItems(moduleSyncId, collectionId, itemIds = []) {
+  const nextIds = itemIds
+    .map((id) => parseInt(String(id), 10))
+    .filter((id) => Number.isInteger(id) && id > 0)
+
+  if (!nextIds.length) return getFeedUiState(moduleSyncId, collectionId)
+
+  return updateFeedUiState(moduleSyncId, collectionId, (state) => {
+    state.latestItemIds = [...new Set([...state.latestItemIds, ...nextIds])]
     return state
   })
 }
@@ -195,7 +233,7 @@ function getFocusSelectValue(state) {
   return 'expand'
 }
 
-function renderFeedFocusControls(moduleSyncId, collectionId, state) {
+export function renderFeedFocusControls(moduleSyncId, collectionId, state) {
   const selectValue = getFocusSelectValue(state)
   const quickWidth = state.focusWidth
   const selectId = `feed-focus-width-${escapeHtml(moduleSyncId)}-${escapeHtml(String(collectionId))}`
@@ -261,11 +299,93 @@ function renderFeedSourceIcon(source) {
   `
 }
 
-function renderFeedItemBody(item, sourceTitle, moduleSyncId, collectionId, isArchived = false) {
+function parseFeedPayload(payloadJson) {
+  if (!payloadJson) return null
+  try {
+    return JSON.parse(payloadJson)
+  } catch {
+    return null
+  }
+}
+
+function formatCompactNumber(value) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return ''
+  return new Intl.NumberFormat(undefined, {notation: 'compact', maximumFractionDigits: 1}).format(numeric)
+}
+
+function decorateFeedContentMedia(html) {
+  if (!html) return ''
+  const withClasses = html
+    .replace(/<img\b(?![^>]*\bclass=)([^>]*)>/gi, '<img class="fade-in-up show"$1>')
+    .replace(/<img\b([^>]*?)\bclass=(["'])([^"']*)\2([^>]*)>/gi, (_match, before, quote, classes, after) => {
+      const nextClasses = classes.includes('fade-in-up') ? classes : `${classes} fade-in-up show`.trim()
+      return `<img${before}class=${quote}${nextClasses}${quote}${after}>`
+    })
+  return withClasses.replace(/(<img\b[^>]*>)/gi, '<span data-feed-img>$1</span>')
+}
+
+function renderYoutubeExtras(item) {
+  const payload = parseFeedPayload(item.payload_json)
+  if (payload?.kind !== 'youtube') return ''
+
+  const thumbnailUrl = typeof payload.thumbnail_url === 'string' ? payload.thumbnail_url : ''
+  const description = typeof payload.description === 'string' ? payload.description.trim() : ''
+  const views = formatCompactNumber(payload.view_count)
+  const stars = formatCompactNumber(payload.star_count)
+
+  if (!thumbnailUrl && !description && !views && !stars) return ''
+
+  return `
+    <div class="st-module-feed-youtube">
+      ${thumbnailUrl ? `
+        <a
+          href="${escapeHtml(item.url ?? '#')}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="st-module-feed-youtube-thumb-link"
+          data-feed-media-link
+        >
+          <span data-feed-img>
+            <img
+              src="${escapeHtml(thumbnailUrl)}"
+              alt="${escapeHtml(item.title)}"
+              class="st-module-feed-youtube-thumb fade-in-up show"
+              draggable="false"
+            >
+          </span>
+        </a>
+      ` : ''}
+      ${(views || stars) ? `
+        <div class="st-module-feed-youtube-meta">
+          ${views ? `<span class="st-module-feed-youtube-stat" title="Views">▶ ${escapeHtml(views)}</span>` : ''}
+          ${stars ? `<span class="st-module-feed-youtube-stat" title="Ratings">★ ${escapeHtml(stars)}</span>` : ''}
+          ${description ? `
+            <details class="st-module-feed-youtube-description-toggle">
+              <summary class="st-module-feed-youtube-description-summary">${escapeHtml(t('feedItem.description'))}</summary>
+              <p class="st-module-feed-youtube-copy">${escapeHtml(description)}</p>
+            </details>
+          ` : ''}
+        </div>
+      ` : ''}
+      ${!views && !stars && description ? `
+        <details class="st-module-feed-youtube-description-toggle">
+          <summary class="st-module-feed-youtube-description-summary">${escapeHtml(t('feedItem.description'))}</summary>
+          <p class="st-module-feed-youtube-copy">${escapeHtml(description)}</p>
+        </details>
+      ` : ''}
+    </div>
+  `
+}
+
+export function renderFeedItemBody(item, sourceTitle, moduleSyncId, collectionId, isArchived = false) {
+  const payload = parseFeedPayload(item.payload_json)
+  const isYoutubeItem = payload?.kind === 'youtube'
   const content = item.content ?? item.summary ?? ''
-  const contentHtml = content ? sanitizeHtml(content) : ''
+  const contentHtml = content ? decorateFeedContentMedia(sanitizeHtml(content)) : ''
   const longDate = formatFeedLongDate(item)
   const searchUrl = buildSearchUrl(item.title)
+  const youtubeExtras = renderYoutubeExtras(item)
 
   return `
     <div class="st-module-feed-item-body">
@@ -277,9 +397,13 @@ function renderFeedItemBody(item, sourceTitle, moduleSyncId, collectionId, isArc
         </p>
       </div>
 
+      ${youtubeExtras}
+
       ${contentHtml
         ? `<div class="st-module-feed-item-copy">${contentHtml}</div>`
-        : `<p class="st-module-feed-item-empty">${escapeHtml(t('feedItem.noSummary'))}</p>`}
+        : !isYoutubeItem
+          ? `<p class="st-module-feed-item-empty">${escapeHtml(t('feedItem.noSummary'))}</p>`
+          : ''}
 
       <div class="st-module-feed-item-actions">
         ${item.url ? `
@@ -321,7 +445,7 @@ function renderFeedItemBody(item, sourceTitle, moduleSyncId, collectionId, isArc
   `
 }
 
-function renderFeedItem(item, source, moduleSyncId, collectionId, state, isArchived = false) {
+export function renderFeedItem(item, source, moduleSyncId, collectionId, state, isArchived = false) {
   const itemId = typeof item.id === 'number' ? item.id : null
   const expanded = itemId != null && state.expandedItemIds.includes(itemId)
   const read = item.read_at != null
@@ -330,7 +454,17 @@ function renderFeedItem(item, source, moduleSyncId, collectionId, state, isArchi
   const sourceIconUrl = source?.site_url || source?.feed_url || ''
 
   return `
-    <article class="st-module-feed-item" data-feed-item-id="${escapeHtml(String(item.id ?? ''))}" data-feed-source-id="${escapeHtml(String(item.feed_source_id ?? ''))}" data-read="${read ? 'true' : 'false'}" data-newly-fetched="false" data-expanded="${expanded ? 'true' : 'false'}">
+    <article
+      class="st-module-feed-item"
+      data-feed-item-id="${escapeHtml(String(item.id ?? ''))}"
+      data-feed-source-id="${escapeHtml(String(item.feed_source_id ?? ''))}"
+      data-feed-source-title="${escapeHtml(sourceTitle)}"
+      data-feed-source-url="${escapeHtml(sourceIconUrl)}"
+      data-feed-archived="${isArchived ? 'true' : 'false'}"
+      data-read="${read ? 'true' : 'false'}"
+      data-newly-fetched="${itemId != null && state.latestItemIds.includes(itemId) ? 'true' : 'false'}"
+      data-expanded="${expanded ? 'true' : 'false'}"
+    >
       <div class="st-module-feed-item-header">
         <div class="st-module-feed-item-icon" title="${escapeHtml(sourceTitle)}">
           <img data-favicon-url="${escapeHtml(sourceIconUrl)}" alt="" draggable="false">
@@ -372,17 +506,24 @@ function renderFeedItem(item, source, moduleSyncId, collectionId, state, isArchi
   `
 }
 
-function filterFeedItems(items, state) {
+export function filterFeedItems(items, state) {
   return items.filter((item) => {
     if (state.activeSourceId != null && item.feed_source_id !== state.activeSourceId) return false
+    if (state.latestOnly && !state.latestItemIds.includes(item.id)) return false
     if (state.unreadOnly && item.read_at != null) return false
     return true
   })
 }
 
-export function renderFeedCollection(collection, moduleSyncId, moduleConfig = {}) {
+/**
+ * Compute the view-model fields that drive the toolbar and item list.
+ * Returns all derived values needed by both the full renderer and the patcher.
+ */
+export function computeFeedCollectionViewModel(collection, moduleSyncId, moduleConfig = {}) {
   const sources = collection.feedSources ?? []
-  const items = collection.feedItems ?? []
+  const items = Array.isArray(collection.feedItems) ? collection.feedItems : []
+  const itemsLoaded = collection.feedItemsLoaded === true
+  const feedItemCount = Number(collection.feedItemCount ?? items.length ?? 0)
   const savedFeedItems = collection.savedFeedItems ?? []
   const sourceById = new Map(sources.filter((source) => typeof source.id === 'number').map((source) => [source.id, source]))
   const state = getFeedUiState(moduleSyncId, collection.id ?? 0)
@@ -393,17 +534,195 @@ export function renderFeedCollection(collection, moduleSyncId, moduleConfig = {}
   const selectedSource = state.activeSourceId != null
     ? sources.find((source) => source.id === state.activeSourceId)
     : null
-  const title = state.unreadOnly ? t('feeds.filterUnread') : (selectedSource?.title || t('feeds.filterAll'))
-  const showLoadedItemsButton = !state.showLoadedItems && items.length > 0
+  const title = state.latestOnly
+    ? t('feeds.latest')
+    : state.unreadOnly
+      ? t('feeds.filterUnread')
+      : (selectedSource?.title || t('feeds.filterAll'))
+  const showLoadedItemsButton = !state.showLoadedItems && feedItemCount > 0
   const hasUnreadItems = items.some((item) => item.read_at == null)
+  const shouldLazyLoadItems = state.showLoadedItems && !itemsLoaded && feedItemCount > 0
 
-  const setFocusWidth = state.focusOpen ? `data-focus-width="${escapeHtml(state.focusWidth)}"` : ``;
+  return {
+    sources,
+    items,
+    itemsLoaded,
+    feedItemCount,
+    savedFeedItems,
+    sourceById,
+    state,
+    visibleItems,
+    unreadCount,
+    title,
+    showLoadedItemsButton,
+    hasUnreadItems,
+    shouldLazyLoadItems,
+  }
+}
+
+/**
+ * Render only the toolbar portion of the feed collection.
+ */
+export function renderFeedToolbar(moduleSyncId, collectionId, vm) {
+  const {state, title, unreadCount, hasUnreadItems, sources} = vm
+  return `
+    <div class="st-module-feed-toolbar">
+      <div class="st-module-feed-meta">
+        <button
+          type="button"
+          data-click="toggleLoadedItemsVisibility"
+          data-feed-collection-id="${escapeHtml(String(collectionId))}"
+          data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
+          class="st-module-feed-title"
+          title="${escapeHtml(state.showLoadedItems ? t('feeds.hideLoadedItems') : t('feeds.showLoadedItems'))}"
+        >${escapeHtml(title)}</button>
+        <button
+          type="button"
+          data-click="toggleUnreadFilter"
+          data-feed-collection-id="${escapeHtml(String(collectionId))}"
+          data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
+          class="st-module-feed-toolbar-badge"
+          title="${escapeHtml(hasUnreadItems ? (state.unreadOnly ? t('feeds.showAllItems') : t('feeds.showUnreadItems')) : t('feeds.noUnreadItems'))}"
+          ${hasUnreadItems ? '' : 'disabled'}
+        >${escapeHtml(t('feeds.unreadLabel', {count: unreadCount}))}</button>
+      </div>
+
+      <div class="st-module-feed-actions">
+        ${renderFeedFocusControls(moduleSyncId, collectionId, state)}
+        <button
+          type="button"
+          data-click="refreshAllFeeds"
+          data-feed-collection-id="${escapeHtml(String(collectionId))}"
+          data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
+          class="st-module-feed-toolbar-button"
+          ${sources.length ? '' : 'disabled'}
+        >${escapeHtml(t('feeds.refresh'))}</button>
+      </div>
+    </div>
+  `
+}
+
+/**
+ * Render the sidebar footer (Latest button + Add source button).
+ */
+export function renderFeedSidebarFooter(moduleSyncId, collectionId, state) {
+  return `
+    <div class="st-module-feed-sidebar-footer">
+      <button
+        type="button"
+        data-click="openAddFeedSource"
+        data-feed-collection-id="${escapeHtml(String(collectionId))}"
+        data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
+        class="st-module-feed-add-source"
+      >${escapeHtml(t('feeds.addSource'))}</button>
+      <button
+        type="button"
+        data-click="toggleLatestFeedItems"
+        data-feed-collection-id="${escapeHtml(String(collectionId))}"
+        data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
+        data-btn="dark"
+        aria-pressed="${state.latestOnly ? 'true' : 'false'}"
+        title="${escapeHtml(state.latestOnly ? t('feeds.showAllItems') : t('feeds.showNewItems'))}"
+      >${escapeHtml(t('feeds.latest'))}</button>
+    </div>
+  `
+}
+
+/**
+ * Render only the content-area inner HTML (everything below the toolbar).
+ * Used by the patcher to replace the content zone when filter state changes.
+ */
+export function renderFeedContentZone(moduleSyncId, collectionId, vm) {
+  const {state, visibleItems, sourceById, savedFeedItems, showLoadedItemsButton, shouldLazyLoadItems, sources} = vm
+  if (shouldLazyLoadItems) {
+    return `
+      <div class="st-module-feed-empty" data-feed-items-pending>
+        <div>
+          <p class="st-module-feed-empty-text">${escapeHtml(t('common.loading'))}</p>
+        </div>
+      </div>
+    `
+  }
+  if (showLoadedItemsButton) {
+    return `
+      <div class="st-module-feed-empty">
+        <div>
+          <p class="st-module-feed-empty-text">${escapeHtml(t('feeds.loadedItemsHidden'))}</p>
+          <button
+            type="button"
+            data-click="toggleLoadedItemsVisibility"
+            data-feed-collection-id="${escapeHtml(String(collectionId))}"
+            data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
+          >${escapeHtml(t('feeds.showLoadedItems'))}</button>
+        </div>
+      </div>
+    `
+  }
+  if (visibleItems.length) {
+    return `
+      <div class="st-module-feed-list st-feed-grid--content-fetched">
+        <div class="st-module-feed-list-inner st-feed-grid-ajax-response">
+          ${visibleItems.map((item) => renderFeedItem(
+            item,
+            sourceById.get(item.feed_source_id),
+            moduleSyncId,
+            collectionId,
+            state,
+            isArchivedFeedItem(item, savedFeedItems),
+          )).join('')}
+        </div>
+      </div>
+    `
+  }
+  return `
+    <div class="st-module-feed-empty">
+      <div>
+        <p class="st-module-feed-empty-text">${escapeHtml(
+          !sources.length
+            ? t('feeds.noFeedsInModule')
+            : state.latestOnly
+              ? t('feeds.noNewItemsMarked')
+            : state.unreadOnly
+              ? t('feeds.noUnreadItemsFound')
+              : state.activeSourceId != null
+                ? t('feeds.noItemsForSource')
+                : t('feeds.noItemsFound')
+        )}</p>
+        ${!sources.length ? `
+          <button
+            type="button"
+            data-click="openAddFeedSource"
+            data-feed-collection-id="${escapeHtml(String(collectionId))}"
+            data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
+          >${escapeHtml(t('feeds.addSource'))}</button>
+        ` : state.activeSourceId != null ? `
+          <button
+            type="button"
+            data-click="toggleFeedSource"
+            data-feed-source-id="${escapeHtml(String(state.activeSourceId))}"
+            data-feed-collection-id="${escapeHtml(String(collectionId))}"
+            data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
+          >${escapeHtml(t('feeds.showAllSources'))}</button>
+        ` : ''}
+      </div>
+    </div>
+  `
+}
+
+export function renderFeedCollection(collection, moduleSyncId, moduleConfig = {}) {
+  const collectionId = collection.id ?? 0
+  const vm = computeFeedCollectionViewModel(collection, moduleSyncId, moduleConfig)
+  const {sources, state, itemsLoaded, feedItemCount} = vm
+  const setFocusWidth = state.focusOpen ? `data-focus-width="${escapeHtml(state.focusWidth)}"` : ``
 
   return `
     <div class="st-module-feed st-feed-grid"
-      data-feed-collection-id="${escapeHtml(String(collection.id ?? ''))}"
+      data-feed-collection-id="${escapeHtml(String(collectionId))}"
       data-feed-collection-title="${escapeHtml(collection.title ?? '')}"
-      data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"${state.focusOpen ? ' data-feed-focus-open' : ''}
+      data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
+      data-feed-items-loaded="${itemsLoaded ? 'true' : 'false'}"
+      data-feed-refreshing="${state.refreshing ? 'true' : 'false'}"
+      data-feed-item-count="${escapeHtml(String(feedItemCount))}"${state.focusOpen ? ' data-feed-focus-open' : ''}
       ${setFocusWidth}
     >
       <aside class="st-module-feed-sidebar st-feed-grid--sidebar">
@@ -415,22 +734,16 @@ export function renderFeedCollection(collection, moduleSyncId, moduleConfig = {}
               const rowClass = [
                 'st-module-feed-source-row',
                 isLoading ? 'is-loading' : '',
-                source.last_error_at ? '' : '',
-                isActive ? '' : '',
               ].filter(Boolean).join(' ')
-              const buttonClass = [
-                'st-module-feed-source-button',
-                isActive ? '' : '',
-              ].join(' ')
               return `
                 <div class="${rowClass}" data-feed-source-id="${escapeHtml(String(source.id ?? ''))}">
                   <button
                     type="button"
                     data-click="toggleFeedSource"
                     data-feed-source-id="${escapeHtml(String(source.id ?? ''))}"
-                    data-feed-collection-id="${escapeHtml(String(collection.id ?? ''))}"
+                    data-feed-collection-id="${escapeHtml(String(collectionId))}"
                     data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
-                    class="${buttonClass}"
+                    class="st-module-feed-source-button"
                     aria-pressed="${isActive ? 'true' : 'false'}"
                     aria-busy="${isLoading ? 'true' : 'false'}"
                     title="${escapeHtml(source.title)}"
@@ -442,7 +755,7 @@ export function renderFeedCollection(collection, moduleSyncId, moduleConfig = {}
                     type="button"
                     data-click="editFeedSource"
                     data-feed-source-id="${escapeHtml(String(source.id ?? ''))}"
-                    data-feed-collection-id="${escapeHtml(String(collection.id ?? ''))}"
+                    data-feed-collection-id="${escapeHtml(String(collectionId))}"
                     data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
                     class="st-module-feed-source-edit"
                     aria-label="${escapeHtml(t('feeds.editSourceAria', {title: source.title}))}"
@@ -452,117 +765,16 @@ export function renderFeedCollection(collection, moduleSyncId, moduleConfig = {}
               `
             }).join('') : `<div class="st-module-feed-empty"><p class="st-module-feed-empty-text">${escapeHtml(t('feeds.noFeedsInModule'))}</p></div>`}
           </nav>
-          <div class="st-module-feed-sidebar-footer">
-            <button
-              type="button"
-              data-click="openAddFeedSource"
-              data-feed-collection-id="${escapeHtml(String(collection.id ?? ''))}"
-              data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
-              class="st-module-feed-add-source"
-            >${escapeHtml(t('feeds.addSource'))}</button>
-          </div>
+          ${renderFeedSidebarFooter(moduleSyncId, collectionId, state)}
         </div>
       </aside>
 
       <div class="st-module-feed-main st-feed-grid--content">
-        <div class="st-module-feed-toolbar">
-          <div class="st-module-feed-meta">
-            <button
-              type="button"
-              data-click="toggleLoadedItemsVisibility"
-              data-feed-collection-id="${escapeHtml(String(collection.id ?? ''))}"
-              data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
-              class="st-module-feed-title"
-              title="${escapeHtml(state.showLoadedItems ? t('feeds.hideLoadedItems') : t('feeds.showLoadedItems'))}"
-            >${escapeHtml(title)}</button>
-            <button
-              type="button"
-              data-click="toggleUnreadFilter"
-              data-feed-collection-id="${escapeHtml(String(collection.id ?? ''))}"
-              data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
-              class="st-module-feed-toolbar-badge"
-              title="${escapeHtml(hasUnreadItems ? (state.unreadOnly ? t('feeds.showAllItems') : t('feeds.showUnreadItems')) : t('feeds.noUnreadItems'))}"
-              ${hasUnreadItems ? '' : 'disabled'}
-            >${escapeHtml(t('feeds.unreadLabel', {count: unreadCount}))}</button>
-          </div>
-
-          <div class="st-module-feed-actions">
-            ${renderFeedFocusControls(moduleSyncId, collection.id ?? 0, state)}
-            <button
-              type="button"
-              data-click="markAllAsRead"
-              data-feed-collection-id="${escapeHtml(String(collection.id ?? ''))}"
-              data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
-              class="st-module-feed-toolbar-button"
-              ${visibleItems.some((item) => item.read_at == null) ? '' : 'disabled'}
-            >${escapeHtml(t('feeds.markRead'))}</button>
-            <button
-              type="button"
-              data-click="refreshAllFeeds"
-              data-feed-collection-id="${escapeHtml(String(collection.id ?? ''))}"
-              data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
-              class="st-module-feed-toolbar-button"
-              ${sources.length ? '' : 'disabled'}
-            >${escapeHtml(t('feeds.refresh'))}</button>
-          </div>
-        </div>
-
-        ${showLoadedItemsButton ? `
-          <div class="st-module-feed-empty">
-            <div>
-              <p class="st-module-feed-empty-text">${escapeHtml(t('feeds.loadedItemsHidden'))}</p>
-              <button
-                type="button"
-                data-click="toggleLoadedItemsVisibility"
-                data-feed-collection-id="${escapeHtml(String(collection.id ?? ''))}"
-                data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
-              >${escapeHtml(t('feeds.showLoadedItems'))}</button>
-            </div>
-          </div>
-        ` : visibleItems.length ? `
-          <div class="st-module-feed-list st-feed-grid--content-fetched">
-            <div class="st-module-feed-list-inner st-feed-grid-ajax-response">
-              ${visibleItems.map((item) => renderFeedItem(
-                item,
-                sourceById.get(item.feed_source_id),
-                moduleSyncId,
-                collection.id ?? 0,
-                state,
-                isArchivedFeedItem(item, savedFeedItems),
-              )).join('')}
-            </div>
-          </div>
-        ` : `
-          <div class="st-module-feed-empty">
-            <div>
-              <p class="st-module-feed-empty-text">${escapeHtml(
-                !sources.length
-                  ? t('feeds.noFeedsInModule')
-                  : state.unreadOnly
-                    ? t('feeds.noUnreadItemsFound')
-                    : state.activeSourceId != null
-                      ? t('feeds.noItemsForSource')
-                      : t('feeds.noItemsFound')
-              )}</p>
-              ${!sources.length ? `
-                <button
-                  type="button"
-                  data-click="openAddFeedSource"
-                  data-feed-collection-id="${escapeHtml(String(collection.id ?? ''))}"
-                  data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
-                >${escapeHtml(t('feeds.addSource'))}</button>
-              ` : state.activeSourceId != null ? `
-                <button
-                  type="button"
-                  data-click="toggleFeedSource"
-                  data-feed-source-id="${escapeHtml(String(state.activeSourceId))}"
-                  data-feed-collection-id="${escapeHtml(String(collection.id ?? ''))}"
-                  data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
-                >${escapeHtml(t('feeds.showAllSources'))}</button>
-              ` : ''}
-            </div>
-          </div>
-        `}
+        ${renderFeedToolbar(moduleSyncId, collectionId, vm)}
+        ${state.refreshing ? `
+          <div class="st-module-feed-refresh-hint">${escapeHtml(t('feeds.refreshingFeedItems'))}</div>
+        ` : ''}
+        ${renderFeedContentZone(moduleSyncId, collectionId, vm)}
       </div>
     </div>
   `
@@ -625,5 +837,10 @@ export function renderFeedsModule(tabs = [], actionsHtml = '', moduleId = null, 
 
 export function initFeedFavicons(container) {
   if (!(container instanceof HTMLElement)) return
+  container.querySelectorAll('.st-module-feed-item-body a').forEach((link) => {
+    if (!(link instanceof HTMLAnchorElement)) return
+    if (!link.querySelector('img')) return
+    link.setAttribute('data-feed-media-link', '')
+  })
   initFavicons(container)
 }

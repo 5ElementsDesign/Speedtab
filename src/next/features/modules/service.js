@@ -1,5 +1,5 @@
 import {loadBookmarksByTabId} from '../../data/bookmarks.js'
-import {loadFeedItemsBySourceIds, loadFeedSourcesByCollectionId, loadSavedFeedItemsByCollectionId} from '../../data/feeds.js'
+import {countFeedItemsBySourceIds, loadFeedItemsBySourceIds, loadFeedSourcesByCollectionId, loadSavedFeedItemsByCollectionId} from '../../data/feeds.js'
 import {loadNotesByCollectionId} from '../../data/notes.js'
 import {loadTabsByModuleId} from '../../data/tabs.js'
 import {getModuleDefinition} from './registry.js'
@@ -10,6 +10,7 @@ const moduleContext = {
   loadNotesByCollectionId,
   loadFeedSourcesByCollectionId,
   loadFeedItemsBySourceIds,
+  countFeedItemsBySourceIds,
   loadSavedFeedItemsByCollectionId,
 }
 

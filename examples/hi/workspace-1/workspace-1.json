@@ -1,0 +1,96 @@
+{
+  "pages": [
+    {
+      "title": "मुख्य",
+      "modules": [
+        {
+          "title": "web",
+          "tabs": [
+            {
+              "title": "एप्स",
+              "bookmarks": [
+                {"title": "Google", "url": "https://www.google.com/"},
+                {"title": "Gemini", "url": "https://gemini.google.com/"},
+                {"title": "Google Haritalar", "url": "https://maps.google.com/"},
+                {"title": "Google Çeviri", "url": "https://translate.google.com/"},
+                {"title": "YouTube", "url": "https://www.youtube.com/"}
+              ]
+            },
+            {
+              "title": "कम्युनिकेशन",
+              "bookmarks": [
+                {"title": "WhatsApp", "url": "https://www.whatsapp.com/"},
+                {"title": "Telegram", "url": "https://web.telegram.org/"},
+                {"title": "Discord", "url": "https://discord.com/app"},
+                {"title": "Slack", "url": "https://app.slack.com/"}
+              ]
+            }
+          ]
+        },
+        {
+          "title": "नोट्स",
+          "tabs": [
+            {"title": "शुरुआत"},
+            {"title": "विशेषताएं"},
+            {"title": "❔"}
+          ]
+        },
+        {
+          "title": "qbox",
+          "tabs": [
+            {
+              "title": "एआई",
+              "bookmarks": [
+                {"title": "ChatGPT", "url": "https://chatgpt.com/"},
+                {"title": "Claude", "url": "https://claude.ai/"},
+                {"title": "Grok", "url": "https://grok.com/"},
+                {"title": "Qwen", "url": "https://qwen.ai/"},
+                {"title": "Duck.ai", "url": "https://duck.ai/"}
+              ]
+            }
+          ]
+        },
+        {
+          "title": "haberler",
+          "tabs": [
+            {
+              "title": "न्यूज़",
+              "sources": [
+                {
+                  "title": "GTmetrix Blog",
+                  "feed_url": "https://gtmetrix.com/blog/feed/",
+                  "site_url": "https://gtmetrix.com/blog/"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "काम",
+      "modules": [
+        {
+          "title": "worker",
+          "tabs": [
+            {
+              "title": "कंपनी",
+              "bookmarks": [
+                {"title": "GitHub", "url": "https://github.com/"},
+                {"title": "GitLab", "url": "https://gitlab.com/"},
+                {"title": "Atlassian", "url": "https://www.atlassian.com/"},
+                {"title": "Notion", "url": "https://www.notion.so/"}
+              ]
+            }
+          ]
+        },
+        {
+          "title": "todo",
+          "tabs": [
+            {"title": "कार्य सूची"}
+          ]
+        }
+      ]
+    }
+  ]
+}

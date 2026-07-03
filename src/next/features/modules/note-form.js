@@ -226,7 +226,7 @@ export function renderNoteCrudForm(state = noteFormState) {
       ${renderError(state)}
       ${isLockedCryptEdit ? '' : `
         ${customizerSection({
-          title: t('next.moduleCrud.sections.identity'),
+          title: t('moduleCrud.sections.identity'),
           section: 'identity',
           children: customizerField({
             type: 'text',
@@ -281,7 +281,7 @@ export function rerenderNoteForm(root) {
   if (!root || !noteFormState) return
   root.innerHTML = renderNoteCrudForm(noteFormState)
   afterNoteFormRender(root)
-  initFormDirtyState(root)
+  initFormDirtyState(root, {useExistingBaseline: true})
 }
 
 export function setNoteFormType(type) {

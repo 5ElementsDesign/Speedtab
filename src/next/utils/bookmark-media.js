@@ -107,7 +107,7 @@ export async function loadBookmarkMediaImg(img, {force = false} = {}) {
   if (!(img instanceof HTMLImageElement)) return
   if (!force && isHiddenByTabState(img)) return
   const desiredKind = getDesiredMediaKind(img)
-  if (!force && img.src && img.dataset.mediaKind === desiredKind) {
+  if (img.src && img.dataset.mediaKind === desiredKind) {
     applyMode(img, desiredKind)
     return
   }

@@ -37,6 +37,19 @@ export async function loadFeedItemsBySourceIds(sourceIds = []) {
   })
 }
 
+export async function countFeedItemsBySourceIds(sourceIds = []) {
+  const ids = sourceIds
+    .map((id) => parseInt(String(id), 10))
+    .filter((id) => Number.isInteger(id) && id > 0)
+
+  if (!ids.length) return 0
+
+  return db.feed_items
+    .where('feed_source_id')
+    .anyOf(ids)
+    .count()
+}
+
 export async function clearFeedItemsBySourceIds(sourceIds = []) {
   const ids = sourceIds
     .map((id) => parseInt(String(id), 10))

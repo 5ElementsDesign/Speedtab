@@ -7,6 +7,7 @@ function getModuleBookmarkFlags(config = {}) {
   return {
     forceFavicon: config?.behavior?.['module-tabs-force-favicon'] === true,
     quicklinks: config?.behavior?.['module-tabs-quicklinks'] === true,
+    showTitleBelow: config?.behavior?.['module-tabs-show-title-below'] === true,
   }
 }
 
@@ -29,11 +30,11 @@ function renderBookmarkTile(bookmark, moduleSyncId = '', config = {}) {
     <div data-bookmark-tile>
       <a
         href="${escapeHtml(bookmark.url)}"
-        class="st-trigger-tab"
+        class="st-trigger-tab st-trigger-tab-media"
         target="_blank"
         rel="noopener noreferrer"
         draggable="false"
-        title="${title}"
+        aria-label="${title}"
         data-bookmark-id="${escapeHtml(bookmark.id)}"
         data-bookmark-sync-id="${escapeHtml(bookmark.sync_id ?? '')}"
         data-bookmark-link
@@ -51,6 +52,18 @@ function renderBookmarkTile(bookmark, moduleSyncId = '', config = {}) {
           class="st-bookmark-media"
           draggable="false"
         >
+      </a>
+      <a
+        href="${escapeHtml(bookmark.url)}"
+        class="st-trigger-tab-title"
+        target="_blank"
+        rel="noopener noreferrer"
+        draggable="false"
+        aria-label="${title}"
+        data-bookmark-id="${escapeHtml(bookmark.id)}"
+        data-bookmark-sync-id="${escapeHtml(bookmark.sync_id ?? '')}"
+        data-bookmark-link
+      >
         <span data-title>${title}</span>
       </a>
       <div data-bookmark-actions data-swipe-ignore>
@@ -61,8 +74,8 @@ function renderBookmarkTile(bookmark, moduleSyncId = '', config = {}) {
           data-click="editModuleBookmark"
           data-bookmark-sync-id="${escapeHtml(bookmark.sync_id ?? '')}"
           data-module-sync-id="${escapeHtml(moduleSyncId)}"
-          aria-label="${escapeHtml(t('next.modules.actions.editBookmark'))}"
-          title="${escapeHtml(t('next.modules.actions.editBookmark'))}"
+          aria-label="${escapeHtml(t('modules.actions.editBookmark'))}"
+          title="${escapeHtml(t('modules.actions.editBookmark'))}"
         >${SPEEDTAB_SVG.pencil}</button>
         <button
           type="button"
@@ -89,14 +102,15 @@ function renderBookmarkAddTile(moduleSyncId = '') {
         data-swipe-allow
         data-sync-id="${escapeHtml(moduleSyncId)}"
         data-bookmark-inline-add
-        title="${escapeHtml(t('next.modules.actions.addBookmark'))}"
-        aria-label="${escapeHtml(t('next.modules.actions.addBookmark'))}"
+        title="${escapeHtml(t('modules.actions.addBookmark'))}"
+        aria-label="${escapeHtml(t('modules.actions.addBookmark'))}"
       >${SPEEDTAB_SVG.plus}</button>
     </div>
   `
 }
 
 export function renderBookmarksGrid(bookmarks, moduleSyncId = '', config = {}) {
+  const showAddTile = config?.behavior?.['module-tabs-show-add-tile'] !== false
   const bookmarkTiles = bookmarks.map((bookmark) => renderBookmarkTile(bookmark, moduleSyncId, config)).join('')
   return `
     <div
@@ -104,9 +118,9 @@ export function renderBookmarksGrid(bookmarks, moduleSyncId = '', config = {}) {
       data-module-tabs-bookmarks
       ${bookmarks.length ? '' : 'data-bookmarks-empty'}
     >
-      ${!bookmarks.length ? `<p class="st-bookmarks-empty m-0">${t('next.modules.empty.bookmarks')}</p>` : ''}
+      ${!bookmarks.length ? `<p class="st-bookmarks-empty m-0">${t('modules.empty.bookmarks')}</p>` : ''}
       ${bookmarkTiles}
-      ${renderBookmarkAddTile(moduleSyncId)}
+      ${showAddTile ? renderBookmarkAddTile(moduleSyncId) : ''}
     </div>
   `
 }
@@ -124,7 +138,7 @@ export function renderTabsModule(tabs = [], actionsHtml = '', moduleId = null, m
       <div data-module-empty-state-wrap>
         ${actions}
         ${cardActions}
-        <div data-swipe-ignore><p class="st-module-empty-state m-0">${t('next.modules.empty.tabs')}</p></div>
+        <div data-swipe-ignore><p class="st-module-empty-state m-0">${t('modules.empty.tabs')}</p></div>
       </div>
     `
   }
@@ -153,13 +167,14 @@ export function renderTabsModule(tabs = [], actionsHtml = '', moduleId = null, m
   `).join('')
 
   const refPath = moduleId != null ? ` data-ref-path="${refPathName}"` : ''
-  const {forceFavicon, quicklinks} = getModuleBookmarkFlags(config)
+  const {forceFavicon, quicklinks, showTitleBelow} = getModuleBookmarkFlags(config)
   const quicklinksAttr = quicklinks ? ' data-bookmarks-quicklinks' : ''
   const forceFaviconAttr = forceFavicon ? ' data-bookmarks-force-favicon' : ''
+  const showTitleBelowAttr = showTitleBelow ? ' data-bookmarks-show-title-below' : ''
 
   return `
     <div data-module-tabs-shell>
-      <div data-yai-tabs data-swipe data-behavior="fade"${refPath}${quicklinksAttr}${forceFaviconAttr}>
+      <div data-yai-tabs data-swipe data-behavior="fade"${refPath}${quicklinksAttr}${forceFaviconAttr}${showTitleBelowAttr}>
         <nav data-controller>${navBtns}</nav>
         ${actions}
         <div data-content>${panels}</div>

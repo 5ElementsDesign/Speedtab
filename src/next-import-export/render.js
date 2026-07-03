@@ -280,8 +280,8 @@ export function renderImportExportApp(state) {
           <h1 data-ie-title>${escapeHtml(t('dataExchange.title'))}</h1>
         </div>
         <div data-ie-header-actions>
-          <button type="button" data-click="reloadImportExport" data-ie-link data-btn="ghost">${escapeHtml(t('next.sorter.reload'))}</button>
-          <a href="./newtab.html" data-ie-link data-btn="ghost">${escapeHtml(t('next.sorter.backToSpeedtab'))}</a>
+          <button type="button" data-click="reloadImportExport" data-ie-link data-btn="ghost">${escapeHtml(t('sorter.reload'))}</button>
+          <a href="./newtab.html" data-ie-link data-btn="ghost">${escapeHtml(t('sorter.backToSpeedtab'))}</a>
         </div>
       </header>
 

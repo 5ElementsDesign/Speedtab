@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom Event Dispatch Patterns - YpsilonEventHandler</title>
+  <link rel="icon" type="image/x-icon" href="./../favicon.ico">
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .demo-section {
+      margin: 2rem 0;
+      padding: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 0.5rem;
+    }
+
+    .demo-section h3 {
+      margin-top: 0;
+      color: #333;
+    }
+
+    .y-btn {
+      padding: 0.5rem 1rem;
+      margin: 0.25rem;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 0.375rem;
+      cursor: pointer;
+    }
+
+    .y-btn:hover {
+      background: #2563eb;
+    }
+
+    .output {
+      padding: 1rem;
+      background: #f8f9fa;
+      border-radius: 0.375rem;
+      margin: 1rem 0;
+      font-family: monospace;
+    }
+
+    .event-log {
+      min-height: 100px;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 0.5rem;
+    }
+
+    .log-entry {
+      margin: 0.25rem 0;
+      padding: 0.25rem;
+      background: #e9ecef;
+      border-radius: 0.25rem;
+    }
+
+    .log-entry.custom {
+      background: #d1ecf1;
+    }
+
+    .log-entry.workflow {
+      background: #d4edda;
+    }
+
+    .log-entry.notification {
+      background: #fff3cd;
+    }
+
+    .log-entry.hybrid {
+      background: #f3e5f5;
+    }
+
+    .event-logs {
+      padding: 0;
+      position: sticky;
+      bottom: 0;
+      background: #f8f8f8d0;
+      border: 0 none;
+    }
+
+    [data-action="clearLog"] {
+      position: absolute;
+      right: 12px;
+      bottom: 100%;
+      background: #dacccc;
+      color: #999;
+      padding: 6px 10px;
+      margin: 0 0 3px;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1><a href="./index.html" title="Back to index" style="text-decoration: none;">«</a> Custom Event Dispatch Patterns
+    </h1>
+    <p>Exploring different ways to use <code>this.dispatch()</code> in YpsilonEventHandler</p>
+  </header>
+
+  <div class="demo-section">
+    <h3>🎯 Pattern 1: Basic Custom Events</h3>
+    <p>Simple custom events with data payload</p>
+    <button class="y-btn" data-action="basicDispatch">Dispatch Basic Event</button>
+    <button class="y-btn" data-action="dataDispatch">Dispatch with Data</button>
+    <div class="output" id="basic-output">Basic events will appear here...</div>
+  </div>
+
+  <div class="demo-section">
+    <h3>🔄 Pattern 2: Workflow Events</h3>
+    <p>Event chains for complex workflows</p>
+    <button class="y-btn" data-action="startWorkflow">Start Workflow</button>
+    <button class="y-btn" data-action="resetWorkflow">Reset Workflow</button>
+    <div class="output" id="workflow-output">Workflow: Ready</div>
+  </div>
+
+  <div class="demo-section">
+    <h3>📢 Pattern 3: Notification System</h3>
+    <p>Broadcasting events to multiple listeners</p>
+    <button class="y-btn" data-action="broadcastInfo">Broadcast Info</button>
+    <button class="y-btn" data-action="broadcastWarning">Broadcast Warning</button>
+    <button class="y-btn" data-action="broadcastError">Broadcast Error</button>
+    <div class="output" id="notification-output">Notifications will appear here...</div>
+  </div>
+
+  <div class="demo-section">
+    <h3>🎮 Pattern 4: Game-like Events</h3>
+    <p>Rapid fire events with state updates</p>
+    <button class="y-btn" data-action="playerAction">Player Action</button>
+    <button class="y-btn" data-action="scoreUpdate">Score Update</button>
+    <button class="y-btn" data-action="gameEvent">Game Event</button>
+    <div class="output" id="game-output">Game state: Idle</div>
+  </div>
+
+  <div class="demo-section">
+    <h3>📊 Pattern 5: Component Communication</h3>
+    <p>Components talking to each other via events</p>
+    <button class="y-btn" data-action="componentA">Component A Action</button>
+    <button class="y-btn" data-action="componentB">Component B Action</button>
+    <div class="output" id="component-output">Component communication...</div>
+  </div>
+
+  <div class="demo-section">
+    <h3>🔀 Pattern 6: Hybrid Dispatch/DOM Delegation</h3>
+    <p>Same methods triggered by both DOM clicks and custom dispatches</p>
+    <button class="y-btn" data-action="hybridAction">DOM Click → hybridAction()</button>
+    <button class="y-btn" data-action="triggerHybridDispatch">Custom Dispatch → hybridAction()</button>
+    <button class="y-btn" data-action="chainedHybrid">Chained Hybrid Actions</button>
+    <div class="output" id="hybrid-output">Hybrid delegation results...</div>
+  </div>
+
+  <div class="demo-section event-logs">
+    <div class="event-log" id="event-log"></div>
+    <button class="y-btn" data-action="clearLog" title="Clear Log">X</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/ypsilon-event-handler@1.8.2/ypsilon-event-handler.min.js"></script>
+  <script>
+    class DispatchPatternDemo extends YpsilonEventHandler {
+      constructor() {
+        super({
+          'body': [
+            {type: 'click'},
+            {type: 'customevent'},
+            {type: 'workflowstart'},
+            {type: 'workflowstep'},
+            {type: 'workflowcomplete'},
+            {type: 'notification'},
+            {type: 'playeraction'},
+            {type: 'scoreupdate'},
+            {type: 'gameevent'},
+            {type: 'componentmessage'},
+            {type: 'delegate'}
+          ]
+        });
+
+        this.workflowStep = 0;
+        this.score = 0;
+        this.logCounter = 0;
+        this.workflowTimers = []; // Track timers for cleanup
+      }
+
+      // Handle clicks
+      handleClick(event, target) {
+        if (!(target instanceof Element) || !target.classList.contains('y-btn')) return;
+
+        const action = target.dataset.action;
+        if (!action) return;
+
+        if (typeof this[action] === 'function') {
+          return this[action](target, event);
+        }
+      }
+
+      // Handle dispatchs
+      handleDelegate(event, target) {
+        if (!(target instanceof Element)) return;
+
+        const action = event.detail.action || target.dataset.action;
+        if (!action) return;
+
+        if (typeof this[action] === 'function') {
+          return this[action](target, event);
+        }
+      }
+
+      delegated(t, event) {
+        this.log('Delegated event dispatched', 'custom');
+      }
+
+      // Pattern 1: Basic custom events
+      basicDispatch(target, event) {
+        this.dispatch('customevent', {type: 'basic', timestamp: Date.now()}, document.body);
+        this.log('Basic custom event dispatched', 'custom');
+      }
+
+      dataDispatch(target, event) {
+        this.dispatch('customevent', {
+          type: 'with-data',
+          timestamp: Date.now(),
+          userAction: 'button-click',
+          metadata: {source: 'demo', version: '1.0'}
+        }, document.body);
+        this.log('Custom event with data dispatched', 'custom');
+      }
+
+      handleCustomevent(event, target) {
+        const output = document.getElementById('basic-output');
+        output.innerHTML = `
+                    <strong>Custom Event Received:</strong><br>
+                    Type: ${event.detail.type}<br>
+                    Time: ${new Date(event.detail.timestamp).toLocaleTimeString()}<br>
+                    ${event.detail.metadata ? `Metadata: ${JSON.stringify(event.detail.metadata)}` : ''}
+                `;
+      }
+
+      // Pattern 2: Workflow events
+      startWorkflow(target, event) {
+        this.workflowStep = 0;
+        this.dispatch('workflowstart', {step: this.workflowStep}, document.body);
+        this.log('Workflow started', 'workflow');
+      }
+
+      resetWorkflow(target, event) {
+        // Clear all pending timers
+        this.workflowTimers.forEach(timer => clearTimeout(timer));
+        this.workflowTimers = [];
+
+        this.workflowStep = 0;
+        document.getElementById('workflow-output').textContent = 'Workflow: Ready';
+        this.log('Workflow reset (timers cleared)', 'workflow');
+      }
+
+      handleWorkflowstart(event, target) {
+        this.updateWorkflowDisplay('Starting...');
+        const timer = setTimeout(() => {
+          this.workflowStep = 1;
+          this.dispatch('workflowstep', {step: this.workflowStep}, document.body);
+        }, 500);
+        this.workflowTimers.push(timer);
+      }
+
+      handleWorkflowstep(event, target) {
+        const step = event.detail.step;
+        this.updateWorkflowDisplay(`Step ${step} processing...`);
+
+        if (step < 3) {
+          const timer = setTimeout(() => {
+            this.workflowStep++;
+            this.dispatch('workflowstep', {step: this.workflowStep}, document.body);
+          }, 1000);
+          this.workflowTimers.push(timer);
+        } else {
+          const timer = setTimeout(() => {
+            this.dispatch('workflowcomplete', {totalSteps: step}, document.body);
+          }, 1000);
+          this.workflowTimers.push(timer);
+        }
+      }
+
+      handleWorkflowcomplete(event, target) {
+        this.updateWorkflowDisplay(`Workflow complete! (${event.detail.totalSteps} steps)`);
+        this.log('Workflow completed', 'workflow');
+      }
+
+      updateWorkflowDisplay(message) {
+        document.getElementById('workflow-output').textContent = `Workflow: ${message}`;
+      }
+
+      // Pattern 3: Notification system
+      broadcastInfo(target, event) {
+        this.dispatch('notification', {level: 'info', message: 'This is an info message'}, document.body);
+      }
+
+      broadcastWarning(target, event) {
+        this.dispatch('notification', {level: 'warning', message: 'This is a warning message'}, document.body);
+      }
+
+      broadcastError(target, event) {
+        this.dispatch('notification', {level: 'error', message: 'This is an error message'}, document.body);
+      }
+
+      handleNotification(event, target) {
+        const {level, message} = event.detail;
+        const output = document.getElementById('notification-output');
+        const time = new Date().toLocaleTimeString();
+
+        output.innerHTML = `
+                    <strong style="color: ${level === 'error' ? 'red' : level === 'warning' ? 'orange' : 'blue'}">
+                        ${level.toUpperCase()}
+                    </strong> [${time}]: ${message}
+                `;
+
+        this.log(`Notification: ${level} - ${message}`, 'notification');
+      }
+
+      // Pattern 4: Game-like events
+      playerAction(target, event) {
+        this.dispatch('playeraction', {
+          action: 'move',
+          direction: ['up', 'down', 'left', 'right'][Math.floor(Math.random() * 4)],
+          timestamp: Date.now()
+        }, document.body);
+      }
+
+      scoreUpdate(target, event) {
+        this.score += Math.floor(Math.random() * 100);
+        this.dispatch('scoreupdate', {score: this.score, delta: Math.floor(Math.random() * 100)}, document.body);
+      }
+
+      gameEvent(target, event) {
+        const events = ['powerup', 'enemy-spawn', 'level-complete', 'bonus'];
+        const eventType = events[Math.floor(Math.random() * events.length)];
+        this.dispatch('gameevent', {eventType, timestamp: Date.now()}, document.body);
+      }
+
+      handlePlayeraction(event, target) {
+        const {action, direction} = event.detail;
+        this.updateGameDisplay(`Player ${action} ${direction}`);
+      }
+
+      handleScoreupdate(event, target) {
+        const {score, delta} = event.detail;
+        this.updateGameDisplay(`Score: ${score} (+${delta})`);
+      }
+
+      handleGameevent(event, target) {
+        const {eventType} = event.detail;
+        this.updateGameDisplay(`Game event: ${eventType}`);
+      }
+
+      updateGameDisplay(message) {
+        document.getElementById('game-output').textContent = `Game state: ${message}`;
+      }
+
+      // Pattern 5: Component communication
+      componentA(target, event) {
+        this.dispatch('componentmessage', {
+          from: 'ComponentA',
+          to: 'ComponentB',
+          message: 'Hello from A!',
+          timestamp: Date.now()
+        }, document.body);
+      }
+
+      componentB(target, event) {
+        this.dispatch('componentmessage', {
+          from: 'ComponentB',
+          to: 'ComponentA',
+          message: 'Hello from B!',
+          timestamp: Date.now()
+        }, document.body);
+      }
+
+      handleComponentmessage(event, target) {
+        const {from, to, message} = event.detail;
+        const output = document.getElementById('component-output');
+        const time = new Date().toLocaleTimeString();
+
+        output.innerHTML = `
+                    <strong>${from}</strong> → <strong>${to}</strong><br>
+                    <em>"${message}"</em><br>
+                    <small>at ${time}</small>
+                `;
+      }
+
+      // Pattern 6: Hybrid dispatch/DOM delegation
+      hybridAction(target, event) {
+        const source = event.type === 'delegate' ? 'Custom Dispatch' : 'DOM Click';
+        const output = document.getElementById('hybrid-output');
+        const time = new Date().toLocaleTimeString();
+
+        output.innerHTML = `
+                    <strong>hybridAction() called</strong><br>
+                    Source: <em>${source}</em><br>
+                    <small>at ${time}</small>
+                `;
+
+        this.log(`hybridAction triggered via ${source}`, 'hybrid');
+      }
+
+      triggerHybridDispatch(target, event) {
+        // This button triggers a custom dispatch that calls hybridAction()
+        this.dispatch('delegate', {action: 'hybridAction'}, document.body);
+        this.log('Custom dispatch sent to hybridAction', 'hybrid');
+      }
+
+      chainedHybrid(target, event) {
+        // Demonstrate chaining: DOM click → dispatch → another method
+        this.dispatch('delegate', {action: 'chainedResult'}, document.body);
+        this.log('Chained hybrid action started', 'hybrid');
+      }
+
+      chainedResult(target, event) {
+        const output = document.getElementById('hybrid-output');
+        const time = new Date().toLocaleTimeString();
+
+        output.innerHTML = `
+                    <strong>Chained Action Complete!</strong><br>
+                    DOM Click → Custom Dispatch → chainedResult()<br>
+                    <small>at ${time}</small>
+                `;
+
+        this.log('Chained hybrid action completed', 'hybrid');
+      }
+
+      // Utility methods
+      log(message, type = 'default') {
+        const logDiv = document.getElementById('event-log');
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.textContent = `[${++this.logCounter}] ${new Date().toLocaleTimeString()}: ${message}`;
+        logDiv.appendChild(entry);
+        logDiv.scrollTop = logDiv.scrollHeight;
+      }
+
+      clearLog(target, event) {
+        document.getElementById('event-log').innerHTML = '';
+        this.logCounter = 0;
+      }
+    }
+
+    // Initialize
+    const demo = new DispatchPatternDemo();
+    demo.log('Demo initialized - ready to explore dispatch patterns!');
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,52 @@
+.theme-paper {
+  --st-theme-text: rgb(38 38 40 / 0.94);
+  --st-theme-text-muted: rgb(38 38 40 / 0.68);
+  --st-theme-module-bg: rgb(244 244 242 / 0.58);
+  --st-theme-header-bg: rgb(244 244 242 / 0.76);
+  --st-theme-dropdown-bg: rgb(248 248 246 / 0.95);
+  --st-theme-status-bg: rgb(236 236 233 / 0.9);
+  --st-theme-border: rgb(48 48 52 / 0.14);
+  --st-theme-accent: #166ccd;
+
+  --st-module-action-bg: #c4c4c047;
+  --st-module-action-bg-hover: rgb(178 178 174 / 1);
+
+  --st-feed-sidebar-bg: rgb(244 244 242 / 0.82);
+  --st-feed-toolbar-bg: rgb(247 247 245 / 0.97);
+  --st-feed-toolbar-text: rgb(38 38 40 / 0.95);
+  --st-feed-toolbar-muted: rgb(93 93 98 / 0.86);
+  --st-feed-toolbar-badge-bg: rgb(234 234 230 / 1);
+  --st-feed-toolbar-badge-text: rgb(90 90 96 / 0.92);
+
+  --st-feed-item-bg: rgb(238 238 235 / 0.92);
+  --st-feed-item-bg-hover: rgb(230 230 226 / 0.96);
+  --st-feed-item-bg-active: rgb(223 223 219 / 0.98);
+  --st-feed-item-text: rgb(38 38 40 / 0.95);
+  --st-feed-item-text-muted: rgb(96 96 100 / 0.78);
+  --st-feed-item-text-dim: rgb(108 108 113 / 0.72);
+
+  --st-feed-item-body-bg: rgb(243 243 240 / 0.95);
+  --st-feed-item-body-copy: rgb(52 52 56 / 0.92);
+
+  --st-feed-item-button-bg: rgb(228 228 223 / 0.95);
+  --st-feed-item-button-bg-hover: rgb(220 220 214 / 1);
+  --st-feed-item-button-text: rgb(48 48 52 / 0.92);
+  --st-feed-item-button-border: rgb(78 78 84 / 0.14);
+
+  --st-feed-item-open-bg: #0056b3;
+  --st-feed-item-open-bg-hover: #004494;
+  --st-feed-item-divider: rgb(60 60 66 / 0.12);
+
+  --st-module-content-add-content-color: #332c2c47;
+  --st-module-content-add-content-color-hover: #312222af;
+  --st-module-content-add-content-border-color: #332c2c47;
+  --st-module-content-add-content-border-color-hover: #312222af;
+  --st-module-content-add-content-border-style: dashed;
+  --st-module-content-add-content-border-style-hover: solid;
+
+  --st-bookmark-image-bg: #ffffffad;
+  --st-bookmark-image-border: #7e737366;
+  --st-note-preview-container-border: #95909070;
+  --st-note-preview-container-border-hover: #00d2ff;
+}
+

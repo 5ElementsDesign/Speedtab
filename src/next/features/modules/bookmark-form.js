@@ -1,7 +1,7 @@
-import {loadAssetById, loadAssetsByKinds, loadAssetObjectUrl, normalizeImageBlob, storeOrGetAsset, TILE_H, TILE_W, canvasToWebpBlob} from '../../data/assets.js'
+import {loadAssetById, loadAssetsByKinds, loadAssetObjectUrl, storeOrGetAsset, TILE_H, TILE_W, canvasToWebpBlob} from '../../data/assets.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
-import {ensureFaviconAssetIdForUrl, initFavicons} from '../../utils/favicon.js'
+import {ensureFaviconAssetIdForUrl, initFavicons, normalizeStoredFaviconBlob} from '../../utils/favicon.js'
 import {initFormDirtyState, renderFormActions} from '../forms/actions.js'
 import {customizerDivider, customizerField, customizerSection, textInput, textarea, urlInput} from '../../ui/primitives.js'
 import fallbackFaviconUrl from '@/assets/st-favicon.ico'
@@ -316,7 +316,7 @@ export function renderBookmarkCrudForm(state) {
       <input type="hidden" name="favicon-state-token" value="${escapeHtml(buildBookmarkFaviconStateToken(state))}">
 
       ${customizerSection({
-        title: t('next.moduleCrud.sections.identity'),
+        title: t('moduleCrud.sections.identity'),
         section: 'identity',
         children: `
           <div data-customizer-field data-customizer-field-layout="stack">
@@ -360,7 +360,7 @@ export function renderBookmarkCrudForm(state) {
 
           ${customizerField({
             layout: 'stack',
-            label: t('next.moduleCrud.fields.description'),
+            label: t('moduleCrud.fields.description'),
             control: textarea({
               name: 'description',
               value: state.description,
@@ -425,7 +425,7 @@ export async function rerenderBookmarkForm(body) {
   await hydrateAssetLibrary(bookmarkFormState)
   body.innerHTML = renderBookmarkCrudForm(bookmarkFormState)
   await afterBookmarkFormRender(body)
-  initFormDirtyState(body)
+  initFormDirtyState(body, {useExistingBaseline: true})
 }
 
 async function fetchUrlMetaDirect(url) {
@@ -503,7 +503,7 @@ export async function testBookmarkUrl() {
 }
 
 async function normalizeFaviconBlob(blob) {
-  const normalized = await normalizeImageBlob(blob, 48)
+  const normalized = await normalizeStoredFaviconBlob(blob)
   return normalized
 }
 

@@ -55,7 +55,7 @@ function ensureRoot() {
   return root
 }
 
-export function openSidepanel({title = '', meta = '', syncId = '', moduleType = '', panelKind = '', showBack = false, backAction = '', footer = ''} = {}) {
+export function openSidepanel({title = '', meta = '', syncId = '', moduleType = '', panelKind = '', panelSize = '', showBack = false, backAction = '', footer = ''} = {}) {
   const el = ensureRoot()
   // If already open, fire cleanup for the previous panel state (e.g. switching form → list)
   if (el.hasAttribute(OPEN)) runCloseCallbacks('replace')
@@ -63,6 +63,7 @@ export function openSidepanel({title = '', meta = '', syncId = '', moduleType = 
   el.dataset.syncId = syncId
   el.dataset.moduleType = moduleType
   el.dataset.panelKind = panelKind
+  el.dataset.panelSize = panelSize
   el.removeAttribute('inert')
   el.setAttribute(OPEN, '')
   document.body.setAttribute('data-sidepanel-active', '')

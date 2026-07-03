@@ -1,0 +1,85 @@
+{
+  "extName": {
+    "message": "Speedtab",
+    "description": "The extension name shown in Chrome and the Chrome Web Store."
+  },
+  "extDescription": {
+    "message": "बुकमार्क, फ़ीड और नोट्स के साथ स्थानीय-प्रथम ब्राउज़र नया-टैब डैशबोर्ड।",
+    "description": "The extension description shown in Chrome and the Chrome Web Store."
+  },
+  "actionTitle": {
+    "message": "Speedtab",
+    "description": "Default title for the extension action."
+  },
+  "contextMenuRoot": {
+    "message": "Speedtab",
+    "description": "Root title for the extension context menu."
+  },
+  "saveCurrentPageAsBookmark": {
+    "message": "वर्तमान पेज को बुकमार्क के रूप में सहेजें",
+    "description": "Context menu item to save the current page as a bookmark."
+  },
+  "storeCurrentPageAsNote": {
+    "message": "वर्तमान पेज को नोट के रूप में संग्रहीत करें",
+    "description": "Context menu item to store the current page as a note."
+  },
+  "saveSelectionAsNote": {
+    "message": "चयन को नोट के रूप में सहेजें",
+    "description": "Context menu item to save the current text selection as a note."
+  },
+  "appendSelectionToQuicknote": {
+    "message": "चयन को त्वरित नोट में जोड़ें",
+    "description": "Context menu item to append the current text selection to the local Quicknote scratchpad."
+  },
+  "capturedPage": {
+    "message": "पेज: $VALUE$",
+    "description": "Label used in captured page notes for the page title or URL.",
+    "placeholders": {
+      "value": {
+        "content": "$1"
+      }
+    }
+  },
+  "capturedUrl": {
+    "message": "URL: $VALUE$",
+    "description": "Label used in captured page notes for the final page URL.",
+    "placeholders": {
+      "value": {
+        "content": "$1"
+      }
+    }
+  },
+  "capturedDescription": {
+    "message": "विवरण: $VALUE$",
+    "description": "Label used in captured page notes for the page description.",
+    "placeholders": {
+      "value": {
+        "content": "$1"
+      }
+    }
+  },
+  "selectionLabel": {
+    "message": "चयन:",
+    "description": "Label used in captured page notes before the selected text."
+  },
+  "requestTimedOut": {
+    "message": "अनुरोध समय समाप्त",
+    "description": "Background fetch error when a request exceeds its timeout."
+  },
+  "requestFailed": {
+    "message": "अनुरोध विफल",
+    "description": "Background fetch error when a request fails for an unspecified reason."
+  },
+  "httpError": {
+    "message": "HTTP $STATUS$: $STATUSTEXT$",
+    "description": "Background fetch error including HTTP status code and text.",
+    "placeholders": {
+      "status": {
+        "content": "$1"
+      },
+      "statusText": {
+        "content": "$2"
+      }
+    }
+  }
+}

@@ -4,10 +4,17 @@
   --st-module-content-trigger-height: 60px;
   --st-note-preview-width: 106px;
   --st-note-window-max-height: 65vh;
-  --st-note-preview-content-background-color: #fff;
-  --st-note-preview-content-text-color: #151515;
-  --st-note-window-content-background-color: #fff;
-  --st-note-window-content-text-color: #151515;
+  --st-notes-preview-content-bg: #fff;
+  --st-notes-preview-content-color: #222;
+  --st-notes-preview-content-font-scale: 1;
+  --st-notes-open-content-bg: #fff;
+  --st-notes-open-content-color: #222;
+  --st-notes-open-link-color: var(--st-color-primary);
+  --st-notes-open-content-font-scale: 1;
+  --st-note-preview-content-background-color: var(--st-notes-preview-content-bg);
+  --st-note-preview-content-text-color: var(--st-notes-preview-content-color);
+  --st-note-window-content-background-color: var(--st-notes-open-content-bg);
+  --st-note-window-content-text-color: var(--st-notes-open-content-color);
   --st-module-content-quicklink-width: 48px;
   --st-module-content-quicklink-height: 48px;
   --st-feed-content-scale: 1;
@@ -40,99 +47,12 @@
   /* Bookmarks Favicon sizes */
   --st-bookmark-image-surface-favicon-width: 36px;
   --st-bookmark-image-surface-favicon-height: 36px;
-}
-
-/* App brand */
-[data-app-brand] {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  margin: 0;
-  padding: 0 12px 0 6px;
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-
-  [data-dropdown-trigger] {
-    min-height: var(--st-app-header-height);
-  }
-  [data-st-icon] {
-    font-size: 13px;
-    filter: drop-shadow(0 0 3px #fec826);
-  }
-}
-
-.st-app-empty {
-  --st-form-elements-min-height: 38px;
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 32px 20px;
-  text-align: center;
-
-  .st-app-empty-card {
-    width: min(720px, 100%);
-    padding: 34px 38px;
-    background: linear-gradient(180deg, #ffffff0f, #ffffff05), #000000e6;
-    border: 1px solid rgba(255, 255, 255, .1);
-    box-shadow: 0 3px 12px 8px #00000059, inset 0 1px #b79f2a1f;
-    opacity: .9;
-
-    h1,
-    p {
-      margin: 0 0 1rem;
-      width: 100%;
-    }
-
-    h1 {
-      margin-bottom: 1.5rem;
-      padding-bottom: 1.75rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      font-size: clamp(30px, 4vw, 42px);
-      font-weight: 500;
-      letter-spacing: -0.03em;
-      justify-content: center;
-      gap: 12px;
-    }
-
-    p:first-of-type {
-      font-size: 18px;
-      color: #f1f3f6;
-    }
-
-    p + p {
-      margin-inline: auto;
-      color: rgba(220, 225, 232, 0.72);
-      line-height: 1.65;
-    }
-  }
-}
-
-.st-app-empty-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-
-.st-app-brand-trigger {
-  --st-dropdown-button-padding: 0;
-  height: 100%;
-  padding: 0;
-  background: transparent;
-  border: 0 none;
-
-  [data-app-brand-chevron] {
-    display: inline-flex;
-    align-items: center;
-    opacity: 0.65;
-  }
+  --st-inline-add-border-color: color-mix(in srgb, var(--yai-tabs-color-text-muted) 24%, transparent);
+  --st-inline-add-border-color-hover: color-mix(in srgb, #00d2ff 70%, rgba(255, 255, 255, 0.2));
+  --st-inline-add-background-color: color-mix(in srgb, #0f1012 18%, transparent);
+  --st-inline-add-text-color: var(--yai-tabs-color-text-muted);
+  --st-inline-add-text-color-hover: var(--yai-tabs-color-text);
+  --st-inline-add-icon-opacity: 0.68;
 }
 
 /**

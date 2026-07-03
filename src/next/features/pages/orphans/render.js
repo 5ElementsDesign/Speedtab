@@ -4,7 +4,7 @@ import {t} from '../../../utils/i18n.js'
 function renderOrphanRow(kind, row, parentLabel = '') {
   const id = typeof row.id === 'number' ? String(row.id) : ''
   const syncId = row.sync_id ? String(row.sync_id) : ''
-  const title = row.title || row.url || row.feed_url || t('next.modules.untitled')
+  const title = row.title || row.url || row.feed_url || t('modules.untitled')
 
   return `
     <article data-orphan-row>

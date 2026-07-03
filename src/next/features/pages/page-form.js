@@ -11,13 +11,16 @@ const PRESET_PAGE_ICONS = [
   '⌨️', '🕹️', '☁️', '🌙', '☀️', '🔥', '🌿', '🌊', '📍', '✅',
 ]
 
+const DEFAULT_PAGE_GRID_MAX_WIDTH = 1500
+
 function parsePageConfig(page) {
   if (!page?.config_json) return {modulesPerRow: 2, maxWidth: null}
   try {
     const c = JSON.parse(page.config_json)
+    const maxWidth = typeof c.maxWidth === 'number' ? c.maxWidth : null
     return {
       modulesPerRow: typeof c.modulesPerRow === 'number' ? c.modulesPerRow : 2,
-      maxWidth: typeof c.maxWidth === 'number' ? c.maxWidth : null,
+      maxWidth: maxWidth === DEFAULT_PAGE_GRID_MAX_WIDTH ? null : maxWidth,
     }
   } catch {
     return {modulesPerRow: 2, maxWidth: null}
@@ -25,7 +28,7 @@ function parsePageConfig(page) {
 }
 
 export function renderPageForm(page, options = {}) {
-  const saveLabel = options.saveLabel ?? (page?.id ? t('next.pageForm.saveChanges') : t('next.pageForm.createPage'))
+  const saveLabel = options.saveLabel ?? (page?.id ? t('pageForm.saveChanges') : t('pageForm.createPage'))
   const title = page?.title ?? ''
   const icon = page?.icon ?? ''
   const navGroup = page?.nav_group ?? 'main'
@@ -45,7 +48,7 @@ export function renderPageForm(page, options = {}) {
       data-page-slug="${escapeHtml(page?.slug ?? '')}"
     >
       ${customizerSection({
-        title: t('next.pageForm.sections.identity'),
+        title: t('pageForm.sections.identity'),
         section: 'identity',
         children: `
           ${customizerField({
@@ -55,7 +58,7 @@ export function renderPageForm(page, options = {}) {
           })}
 
           <div data-customizer-field>
-            <span data-customizer-field-label>${t('next.pageForm.icon')}</span>
+            <span data-customizer-field-label>${t('pageForm.icon')}</span>
             <div data-page-icon-row>
               <input type="text" name="page-icon" value="${escapeHtml(icon)}" data-page-icon-input>
               <button type="button" data-btn="light" data-click="pageFormToggleIconPicker" data-page-icon-pick-btn>${t('settings.pick')}</button>
@@ -69,18 +72,18 @@ export function renderPageForm(page, options = {}) {
           </div>
 
           ${customizerField({
-            label: t('next.pageForm.navGroup'),
+            label: t('pageForm.navGroup'),
             control: `
               <select name="page-nav-group">
-                <option value="main"${navGroup === 'main' ? ' selected' : ''}>${t('next.pageForm.navGroupOptions.main')}</option>
-                <option value="overflow"${navGroup === 'overflow' ? ' selected' : ''}>${t('next.pageForm.navGroupOptions.overflow')}</option>
+                <option value="main"${navGroup === 'main' ? ' selected' : ''}>${t('pageForm.navGroupOptions.main')}</option>
+                <option value="overflow"${navGroup === 'overflow' ? ' selected' : ''}>${t('pageForm.navGroupOptions.overflow')}</option>
               </select>
             `,
           })}
 
           ${customizerField({
             type: 'boolean',
-            label: t('next.pageForm.defaultPage'),
+            label: t('pageForm.defaultPage'),
             control: `<input type="checkbox" name="page-is-home"${isHome ? ' checked' : ''}>`,
           })}
         `,
@@ -89,18 +92,18 @@ export function renderPageForm(page, options = {}) {
       ${customizerDivider()}
 
       ${customizerSection({
-        title: t('next.pageForm.sections.layout'),
+        title: t('pageForm.sections.layout'),
         section: 'layout',
         children: `
           ${customizerField({
             type: 'integer',
-            label: t('next.pageForm.columns'),
+            label: t('pageForm.columns'),
             control: `<input type="number" name="page-modules-per-row" value="${config.modulesPerRow}" min="1" max="12">`,
           })}
           ${customizerField({
             type: 'integer',
-            label: t('next.customizer.fields.shellMaxWidth'),
-            control: `<input type="number" name="page-max-width" value="${escapeHtml(String(config.maxWidth ?? ''))}" min="300" max="3840" placeholder="${escapeHtml(t('next.pageForm.globalDefault'))}">`,
+            label: t('customizer.fields.shellMaxWidth'),
+            control: `<input type="number" name="page-max-width" value="${escapeHtml(String(config.maxWidth ?? ''))}" min="300" max="3840" placeholder="${escapeHtml(t('pageForm.globalDefault'))}">`,
           })}
         `,
       })}
@@ -121,7 +124,7 @@ export function renderModuleCreateForm(page) {
       data-page-sync-id="${escapeHtml(page?.sync_id ?? '')}"
     >
       ${customizerSection({
-        title: t('next.moduleCrud.sections.identity'),
+        title: t('pageForm.sections.identity'),
         section: 'identity',
         children: `
           ${customizerField({

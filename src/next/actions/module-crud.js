@@ -8,6 +8,8 @@ import {clearFeedItemsBySourceIds, createFeedSourceData, createSavedFeedItemData
 import {loadModuleBySyncId} from '../data/modules.js'
 import {createNoteData, softDeleteNote} from '../data/notes.js'
 import {createModuleTab, loadModuleTabById, loadModuleTabBySyncId, saveModuleTabData, softDeleteModuleTab} from '../data/tabs.js'
+import {upsertUiConfig} from '../data/ui-config.js'
+import {applyModuleUiConfig} from '../features/customizer/apply.js'
 import {initFormDirtyState, renderSidepanelDeleteFooter} from '../features/forms/actions.js'
 import {closeFloatingNote, openFloatingNote} from '../features/local-tools/manager.js'
 import {
@@ -45,7 +47,7 @@ import {
   testFeedSourceUrl,
   useDiscoveredFeedUrl,
 } from '../features/modules/feed-form.js'
-import {closeFeedFocusState, getFeedUiState, initFeedFavicons, openFeedFocusState, renderFeedCollection, setFeedFocusWidth, setFeedSourceLoadingState, toggleFeedItemExpansionState, toggleFeedLoadedState, toggleFeedSourceState, toggleFeedUnreadState} from '../features/modules/feeds.js'
+import {addFeedLatestItems, closeFeedFocusState, computeFeedCollectionViewModel, getFeedUiState, initFeedFavicons, openFeedFocusState, renderFeedCollection, renderFeedContentZone, renderFeedFocusControls, renderFeedItem, renderFeedItemBody, renderFeedSidebarFooter, renderFeedToolbar, setFeedFocusWidth, setFeedRefreshingState, setFeedSourceLoadingState, toggleFeedItemExpansionState, toggleFeedLatestState, toggleFeedLoadedState, toggleFeedSourceState, toggleFeedUnreadState} from '../features/modules/feeds.js'
 import {
   afterNoteFormRender,
   buildNoteSavePayload,
@@ -57,6 +59,7 @@ import {
   syncNoteFormStateFromForm,
   unlockNoteForm,
 } from '../features/modules/note-form.js'
+import {getVisibleBookmarkMediaScope, initBookmarkMedia} from '../utils/bookmark-media.js'
 import {escapeHtml} from '../utils/html.js'
 import {t} from '../utils/i18n.js'
 
@@ -75,7 +78,7 @@ function rerenderFeedForm(body = null) {
   const state = getFeedFormState()
   if (!target || !state) return
   target.innerHTML = renderFeedSourceCrudForm(state)
-  initFormDirtyState(target)
+  initFormDirtyState(target, {useExistingBaseline: true})
 }
 
 function getFeedFocusWidthStyle(width) {
@@ -208,6 +211,46 @@ function getModuleRoot(moduleSyncId) {
   return document.querySelector(`[data-module-card][data-sync-id="${CSS.escape(moduleSyncId)}"]`)
 }
 
+function getQuickModuleSettingValue(moduleRoot, key) {
+  if (!(moduleRoot instanceof HTMLElement) || !key) return null
+  const tabsRoot = moduleRoot.querySelector('[data-yai-tabs]')
+  const gridCol = moduleRoot.closest('[data-grid-col]')
+
+  if (key === 'module-tabs-quicklinks') return tabsRoot?.hasAttribute('data-bookmarks-quicklinks') === true
+  if (key === 'module-tabs-force-favicon') return tabsRoot?.hasAttribute('data-bookmarks-force-favicon') === true
+  if (key === 'module-tabs-show-add-tile') return tabsRoot?.hasAttribute('data-bookmarks-inline-add-tile') === true
+  if (key === 'module-hide-header') return moduleRoot.hasAttribute('data-hide-header')
+  if (key === 'module-column-span') {
+    const raw = gridCol?.style?.getPropertyValue('--st-grid-col-span')?.trim()
+      || gridCol?.getAttribute('style')?.match(/--st-grid-col-span:\s*([0-9]+)/)?.[1]
+      || '12'
+    const value = parseInt(raw, 10)
+    return Number.isInteger(value) ? value : 12
+  }
+  return null
+}
+
+async function persistModuleQuickConfig(moduleSyncId, moduleType, patch) {
+  if (!moduleSyncId || !moduleType || !patch) return null
+  const effectiveConfig = await upsertUiConfig({
+    entityType: 'module',
+    entitySubtype: moduleType,
+    entitySyncId: moduleSyncId,
+    patch,
+  })
+
+  const moduleRoot = getModuleRoot(moduleSyncId)
+  if (moduleRoot) {
+    applyModuleUiConfig(moduleRoot, effectiveConfig)
+    if (moduleType === 'tabs') {
+      const mediaScope = getVisibleBookmarkMediaScope(moduleRoot.querySelector('[data-yai-tabs]') ?? moduleRoot)
+      if (mediaScope) initBookmarkMedia(mediaScope)
+    }
+  }
+
+  return effectiveConfig
+}
+
 function getCurrentModuleTabContext(moduleSyncId) {
   const moduleRoot = getModuleRoot(moduleSyncId)
   const activeButton = moduleRoot?.querySelector('[data-yai-tabs] > [data-controller] [data-open].active')
@@ -230,7 +273,7 @@ function getFeedCollectionContext(target) {
 
 async function refreshFeedSourceRecord(source) {
   if (!source?.id) return 0
-  const insertedItems = []
+  const insertedItemIds = []
   try {
     const xml = await feedApi.fetchFeed(source.feed_url)
     const parsedItems = feedApi.parseFeed(xml, source.id)
@@ -244,7 +287,7 @@ async function refreshFeedSourceRecord(source) {
             .filter((row) => row.title === item.title && row.url === item.url)
             .first()
         if (!existing) {
-          insertedItems.push(await db.feed_items.add(item))
+          insertedItemIds.push(await db.feed_items.add(item))
         }
       }
       await saveFeedSourceData(source.id, {
@@ -259,11 +302,258 @@ async function refreshFeedSourceRecord(source) {
       last_error_message: error instanceof Error ? error.message : t('feeds.refreshFailed'),
     })
   }
-  return insertedItems.length
+  return insertedItemIds
 }
 
-async function refreshFeedCollectionView(moduleSyncId, collectionId) {
+/**
+ * Surgically patch a live feed collection DOM node without destroying it.
+ * Only the zones that can change are updated:
+ *   - collection-root data attributes (refreshing, items-loaded, focus)
+ *   - toolbar HTML
+ *   - refresh-hint div (toggle)
+ *   - sidebar source-button aria states + sidebar footer
+ *   - item list (diff by item ID — new items prepended, gone items removed,
+ *     attribute-level state updated on surviving nodes)
+ *
+ * Existing <img> nodes are never destroyed, so browsers do not re-request
+ * favicons or feed-content images.
+ */
+function patchFeedCollectionView(collectionRoot, collectionData, moduleSyncId, moduleConfig) {
+  const collectionId = parseInt(collectionRoot.dataset.feedCollectionId ?? '', 10)
+  if (!collectionId) return
+
+  const vm = computeFeedCollectionViewModel(collectionData, moduleSyncId, moduleConfig)
+  const {state, sources, visibleItems, sourceById, savedFeedItems, itemsLoaded, feedItemCount} = vm
+
+  const syncToolbar = () => {
+    const toolbar = collectionRoot.querySelector('.st-module-feed-toolbar')
+    if (!(toolbar instanceof HTMLElement)) return
+
+    const titleButton = toolbar.querySelector('[data-click="toggleLoadedItemsVisibility"]')
+    if (titleButton instanceof HTMLButtonElement) {
+      titleButton.textContent = vm.title
+      titleButton.setAttribute('title', state.showLoadedItems ? t('feeds.hideLoadedItems') : t('feeds.showLoadedItems'))
+    }
+
+    const unreadButton = toolbar.querySelector('[data-click="toggleUnreadFilter"]')
+    if (unreadButton instanceof HTMLButtonElement) {
+      unreadButton.textContent = t('feeds.unreadLabel', {count: vm.unreadCount})
+      unreadButton.setAttribute(
+        'title',
+        vm.hasUnreadItems
+          ? (state.unreadOnly ? t('feeds.showAllItems') : t('feeds.showUnreadItems'))
+          : t('feeds.noUnreadItems'),
+      )
+      unreadButton.disabled = !vm.hasUnreadItems
+    }
+
+    const refreshButton = toolbar.querySelector('[data-click="refreshAllFeeds"]')
+    if (refreshButton instanceof HTMLButtonElement) {
+      refreshButton.disabled = !sources.length
+    }
+
+    const actions = toolbar.querySelector('.st-module-feed-actions')
+    if (actions instanceof HTMLElement) {
+      const existingControls = actions.querySelector('.st-module-feed-focus-controls')
+      const wrapper = document.createElement('div')
+      wrapper.innerHTML = renderFeedFocusControls(moduleSyncId, collectionId, state).trim()
+      const nextControls = wrapper.firstElementChild
+      if (nextControls instanceof HTMLElement) {
+        if (existingControls instanceof HTMLElement) {
+          existingControls.replaceWith(nextControls)
+        } else {
+          actions.prepend(nextControls)
+        }
+      }
+    }
+  }
+
+  const syncSidebarFooter = () => {
+    const sidebarFooter = collectionRoot.querySelector('.st-module-feed-sidebar-footer')
+    if (!(sidebarFooter instanceof HTMLElement)) return
+
+    const latestButton = sidebarFooter.querySelector('[data-click="toggleLatestFeedItems"]')
+    if (latestButton instanceof HTMLButtonElement) {
+      latestButton.setAttribute('aria-pressed', state.latestOnly ? 'true' : 'false')
+      latestButton.setAttribute('title', state.latestOnly ? t('feeds.showAllItems') : t('feeds.showNewItems'))
+    }
+  }
+
+  // ── 1. Root attributes ───────────────────────────────────────────────────
+  collectionRoot.dataset.feedItemsLoaded = itemsLoaded ? 'true' : 'false'
+  collectionRoot.dataset.feedRefreshing = state.refreshing ? 'true' : 'false'
+  collectionRoot.dataset.feedItemCount = String(feedItemCount)
+  if (state.focusOpen) {
+    collectionRoot.setAttribute('data-feed-focus-open', '')
+    collectionRoot.setAttribute('data-focus-width', state.focusWidth)
+  } else {
+    collectionRoot.removeAttribute('data-feed-focus-open')
+    collectionRoot.removeAttribute('data-focus-width')
+  }
+
+  // ── 2. Toolbar ───────────────────────────────────────────────────────────
+  syncToolbar()
+
+  // ── 3. Refresh hint ──────────────────────────────────────────────────────
+  const main = collectionRoot.querySelector('.st-module-feed-main')
+  if (main instanceof HTMLElement) {
+    const existingHint = main.querySelector('.st-module-feed-refresh-hint')
+    if (state.refreshing && !existingHint) {
+      const newToolbar = main.querySelector('.st-module-feed-toolbar')
+      newToolbar?.insertAdjacentHTML('afterend', `<div class="st-module-feed-refresh-hint">${t('feeds.refreshingFeedItems')}</div>`)
+    } else if (!state.refreshing && existingHint) {
+      existingHint.remove()
+    }
+  }
+
+  // ── 4. Sidebar source buttons (aria state only, no DOM replacement) ───────
+  const sourcesNav = collectionRoot.querySelector('.st-module-feed-sources')
+  if (sourcesNav instanceof HTMLElement) {
+    sources.forEach((source) => {
+      const sourceId = source.id
+      const row = sourcesNav.querySelector(`[data-feed-source-id="${CSS.escape(String(sourceId ?? ''))}"]`)
+      if (!(row instanceof HTMLElement)) return
+      const isActive = state.activeSourceId === sourceId
+      const isLoading = state.loadingSourceId === sourceId
+      const btn = row.querySelector('.st-module-feed-source-button')
+      if (btn instanceof HTMLElement) {
+        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false')
+        btn.setAttribute('aria-busy', isLoading ? 'true' : 'false')
+      }
+      row.classList.toggle('is-loading', isLoading)
+    })
+  }
+
+  // ── 5. Sidebar footer (Latest toggle) ────────────────────────────────────
+  syncSidebarFooter()
+
+  // ── 6. Item list ──────────────────────────────────────────────────────────
+  // Detect whether the content zone type changed (e.g., lazy-load → item list,
+  // or filter turned list into empty state). If so, replace the content zone
+  // wholesale — it has no existing loaded images to preserve.
+  const existingListEl = collectionRoot.querySelector('.st-module-feed-list')
+  const existingPendingEl = collectionRoot.querySelector('[data-feed-items-pending]')
+
+  const wantsItemList = !vm.shouldLazyLoadItems && !vm.showLoadedItemsButton && visibleItems.length > 0
+  const wantsLazy = vm.shouldLazyLoadItems
+  const wantsShowButton = vm.showLoadedItemsButton
+  const wantsEmpty = !wantsItemList && !wantsLazy && !wantsShowButton
+
+  // If the type of content zone has to change, replace the whole zone
+  if (
+    (wantsItemList && !existingListEl) ||
+    (wantsLazy && !existingPendingEl) ||
+    ((wantsEmpty || wantsShowButton) && (existingListEl || existingPendingEl))
+  ) {
+    // Replace the content zone (toolbar was already updated above; hint handled above)
+    // Find the insertion anchor: last child of .st-module-feed-main that is not toolbar/hint
+    const contentZoneHtml = renderFeedContentZone(moduleSyncId, collectionId, vm).trim()
+    if (main instanceof HTMLElement) {
+      const oldZone = main.querySelector(
+        '.st-module-feed-list, [data-feed-items-pending], .st-module-feed-empty'
+      )
+      if (oldZone) {
+        const wrapper = document.createElement('div')
+        wrapper.innerHTML = contentZoneHtml
+        const newZone = wrapper.firstElementChild
+        if (newZone) {
+          oldZone.replaceWith(newZone)
+          initFeedFavicons(newZone)
+        }
+      } else {
+        main.insertAdjacentHTML('beforeend', contentZoneHtml)
+        const newZone = main.lastElementChild
+        if (newZone instanceof HTMLElement) initFeedFavicons(newZone)
+      }
+    }
+    return
+  }
+
+  if (!wantsItemList || !existingListEl) return
+
+  // ── Item list is present on both sides: surgical diff ────────────────────
+  const innerList = existingListEl.querySelector('.st-module-feed-list-inner')
+  if (!(innerList instanceof HTMLElement)) return
+
+  const isSavedFeedItem = (item) => savedFeedItems.some((row) => {
+    if (row.meta_json) {
+      try {
+        const parsed = JSON.parse(row.meta_json)
+        if (parsed?.external_id && parsed.external_id === item.external_id) return true
+      } catch {}
+    }
+    return row.title === item.title && row.url === item.url
+  })
+
+  const syncFeedArticleState = (article, item, isArchived) => {
+    if (!(article instanceof HTMLElement)) return
+    article.dataset.feedArchived = isArchived ? 'true' : 'false'
+    article.dataset.newlyFetched = state.latestItemIds.includes(item.id) ? 'true' : 'false'
+    article.dataset.read = item.read_at != null ? 'true' : 'false'
+
+    article.querySelectorAll('.st-module-feed-item-save, .st-module-feed-item-action[data-click="archiveFeedItem"]').forEach((button) => {
+      if (!(button instanceof HTMLButtonElement)) return
+      const label = isArchived ? t('feedItem.archived') : t('feedItem.save')
+      button.disabled = isArchived
+      button.textContent = label
+      button.setAttribute('title', isArchived ? t('feedItem.archived') : t('feedItem.archiveThisItem'))
+      button.setAttribute('aria-label', isArchived ? t('feedItem.archived') : t('feedItem.archiveThisItem'))
+    })
+  }
+
+  // Build a map of item ID → existing article element
+  const existingArticleById = new Map()
+  innerList.querySelectorAll('.st-module-feed-item[data-feed-item-id]').forEach((el) => {
+    const id = parseInt(el.dataset.feedItemId ?? '', 10)
+    if (id) existingArticleById.set(id, el)
+  })
+
+  const visibleIds = new Set(visibleItems.map((item) => item.id).filter(Boolean))
+
+  // Remove articles that are no longer visible
+  existingArticleById.forEach((el, id) => {
+    if (!visibleIds.has(id)) el.remove()
+  })
+
+  let needsReorder = false
+  const orderedArticles = []
+  const newArticles = []
+  visibleItems.forEach((item) => {
+    if (!item.id) return
+    let article = existingArticleById.get(item.id)
+    const isArchived = isSavedFeedItem(item)
+
+    if (!(article instanceof HTMLElement)) {
+      const source = sourceById.get(item.feed_source_id)
+      const wrapper = document.createElement('div')
+      wrapper.innerHTML = renderFeedItem(item, source, moduleSyncId, collectionId, state, isArchived).trim()
+      article = wrapper.firstElementChild
+      if (!(article instanceof HTMLElement)) return
+      newArticles.push(article)
+    }
+
+    syncFeedArticleState(article, item, isArchived)
+    orderedArticles.push(article)
+  })
+
+  orderedArticles.forEach((article, index) => {
+    if (innerList.children[index] !== article) needsReorder = true
+  })
+
+  if (innerList.childElementCount !== orderedArticles.length) needsReorder = true
+
+  if (needsReorder) {
+    const fragment = document.createDocumentFragment()
+    orderedArticles.forEach((article) => fragment.appendChild(article))
+    innerList.replaceChildren(fragment)
+  }
+
+  newArticles.forEach((article) => initFeedFavicons(article))
+}
+
+async function refreshFeedCollectionView(moduleSyncId, collectionId, options = {}) {
   if (!moduleSyncId || !collectionId) return
+  const {anchorItemId = null} = options
 
   const collectionRoot = document.querySelector(
     `[data-feed-collection-id="${CSS.escape(String(collectionId))}"][data-feed-module-sync-id="${CSS.escape(moduleSyncId)}"]`
@@ -274,6 +564,13 @@ async function refreshFeedCollectionView(moduleSyncId, collectionId) {
   const innerScrollHost = collectionRoot.querySelector('.st-module-feed-list-inner')
   const outerScrollTop = outerScrollHost instanceof HTMLElement ? outerScrollHost.scrollTop : 0
   const innerScrollTop = innerScrollHost instanceof HTMLElement ? innerScrollHost.scrollTop : 0
+  const anchorSelector = anchorItemId != null
+    ? `[data-feed-item-id="${CSS.escape(String(anchorItemId))}"]`
+    : ''
+  const activeAnchorHost = innerScrollHost instanceof HTMLElement ? innerScrollHost : outerScrollHost
+  const previousAnchorRectTop = anchorSelector && activeAnchorHost instanceof HTMLElement
+    ? activeAnchorHost.querySelector(anchorSelector)?.getBoundingClientRect?.().top ?? null
+    : null
 
   const [module, tab, feedSources, savedFeedItems] = await Promise.all([
     loadModuleBySyncId(moduleSyncId),
@@ -296,27 +593,65 @@ async function refreshFeedCollectionView(moduleSyncId, collectionId) {
     }
   })() : {feedItemLimit: 0}
 
-  const wrapper = document.createElement('div')
-  wrapper.innerHTML = renderFeedCollection({
+  const collectionData = {
     ...tab,
     feedSources,
     feedItems,
+    feedItemsLoaded: true,
+    feedItemCount: feedItems.length,
     savedFeedItems,
-  }, moduleSyncId, moduleConfig).trim()
-
-  const nextRoot = wrapper.firstElementChild
-  if (!(nextRoot instanceof HTMLElement)) return
-
-  collectionRoot.replaceWith(nextRoot)
-  initFeedFavicons(nextRoot)
-
-  const nextOuterScrollHost = nextRoot.querySelector('.st-module-feed-list')
-  const nextInnerScrollHost = nextRoot.querySelector('.st-module-feed-list-inner')
-  if (nextOuterScrollHost instanceof HTMLElement) {
-    nextOuterScrollHost.scrollTop = outerScrollTop
   }
-  if (nextInnerScrollHost instanceof HTMLElement) {
-    nextInnerScrollHost.scrollTop = innerScrollTop
+
+  // Use surgical patching when the collection root already exists in the DOM.
+  // Fall back to a full replace for first renders or edge cases where the root
+  // is somehow missing the expected structure.
+  const hasItemListStructure = !!(collectionRoot.querySelector('.st-module-feed-main') && collectionRoot.querySelector('.st-module-feed-toolbar'))
+  if (hasItemListStructure) {
+    patchFeedCollectionView(collectionRoot, collectionData, moduleSyncId, moduleConfig)
+  } else {
+    // Full replace fallback (first render / structural mismatch)
+    const wrapper = document.createElement('div')
+    wrapper.innerHTML = renderFeedCollection(collectionData, moduleSyncId, moduleConfig).trim()
+    const nextRoot = wrapper.firstElementChild
+    if (!(nextRoot instanceof HTMLElement)) return
+    collectionRoot.replaceWith(nextRoot)
+    initFeedFavicons(nextRoot)
+
+    const nextOuterScrollHost = nextRoot.querySelector('.st-module-feed-list')
+    const nextInnerScrollHost = nextRoot.querySelector('.st-module-feed-list-inner')
+    if (nextOuterScrollHost instanceof HTMLElement) nextOuterScrollHost.scrollTop = outerScrollTop
+    if (nextInnerScrollHost instanceof HTMLElement) nextInnerScrollHost.scrollTop = innerScrollTop
+    if (anchorSelector) {
+      const nextActiveAnchorHost = nextInnerScrollHost instanceof HTMLElement ? nextInnerScrollHost : nextOuterScrollHost
+      const nextAnchorRectTop = nextActiveAnchorHost instanceof HTMLElement
+        ? nextActiveAnchorHost.querySelector(anchorSelector)?.getBoundingClientRect?.().top ?? null
+        : null
+      if (previousAnchorRectTop != null && nextAnchorRectTop != null && nextActiveAnchorHost instanceof HTMLElement) {
+        nextActiveAnchorHost.scrollTop += nextAnchorRectTop - previousAnchorRectTop
+      }
+    }
+    const state = getFeedUiState(moduleSyncId, collectionId)
+    if (state.focusOpen) {
+      applyFeedFocusMode(moduleSyncId, collectionId)
+    } else {
+      clearFeedFocusMode(moduleSyncId)
+    }
+    return
+  }
+
+  // Restore scroll position for the surgical patch path
+  const nextOuterScrollHost = collectionRoot.querySelector('.st-module-feed-list')
+  const nextInnerScrollHost = collectionRoot.querySelector('.st-module-feed-list-inner')
+  if (nextOuterScrollHost instanceof HTMLElement) nextOuterScrollHost.scrollTop = outerScrollTop
+  if (nextInnerScrollHost instanceof HTMLElement) nextInnerScrollHost.scrollTop = innerScrollTop
+  if (anchorSelector) {
+    const nextActiveAnchorHost = nextInnerScrollHost instanceof HTMLElement ? nextInnerScrollHost : nextOuterScrollHost
+    const nextAnchorRectTop = nextActiveAnchorHost instanceof HTMLElement
+      ? nextActiveAnchorHost.querySelector(anchorSelector)?.getBoundingClientRect?.().top ?? null
+      : null
+    if (previousAnchorRectTop != null && nextAnchorRectTop != null && nextActiveAnchorHost instanceof HTMLElement) {
+      nextActiveAnchorHost.scrollTop += nextAnchorRectTop - previousAnchorRectTop
+    }
   }
 
   const state = getFeedUiState(moduleSyncId, collectionId)
@@ -324,6 +659,72 @@ async function refreshFeedCollectionView(moduleSyncId, collectionId) {
     applyFeedFocusMode(moduleSyncId, collectionId)
   } else {
     clearFeedFocusMode(moduleSyncId)
+  }
+}
+
+function updateFeedItemDom(article, item, context) {
+  if (!(article instanceof HTMLElement) || !item) return
+
+  const nextState = toggleFeedItemExpansionState(context.moduleSyncId, context.collectionId, item.id)
+  const expanded = nextState.expandedItemIds.includes(item.id)
+  const sourceTitle = article.dataset.feedSourceTitle || t('feeds.filterAll')
+  const isArchived = article.dataset.feedArchived === 'true'
+  const header = article.querySelector('.st-module-feed-item-header')
+  const existingBody = article.querySelector('.st-module-feed-item-body')
+  const toggleButton = article.querySelector('.st-module-feed-item-toggle')
+  const saveButtons = article.querySelectorAll('.st-module-feed-item-save, .st-module-feed-item-action[data-click="archiveFeedItem"]')
+
+  article.setAttribute('data-expanded', expanded ? 'true' : 'false')
+  article.setAttribute('data-read', 'true')
+  toggleButton?.setAttribute('aria-expanded', expanded ? 'true' : 'false')
+
+  if (saveButtons.length) {
+    saveButtons.forEach((button) => {
+      if (!(button instanceof HTMLButtonElement)) return
+      button.disabled = isArchived
+      const label = isArchived ? t('feedItem.archived') : t('feedItem.save')
+      button.textContent = label
+      button.setAttribute('title', isArchived ? t('feedItem.archived') : t('feedItem.archiveThisItem'))
+      button.setAttribute('aria-label', isArchived ? t('feedItem.archived') : t('feedItem.archiveThisItem'))
+    })
+  }
+
+  if (!expanded) {
+    existingBody?.remove()
+    return
+  }
+
+  const bodyHtml = renderFeedItemBody(
+    item.read_at == null ? {...item, read_at: Date.now()} : item,
+    sourceTitle,
+    context.moduleSyncId,
+    context.collectionId,
+    isArchived,
+  ).trim()
+
+  if (existingBody) {
+    existingBody.outerHTML = bodyHtml
+    return
+  }
+
+  header?.insertAdjacentHTML('afterend', bodyHtml)
+}
+
+export async function ensureFeedCollectionLoaded(moduleSyncId, collectionId) {
+  if (!moduleSyncId || !collectionId) return
+
+  const collectionRoot = document.querySelector(
+    `[data-feed-collection-id="${CSS.escape(String(collectionId))}"][data-feed-module-sync-id="${CSS.escape(moduleSyncId)}"]`
+  )
+  if (!(collectionRoot instanceof HTMLElement)) return
+  if (collectionRoot.dataset.feedItemsLoaded === 'true') return
+  if (collectionRoot.hasAttribute('data-feed-items-loading')) return
+
+  collectionRoot.setAttribute('data-feed-items-loading', '')
+  try {
+    await refreshFeedCollectionView(moduleSyncId, collectionId)
+  } finally {
+    collectionRoot.removeAttribute('data-feed-items-loading')
   }
 }
 
@@ -337,9 +738,9 @@ async function openCrudPanel({entityType, record = null, moduleSyncId = '', pare
         action: 'moduleCrudDelete',
         label: t(
           entityType === 'tab'
-            ? 'next.moduleCrud.deleteTab'
+             ? 'moduleCrud.deleteTab'
             : entityType === 'bookmark'
-              ? 'next.moduleCrud.deleteBookmark'
+               ? 'moduleCrud.deleteBookmark'
             : 'common.delete'
         ),
       attrs: {
@@ -471,6 +872,34 @@ function getFormContext(target) {
 }
 
 export const moduleCrudActions = {
+  async toggleQuickModuleSetting(target) {
+    const moduleSyncId = target.dataset.syncId || ''
+    const moduleType = target.dataset.moduleType || ''
+    const key = target.dataset.quickSettingKey || ''
+    const moduleRoot = getModuleRoot(moduleSyncId)
+    if (!moduleSyncId || !moduleType || !key || !(moduleRoot instanceof HTMLElement)) return
+
+    const currentValue = getQuickModuleSettingValue(moduleRoot, key)
+    await persistModuleQuickConfig(moduleSyncId, moduleType, {
+      behavior: {
+        [key]: currentValue !== true,
+      },
+    })
+  },
+
+  async setQuickModuleColumnSpan(target) {
+    const moduleSyncId = target.dataset.syncId || ''
+    const moduleType = target.dataset.moduleType || ''
+    const columnSpan = parseInt(target.dataset.columnSpan ?? target.dataset.quickSettingValue ?? '', 10)
+    if (!moduleSyncId || !moduleType || !Number.isInteger(columnSpan)) return
+
+    await persistModuleQuickConfig(moduleSyncId, moduleType, {
+      layout: {
+        'module-column-span': Math.max(1, Math.min(12, columnSpan)),
+      },
+    })
+  },
+
   async addModuleTab(target) {
     const moduleSyncId = target.dataset.syncId
     const moduleId = parseInt(target.dataset.moduleId ?? '', 10)
@@ -504,7 +933,7 @@ export const moduleCrudActions = {
     const moduleSyncId = target.dataset.syncId
     const currentTab = getCurrentModuleTabContext(moduleSyncId)
     if (!currentTab) return
-    if (!confirm(t('next.moduleCrud.confirmDeleteTab', {title: currentTab.title || t('nav.page')}))) return
+    if (!confirm(t('moduleCrud.confirmDeleteTab', {title: currentTab.title || t('nav.page')}))) return
     await softDeleteModuleTab(currentTab.tabId)
     const {renderNextRoot} = await import('../app/bootstrap.js')
     await renderNextRoot()
@@ -611,6 +1040,13 @@ export const moduleCrudActions = {
     await refreshFeedCollectionView(context.moduleSyncId, context.collectionId)
   },
 
+  async toggleLatestFeedItems(target) {
+    const context = getFeedCollectionContext(target)
+    if (!context) return
+    toggleFeedLatestState(context.moduleSyncId, context.collectionId)
+    await refreshFeedCollectionView(context.moduleSyncId, context.collectionId)
+  },
+
   async changeFeedFocusWidth(target) {
     const moduleSyncId = target.dataset.feedModuleSyncId || ''
     const collectionId = parseInt(target.dataset.feedCollectionId ?? '', 10)
@@ -654,11 +1090,11 @@ export const moduleCrudActions = {
     if (!context || !itemId) return
     const item = await loadFeedItemById(itemId)
     if (!item) return
-    toggleFeedItemExpansionState(context.moduleSyncId, context.collectionId, itemId)
+    const article = target.closest('.st-module-feed-item[data-feed-item-id]')
+    updateFeedItemDom(article, item, context)
     if (item.read_at == null) {
       await db.feed_items.update(itemId, {read_at: Date.now()})
     }
-    await refreshFeedCollectionView(context.moduleSyncId, context.collectionId)
   },
 
   async markAllAsRead(target) {
@@ -690,17 +1126,27 @@ export const moduleCrudActions = {
     const context = getFeedCollectionContext(target)
     if (!context) return
     const sources = await loadFeedSourcesByCollectionId(context.collectionId)
-    for (const source of sources) {
-      setFeedSourceLoadingState(context.moduleSyncId, context.collectionId, source.id)
-      await refreshFeedCollectionView(context.moduleSyncId, context.collectionId)
-      await refreshFeedSourceRecord(source)
+    setFeedRefreshingState(context.moduleSyncId, context.collectionId, true)
+    await refreshFeedCollectionView(context.moduleSyncId, context.collectionId)
+    try {
+      for (const source of sources) {
+        setFeedSourceLoadingState(context.moduleSyncId, context.collectionId, source.id)
+        await refreshFeedCollectionView(context.moduleSyncId, context.collectionId)
+        const insertedItemIds = await refreshFeedSourceRecord(source)
+        if (insertedItemIds.length) {
+          addFeedLatestItems(context.moduleSyncId, context.collectionId, insertedItemIds)
+        }
+        setFeedSourceLoadingState(context.moduleSyncId, context.collectionId, null)
+        await refreshFeedCollectionView(context.moduleSyncId, context.collectionId)
+      }
       setFeedSourceLoadingState(context.moduleSyncId, context.collectionId, null)
+      const cutoff = Date.now() - (90 * 24 * 60 * 60 * 1000)
+      await db.feed_items.where('fetched_at').below(cutoff).delete()
+    } finally {
+      setFeedSourceLoadingState(context.moduleSyncId, context.collectionId, null)
+      setFeedRefreshingState(context.moduleSyncId, context.collectionId, false)
       await refreshFeedCollectionView(context.moduleSyncId, context.collectionId)
     }
-    setFeedSourceLoadingState(context.moduleSyncId, context.collectionId, null)
-    const cutoff = Date.now() - (90 * 24 * 60 * 60 * 1000)
-    await db.feed_items.where('fetched_at').below(cutoff).delete()
-    await refreshFeedCollectionView(context.moduleSyncId, context.collectionId)
   },
 
   async clearModuleFeedItems(target) {
@@ -797,7 +1243,7 @@ export const moduleCrudActions = {
     const bookmarkId = parseInt(target.dataset.bookmarkId ?? '', 10)
     const label = target.dataset.bookmarkTitle || ''
     if (!bookmarkId) return
-    if (!confirm(t('next.moduleCrud.confirmDeleteBookmark', {title: label || t('app.searchKinds.bookmark')}))) return
+    if (!confirm(t('moduleCrud.confirmDeleteBookmark', {title: label || t('app.searchKinds.bookmark')}))) return
     await softDeleteBookmark(bookmarkId)
     const {renderNextRoot} = await import('../app/bootstrap.js')
     await renderNextRoot()
@@ -901,11 +1347,11 @@ export const moduleCrudActions = {
 
     if (context.entityType === 'tab') {
       const label = context.form.querySelector('[name="title"]')?.value?.trim() || ''
-      if (!confirm(t('next.moduleCrud.confirmDeleteTab', {title: label || t('next.moduleCrud.tab')}))) return
+      if (!confirm(t('moduleCrud.confirmDeleteTab', {title: label || t('moduleCrud.tab')}))) return
       await softDeleteModuleTab(context.recordId)
     } else if (context.entityType === 'bookmark') {
       const label = context.form.querySelector('[name="title"]')?.value?.trim() || ''
-      if (!confirm(t('next.moduleCrud.confirmDeleteBookmark', {title: label || t('next.moduleCrud.bookmark')}))) return
+      if (!confirm(t('moduleCrud.confirmDeleteBookmark', {title: label || t('moduleCrud.bookmark')}))) return
       await softDeleteBookmark(context.recordId)
     } else if (context.entityType === 'feed-source') {
       const label = context.form.querySelector('[name="title"]')?.value?.trim() || ''

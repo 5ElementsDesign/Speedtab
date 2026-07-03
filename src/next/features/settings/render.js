@@ -2,6 +2,16 @@ import {SPEEDTAB_SVG} from '../../components/icons.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 
+function toColorInputValue(value) {
+  if (!value) return ''
+  if (/^#[0-9a-fA-F]{6,8}$/.test(value)) return value
+  if (/^#[0-9a-fA-F]{3}$/.test(value)) {
+    const [, r, g, b] = value
+    return `#${r}${r}${g}${g}${b}${b}`
+  }
+  return ''
+}
+
 export function renderBgAssetThumbs(assets) {
   if (!assets.length) return ''
   return assets.map((asset) => {
@@ -258,6 +268,75 @@ export function renderBgArchiveSwatches(items) {
   `).join('')
 }
 
+export function renderBackgroundSettingsSection(bgData = {}, options = {}) {
+  const {
+    title = t('customizer.sections.background'),
+    textInputAction = 'previewBgProperty',
+    textInputSettingKey = 'background_properties',
+    textInputName = 'previewBgPropertyInput',
+    textInputPlaceholder = t('customizer.backgroundPlaceholder'),
+    clearAction = 'clearBgProperty',
+    archiveAction = 'archiveBgProperty',
+    uploadAction = 'uploadBgWallpaper',
+    triggerUploadAction = 'triggerWallpaperUpload',
+    uploadInputName = 'uploadBgWallpaperInput',
+    uploadInputId = 'st-wallpaper-upload',
+  } = options
+
+  const {background_properties = '', bgArchive = [], bgAssets = []} = bgData
+  const backgroundColorValue = toColorInputValue(background_properties?.trim?.() ?? background_properties)
+
+  return section(title, `
+    <div data-customizer-field data-customizer-field-layout="background-input">
+      <div data-color-item>
+        <input
+          type="text"
+          name="${escapeHtml(`${textInputName}Color`)}"
+          data-coloris
+          data-input-immediate="${escapeHtml(textInputAction)}"
+          data-change="changeAppSetting"
+          data-setting-key="${escapeHtml(textInputSettingKey)}"
+          data-bg-color-input
+          value="${escapeHtml(backgroundColorValue)}"
+        >
+        <button
+          type="button"
+          data-click="${escapeHtml(clearAction)}"
+          data-customizer-clear
+          title="${escapeHtml(t('customizer.reset'))}"
+          aria-label="${escapeHtml(t('customizer.reset'))}"
+        >&times;</button>
+      </div>
+      <input
+        type="text"
+        name="${escapeHtml(textInputName)}"
+        class="w-100"
+        data-input="${escapeHtml(textInputAction)}"
+        data-change="changeAppSetting"
+        data-setting-key="${escapeHtml(textInputSettingKey)}"
+        data-bg-property-input
+        value="${escapeHtml(background_properties)}"
+        placeholder="${escapeHtml(textInputPlaceholder)}"
+      />
+      <button type="button" data-btn="primary" data-click="${escapeHtml(archiveAction)}" data-customizer-compact-btn>${t('customizer.archive')}</button>
+      <button type="button" data-btn="warning" data-click="${escapeHtml(clearAction)}" data-customizer-compact-btn>${t('settings.clear')}</button>
+    </div>
+    ${bgArchive.length
+      ? `<div data-bg-archive-list>${renderBgArchiveSwatches(bgArchive)}</div>`
+      : '<div data-bg-archive-list></div>'}
+    <div data-customizer-field data-customizer-field-layout="stack" data-customizer-gap="md">
+      <label data-customizer-upload-row>
+        <span data-customizer-field-label>${t('customizer.uploadWallpaper')}</span>
+        <input type="file" name="${escapeHtml(uploadInputName)}" accept="image/*" data-change="${escapeHtml(uploadAction)}" hidden id="${escapeHtml(uploadInputId)}">
+        <button type="button" data-click="${escapeHtml(triggerUploadAction)}" data-customizer-compact-btn>${t('customizer.chooseImage')}</button>
+      </label>
+    </div>
+    ${bgAssets.length
+      ? `<div data-bg-asset-list>${renderBgAssetThumbs(bgAssets)}</div>`
+      : '<div data-bg-asset-list></div>'}
+  `)
+}
+
 export function renderSettingsPanel(settings, widgetSettings = {}) {
   const {
     ui_language,
@@ -279,17 +358,19 @@ export function renderSettingsPanel(settings, widgetSettings = {}) {
             data-settings-scale-select
           >
             <option value="">${escapeHtml(t('noteForm.code.autoDetect'))}</option>
-            <option value="en"${ui_language === 'en' ? ' selected' : ''}>${escapeHtml(t('settings.language.english'))}</option>
-            <option value="de"${ui_language === 'de' ? ' selected' : ''}>${escapeHtml(t('settings.language.german'))}</option>
+            <option value="en" lang="en"${ui_language === 'en' ? ' selected' : ''}>English</option>
+            <option value="de" lang="de"${ui_language === 'de' ? ' selected' : ''}>Deutsch</option>
+            <option value="tr" lang="tr"${ui_language === 'tr' ? ' selected' : ''}>Türkçe</option>
+            <option value="hi" lang="hi"${ui_language === 'hi' ? ' selected' : ''}>हिन्दी</option>
           </select>
         </div>
         <p data-settings-hint>${t('settings.language.help')}</p>
         <div data-customizer-divider aria-hidden="true"></div>
       `)}
 
-      ${section(t('next.settings.sections.performance'), `
+      ${section(t('settings.sections.performance'), `
         <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
-          <span data-customizer-field-label>${t('next.settings.htmlCache')}</span>
+          <span data-customizer-field-label>${t('settings.htmlCache')}</span>
           <input type="checkbox"
             name="html_cacheInput"
             data-change="changeAppSetting"
@@ -299,7 +380,7 @@ export function renderSettingsPanel(settings, widgetSettings = {}) {
           />
         </label>
         <p data-settings-hint>
-          ${t('next.settings.htmlCacheHelp')}
+          ${t('settings.htmlCacheHelp')}
         </p>
         <div data-customizer-divider aria-hidden="true"></div>
       `)}
@@ -328,7 +409,7 @@ export function renderSettingsPanel(settings, widgetSettings = {}) {
             data-change="changeAppSetting"
             data-setting-key="feed_search_url_template"
             value="${escapeHtml(feed_search_url_template ?? '')}"
-            placeholder="${escapeHtml(t('next.settings.feedSearchPlaceholder'))}"
+            placeholder="${escapeHtml('https://www.google.com/search?q=%s')}"
             data-settings-wide-input
           />
           <span data-settings-hint>${t('settings.feedSearchHelp')}</span>

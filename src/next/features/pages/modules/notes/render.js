@@ -42,16 +42,16 @@ function renderNoteAddTile(moduleSyncId = '') {
         data-swipe-allow
         data-sync-id="${escapeHtml(moduleSyncId)}"
         data-note-inline-add
-        title="${escapeHtml(t('next.modules.actions.addNote'))}"
-        aria-label="${escapeHtml(t('next.modules.actions.addNote'))}"
+        title="${escapeHtml(t('modules.actions.addNote'))}"
+        aria-label="${escapeHtml(t('modules.actions.addNote'))}"
       >${SPEEDTAB_SVG.plus}</button>
     </div>
   `
 }
 
-export function renderNotesGrid(notes = [], moduleSyncId = '') {
+export function renderNotesGrid(notes = [], moduleSyncId = '', config = {}) {
+  const showAddTile = config?.behavior?.['module-tabs-show-add-tile'] !== false
   const noteTiles = notes.map((note) => renderNoteTile(note, moduleSyncId)).join('')
-  const addTileAttr = 'data-note-add-tile'
   return `
     <div
       class="st-module-content-wrapper"
@@ -60,12 +60,12 @@ export function renderNotesGrid(notes = [], moduleSyncId = '') {
     >
       ${!notes.length ? `<p class="st-notes-empty m-0">${escapeHtml(t('notesView.noNotes'))}</p>` : ''}
       ${noteTiles}
-      ${renderNoteAddTile(moduleSyncId)}
+      ${showAddTile ? renderNoteAddTile(moduleSyncId) : ''}
     </div>
   `
 }
 
-export function renderNotesModule(tabs = [], actionsHtml = '', moduleId = null, moduleSyncId = '') {
+export function renderNotesModule(tabs = [], actionsHtml = '', moduleId = null, moduleSyncId = '', config = {}) {
   const actions = actionsHtml
     ? `<div data-module-actions data-swipe-ignore>${actionsHtml}</div>`
     : ''
@@ -78,7 +78,7 @@ export function renderNotesModule(tabs = [], actionsHtml = '', moduleId = null, 
       <div data-module-empty-state-wrap>
         ${actions}
         ${cardActions}
-        <div data-swipe-ignore><p class="st-module-empty-state m-0">${escapeHtml(t('next.modules.empty.notes'))}</p></div>
+        <div data-swipe-ignore><p class="st-module-empty-state m-0">${escapeHtml(t('modules.empty.notes'))}</p></div>
       </div>
     `
   }
@@ -100,7 +100,7 @@ export function renderNotesModule(tabs = [], actionsHtml = '', moduleId = null, 
 
   const panels = tabs.map((tab) => `
     <div data-tab="tab-${tab.id}" data-tab-id="${escapeHtml(String(tab.id ?? ''))}" data-tab-sync-id="${escapeHtml(tab.sync_id ?? '')}">
-      ${renderNotesGrid(tab.notes ?? [], moduleSyncId)}
+      ${renderNotesGrid(tab.notes ?? [], moduleSyncId, config)}
     </div>
   `).join('')
 

@@ -1,10 +1,16 @@
-import {db} from '../../db/db.ts'
+import {db, makeUpdatedAtPatch} from '../../db/db.ts'
 import {sha256hex} from '../data/assets.js'
 
 const EXCLUDED_HOSTS = new Set(['example.com', 'example.net', 'example.org', 'feeds.feedburner.com', 'localhost'])
 const FAVICON_TTL_MS            = 90 * 24 * 60 * 60 * 1000
 const FAVICON_RETRY_COOLDOWN_MS =  5 * 60 * 1000
 const MAX_FAVICON_DIMENSION     = 48
+const FAVICON_ALPHA_THRESHOLD   = 32
+const FAVICON_DARK_LUMINANCE    = 110
+const FAVICON_LIGHT_LUMINANCE   = 215
+const FAVICON_LOW_COLOR_SPREAD  = 28
+const FAVICON_MIN_TRANSPARENCY  = 0.1
+const FAVICON_WHITE_BG_RADIUS   = 4
 
 // In-memory caches
 const objectUrlByHost        = new Map() // hostname → blob: URL
@@ -143,27 +149,189 @@ async function fetchRemoteFaviconBlob(hostname) {
   return null
 }
 
-async function normalizeFaviconBlob(blob) {
+function analyzeFaviconPixels(ctx, width, height) {
+  try {
+    const {data} = ctx.getImageData(0, 0, width, height)
+    let visiblePixels = 0
+    let transparentPixels = 0
+    let luminanceTotal = 0
+    let channelSpreadTotal = 0
+
+    for (let index = 0; index < data.length; index += 4) {
+      const r = data[index]
+      const g = data[index + 1]
+      const b = data[index + 2]
+      const a = data[index + 3]
+
+      if (a < FAVICON_ALPHA_THRESHOLD) {
+        transparentPixels += 1
+        continue
+      }
+
+      visiblePixels += 1
+      luminanceTotal += (0.2126 * r) + (0.7152 * g) + (0.0722 * b)
+      channelSpreadTotal += Math.max(r, g, b) - Math.min(r, g, b)
+    }
+
+    const totalPixels = width * height
+    if (!visiblePixels || !totalPixels) return null
+
+    const transparencyRatio = transparentPixels / totalPixels
+    const averageLuminance = luminanceTotal / visiblePixels
+    const averageChannelSpread = channelSpreadTotal / visiblePixels
+
+    return {
+      transparencyRatio,
+      averageLuminance,
+      averageChannelSpread,
+    }
+  } catch {
+    return null
+  }
+}
+
+function getFaviconBackgroundFixColor(ctx, width, height, mode = 'dark-only') {
+  const analysis = analyzeFaviconPixels(ctx, width, height)
+  if (!analysis) return null
+
+  const {transparencyRatio, averageLuminance, averageChannelSpread} = analysis
+  if (transparencyRatio < FAVICON_MIN_TRANSPARENCY || averageChannelSpread > FAVICON_LOW_COLOR_SPREAD) {
+    return null
+  }
+
+  if (averageLuminance <= FAVICON_DARK_LUMINANCE) return '#ffffff'
+  if (mode === 'auto' && averageLuminance >= FAVICON_LIGHT_LUMINANCE) return '#000000'
+  return null
+}
+
+async function canvasToPngBlob(canvas) {
+  return new Promise((resolve) => {
+    canvas.toBlob(resolve, 'image/png')
+  })
+}
+
+function drawRoundedRect(ctx, x, y, width, height, radius) {
+  const safeRadius = Math.max(0, Math.min(radius, width / 2, height / 2))
+  ctx.beginPath()
+  ctx.moveTo(x + safeRadius, y)
+  ctx.lineTo(x + width - safeRadius, y)
+  ctx.quadraticCurveTo(x + width, y, x + width, y + safeRadius)
+  ctx.lineTo(x + width, y + height - safeRadius)
+  ctx.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height)
+  ctx.lineTo(x + safeRadius, y + height)
+  ctx.quadraticCurveTo(x, y + height, x, y + height - safeRadius)
+  ctx.lineTo(x, y + safeRadius)
+  ctx.quadraticCurveTo(x, y, x + safeRadius, y)
+  ctx.closePath()
+}
+
+export async function normalizeStoredFaviconBlob(blob, options = {}) {
+  const {backgroundMode = 'dark-only'} = options
   if (typeof createImageBitmap !== 'function') return {blob, width: null, height: null}
   try {
     const bitmap = await createImageBitmap(blob)
     const {width, height} = bitmap
-    if (width <= MAX_FAVICON_DIMENSION && height <= MAX_FAVICON_DIMENSION) {
-      bitmap.close()
-      return {blob, width, height}
-    }
     const scale = Math.min(MAX_FAVICON_DIMENSION / width, MAX_FAVICON_DIMENSION / height)
     const tw = Math.max(1, Math.round(width * scale))
     const th = Math.max(1, Math.round(height * scale))
     const canvas = document.createElement('canvas')
-    canvas.width = tw; canvas.height = th
+    canvas.width = MAX_FAVICON_DIMENSION
+    canvas.height = MAX_FAVICON_DIMENSION
     const ctx = canvas.getContext('2d')
     if (!ctx) { bitmap.close(); return {blob, width, height} }
-    ctx.drawImage(bitmap, 0, 0, tw, th)
+    const offsetX = Math.round((MAX_FAVICON_DIMENSION - tw) / 2)
+    const offsetY = Math.round((MAX_FAVICON_DIMENSION - th) / 2)
+    ctx.clearRect(0, 0, MAX_FAVICON_DIMENSION, MAX_FAVICON_DIMENSION)
+    ctx.drawImage(bitmap, offsetX, offsetY, tw, th)
     bitmap.close()
-    const normalized = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
-    return {blob: normalized ?? blob, width: tw, height: th}
+
+    const backgroundColor = getFaviconBackgroundFixColor(
+      ctx,
+      MAX_FAVICON_DIMENSION,
+      MAX_FAVICON_DIMENSION,
+      backgroundMode,
+    )
+
+    if (backgroundColor) {
+      const flattenedCanvas = document.createElement('canvas')
+      flattenedCanvas.width = MAX_FAVICON_DIMENSION
+      flattenedCanvas.height = MAX_FAVICON_DIMENSION
+      const flattenedCtx = flattenedCanvas.getContext('2d')
+      if (flattenedCtx) {
+        drawRoundedRect(flattenedCtx, 0, 0, MAX_FAVICON_DIMENSION, MAX_FAVICON_DIMENSION, FAVICON_WHITE_BG_RADIUS)
+        flattenedCtx.fillStyle = backgroundColor
+        flattenedCtx.fill()
+        flattenedCtx.drawImage(canvas, 0, 0)
+        const flattenedBlob = await canvasToPngBlob(flattenedCanvas)
+        return {blob: flattenedBlob ?? blob, width: MAX_FAVICON_DIMENSION, height: MAX_FAVICON_DIMENSION}
+      }
+    }
+
+    const normalized = await canvasToPngBlob(canvas)
+    if (normalized) {
+      return {blob: normalized, width: MAX_FAVICON_DIMENSION, height: MAX_FAVICON_DIMENSION}
+    }
+    return {blob, width: MAX_FAVICON_DIMENSION, height: MAX_FAVICON_DIMENSION}
   } catch { return {blob, width: null, height: null} }
+}
+
+export async function fixFaviconAssetBackground(assetId) {
+  const id = Number(assetId)
+  if (!id) return false
+  const asset = await db.assets.get(id)
+  if (!asset?.blob || asset.kind !== 'favicon') return false
+
+  const normalized = await normalizeStoredFaviconBlob(asset.blob, {backgroundMode: 'auto'})
+  const nextBlob = normalized.blob
+  const nextChecksum = await sha256hex(nextBlob)
+
+  if (nextChecksum === asset.checksum) return false
+
+  const hostnames = parseFaviconMeta(asset.meta_json)?.hostnames ?? []
+  const existingForChecksum = await db.assets.where('checksum').equals(nextChecksum).first()
+
+  if (existingForChecksum?.id != null && existingForChecksum.id !== id) {
+    const now = Date.now()
+    const mergedHostnames = [
+      ...(parseFaviconMeta(existingForChecksum.meta_json)?.hostnames ?? []),
+      ...hostnames,
+    ]
+
+    await db.transaction('rw', [db.assets, db.tabs], async () => {
+      await db.assets.update(existingForChecksum.id, {
+        meta_json: makeFaviconMeta(mergedHostnames),
+      })
+
+      const directRefs = await db.tabs.where('favicon_asset_id').equals(id).toArray()
+      for (const tab of directRefs) {
+        await db.tabs.update(tab.id, {
+          favicon_asset_id: existingForChecksum.id,
+          ...makeUpdatedAtPatch(now),
+        })
+      }
+
+      await db.assets.delete(id)
+    })
+
+    for (const hostname of hostnames) {
+      setObjectUrlForHost(hostname, existingForChecksum.blob)
+    }
+
+    return true
+  }
+
+  await db.assets.update(id, {
+    blob: nextBlob,
+    checksum: nextChecksum,
+    width: normalized.width,
+    height: normalized.height,
+  })
+
+  for (const hostname of hostnames) {
+    setObjectUrlForHost(hostname, nextBlob)
+  }
+
+  return true
 }
 
 // ─── Refresh: fetch remote, deduplicate, store ────────────────────────────────
@@ -173,7 +341,7 @@ async function refreshFaviconForHost(hostname) {
   if (!remoteFavicon) return
 
   const {blob: remoteBlob, resolvedHostname} = remoteFavicon
-  const normalized = await normalizeFaviconBlob(remoteBlob)
+  const normalized = await normalizeStoredFaviconBlob(remoteBlob)
   const faviconBlob = normalized.blob
   const storageHostname = normalizeFaviconHostname(resolvedHostname)
   const associatedHostnames = [...new Set([normalizeFaviconHostname(hostname), storageHostname])]

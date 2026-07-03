@@ -1,5 +1,128 @@
-/* Color tokens — mapped to YaiTabs vars (dark-only app) */
 :root {
+  /* Closed tab state */
+  --yai-tabs-closed-text: "YaiTabs";
+  --yai-tabs-closed-align: center;
+  --yai-tabs-closed-timeout: .5s;
+
+  /* Layout & spacing , including fallback for: h2, h3, h4, h5, h6, p, pre, ul, ol */
+  --yai-tabs-padding-1: .75rem;
+  --yai-tabs-padding-2: 1rem;
+  --yai-tabs-padding-3: 1.5rem;
+  --yai-tabs-content-padding: 22px;
+  --yai-tabs-content-elements-margin: 0 0 16px;
+  --yai-tabs-content-line-height: 1.6;
+  --yai-tabs-border-radius: 0;
+  --yai-font-weight-bold: 0.4px 0 currentColor, -0.4px 0 currentColor;
+  --yai-font-weight-bolder: 0.5px 0 currentColor, -0.5px 0 currentColor;
+  --yai-font-weight-boldest: 0.6px 0 currentColor, -0.6px 0 currentColor;
+  --yai-font-weight-fat: 0.7px 0 currentColor, -0.7px 0 currentColor;
+
+  /* Nav buttons */
+  --yai-tabs-button-padding: 0 14px;
+  --yai-tabs-button-min-height: 34px;
+  --yai-tabs-button-font-size: 95%;
+  --yai-tabs-button-line-height: 1cap;
+
+  /* Navigation-specific shadows */
+  --yai-tabs-shadow-nav-top: 0 2px 5px 0;
+  --yai-tabs-shadow-nav-bottom: 0 -1px 5px 1px;
+  --yai-tabs-shadow-nav-left: 2px 1px 6px 2px;
+  --yai-tabs-shadow-nav-right: -2px 1px 5px 2px;
+  --yai-tabs-nav-button-transition: all var(--yai-timeout-2) ease-in-out;
+
+  /* Timeouts */
+  --yai-timeout-1: 0.2s;
+  --yai-timeout-2: 0.3s;
+  --st-timeout-s: 0.07s;
+
+  /* Loader */
+  --yai-tabs-loader-speed: 1.1s;
+  --yai-transition-short: 0.2s;
+  --yai-tabs-loader-thickness: 1px;
+  --yai-tabs-loader-button-thickness: 3px;
+  --yai-tabs-loader-content-thickness: 4px;
+  --yai-tabs-loader-button-size: 20px;
+  --yai-tabs-loader-content-size: 34px;
+
+  /* Form elements */
+  --yai-tabs-form-input-elements-padding: .6rem 1rem;
+  --yai-tabs-form-input-elements-border-radius: var(--yai-tabs-form-border-radius, 0);
+  --yai-tabs-form-input-elements-box-shadow: var(--yai-tabs-shadow-subtle);
+
+  /* SEMANTIC COLOR SYSTEM — dark as the base default.
+    Light theme overrides live in the consuming app's CSS ([data-app].light { }). */
+
+  /* Core */
+  --yai-tabs-color-text:                  #eef1f4;
+  --yai-tabs-color-text-muted:            #b6b9bc;
+  --yai-tabs-color-background:            #0c1528;
+  --yai-tabs-color-background:            var(--st-ws-module-background-color, linear-gradient(180deg, #090b0d, #0d1116 40%, #0b0e12));
+  --yai-tabs-color-surface:               #1c1c1d;
+  --yai-tabs-color-surface-alt:           #252526;
+  --yai-tabs-content-inactive-background: #0e0e0fd1;
+  --yai-tabs-content-inactive-color-muted:#c7ccd3;
+
+  /* Brand / semantic palette */
+  --yai-tabs-color-primary:               #2b5498;
+  --yai-tabs-color-primary-contrast:      #ffffff;
+  --yai-tabs-color-secondary:             #14e6a6;
+  --yai-tabs-color-secondary-contrast:    #161515;
+  --yai-tabs-color-accent:                #00d1b2;
+  --yai-tabs-color-accent-contrast:       #ffffff;
+  --yai-tabs-color-success:               #1a902e;
+  --yai-tabs-color-success-contrast:      #ffffff;
+  --yai-tabs-color-warning:               #ebb22d;
+  --yai-tabs-color-warning-contrast:      #161515;
+  --yai-tabs-color-danger:                #dd1919;
+  --yai-tabs-color-danger-contrast:       #ffffff;
+  --yai-tabs-color-dark:                  #1f2937e0;
+  --yai-tabs-color-dark-contrast:         #ffffff;
+  --yai-tabs-color-light:                 #f0f2f8e0;
+  --yai-tabs-color-light-contrast:        #181e2c;
+  --yai-tabs-shadow-accent:               rgba(2, 255, 178, 0.5);
+
+  /* Interactive */
+  --yai-tabs-color-focus:                 #00d1b2;
+  --yai-tabs-color-focus-ring:            rgba(2, 255, 178, 0.3);
+  --yai-loader-color:                     var(--yai-tabs-color-accent);
+
+  /* Shadows */
+  --yai-tabs-shadow-subtle-color:         var(--st-ws-module-shadow-color, rgba(55, 53, 53, 0.35));
+  --yai-tabs-shadow-medium-color:         var(--st-ws-module-shadow-color, rgba(0, 0, 0, 0.9));
+  --yai-tabs-shadow-subtle:               0 0 3px 1px var(--yai-tabs-shadow-subtle-color);
+  --yai-tabs-shadow-medium:               0 4px 8px 1px var(--yai-tabs-shadow-medium-color);
+
+  /* Nav component defaults — overridden by [data-app] in next.css */
+  --yai-tabs-nav-background:              #1e293b;
+  --yai-tabs-nav-button-color:            var(--yai-tabs-color-text-muted);
+  --yai-tabs-nav-button-background:       transparent;
+  --yai-tabs-nav-button-hover-color:      var(--yai-tabs-color-text);
+  --yai-tabs-nav-button-active-color:     var(--yai-tabs-color-accent);
+  --yai-tabs-nav-button-active-background:#121c31;
+  --yai-tabs-nav-button-hover-background: #334155;
+  --yai-tabs-content-background:          transparent;
+  --yai-tabs-orientation-hint-color:      var(--yai-tabs-color-text-muted);
+
+  /*
+    Color tokens — mapped to YaiTabs vars (dark-only app)
+  */
+
+  --st-timeout-1: var(--yai-timeout-1);
+  --st-timeout-2: var(--yai-timeout-2);
+  --st-motion-fade-fast: opacity var(--st-timeout-1) ease;
+  --st-motion-fade: opacity var(--st-timeout-2) ease;
+  --st-motion-colors-fast: background-color var(--st-timeout-1) ease-in-out, color var(--st-timeout-2) ease-in-out, border-color var(--st-timeout-2) ease-in-out;
+  --st-motion-colors: background-color var(--st-timeout-2) ease, color var(--st-timeout-2) ease, border-color var(--st-timeout-2) ease, box-shadow var(--st-timeout-2) ease;
+  --st-motion-filter: opacity var(--st-timeout-2) ease, filter var(--st-timeout-2) ease;
+
+  --st-font-family: -apple-system, BlinkMacSystemFont, "Ubuntu", "Segoe UI", "Roboto", "Oxygen", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", "Helvetica", Arial, sans-serif;
+  --st-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --st-content-font-size: 14px;
+  --st-content-line-height: 1.6;
+  --st-content-title-font-size: 14px;
+  --st-content-muted-font-size: 14px;
+  --st-content-control-font-size: 14px;
+
   --st-color-text: var(--yai-tabs-color-text);
   --st-color-text-muted: var(--yai-tabs-color-text-muted);
   --st-color-background: var(--yai-tabs-color-background);
@@ -30,12 +153,86 @@
   --st-shadow-medium-color: rgba(0, 0, 0, 0.6);
   --st-shadow-accent: rgba(2, 255, 178, 0.5);
 
+  --st-dropdown-list-gap: 4px;
+  --st-dropdown-background-color: rgba(12, 12, 13, 0.97);
+  --st-dropdown-border-color: rgba(255, 255, 255, 0.08);
+  --st-dropdown-button-padding: 6px 10px;
+  --st-dropdown-button-transition: var(--yai-tabs-nav-button-transition);
+  --st-dropdown-button-font-size: var(--yai-tabs-button-font-size);
+  --st-dropdown-trigger-gap: 4px;
+  --st-dropdown-trigger-button-color: rgba(180, 180, 180, 1);
+  --st-dropdown-trigger-button-background-color: transparent;
+  --st-dropdown-trigger-button-color-active: rgba(255, 255, 255, 1);
+  --st-dropdown-trigger-button-background-color-active: rgba(255, 255, 255, 0.10);
+  --st-dropdown-panel-button-padding: 7px 10px;
+  --st-dropdown-panel-button-text-align: left;
+  --st-dropdown-panel-button-line-height: 1.25;
+  --st-dropdown-panel-button-font-size: 0.875rem;
+  --st-dropdown-panel-button-color: rgba(175, 175, 175, 1);
+  --st-dropdown-panel-button-background-color: transparent;
+  --st-dropdown-panel-button-color-hover: rgba(255, 255, 255, 1);
+  --st-dropdown-panel-button-background-color-hover: rgba(255, 255, 255, 0.08);
+
+  --st-modal-backdrop-color: rgba(0, 0, 0, .85);
+  --st-modal-background-color: rgba(10, 10, 10, .97);
+  --st-modal-border-color: rgba(64, 63, 63, .4);
+  --st-modal-max-width: 35rem;
+  --st-modal-header-padding: 6px 10px;
+  --st-modal-body-padding: 14px;
+  --st-modal-title-color: rgb(229, 231, 235);
+  --st-modal-close-color: rgba(175, 175, 175, 1);
+  --st-modal-close-color-hover: rgba(250, 250, 250, 1);
+
+  --st-widget-border: rgba(255, 255, 255, 0.10);
+  --st-widget-bg: rgba(10, 10, 10, 0.60);
+  --st-widget-backdrop-blur: 14px;
+  --st-widget-text: var(--yai-tabs-color-text);
+  --st-widget-text-muted: var(--yai-tabs-color-text-muted);
+  --st-widget-button-bg: rgba(255, 255, 255, 0.06);
+  --st-widget-button-bg-hover: rgba(255, 255, 255, 0.12);
+  --st-widget-button-text: var(--yai-tabs-color-text);
+
+  --st-sidepanel-width: 360px;
+  --st-sidepanel-background-color: rgba(10, 10, 10, .97);
+  --st-sidepanel-border-color: rgba(64, 63, 63, .4);
+  --st-sidepanel-header-padding: 8px 12px;
+  --st-sidepanel-body-padding: 12px 6px 12px 12px;
+  --st-sidepanel-text-color: rgb(229, 231, 235);
+  --st-sidepanel-title-color: rgb(229, 231, 235);
+  --st-sidepanel-close-color: rgba(175, 175, 175, 1);
+  --st-sidepanel-close-color-hover: rgba(250, 250, 250, 1);
+  --st-sidepanel-z-index: 150;
+
+  --st-page-grid-max-width: 1500px;
+  --st-page-grid-padding: 1rem .5rem;
+  --st-page-grid-row-gap: 10rem;
+  --st-page-grid-col-gap: 20px;
+  --st-module-content-gap: 4px;
+  --st-app-header-height: 44px;
+  --st-grid-col-span: 12;
+  --st-module-min-height: initial;
+  --st-module-shell-min-height: 76px;
+  --st-module-card-min-height: initial;
+  --st-module-card-padding: 1rem;
+  --st-module-card-border-radius: 0;
+  --st-module-card-background: rgba(22,22,22,0.7);
+  --st-module-card-border-color: rgba(255, 255, 255, 0.08);
+  --st-module-card-title-color: var(--yai-tabs-color-text-muted);
+  --st-module-card-body-color: var(--yai-tabs-color-text-muted);
+  --st-ws-module-background-color: var(--st-module-card-background);
+  --st-ws-module-text-color: var(--st-ws-shell-text-color, var(--st-module-card-body-color));
+  --st-ws-module-header-background-color: transparent;
+  --st-ws-module-header-text-color: var(--st-ws-shell-header-text-color, var(--st-module-card-title-color));
+  --st-ws-module-content-background-color: transparent;
+  --st-ws-module-content-text-color: var(--st-module-card-body-color);
+  --st-module-bookmark-preview-background-color: rgba(15, 15, 15, .5);
+
   --st-form-bg-color: transparent;
   --st-form-border-color: transparent;
-  --st-form-elements-bg-color: transparent;
-  --st-form-elements-border-color: rgba(255, 255, 255, 0.08);
+  --st-form-elements-bg-color: #20202099;
+  --st-form-elements-border-color: rgba(255, 255, 255, 0.14);
+  --st-form-elements-border-hover: rgba(255, 255, 255, 0.24);
   --st-form-disabled-bg-color: var(--st-color-surface-alt);
-
   --st-html-layer-bg-color: var(--st-color-surface-alt);
   --st-html-border-color: rgba(255, 255, 255, 0.06);
 
@@ -60,7 +257,6 @@
   --st-form-button-border: 0 none;
 
   --st-form-transition: 0.15s ease-in-out;
-  --st-form-elements-border-hover: #555;
   --st-textarea-resize: vertical;
   --st-select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   --st-select-appearance: none;
@@ -125,4 +321,19 @@
   --st-link-color: var(--st-color-primary);
   --st-small-font-size: 85%;
   --st-small-opacity: 0.85;
+}
+
+[data-app] {
+  --yai-tabs-nav-background: var(--st-ws-shell-header-background-color, rgba(0, 0, 0, 0.40));
+  --yai-tabs-nav-button-color: var(--st-ws-shell-nav-text-color, var(--yai-tabs-color-text-muted));
+  --yai-tabs-nav-button-background: var(--st-ws-shell-nav-background-color, rgba(1, 1, 1, 0.40));
+  --yai-tabs-nav-button-hover-color: var(--st-ws-shell-nav-text-color, var(--yai-tabs-color-text));
+  --yai-tabs-nav-button-active-color: var(--st-ws-shell-nav-active-text-color, var(--yai-tabs-color-accent));
+  --yai-tabs-nav-button-active-background: var(--st-ws-shell-nav-active-background-color, rgba(0, 0, 0, 0.65));
+  --yai-tabs-nav-button-hover-background: var(--st-ws-shell-nav-hover-background-color, rgba(44, 42, 42, 0.75));
+  --yai-tabs-nav-border-bottom: rgba(255, 255, 255, 0.07);
+  --yai-tabs-nav-box-shadow: rgba(255, 255, 255, 0.07);
+
+  background: var(--yai-tabs-color-background);
+  color: var(--yai-tabs-color-text);
 }

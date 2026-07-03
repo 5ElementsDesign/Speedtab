@@ -366,14 +366,18 @@ export function initSorterDnd({root, state, onDropPage, onDropModule, onDropTab,
 
     if (state.drag.kind === 'content') {
       const dropzone = event.target.closest?.('[data-sorter-content-dropzone]')
-      if (!dropzone || !state.drag.contentId) return
-      if (dropzone.dataset.moduleType !== state.drag.sourceModuleType) return
+      const fallbackDropzone = currentContentDrop?.targetTabSyncId
+        ? root.querySelector(`[data-sorter-content-dropzone][data-tab-sync-id="${CSS.escape(currentContentDrop.targetTabSyncId)}"]`)
+        : null
+      const activeDropzone = dropzone || fallbackDropzone
+      if (!activeDropzone || !state.drag.contentId) return
+      if (activeDropzone.dataset.moduleType !== state.drag.sourceModuleType) return
 
       event.preventDefault()
 
-      const drop = currentContentDrop?.targetTabSyncId === dropzone.dataset.tabSyncId
+      const drop = currentContentDrop?.targetTabSyncId === activeDropzone.dataset.tabSyncId
         ? currentContentDrop
-        : resolveContentDrop(dropzone, state.drag.contentId, event)
+        : resolveContentDrop(activeDropzone, state.drag.contentId, event)
 
       clearContentDropIndicators(root)
 
@@ -389,14 +393,18 @@ export function initSorterDnd({root, state, onDropPage, onDropModule, onDropTab,
 
     if (state.drag.kind === 'tab') {
       const dropzone = event.target.closest?.('[data-sorter-tab-dropzone]')
-      if (!dropzone || !state.drag.tabSyncId) return
-      if (dropzone.dataset.moduleType !== state.drag.sourceModuleType) return
+      const fallbackDropzone = currentTabDrop?.targetModuleSyncId
+        ? root.querySelector(`[data-sorter-tab-dropzone][data-module-sync-id="${CSS.escape(currentTabDrop.targetModuleSyncId)}"]`)
+        : null
+      const activeDropzone = dropzone || fallbackDropzone
+      if (!activeDropzone || !state.drag.tabSyncId) return
+      if (activeDropzone.dataset.moduleType !== state.drag.sourceModuleType) return
 
       event.preventDefault()
 
-      const drop = currentTabDrop?.targetModuleSyncId === dropzone.dataset.moduleSyncId
+      const drop = currentTabDrop?.targetModuleSyncId === activeDropzone.dataset.moduleSyncId
         ? currentTabDrop
-        : resolveTabDrop(dropzone, state.drag.tabSyncId, event)
+        : resolveTabDrop(activeDropzone, state.drag.tabSyncId, event)
 
       clearTabDropIndicators(root)
 

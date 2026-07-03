@@ -2,13 +2,16 @@ import {escapeHtml} from '../../../utils/html.js'
 import {t} from '../../../utils/i18n.js'
 import {adaptModule, renderModuleBody, renderModuleBodyShell} from '../../modules/registry.js'
 
+const DEFAULT_PAGE_GRID_MAX_WIDTH = 1500
+
 function parsePageConfig(page) {
   if (!page?.config_json) return {modulesPerRow: 2, maxWidth: null}
   try {
     const c = JSON.parse(page.config_json)
+    const maxWidth = typeof c.maxWidth === 'number' ? c.maxWidth : null
     return {
       modulesPerRow: typeof c.modulesPerRow === 'number' ? c.modulesPerRow : 2,
-      maxWidth: typeof c.maxWidth === 'number' ? c.maxWidth : null,
+      maxWidth: maxWidth === DEFAULT_PAGE_GRID_MAX_WIDTH ? null : maxWidth,
     }
   } catch {
     return {modulesPerRow: 2, maxWidth: null}
@@ -79,7 +82,7 @@ export function renderPageGrid(page, modules = [], {hydrateBodies = false} = {})
   const {modulesPerRow, maxWidth} = parsePageConfig(page)
   const perRow = Math.max(1, Math.min(12, modulesPerRow || 2))
   const defaultSpan = Math.max(1, Math.floor(12 / perRow))
-  const gridStyle = maxWidth ? ` style="--st-page-grid-max-width:${escapeHtml(String(maxWidth))}px;"` : ''
+  const gridStyle = maxWidth ? ` style="--st-page-grid-max-width-local:${escapeHtml(String(maxWidth))}px;"` : ''
   const isEmptyStyle = modules.length ? `` : ` data-empty-state data-swipe-ignore`;
 
   const columns = modules.length

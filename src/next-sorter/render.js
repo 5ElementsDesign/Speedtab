@@ -5,7 +5,7 @@ import {t} from '../next/utils/i18n.js'
 function renderModuleSpanOptions(selectedValue) {
   let options = ''
   for (let index = 1; index <= 12; index += 1) {
-    options += `<option value="${index}"${selectedValue === index ? ' selected' : ''}>${escapeHtml(t('next.sorter.columnsOption', {count: index}))}</option>`
+    options += `<option value="${index}"${selectedValue === index ? ' selected' : ''}>${escapeHtml(t('sorter.columnsOption', {count: index}))}</option>`
   }
   return options
 }
@@ -46,16 +46,16 @@ function renderContentRows(module, tab, contentItems = [], contentSortActive = f
                 data-module-id="${escapeHtml(String(module.id))}"
                 data-module-sync-id="${escapeHtml(module.syncId)}"
                 data-module-type="${escapeHtml(module.type)}"
-                title="${escapeHtml(t('next.sorter.dragContent'))}"
-                aria-label="${escapeHtml(t('next.sorter.dragContent'))}"
+                title="${escapeHtml(t('sorter.dragContent'))}"
+                aria-label="${escapeHtml(t('sorter.dragContent'))}"
               >${SPEEDTAB_SVG.dashboard}</button>
-              <span data-sorter-content-title>${escapeHtml(item.title || t('next.sorter.untitledContent'))}</span>
+              <span data-sorter-content-title>${escapeHtml(item.title || t('sorter.untitledContent'))}</span>
               <span data-sorter-content-subtitle>${escapeHtml(item.subtitle || '')}</span>
             </div>
           `).join('')}
         </div>
       ` : `
-        <div data-sorter-content-empty>${escapeHtml(contentSortActive ? t('next.sorter.dropContentHere') : t('next.sorter.noContent'))}</div>
+        <div data-sorter-content-empty>${escapeHtml(contentSortActive ? t('sorter.dropContentHere') : t('sorter.noContent'))}</div>
       `}
     </div>
   `
@@ -96,8 +96,8 @@ function renderTabRows(module, tabs = [], options = {}) {
                 data-module-id="${escapeHtml(String(module.id))}"
                 data-module-sync-id="${escapeHtml(module.syncId)}"
                 data-module-type="${escapeHtml(module.type)}"
-                title="${escapeHtml(t('next.sorter.dragTab'))}"
-                aria-label="${escapeHtml(t('next.sorter.dragTab'))}"
+                title="${escapeHtml(t('sorter.dragTab'))}"
+                aria-label="${escapeHtml(t('sorter.dragTab'))}"
               >${SPEEDTAB_SVG.dashboard}</button>
               <span data-sorter-tab-title>${escapeHtml(tab.title || t('moduleCard.newTabTitle'))}</span>
               ${contentSortActive ? `
@@ -109,7 +109,7 @@ function renderTabRows(module, tabs = [], options = {}) {
           `).join('')}
         </div>
       ` : `
-        <div data-sorter-tabs-empty>${escapeHtml(tabSortActive ? t('next.sorter.dropTabHere') : t('next.sorter.noTabs'))}</div>
+        <div data-sorter-tabs-empty>${escapeHtml(tabSortActive ? t('sorter.dropTabHere') : t('sorter.noTabs'))}</div>
       `}
     </div>
   `
@@ -127,7 +127,7 @@ function renderModuleCard(module, options = {}) {
     contentsByTabSyncId = new Map(),
   } = options
   const structureSortActive = tabSortActive || contentSortActive
-  const tabCountLabel = t('next.sorter.tabsCount', {count: module.tabs.length})
+  const tabCountLabel = t('sorter.tabsCount', {count: module.tabs.length})
   return `
     <article
       data-sorter-module-card
@@ -149,13 +149,13 @@ function renderModuleCard(module, options = {}) {
           ${structureSortActive ? 'disabled' : ''}
           data-module-id="${escapeHtml(String(module.id))}"
           data-module-sync-id="${escapeHtml(module.syncId)}"
-          title="${escapeHtml(t('next.sorter.dragModule'))}"
-          aria-label="${escapeHtml(t('next.sorter.dragModule'))}"
+          title="${escapeHtml(t('sorter.dragModule'))}"
+          aria-label="${escapeHtml(t('sorter.dragModule'))}"
         >${SPEEDTAB_SVG.dashboard}</button>
         <input
           type="text"
           name="module-title"
-          value="${escapeHtml(module.title || t('next.modules.untitled'))}"
+          value="${escapeHtml(module.title || t('sorter.untitled'))}"
           data-change="sorterModuleTitleChange"
           data-module-id="${escapeHtml(String(module.id))}"
           data-module-sync-id="${escapeHtml(module.syncId)}"
@@ -167,7 +167,7 @@ function renderModuleCard(module, options = {}) {
 
       <div data-sorter-module-meta>
         <label data-sorter-inline-field>
-          <span>${escapeHtml(t('next.sorter.width'))}</span>
+          <span>${escapeHtml(t('sorter.width'))}</span>
           <select
             name="module-column-span"
             data-change="sorterModuleSpanChange"
@@ -196,7 +196,7 @@ function renderModuleCard(module, options = {}) {
             data-sorter-toggle-contents
             ${tabSortActive && !tabSortEnabled ? 'disabled' : ''}
             aria-expanded="${expanded ? 'true' : 'false'}"
-          >${escapeHtml(t('next.sorter.contents'))} ${SPEEDTAB_SVG.chevron}</button>
+          >${escapeHtml(t('sorter.contents'))} ${SPEEDTAB_SVG.chevron}</button>
         </div>
       </div>
 
@@ -218,7 +218,7 @@ function renderGridSlot({pageSyncId, module = null, orphan = null, expandedModul
   const contentSortActive = !!contentSort?.moduleType
   const contentSortEnabled = !!module && contentSortActive && module.type === contentSort.moduleType
   const contentSortDisabled = !!module && contentSortActive && module.type !== contentSort.moduleType
-  const expanded = !!module && (tabSortEnabled || contentSortEnabled || expandedModules.has(module.syncId))
+  const expanded = !!module && expandedModules.has(module.syncId)
 
   return `
     <div
@@ -243,7 +243,7 @@ function renderGridSlot({pageSyncId, module = null, orphan = null, expandedModul
             contentsByTabSyncId: contentSort?.contentsByTabSyncId ?? new Map(),
           })
         : `<div data-sorter-orphan-slot>
-            <span data-sorter-orphan-label>${escapeHtml(t('next.sorter.emptySlot'))}</span>
+            <span data-sorter-orphan-label>${escapeHtml(t('sorter.emptySlot'))}</span>
           </div>`}
     </div>
   `
@@ -268,12 +268,12 @@ function renderPageSection(page, expandedModules, collapsedPages, orphanSlots = 
               data-sorter-page-drag-handle
               data-page-id="${escapeHtml(String(page.id))}"
               data-page-sync-id="${escapeHtml(page.syncId)}"
-              title="${escapeHtml(t('next.sorter.dragPage'))}"
-              aria-label="${escapeHtml(t('next.sorter.dragPage'))}"
+              title="${escapeHtml(t('sorter.dragPage'))}"
+              aria-label="${escapeHtml(t('sorter.dragPage'))}"
             >${SPEEDTAB_SVG.dashboard}</button>
             <h2 data-sorter-page-title>${escapeHtml(page.title)}</h2>
           </div>
-          <p data-sorter-page-meta>${escapeHtml(page.modules.length === 1 ? t('next.sorter.modulesCountOne') : t('next.sorter.modulesCount', {count: page.modules.length}))}</p>
+          <p data-sorter-page-meta>${escapeHtml(page.modules.length === 1 ? t('sorter.modulesCountOne') : t('sorter.modulesCount', {count: page.modules.length}))}</p>
         </div>
         <div data-sorter-page-actions>
           <button
@@ -282,9 +282,9 @@ function renderPageSection(page, expandedModules, collapsedPages, orphanSlots = 
             data-page-sync-id="${escapeHtml(page.syncId)}"
             data-sorter-toggle-page-content
             aria-expanded="${collapsed ? 'false' : 'true'}"
-            title="${escapeHtml(collapsed ? t('next.sorter.showPageContent') : t('next.sorter.hidePageContent'))}"
-          >${escapeHtml(collapsed ? t('next.sorter.showContent') : t('next.sorter.hideContent'))} ${SPEEDTAB_SVG.chevron}</button>
-          ${hasOrphans ? `<button type="button" data-click="sorterResetPageSlots" data-page-sync-id="${escapeHtml(page.syncId)}" data-sorter-reset-slots>${escapeHtml(t('next.sorter.resetSlots'))}</button>` : ''}
+            title="${escapeHtml(collapsed ? t('sorter.showPageContent') : t('sorter.hidePageContent'))}"
+          >${escapeHtml(collapsed ? t('sorter.showContent') : t('sorter.hideContent'))} ${SPEEDTAB_SVG.chevron}</button>
+          ${hasOrphans ? `<button type="button" data-click="sorterResetPageSlots" data-page-sync-id="${escapeHtml(page.syncId)}" data-sorter-reset-slots>${escapeHtml(t('sorter.resetSlots'))}</button>` : ''}
           <span data-sorter-page-badge>${escapeHtml(page.navGroup)}</span>
         </div>
       </header>
@@ -292,7 +292,7 @@ function renderPageSection(page, expandedModules, collapsedPages, orphanSlots = 
       <div data-sorter-module-lane data-page-sync-id="${escapeHtml(page.syncId)}"${collapsed ? ' hidden' : ''}>
         ${slots.length
           ? slots.map(({module, orphan}) => renderGridSlot({pageSyncId: page.syncId, module, orphan, expandedModules, tabSort, contentSort})).join('')
-          : `<div data-sorter-empty-page>${escapeHtml(t('next.sorter.emptyPage'))}</div>`}
+          : `<div data-sorter-empty-page>${escapeHtml(t('sorter.emptyPage'))}</div>`}
       </div>
     </section>
   `
@@ -304,15 +304,15 @@ export function renderSorterApp(state) {
       <header data-sorter-app-header>
         <div>
           <p data-sorter-eyebrow>${escapeHtml(t('nav.pages'))}</p>
-          <h1 data-sorter-app-title>${escapeHtml(t('next.sorter.title'))}</h1>
+          <h1 data-sorter-app-title>${escapeHtml(t('sorter.title'))}</h1>
         </div>
         <div data-sorter-app-actions>
-          <button type="button" data-click="sorterReload" data-sorter-link data-btn="ghost">${escapeHtml(t('next.sorter.reload'))}</button>
-          <a href="./newtab.html" data-sorter-link data-btn="ghost">${escapeHtml(t('next.sorter.backToSpeedtab'))}</a>
+          <button type="button" data-click="sorterReload" data-sorter-link data-btn="ghost">${escapeHtml(t('sorter.reload'))}</button>
+          <a href="./newtab.html" data-sorter-link data-btn="ghost">${escapeHtml(t('sorter.backToSpeedtab'))}</a>
         </div>
       </header>
 
-      <p data-sorter-status data-tone="${escapeHtml(state.status.tone || 'idle')}">${escapeHtml(state.status.text || t('next.sorter.ready'))}</p>
+      <p data-sorter-status data-tone="${escapeHtml(state.status.tone || 'idle')}">${escapeHtml(state.status.text || t('sorter.ready'))}</p>
 
       <main data-sorter-pages>
         ${state.pages.map((page) => renderPageSection(page, state.expandedModules, state.collapsedPages, state.orphanSlotsByPage.get(page.syncId) ?? [], state.tabSort, state.contentSort)).join('')}

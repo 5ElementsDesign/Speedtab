@@ -1,4 +1,4 @@
-import {deleteAssetById, openAssetBrowser, refreshAssetBrowserFaviconSet, selectAsset} from '../features/assets/browser.js'
+import {deleteAssetById, fixAssetBrowserFaviconBackgroundById, openAssetBrowser, refreshAssetBrowserFaviconSet, selectAsset} from '../features/assets/browser.js'
 
 export const assetActions = {
   async openAssetBrowser() {
@@ -15,5 +15,9 @@ export const assetActions = {
 
   async deleteAssetBrowserAsset(target) {
     await deleteAssetById(target?.dataset?.assetId)
+  },
+
+  async fixAssetBrowserFaviconBackground(target) {
+    await fixAssetBrowserFaviconBackgroundById(target?.dataset?.assetId)
   },
 }

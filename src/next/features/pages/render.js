@@ -78,11 +78,9 @@ function renderOverflowDropdown(overflowPages, activePage) {
   })
 }
 
-function renderPagePanel(page, activePage, pageModules = [], {hydrateBodies = true, hydratedPageSlugs = null, orphanCandidates = null} = {}) {
+function renderPagePanel(page, activePage, pageModules = [], {hydratedPageSlugs = null, orphanCandidates = null} = {}) {
   const isActive = activePage?.id === page.id
-  const shouldHydrateBodies = hydratedPageSlugs instanceof Set
-    ? hydratedPageSlugs.has(page.slug)
-    : hydrateBodies
+  const shouldHydrateBodies = hydratedPageSlugs instanceof Set && hydratedPageSlugs.has(page.slug)
   return `
     <div
       data-tab="${escapeHtml(page.slug)}"
@@ -103,7 +101,6 @@ export function renderRootShell({
   pages,
   activePage,
   pageModulesBySlug = new Map(),
-  hydrateBodies = true,
   hydratedPageSlugs = null,
   orphanCandidates = null,
   captureInboxCount = 0,
@@ -162,7 +159,7 @@ export function renderRootShell({
             {label: t('common.settings'), action: 'openSettings'},
             {label: t('assets.title'), action: 'openAssetBrowser', dividerTop: true},
             {label: t('nav.actions.sortContents'), action: 'openSorter', dividerTop: true},
-            {label: t('next.settings.importExportTitle'), action: 'openImportExport', dividerTop: true},
+            {label: t('settings.importExportTitle'), action: 'openImportExport', dividerTop: true},
           ],
         })}
       </div>
@@ -172,7 +169,7 @@ export function renderRootShell({
       ${widgetRail && widgetRailPosition === 'top' ? widgetRail : ''}
 
       <main data-content data-app-content data-swipe>
-        ${pages.map((page) => renderPagePanel(page, activePage, pageModulesBySlug.get(page.slug) ?? [], {hydrateBodies, hydratedPageSlugs, orphanCandidates})).join('')}
+        ${pages.map((page) => renderPagePanel(page, activePage, pageModulesBySlug.get(page.slug) ?? [], {hydratedPageSlugs, orphanCandidates})).join('')}
       </main>
 
       ${widgetRail && widgetRailPosition === 'bottom'

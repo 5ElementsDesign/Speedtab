@@ -1,6 +1,6 @@
 # Speedtab
 
-Speedtab is a local-first Chrome new tab extension focused on dense, fast dashboards instead of blank pages or slow cloud products.
+Speedtab is a local-first Chrome new tab extension built as a fast Speed Dial and modular dashboard instead of a blank page or a slow cloud product.
 
 It replaces the browser new tab page with three integrated building blocks:
 - visual bookmarks
@@ -11,19 +11,27 @@ Everything runs in the browser. There is no backend, no account, and no required
 
 Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff)
 
+Current public version: `1.4.1`
+
 ## Highlights
 
 - Local-first architecture with IndexedDB via Dexie
 - Replaces the Chrome/Brave new tab page
+- Rebuilt in `1.4.0` from a Vue-based UI to a lighter YaiJS/YEH runtime with delegated event handling
 - Dense module-based layout with pages, modules, and tabs
-- Global default wallpaper plus per-page background overrides
-- Built-in visual themes plus preset overrides
+- Fully keyboard-navigable tabbed interfaces with nested YaiTabs components
+- Global default wallpaper plus background overrides
+- Expanded appearance controls for shell, bookmarks, and notes
 - Visual bookmark tiles with preview images and favicons
+- Optional bookmark titles below full-size tiles
 - Notes with text, code, links, HTML, and encrypted content
-- RSS/Atom feed reader with source navigation, read state, archiving, per-source limits, and optional auto-refresh
+- RSS/Atom feed reader with source navigation, read state, archiving, and optional auto-refresh
+- Module quick settings directly inside module dropdowns
+- Asset browser with favicon repair tools for difficult transparent icons
 - Identity-aware JSON export/import for portable local workspaces
 - Drag reordering for pages, modules, source lists, and collections
 - Responsive zoomed feed module for focused reading
+- UI translations for English, German, Turkish, and Hindi
 
 ## Screenshots
 
@@ -83,6 +91,9 @@ Speedtab does not currently export feed cache responses. Feed items fetched from
 - Upload preview images and store them locally
 - Crop previews to a fixed compact tile ratio before saving
 - Use favicons for fast recognition
+- Force favicon mode for compact or image-free bookmark modules
+- Quicklinks mode for dense favicon-first bookmark layouts
+- Optional title-below-thumbnail mode for full-size visual bookmark tiles
 - Choose whether bookmark modules open links in the current tab or new tabs
 - Dense tile layout optimized for fast scanning
 
@@ -119,15 +130,24 @@ Speedtab does not currently export feed cache responses. Feed items fetched from
 
 - Upload a default background image globally
 - Override backgrounds per page
-- Use built-in dark and light themes
-- Layer preset variable overrides on top of a base theme
+- Customize shell, bookmark, and note appearance with CSS variable-driven controls
+- Repair dark transparent favicons directly from the asset browser when needed
+- Tune module spacing, shell sizing, and module quick settings without leaving the workspace
+
+### Languages
+
+- English
+- German
+- Turkish
+- Hindi
 
 ## Tech Stack
 
-- Vue 3
 - TypeScript
 - Vite
-- Tailwind CSS
+- YaiJS
+- Yai Event Hub (YEH)
+- YaiTabs
 - `@crxjs/vite-plugin`
 - Dexie
 - `dexie-export-import`
@@ -218,24 +238,32 @@ npm test
 ```text
 src/
   background/      Extension service worker
-  components/      Vue UI components
-  composables/     Business logic and reusable hooks
   db/              Dexie database setup
+  lib/yai/         Embedded YaiJS, YEH, and YaiTabs runtime
+  locales/         UI translations
+  next/            New Speedtab app shell, features, styles, and extra surfaces
   types/           Shared TypeScript data model
-  assets/          Global styles and static assets
 manifest.json      Extension manifest
 ```
 
 ## Architecture Notes
 
 - The UI is local-first and boots from IndexedDB
+- Since `1.4.0`, the extension runs on a YaiJS/YEH architecture instead of the older Vue/Tailwind stack
+- Event handling is delegation-first: shared listeners route actions across nested UI without per-component lifecycle registration
 - Data is modeled around `Page -> Module -> Collection -> Item`
+- YaiTabs powers the main page shell, module tabs, and even deeply nested tab structures inside HTML notes
 - Feed fetching is delegated to the background service worker
 - Feed cache is local and rebuildable; archived feed items are portable user data
 - Bookmark images are stored as binary blobs in IndexedDB
 - Heavy UI dependencies such as CropperJS and Highlight.js are lazy-loaded on demand
 - Maintenance helpers clean up orphaned records after deletes/imports
 - Export/import is identity-aware rather than a raw browser storage dump
+
+Related links:
+
+- YaiTabs Demo: https://yaijs.github.io/yai/tabs/Example.html
+- YaiJS Repo: https://github.com/yaijs/yai
 
 ## Chrome Web Store Draft Copy
 

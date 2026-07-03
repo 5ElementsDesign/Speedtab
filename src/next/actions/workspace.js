@@ -1,4 +1,4 @@
-import {t} from '../utils/i18n.js'
+import {getLocale, t} from '../utils/i18n.js'
 
 export const workspaceActions = {
   async loadExampleWorkspace(target) {
@@ -6,7 +6,9 @@ export const workspaceActions = {
     if (!(await canSeedExampleWorkspace())) return
 
     const button = target instanceof HTMLButtonElement ? target : null
-    const newPageButton = button?.closest('.st-app-empty-actions')?.querySelector?.('[data-empty-add-page]') ?? null
+    const card = button?.closest('.st-app-empty-card') ?? null
+    const actionWrap = card?.querySelector?.('.st-app-empty-actions') ?? null
+    const newPageButton = actionWrap?.querySelector?.('[data-empty-add-page]') ?? null
     const originalLabel = button?.textContent ?? ''
 
     if (button) {
@@ -20,7 +22,9 @@ export const workspaceActions = {
     }
 
     try {
-      await seedExampleWorkspace()
+      await seedExampleWorkspace(undefined, {
+        locale: getLocale(),
+      })
       const {renderNextRoot} = await import('../app/bootstrap.js')
       await renderNextRoot()
     } catch (error) {

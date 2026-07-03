@@ -1,9 +1,9 @@
 import {YEH} from '../../lib/yai/yeh.js'
-import {closeAll, getOpenDropdownTrigger, positionPanel, toggle} from '../components/dropdown.js'
-import {closeModal} from '../components/modal.js'
-import {closeSidepanel} from '../components/sidepanel.js'
+import {closeAll, getOpenDropdownTrigger, isDropdownOpen, positionPanel, toggle} from '../components/dropdown.js'
+import {closeModal, isModalOpen} from '../components/modal.js'
+import {closeSidepanel, isSidepanelOpen} from '../components/sidepanel.js'
 import {updateFormDirtyState} from '../features/forms/actions.js'
-import {handleOutsideSearchClick} from '../features/search/manager.js'
+import {handleOutsideSearchClick, isSearchOpen} from '../features/search/manager.js'
 
 export function createHandler(appActions = {}) {
   const INPUT_DEBOUNCE_MS = 150
@@ -64,15 +64,16 @@ export function createHandler(appActions = {}) {
         // Use closest() so clicking a child (SVG, span) of an actionable element still fires correctly
         const clickable = target?.closest?.('[data-click]') || target?.closest?.('[data-action]')
         const action = clickable?.dataset?.click || clickable?.dataset?.action
+
         if (action) {
           if (clickable.closest?.('[data-yai-tabs]')) return
-          handleOutsideSearchClick(clickable)
+          if (isSearchOpen()) handleOutsideSearchClick(clickable)
           event.preventDefault()
           event.stopPropagation()
           const originTrigger = target?.closest?.('[data-dropdown-panel]')
             ? getOpenDropdownTrigger()
             : null
-          closeAll()
+          if (isDropdownOpen()) closeAll()
           event.__dropdownTrigger = originTrigger
           const fn = appActions[action]
           if (typeof fn === 'function') fn(clickable, event)
@@ -85,18 +86,40 @@ export function createHandler(appActions = {}) {
           return
         }
 
-        if (!target.closest?.('[data-dropdown]')) closeAll()
-        if (target.closest?.('[data-modal-backdrop], [data-modal-close]')) closeModal()
-        if (target.closest?.('[data-sidepanel-close]')) closeSidepanel()
-        handleOutsideSearchClick(target)
+        if (isDropdownOpen() && !target.closest?.('[data-dropdown]')) closeAll()
+        if (isModalOpen() && target.closest?.('[data-modal-backdrop], [data-modal-close]')) closeModal()
+        if (isSidepanelOpen() && target.closest?.('[data-sidepanel-close]')) closeSidepanel()
+        if (isSearchOpen()) handleOutsideSearchClick(target)
+
+        // Rare path: feed focus mode is open and the user clicked the surrounding
+        // backdrop area. Keep this as the final branch so normal page clicks do
+        // not pay for the deeper matching unless focus mode is active.
+        const isFocusOpen = target?.closest?.('[data-feed-focus-app-open]')
+        if (!isFocusOpen) return
+
+        const clickedInsideFocusedModule = target?.closest?.('[data-feed-focus-open]')
+        if (clickedInsideFocusedModule) return
+
+        const clickedBackdropArea = target?.matches?.(`
+          [data-feed-focus-app-open] [data-app-tab-content],
+          [data-feed-focus-app-open] [data-page-grid],
+          [data-feed-focus-app-open] [data-grid-row]
+        `)
+
+        if (!clickedBackdropArea) return
+
+        const closeButton = document.querySelector('[data-feed-focus-open] [data-click="closeFeedFocusMode"]')
+        if (!(closeButton instanceof HTMLElement)) return
+        const closeFocusMode = appActions.closeFeedFocusMode
+        if (typeof closeFocusMode === 'function') closeFocusMode(closeButton, event)
       },
 
       handleKeydown(event) {
         if (event.key === 'Escape') {
-          closeAll()
-          closeModal()
-          closeSidepanel()
-          if (typeof appActions.closeSearch === 'function') appActions.closeSearch()
+          if (isDropdownOpen()) closeAll()
+          if (isModalOpen()) closeModal()
+          if (isSidepanelOpen()) closeSidepanel()
+          if (isSearchOpen() && typeof appActions.closeSearch === 'function') appActions.closeSearch()
         }
       },
 
@@ -132,9 +155,11 @@ export function createHandler(appActions = {}) {
       },
 
       handleMouseover(event, target) {
+        const item = target?.closest?.('[data-customizer-list-item][data-sync-id]')
+        if (!item?.dataset?.syncId) return
+
         YEH.throttle(() => {
-          const item = target?.closest?.('[data-customizer-list-item][data-sync-id]')
-          const syncId = item?.dataset?.syncId
+          const syncId = item.dataset.syncId
           if (!syncId) return
           document.querySelector(`[data-module-card][data-sync-id="${CSS.escape(syncId)}"]`)
             ?.setAttribute('data-customizer-focus', '')
@@ -151,10 +176,12 @@ export function createHandler(appActions = {}) {
       },
 
       handleResize() {
+        if (!isDropdownOpen()) return
         document.querySelectorAll('[data-dropdown][data-dropdown-open]').forEach(positionPanel)
       },
 
       handleScroll() {
+        if (!isDropdownOpen()) return
         document.querySelectorAll('[data-dropdown][data-dropdown-open]').forEach(positionPanel)
       }
 

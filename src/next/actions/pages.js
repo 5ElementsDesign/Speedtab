@@ -11,6 +11,8 @@ import {escapeHtml} from '../utils/html.js'
 import {t} from '../utils/i18n.js'
 import {radioActive} from '../utils/radio-active.js'
 
+const DEFAULT_PAGE_GRID_MAX_WIDTH = 1500
+
 function getActivePageSyncId() {
   const activeBtn = document.querySelector('[data-controller] [data-tab-action="open"][aria-selected="true"]')
   const activeSlug = activeBtn?.dataset?.open
@@ -29,7 +31,7 @@ function openPageEditor(page) {
     backAction: 'openCustomizerList',
     footer: page?.id ? renderSidepanelDeleteFooter({
       action: 'pageFormDelete',
-      label: t('next.pageForm.deletePage'),
+      label: t('pageForm.deletePage'),
       attrs: {
         'data-page-id': page.id,
         'data-page-slug': page.slug ?? '',
@@ -276,6 +278,7 @@ export const pageActions = {
     const modulesPerRow = Math.max(1, Math.min(12, parseInt(form.querySelector('[name="page-modules-per-row"]')?.value) || 2))
     const maxWidthRaw = parseInt(form.querySelector('[name="page-max-width"]')?.value)
     const maxWidth = Number.isInteger(maxWidthRaw) && maxWidthRaw >= 300 ? Math.min(3840, maxWidthRaw) : null
+    const normalizedMaxWidth = maxWidth === DEFAULT_PAGE_GRID_MAX_WIDTH ? null : maxWidth
 
     let savedPage = null
     if (pageId) {
@@ -284,7 +287,7 @@ export const pageActions = {
         icon,
         nav_group: navGroup,
         is_home: isHome,
-        config_json: JSON.stringify({modulesPerRow, maxWidth}),
+        config_json: JSON.stringify({modulesPerRow, maxWidth: normalizedMaxWidth}),
       })
       savedPage = form.dataset.pageSyncId ? await loadPageBySyncId(form.dataset.pageSyncId) : null
     } else {
@@ -293,7 +296,7 @@ export const pageActions = {
         icon,
         nav_group: navGroup,
         is_home: isHome,
-        config_json: JSON.stringify({modulesPerRow, maxWidth}),
+        config_json: JSON.stringify({modulesPerRow, maxWidth: normalizedMaxWidth}),
       })
     }
     const {renderNextRoot} = await import('../app/bootstrap.js')

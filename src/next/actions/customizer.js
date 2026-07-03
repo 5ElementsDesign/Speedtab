@@ -1,15 +1,32 @@
 import {closeSidepanel, getSidepanelState} from '../components/sidepanel.js'
 import {saveAppSetting} from '../data/app-settings.js'
+import {getUiConfigSpec} from '../config/ui-config-spec.js'
 import {loadModuleBySyncId, saveModuleData, softDeleteModule} from '../data/modules.js'
 import {deleteUiConfig, upsertUiConfig} from '../data/ui-config.js'
 import {applyModuleUiConfig, applyShellUiConfig} from '../features/customizer/apply.js'
 import {contrastRatio, getGroupForKey, GROUP_PAIR_KEYS} from '../features/customizer/contrast.js'
 import {INLINE_COLOR_FIELD_PAIRS, INLINE_COLOR_FIELD_SECONDARIES, SHELL_SYNC_ID, updateContrastBadgeDOM} from '../features/customizer/render.js'
-import {initCustomizerListeners, openCustomizerFormPanel, openCustomizerListPanel, refreshCustomizerListIfOpen} from '../features/customizer/panel.js'
+import {initCustomizerListeners, openCustomizerAppearancePanel, openCustomizerFormPanel, openCustomizerListPanel, refreshCustomizerListIfOpen} from '../features/customizer/panel.js'
 import {getVisibleBookmarkMediaScope, initBookmarkMedia} from '../utils/bookmark-media.js'
 import {t} from '../utils/i18n.js'
+import {YEH} from '../../lib/yai/yeh.js'
 
 export {initCustomizerListeners} from '../features/customizer/panel.js'
+
+const CUSTOMIZER_GROUP_KEYS = {
+  shellAppearance: [
+    '--st-ws-shell-header-background-color',
+    '--st-ws-shell-header-text-color',
+    '--st-ws-shell-nav-background-color',
+    '--st-ws-shell-nav-text-color',
+    '--st-ws-shell-nav-active-background-color',
+    '--st-ws-shell-nav-active-text-color',
+    '--st-ws-module-background-color',
+    '--st-ws-module-shadow-color',
+  ],
+  moduleSurface: ['--st-ws-module-background-color', '--st-ws-module-shadow-color'],
+  bookmarkSurface: ['--st-module-bookmark-preview-background-color', '--st-module-bookmark-preview-text-color'],
+}
 
 // ─── Core persist ────────────────────────────────────────────────────────────
 
@@ -30,6 +47,89 @@ async function persistAndApply({syncId, moduleType, section, key, value}) {
   return effectiveConfig
 }
 
+function getPreviewApplyTarget(moduleRoot, targetName) {
+  if (targetName === 'document-root') return document.documentElement
+  if (targetName === 'grid-col') return moduleRoot?.closest?.('[data-grid-col]') ?? null
+  if (targetName === 'tabs-root') return moduleRoot?.querySelector?.('[data-yai-tabs]') ?? null
+  if (targetName === 'controller') return moduleRoot?.querySelector?.('[data-yai-tabs] > [data-controller]') ?? null
+  return moduleRoot
+}
+
+function previewAttribute(target, name, value, spec) {
+  if (!target) return
+  if (spec.valueType === 'boolean') {
+    if (value) target.setAttribute(name, spec.applyAs.trueValue ?? '')
+    else target.removeAttribute(name)
+    return
+  }
+  if (value == null || value === '') {
+    target.removeAttribute(name)
+    return
+  }
+  target.setAttribute(name, String(value))
+}
+
+function previewCssVariable(target, name, value, spec) {
+  if (!target) return
+  if (value == null || value === '') {
+    target.style.removeProperty(name)
+    if (name === '--st-grid-col-span') {
+      target.style.removeProperty('--st-grid-col-track')
+      target.style.removeProperty('grid-column')
+      target.style.removeProperty('flex')
+    }
+    return
+  }
+  const nextValue = typeof spec.applyAs.serialize === 'function'
+    ? spec.applyAs.serialize(value)
+    : String(value)
+  target.style.setProperty(name, nextValue)
+  if (name === '--st-grid-col-span') {
+    target.style.setProperty('--st-grid-col-track', `span ${nextValue} / span ${nextValue}`)
+    target.style.setProperty('grid-column', `span ${nextValue} / span ${nextValue}`)
+    target.style.setProperty('flex', `0 0 ${Math.max(8.333333, (Number(nextValue) / 12) * 100)}%`)
+  }
+}
+
+function previewCssVariables(target, variables, value) {
+  if (!target) return
+  variables.forEach((entry) => {
+    if (value == null || value === '') {
+      target.style.removeProperty(entry.name)
+      return
+    }
+    const nextValue = typeof entry.serialize === 'function' ? entry.serialize(value) : String(value)
+    target.style.setProperty(entry.name, nextValue)
+  })
+}
+
+function previewCustomizerValue(syncId, moduleType, section, key, value) {
+  const isShell = syncId === SHELL_SYNC_ID
+  const entityType = isShell ? 'shell' : 'module'
+  const entitySubtype = isShell ? 'app' : moduleType
+  const sectionSpec = getUiConfigSpec(entityType, entitySubtype)?.[section]
+  const spec = sectionSpec?.[key]
+  if (!spec) return
+
+  const moduleRoot = isShell
+    ? document.querySelector('[data-app]')
+    : document.querySelector(`[data-module-card][data-sync-id="${CSS.escape(syncId)}"]`)
+  const applyTarget = getPreviewApplyTarget(moduleRoot, spec.target)
+  if (!applyTarget) return
+
+  if (spec.applyAs.type === 'attribute') {
+    previewAttribute(applyTarget, spec.applyAs.name, value, spec)
+    return
+  }
+  if (spec.applyAs.type === 'css-variable') {
+    previewCssVariable(applyTarget, spec.applyAs.name, value, spec)
+    return
+  }
+  if (spec.applyAs.type === 'css-variables') {
+    previewCssVariables(applyTarget, spec.applyAs.variables ?? [], value)
+  }
+}
+
 function maybeUpdateContrastBadge(task, section, key) {
   if (section !== 'appearance') return
   const group = getGroupForKey(key)
@@ -39,9 +139,11 @@ function maybeUpdateContrastBadge(task, section, key) {
 // ─── Contrast guard ──────────────────────────────────────────────────────────
 
 function getStoredHex(syncId, cssVarName) {
-  const el = syncId === SHELL_SYNC_ID
-    ? document.querySelector('[data-app]')
-    : document.querySelector(`[data-module-card][data-sync-id="${CSS.escape(syncId)}"]`)
+  const el = cssVarName?.startsWith?.('--st-notes-')
+    ? document.documentElement
+    : syncId === SHELL_SYNC_ID
+      ? document.querySelector('[data-app]')
+      : document.querySelector(`[data-module-card][data-sync-id="${CSS.escape(syncId)}"]`)
   const v = el?.style.getPropertyValue(cssVarName) ?? ''
   return /^#[0-9a-fA-F]{6,8}$/.test(v.trim()) ? v.trim() : ''
 }
@@ -103,7 +205,16 @@ function refreshModuleBookmarkMedia(syncId) {
   const moduleRoot = document.querySelector(`[data-module-card][data-sync-id="${CSS.escape(syncId)}"]`)
   if (!(moduleRoot instanceof HTMLElement)) return
   const mediaScope = getVisibleBookmarkMediaScope(moduleRoot.querySelector('[data-yai-tabs]') ?? moduleRoot)
-  if (mediaScope) initBookmarkMedia(mediaScope, {force: true})
+  if (mediaScope) initBookmarkMedia(mediaScope)
+}
+
+function persistCustomizerValue({syncId, moduleType, section, key, value}) {
+  const task = persistAndApply({syncId, moduleType, section, key, value})
+  maybeUpdateContrastBadge(task, section, key)
+  if (moduleType === 'tabs' && section === 'behavior' && (key === 'module-tabs-force-favicon' || key === 'module-tabs-quicklinks')) {
+    task.then(() => refreshModuleBookmarkMedia(syncId))
+  }
+  return task
 }
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
@@ -120,6 +231,14 @@ export const customizerActions = {
 
   openCustomizerList(target, event) {
     openCustomizerListPanel(false, event?.__dropdownTrigger ?? null)
+  },
+
+  async openCustomizerAppearance(target, event) {
+    await openCustomizerAppearancePanel(SHELL_SYNC_ID, 'app', event?.__dropdownTrigger ?? null)
+  },
+
+  async openShellCustomizer() {
+    await openCustomizerFormPanel(SHELL_SYNC_ID, 'app')
   },
 
   async openCustomizerFor(target) {
@@ -158,14 +277,19 @@ export const customizerActions = {
     const groupId = target.dataset.group
     if (!section || !groupId) return
     const pairKeys = GROUP_PAIR_KEYS[groupId]
-    if (!pairKeys) return
+    const resetKeys = pairKeys
+      ? [pairKeys.bg, pairKeys.text]
+      : (CUSTOMIZER_GROUP_KEYS[groupId] ?? [])
+    if (!resetKeys.length) return
 
     const isShell = syncId === SHELL_SYNC_ID
     const effectiveConfig = await upsertUiConfig({
       entityType: isShell ? 'shell' : 'module',
       entitySubtype: isShell ? 'app' : moduleType,
       entitySyncId: syncId,
-      patch: {[section]: {[pairKeys.bg]: '', [pairKeys.text]: ''}},
+      patch: {
+        [section]: Object.fromEntries(resetKeys.map((key) => [key, ''])),
+      },
     })
     if (isShell) {
       applyShellUiConfig(effectiveConfig)
@@ -195,8 +319,8 @@ export const customizerActions = {
     if (!syncId || !moduleType) return
     const resetLabel = target?.dataset?.resetLabel || ''
     const message = resetLabel
-      ? t('next.customizer.confirmResetStylesTarget', {target: resetLabel})
-      : t('next.customizer.confirmResetStyles')
+      ? t('customizer.confirmResetStylesTarget', {target: resetLabel})
+      : t('customizer.confirmResetStyles')
     if (!confirm(message)) return
 
     const isShell = syncId === SHELL_SYNC_ID
@@ -229,7 +353,7 @@ export const customizerActions = {
     if (!syncId) return
     const module = await loadModuleBySyncId(syncId)
     if (!module?.id) return
-    const moduleTitle = module?.title?.trim() || t('next.modules.untitled')
+    const moduleTitle = module?.title?.trim() || t('modules.untitled')
     if (!confirm(t('app.confirms.deleteModule'))) return
     await softDeleteModule(module.id)
     closeSidepanel()
@@ -281,10 +405,15 @@ export const customizerActions = {
       syncInlineColorPairDom(key)
     }
 
-    const task = persistAndApply({syncId, moduleType, section, key, value})
-    maybeUpdateContrastBadge(task, section, key)
-    if (moduleType === 'tabs' && section === 'behavior' && (key === 'module-tabs-force-favicon' || key === 'module-tabs-quicklinks')) {
-      task.then(() => refreshModuleBookmarkMedia(syncId))
+    previewCustomizerValue(syncId, moduleType, section, key, value)
+    if (target.hasAttribute('data-coloris')) {
+      const persistKey = `st:customizer:color:${syncId}:${moduleType}:${section}:${key}`
+      YEH.debounce(() => {
+        persistCustomizerValue({syncId, moduleType, section, key, value})
+      }, 500, persistKey)()
+      return
     }
+
+    persistCustomizerValue({syncId, moduleType, section, key, value})
   },
 }

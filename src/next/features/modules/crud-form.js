@@ -4,8 +4,8 @@ import {renderFormActions} from '../forms/actions.js'
 import {customizerDivider, customizerField, customizerSection, textarea} from '../../ui/primitives.js'
 
 function getFormTitleKey(entityType, record) {
-  if (entityType === 'tab') return record?.id ? 'next.moduleCrud.editTab' : 'next.moduleCrud.newTab'
-  if (entityType === 'bookmark') return record?.id ? 'next.moduleCrud.editBookmark' : 'next.moduleCrud.newBookmark'
+  if (entityType === 'tab') return record?.id ? 'moduleCrud.editTab' : 'moduleCrud.newTab'
+  if (entityType === 'bookmark') return record?.id ? 'moduleCrud.editBookmark' : 'moduleCrud.newBookmark'
   if (entityType === 'note') return record?.id ? 'openNotes.editNoteTitle' : 'notesView.newNoteTitle'
   if (entityType === 'feed-source') return record?.id ? 'feeds.editFeedSourceTitle' : 'feeds.newFeedSourceTitle'
   return 'common.customize'
@@ -43,14 +43,14 @@ export function renderModuleCrudForm({
     >
       ${parentTitle ? `
         <div data-customizer-section data-section="context">
-          <p data-customizer-section-title>${t('next.moduleCrud.sections.context')}</p>
+          <p data-customizer-section-title>${t('moduleCrud.sections.context')}</p>
           <p data-module-crud-parent>${escapeHtml(parentTitle)}</p>
         </div>
         ${customizerDivider()}
       ` : ''}
 
       ${customizerSection({
-        title: t('next.moduleCrud.sections.identity'),
+        title: t('moduleCrud.sections.identity'),
         section: 'identity',
         children: `
           ${customizerField({
@@ -58,7 +58,7 @@ export function renderModuleCrudForm({
             control: `<input type="text" name="title" value="${escapeHtml(title)}" required autocomplete="off"${entityType === 'feed-source' ? ` placeholder="${escapeHtml(t('feedForm.displayTitlePlaceholder'))}"` : ''}>`,
           })}
           ${entityType === 'bookmark' ? customizerField({
-            label: t('next.moduleCrud.fields.url'),
+            label: t('moduleCrud.fields.url'),
             control: `<input type="url" name="url" value="${escapeHtml(url)}" required autocomplete="off" spellcheck="false">`,
           }) : ''}
           ${entityType === 'feed-source' ? customizerField({
@@ -66,7 +66,7 @@ export function renderModuleCrudForm({
             control: `<input type="url" name="feed_url" value="${escapeHtml(feedUrl)}" required autocomplete="off" spellcheck="false" placeholder="${escapeHtml(t('feedForm.feedUrlPlaceholder'))}">`,
           }) : ''}
           ${entityType === 'bookmark' ? customizerField({
-            label: t('next.moduleCrud.fields.description'),
+            label: t('moduleCrud.fields.description'),
             layout: 'stack',
             control: textarea({
               name: 'description',

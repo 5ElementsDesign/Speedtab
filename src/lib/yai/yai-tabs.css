@@ -1,104 +1,3 @@
-:root {
-    /* Closed tab state */
-    --yai-tabs-closed-text: "YaiTabs";
-    --yai-tabs-closed-align: center;
-    --yai-tabs-closed-timeout: .5s;
-
-    /* Layout & spacing , including fallback for: h2, h3, h4, h5, h6, p, pre, ul, ol */
-    --yai-tabs-padding-1: .75rem;
-    --yai-tabs-padding-2: 1rem;
-    --yai-tabs-padding-3: 1.5rem;
-    --yai-tabs-content-padding: 22px;
-    --yai-tabs-content-elements-margin: 0 0 16px;
-    --yai-tabs-content-line-height: 1.6;
-    --yai-tabs-border-radius: 0;
-    --yai-font-weight-bold: 0.4px 0 currentColor, -0.4px 0 currentColor;
-    --yai-font-weight-bolder: 0.5px 0 currentColor, -0.5px 0 currentColor;
-    --yai-font-weight-boldest: 0.6px 0 currentColor, -0.6px 0 currentColor;
-    --yai-font-weight-fat: 0.7px 0 currentColor, -0.7px 0 currentColor;
-
-    /* Nav buttons */
-    --yai-tabs-button-padding: 0 14px;
-    --yai-tabs-button-min-height: 34px;
-    --yai-tabs-button-font-size: 95%;
-    --yai-tabs-button-line-height: 1cap;
-
-    /* Navigation-specific shadows */
-    --yai-tabs-shadow-nav-top: 0 2px 5px 0;
-    --yai-tabs-shadow-nav-bottom: 0 -1px 5px 1px;
-    --yai-tabs-shadow-nav-left: 2px 1px 6px 2px;
-    --yai-tabs-shadow-nav-right: -2px 1px 5px 2px;
-    --yai-tabs-nav-button-transition: all 0.3s ease-in-out;
-
-    /* Loader */
-    --yai-tabs-loader-speed: 1.1s;
-    --yai-transition-short: 0.2s;
-    --yai-tabs-loader-thickness: 1px;
-    --yai-tabs-loader-button-thickness: 3px;
-    --yai-tabs-loader-content-thickness: 4px;
-    --yai-tabs-loader-button-size: 20px;
-    --yai-tabs-loader-content-size: 34px;
-
-    /* Form elements */
-    --yai-tabs-form-input-elements-padding: .6rem 1rem;
-    --yai-tabs-form-input-elements-border-radius: var(--yai-tabs-form-border-radius, 0);
-    --yai-tabs-form-input-elements-box-shadow: var(--yai-tabs-shadow-subtle);
-}
-
-/* SEMANTIC COLOR SYSTEM — dark as the base default.
-   Light theme overrides live in the consuming app's CSS ([data-app].light { }). */
-:root {
-    /* Core */
-    --yai-tabs-color-text:                  #eef1f4;
-    --yai-tabs-color-text-muted:            #a0a3a8;
-    --yai-tabs-color-background:            #0c1528;
-    --yai-tabs-color-surface:               #1e293b;
-    --yai-tabs-color-surface-alt:           #263448;
-    --yai-tabs-content-inactive-background: #0e0e0fd1;
-    --yai-tabs-content-inactive-color-muted:#c7ccd3;
-
-    /* Brand / semantic palette */
-    --yai-tabs-color-primary:               #2b5498;
-    --yai-tabs-color-primary-contrast:      #ffffff;
-    --yai-tabs-color-secondary:             #14e6a6;
-    --yai-tabs-color-secondary-contrast:    #161515;
-    --yai-tabs-color-accent:                #189db2e0;
-    --yai-tabs-color-accent-contrast:       #ffffff;
-    --yai-tabs-color-success:               #1a902e;
-    --yai-tabs-color-success-contrast:      #ffffff;
-    --yai-tabs-color-warning:               #ebb22d;
-    --yai-tabs-color-warning-contrast:      #161515;
-    --yai-tabs-color-danger:                #dd1919;
-    --yai-tabs-color-danger-contrast:       #ffffff;
-    --yai-tabs-color-dark:                  #1f2937e0;
-    --yai-tabs-color-dark-contrast:         #ffffff;
-    --yai-tabs-color-light:                 #f0f2f8e0;
-    --yai-tabs-color-light-contrast:        #181e2c;
-
-    /* Interactive */
-    --yai-tabs-color-focus:                 #00d1b2;
-    --yai-tabs-color-focus-ring:            rgba(2, 255, 178, 0.3);
-    --yai-loader-color:                     var(--yai-tabs-color-accent);
-
-    /* Shadows */
-    --yai-tabs-shadow-subtle-color:         rgba(55, 53, 53, 0.4);
-    --yai-tabs-shadow-medium-color:         rgba(55, 53, 53, 0.45);
-    --yai-tabs-shadow-accent:               rgba(2, 255, 178, 0.5);
-    --yai-tabs-shadow-subtle:               0 0 4px 1px var(--yai-tabs-shadow-subtle-color);
-    --yai-tabs-shadow-medium:               0 0 4px 2px var(--yai-tabs-shadow-medium-color);
-
-    /* Nav component defaults — overridden by [data-app] in next.css */
-    --yai-tabs-nav-background:              #1e293b;
-    --yai-tabs-nav-button-color:            var(--yai-tabs-color-text-muted);
-    --yai-tabs-nav-button-background:       transparent;
-    --yai-tabs-nav-button-hover-color:      var(--yai-tabs-color-text);
-    --yai-tabs-nav-button-active-color:     var(--yai-tabs-color-accent);
-    --yai-tabs-nav-button-active-background:#121c31;
-    --yai-tabs-nav-button-hover-background: #334155;
-    --yai-tabs-content-background:          transparent;
-    --yai-tabs-orientation-hint-color:      var(--yai-tabs-color-text-muted);
-}
-
 /* Base component styles */
 [data-yai-tabs] {
     margin-top: 0;
@@ -186,20 +85,32 @@
     text-shadow: var(--yai-font-weight-boldest);
 }
 
+/* Used Navigation position */
+[data-yai-tabs][data-nav="top"] {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Shadow adjustments for active tab buttons */
+
+[data-theme]:not([data-nav])>[data-controller] [data-open].active,
+[data-theme] [data-yai-tabs]:not([data-nav])>[data-controller] [data-open].active,
+[data-theme][data-nav="top"]>[data-controller] [data-open].active,
+[data-theme] [data-yai-tabs][data-nav="top"]>[data-controller] [data-open].active {
+    box-shadow: var(--yai-tabs-shadow-nav-top) var(--yai-tabs-shadow-accent);
+}
+
 /* Navigation alignment */
-[data-yai-tabs] [data-nav-button="left"] [data-open],
 [data-yai-tabs] [data-controller][data-align="start"],
 [data-yai-tabs] [data-controller][data-align="left"] {
     justify-content: start;
 }
 
-[data-yai-tabs] [data-nav-button="right"] [data-open],
 [data-yai-tabs] [data-controller][data-align="end"],
 [data-yai-tabs] [data-controller][data-align="right"] {
     justify-content: end;
 }
 
-[data-yai-tabs] [data-nav-button="center"] [data-open],
 [data-yai-tabs] [data-controller][data-align="center"] {
     justify-content: center;
 }
@@ -207,64 +118,6 @@
 [data-yai-tabs] [data-controller][data-grow] [data-open] {
     flex-grow: 1;
     justify-content: center;
-}
-
-[data-yai-tabs][data-nav="left"]>[data-controller][data-grow] [data-open],
-[data-yai-tabs][data-nav="right"]>[data-controller][data-grow] [data-open] {
-    flex-grow: unset;
-}
-
-/* Navigation positions */
-[data-yai-tabs][data-nav="top"],
-[data-yai-tabs][data-nav="bottom"],
-[data-yai-tabs][data-nav="left"],
-[data-yai-tabs][data-nav="right"] {
-    display: flex;
-}
-
-[data-yai-tabs][data-nav="top"] {
-    flex-direction: column;
-}
-
-[data-yai-tabs][data-nav="bottom"] {
-    flex-direction: column-reverse;
-}
-
-[data-yai-tabs][data-nav="left"],
-[data-yai-tabs][data-nav="right"] {
-    flex-wrap: wrap;
-}
-
-[data-yai-tabs][data-nav="left"]>[data-controller],
-[data-yai-tabs][data-nav="right"]>[data-controller] {
-    flex: 1 15%;
-    flex-direction: column;
-    border: 0 none;
-}
-
-[data-yai-tabs][data-nav="left"]>[data-controller] [data-open],
-[data-yai-tabs][data-nav="right"]>[data-controller] [data-open] {
-    padding: 4px 8px;
-    text-align: left;
-    justify-content: left;
-}
-
-[data-yai-tabs][data-nav="left"]>[data-controller] [data-open].active,
-[data-yai-tabs][data-nav="right"]>[data-controller] [data-open].active {
-    transform: scale(1.02);
-}
-
-[data-yai-tabs][data-nav="left"] [data-content],
-[data-yai-tabs][data-nav="right"] [data-content] {
-    flex: 1 80%;
-}
-
-[data-yai-tabs][data-nav="left"] {
-    flex-direction: row;
-}
-
-[data-yai-tabs][data-nav="right"] {
-    flex-direction: row-reverse;
 }
 
 /* Default content styles & utils */
@@ -420,30 +273,6 @@
     transition: none;
 }
 
-/* Shadow adjustments for active tab buttons */
-
-[data-theme][data-nav="left"]>[data-controller] [data-open].active,
-[data-theme] [data-nav="left"]>[data-controller] [data-open].active {
-    box-shadow: var(--yai-tabs-shadow-nav-left) var(--yai-tabs-shadow-accent);
-}
-
-[data-theme][data-nav="right"]>[data-controller] [data-open].active,
-[data-theme] [data-yai-tabs][data-nav="right"]>[data-controller] [data-open].active {
-    box-shadow: var(--yai-tabs-shadow-nav-right) var(--yai-tabs-shadow-accent);
-}
-
-[data-theme]:not([data-nav])>[data-controller] [data-open].active,
-[data-theme] [data-yai-tabs]:not([data-nav])>[data-controller] [data-open].active,
-[data-theme][data-nav="top"]>[data-controller] [data-open].active,
-[data-theme] [data-yai-tabs][data-nav="top"]>[data-controller] [data-open].active {
-    box-shadow: var(--yai-tabs-shadow-nav-top) var(--yai-tabs-shadow-accent);
-}
-
-[data-theme][data-nav="bottom"]>[data-controller] [data-open].active,
-[data-theme] [data-yai-tabs][data-nav="bottom"]>[data-controller] [data-open].active {
-    box-shadow: var(--yai-tabs-shadow-nav-bottom) var(--yai-tabs-shadow-accent);
-}
-
 /* Focus States */
 
 [data-theme] [data-controller] [data-open]:focus-visible {
@@ -473,17 +302,13 @@
 [data-theme],
 [data-theme] [data-yai-tabs] {
     background-color: var(--yai-tabs-color-background);
-    box-shadow: var(--yai-tabs-shadow-medium);
+    /* box-shadow: var(--yai-tabs-shadow-medium); */
 }
 
 /* Navigation Styles */
 [data-theme] [data-controller] {
     background-color: var(--yai-tabs-nav-background);
     box-shadow: var(--yai-tabs-shadow-subtle);
-}
-
-[data-yai-tabs][data-nav="bottom"] > [data-controller] {
-    --yai-tabs-shadow-subtle: 0 0 4px var(--yai-tabs-shadow-medium-color);
 }
 
 [data-theme] [data-controller] [data-open] {
@@ -616,6 +441,7 @@
     position: relative;
     opacity: 0.9;
     pointer-events: none;
+    color: transparent;
 }
 
 [data-yai-tabs] [data-controller] [data-open].yai-loading,
@@ -696,13 +522,7 @@ button.yai-loading::after {
         display: flex;
         flex-direction: column;
     }
-    [data-yai-tabs][data-nav="bottom"] {
-        flex-direction: column;
-    }
     [data-yai-tabs][data-nav="top"] [data-controller],
-    [data-yai-tabs][data-nav="bottom"] [data-controller],
-    [data-yai-tabs][data-nav="left"] [data-controller],
-    [data-yai-tabs][data-nav="right"] [data-controller],
     [data-yai-tabs] [data-content] [data-controller] {
         flex: 1 100%;
         flex-direction: column;
@@ -719,22 +539,5 @@ button.yai-loading::after {
     }
     [data-yai-tabs] [data-controller][data-grow]>[data-open] {
         justify-content: left;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    [data-yai-tabs] [data-controller] [data-open],
-    [data-yai-tabs][data-behavior]>[data-content]>[data-tab].active,
-    [data-yai-tabs] [data-content] [data-tab],
-    [data-yai-tabs] [data-content] [data-tab].active,
-    [data-yai-tabs]:not(.tab-active) [data-content]::before,
-    .yai-loading::after {
-        --yai-transition-short: 1ms !important;
-        --st-timeout-auto-reset: 1ms !important;
-        animation-delay: -1ms !important;
-        animation-duration: 1ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0s !important;
-        scroll-behavior: auto !important;
     }
 }

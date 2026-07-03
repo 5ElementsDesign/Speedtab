@@ -13,7 +13,7 @@ const ALLOWED_TAGS = [
   'ul', 'ol', 'li', 'menu',
   'dl', 'dt', 'dd',
   'blockquote', 'pre', 'code', 'kbd', 'samp',
-  'picture', 'figure',
+  'picture', 'figure', 'img',
   'details', 'summary',
   'nav', 'aside', 'article', 'address',
   'table', 'thead', 'tbody', 'tr', 'th', 'td',
@@ -24,6 +24,9 @@ const ALLOWED_TAGS = [
 const ALLOWED_ATTR = [
   'href', 'title', 'target', 'rel',
   'class',
+  'src', 'alt',
+  'width', 'height',
+  'loading',
   'colspan', 'rowspan',
 ]
 

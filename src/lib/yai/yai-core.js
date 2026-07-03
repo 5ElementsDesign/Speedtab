@@ -49,6 +49,11 @@ class YaiCore {
         this._fetchControllers = new Map();
 
         /**
+         * Deferred content-height reset handles keyed by container
+         */
+        this._contentHeightResetFrames = new WeakMap();
+
+        /**
          * High-performance DOM element cache - direct implementation
          */
         this._domCache = new Map();
@@ -804,6 +809,33 @@ class YaiCore {
             content.style.height = '';
             content.offsetHeight;
         }
+    }
+
+    /**
+     * Reset preserved content height on the next paint cycle.
+     * This avoids a one-frame collapse when the old active panel leaves flow
+     * before the new panel has fully settled.
+     * @param {Element} container - Container element
+     * @param {string} selector - Content selector (default: '[data-content]')
+     */
+    _scheduleResetContentHeight(container, selector='[data-content]') {
+        if (!container) return;
+
+        const pending = this._contentHeightResetFrames.get(container);
+        if (pending) {
+            cancelAnimationFrame(pending.outer);
+            cancelAnimationFrame(pending.inner);
+        }
+
+        const frameState = { outer: 0, inner: 0 };
+        frameState.outer = requestAnimationFrame(() => {
+            frameState.inner = requestAnimationFrame(() => {
+                this._resetContentHeight(container, selector);
+                this._contentHeightResetFrames.delete(container);
+            });
+        });
+
+        this._contentHeightResetFrames.set(container, frameState);
     }
 
     /**

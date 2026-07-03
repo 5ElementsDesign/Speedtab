@@ -2,14 +2,14 @@ const TAB_BEHAVIOR_VALUES = ['fade', 'slide-up', 'slide-down', 'slide-left', 'sl
 const TAB_THEME_VALUES = ['default', 'minimal']
 const COLOR_ACCENT_VALUES = ['primary', 'secondary', 'success', 'warning', 'danger', 'dark', 'light']
 const VARIANT_VALUES = ['primary', 'secondary', 'success', 'warning', 'danger', 'dark', 'light']
-const NAV_POSITION_VALUES = ['top', 'left', 'right', 'bottom']
+const ALIGN_VALUES = ['left', 'center', 'right']
 const LINK_BEHAVIOR_VALUES = ['new-tab', 'same-tab']
 
 const TAB_BEHAVIORS = new Set(TAB_BEHAVIOR_VALUES)
 const TAB_THEMES = new Set(TAB_THEME_VALUES)
 const COLOR_ACCENTS = new Set(COLOR_ACCENT_VALUES)
 const VARIANTS = new Set(VARIANT_VALUES)
-const NAV_POSITIONS = new Set(NAV_POSITION_VALUES)
+const ALIGNS = new Set(ALIGN_VALUES)
 const LINK_BEHAVIORS = new Set(LINK_BEHAVIOR_VALUES)
 
 function isIntegerInRange(min, max) {
@@ -60,6 +60,21 @@ export const UI_CONFIG_SPEC = {
           target: 'shell-root',
           applyAs: {type: 'attribute', name: 'data-variant'},
         },
+        'shell-tabs-align': {
+          valueType: 'enum',
+          allowedValues: ALIGN_VALUES,
+          validate: isEnum(ALIGNS),
+          defaultValue: null,
+          target: 'controller',
+          applyAs: {type: 'attribute', name: 'data-align'},
+        },
+        'shell-tabs-grow': {
+          valueType: 'boolean',
+          validate: isBoolean,
+          defaultValue: false,
+          target: 'controller',
+          applyAs: {type: 'attribute', name: 'data-grow', trueValue: ''},
+        },
         'shell-behavior': {
           valueType: 'enum',
           allowedValues: TAB_BEHAVIOR_VALUES,
@@ -74,14 +89,6 @@ export const UI_CONFIG_SPEC = {
           defaultValue: true,
           target: 'shell-root',
           applyAs: {type: 'attribute', name: 'data-swipe', trueValue: 'slyde'},
-        },
-        'shell-nav': {
-          valueType: 'enum',
-          allowedValues: NAV_POSITION_VALUES,
-          validate: isEnum(NAV_POSITIONS),
-          defaultValue: 'top',
-          target: 'shell-root',
-          applyAs: {type: 'attribute', name: 'data-nav'},
         },
         'shell-reduced-motion': {
           valueType: 'boolean',
@@ -105,7 +112,7 @@ export const UI_CONFIG_SPEC = {
           max: 3840,
           validate: isIntegerInRange(800, 3840),
           defaultValue: null,
-          target: 'shell-root',
+          target: 'document-root',
           applyAs: {type: 'css-variable', name: '--st-page-grid-max-width', serialize: (v) => `${v}px`},
         },
         'shell-header-height-px': {
@@ -130,6 +137,19 @@ export const UI_CONFIG_SPEC = {
               {name: '--st-page-grid-row-gap', serialize: (v) => `${v}px`},
               {name: '--st-page-grid-col-gap', serialize: (v) => `${v}px`},
             ],
+          },
+        },
+        'shell-module-content-gap-px': {
+          valueType: 'integer',
+          min: 0,
+          max: 64,
+          validate: isIntegerInRange(0, 64),
+          defaultValue: null,
+          target: 'shell-root',
+          applyAs: {
+            type: 'css-variable',
+            name: '--st-module-content-gap',
+            serialize: (v) => `${v}px`,
           },
         },
       },
@@ -162,13 +182,62 @@ export const UI_CONFIG_SPEC = {
           valueType: 'color', validate: isCssColor, defaultValue: '',
           target: 'shell-root', applyAs: {type: 'css-variable', name: '--st-ws-shell-nav-active-text-color'},
         },
-        '--st-ws-module-shadow-color': {
-          valueType: 'color', validate: isCssColor, defaultValue: '',
-          target: 'shell-root', applyAs: {type: 'css-variable', name: '--st-ws-module-shadow-color'},
-        },
         '--st-module-bookmark-preview-background-color': {
           valueType: 'color', validate: isCssColor, defaultValue: '',
           target: 'shell-root', applyAs: {type: 'css-variable', name: '--st-module-bookmark-preview-background-color'},
+        },
+        '--st-module-bookmark-preview-text-color': {
+          valueType: 'color', validate: isCssColor, defaultValue: '',
+          target: 'shell-root', applyAs: {type: 'css-variable', name: '--st-module-bookmark-preview-text-color'},
+        },
+        '--st-notes-preview-content-bg': {
+          valueType: 'color', validate: isCssColor, defaultValue: '',
+          target: 'document-root', group: 'notePreview',
+          applyAs: {type: 'css-variable', name: '--st-notes-preview-content-bg'},
+        },
+        '--st-notes-preview-content-color': {
+          valueType: 'color', validate: isCssColor, defaultValue: '',
+          target: 'document-root', group: 'notePreview',
+          applyAs: {type: 'css-variable', name: '--st-notes-preview-content-color'},
+        },
+        '--st-notes-preview-content-font-scale': {
+          valueType: 'integer',
+          min: 80,
+          max: 200,
+          validate: isIntegerInRange(80, 200),
+          defaultValue: null,
+          target: 'document-root',
+          group: 'notePreview',
+          applyAs: {type: 'css-variable', name: '--st-notes-preview-content-font-scale', serialize: (v) => String(v / 100)},
+        },
+        '--st-notes-open-content-bg': {
+          valueType: 'color', validate: isCssColor, defaultValue: '',
+          target: 'document-root', group: 'noteOpen',
+          applyAs: {type: 'css-variable', name: '--st-notes-open-content-bg'},
+        },
+        '--st-notes-open-content-color': {
+          valueType: 'color', validate: isCssColor, defaultValue: '',
+          target: 'document-root', group: 'noteOpen',
+          applyAs: {type: 'css-variable', name: '--st-notes-open-content-color'},
+        },
+        '--st-notes-open-link-color': {
+          valueType: 'color', validate: isCssColor, defaultValue: '',
+          target: 'document-root', group: 'noteOpen',
+          applyAs: {type: 'css-variable', name: '--st-notes-open-link-color'},
+        },
+        '--st-notes-open-content-font-scale': {
+          valueType: 'integer',
+          min: 80,
+          max: 200,
+          validate: isIntegerInRange(80, 200),
+          defaultValue: null,
+          target: 'document-root',
+          group: 'noteOpen',
+          applyAs: {type: 'css-variable', name: '--st-notes-open-content-font-scale', serialize: (v) => String(v / 100)},
+        },
+        '--st-ws-module-shadow-color': {
+          valueType: 'color', validate: isCssColor, defaultValue: '',
+          target: 'shell-root', applyAs: {type: 'css-variable', name: '--st-ws-module-shadow-color'},
         },
       },
     },
@@ -191,6 +260,21 @@ export const UI_CONFIG_SPEC = {
           defaultValue: null,
           target: 'tabs-root',
           applyAs: {type: 'attribute', name: 'data-variant'},
+        },
+        'module-tabs-align': {
+          valueType: 'enum',
+          allowedValues: ALIGN_VALUES,
+          validate: isEnum(ALIGNS),
+          defaultValue: null,
+          target: 'controller',
+          applyAs: {type: 'attribute', name: 'data-align'},
+        },
+        'module-tabs-grow': {
+          valueType: 'boolean',
+          validate: isBoolean,
+          defaultValue: false,
+          target: 'controller',
+          applyAs: {type: 'attribute', name: 'data-grow', trueValue: ''},
         },
         'module-tabs-behavior': {
           valueType: 'enum',
@@ -227,6 +311,13 @@ export const UI_CONFIG_SPEC = {
           defaultValue: false,
           target: 'tabs-root',
           applyAs: {type: 'attribute', name: 'data-bookmarks-force-favicon', trueValue: ''},
+        },
+        'module-tabs-show-title-below': {
+          valueType: 'boolean',
+          validate: isBoolean,
+          defaultValue: false,
+          target: 'tabs-root',
+          applyAs: {type: 'attribute', name: 'data-bookmarks-show-title-below', trueValue: ''},
         },
         'module-tabs-show-add-tile': {
           valueType: 'boolean',
@@ -282,6 +373,21 @@ export const UI_CONFIG_SPEC = {
           defaultValue: null,
           target: 'tabs-root',
           applyAs: {type: 'attribute', name: 'data-variant'},
+        },
+        'module-tabs-align': {
+          valueType: 'enum',
+          allowedValues: ALIGN_VALUES,
+          validate: isEnum(ALIGNS),
+          defaultValue: null,
+          target: 'controller',
+          applyAs: {type: 'attribute', name: 'data-align'},
+        },
+        'module-tabs-grow': {
+          valueType: 'boolean',
+          validate: isBoolean,
+          defaultValue: false,
+          target: 'controller',
+          applyAs: {type: 'attribute', name: 'data-grow', trueValue: ''},
         },
         'module-tabs-behavior': {
           valueType: 'enum',
@@ -359,6 +465,21 @@ export const UI_CONFIG_SPEC = {
           defaultValue: null,
           target: 'tabs-root',
           applyAs: {type: 'attribute', name: 'data-variant'},
+        },
+        'module-tabs-align': {
+          valueType: 'enum',
+          allowedValues: ALIGN_VALUES,
+          validate: isEnum(ALIGNS),
+          defaultValue: null,
+          target: 'controller',
+          applyAs: {type: 'attribute', name: 'data-align'},
+        },
+        'module-tabs-grow': {
+          valueType: 'boolean',
+          validate: isBoolean,
+          defaultValue: false,
+          target: 'controller',
+          applyAs: {type: 'attribute', name: 'data-grow', trueValue: ''},
         },
         'module-hide-header': {
           valueType: 'boolean',
