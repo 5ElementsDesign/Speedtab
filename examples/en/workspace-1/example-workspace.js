@@ -31,57 +31,246 @@ const exampleWorkspaceDefinition = [
     colorScheme: 'primary',
     title: 'Welcome to Speedtab',
     content: `
-<h2>Welcome to Speedtab</h2>
-<p> Speedtab is a modular new-tab workspace for bookmarks, notes, feeds, assets, remote sync, and portable exports. </p>
-<blockquote>
-  <p> This note is an <strong>HTML note</strong>. You can use richer structure than plain text while still keeping everything inside Speedtab. </p>
-</blockquote>
-<figure class="st-note-html-favicon-row">
-  {{asset:image:1}}
-  {{asset:image:2}}
-  {{asset:image:3}}
-</figure>
-<h3>Highlights</h3>
-<table>
-  <thead>
-    <tr> <th>Feature</th> <th>What it does</th> </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>Bookmarks</strong></td>
-      <td>Tabbed collections, preview images, quicklinks, and favicon handling.</td>
-    </tr>
-    <tr>
-      <td><strong>Notes</strong></td>
-      <td>Text, code, links, encrypted notes, and now structured HTML notes.</td>
-    </tr>
-    <tr>
-      <td><strong>Feeds</strong></td>
-      <td>RSS and Atom reading with source management and local reading tools.</td>
-    </tr>
-    <tr>
-      <td><strong>Remote Sync</strong></td>
-      <td>WebDAV push and pull with compare states, archive snapshots, and repair checks.</td>
-    </tr>
-    <tr>
-      <td><strong>Widgets</strong></td>
-      <td>Global rail widgets like weather, independent from the normal module grid.</td>
-    </tr>
-  </tbody>
-</table>
-<h3>Good to know</h3>
-<ul>
-  <li>Local export and remote sync are separate concepts.</li>
-  <li>Encrypted notes stay locked until a passphrase is entered.</li>
-  <li>Open notes can float above the page like small app windows.</li>
-  <li>HTML notes are sanitised before rendering.</li>
-</ul>
-<h3>Example layout content</h3>
-<p> HTML notes work well for compact dashboards, onboarding cards, guides, changelogs, and small documentation blocks. </p>
-<pre><code>&lt;a href="https://chromewebstore.google.com/" target="_blank"&gt;Chrome Web Store&lt;/a&gt;</code></pre>
-<p> <small>Useful link:</small> <a href="https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff" target="_blank" rel="noopener noreferrer"> Speedtab on the Chrome Web Store </a> </p>
-<hr>
-<p> <strong>Tip:</strong> This note is meant as a starter template. Duplicate it, then replace sections with your own dashboard guide. </p>
+<div data-yai-tabs="" data-nav="top" data-theme="light" data-color-accent="primary" data-behavior="blur" data-swipe="" data-closable="false" data-auto-accessibility="false">
+  <nav data-controller="">
+    <button data-tab-action="open" data-open="1" data-default="">Welcome</button>
+    <button data-tab-action="open" data-open="2">GTK</button>
+  </nav>
+  <div data-content="">
+    <div data-tab="1" class="p-3">
+      <div data-swipe-ignore>
+        <h2>Welcome to Speedtab</h2>
+        <p> Speedtab is a modular new-tab workspace for bookmarks, notes, feeds, assets, remote sync, and portable exports. </p>
+        <blockquote>
+          <p> This note is an <strong>HTML note</strong>. You can use richer structure than plain text while still keeping everything inside Speedtab. </p>
+        </blockquote>
+        <figure class="st-note-html-favicon-row">
+          {{asset:image:1}}
+          {{asset:image:2}}
+          {{asset:image:3}}
+        </figure>
+        <h3>Highlights</h3>
+        <table>
+          <thead>
+            <tr> <th>Feature</th> <th>What it does</th> </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Bookmarks</strong></td>
+              <td>Tabbed collections, preview images, quicklinks, and favicon handling.</td>
+            </tr>
+            <tr>
+              <td><strong>Notes</strong></td>
+              <td>Text, code, links, encrypted notes, and now structured HTML notes.</td>
+            </tr>
+            <tr>
+              <td><strong>Feeds</strong></td>
+              <td>RSS and Atom reading with source management and local reading tools.</td>
+            </tr>
+            <tr>
+              <td><strong>Remote Sync</strong></td>
+              <td>WebDAV push and pull with compare states, archive snapshots, and repair checks.</td>
+            </tr>
+            <tr>
+              <td><strong>Widgets</strong></td>
+              <td>Global rail widgets like weather, independent from the normal module grid.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div data-tab="2" class="p-3">
+      <div data-swipe-ignore>
+        <h2>Good to know</h2>
+        <ul>
+          <li>Local export and remote sync are separate concepts.</li>
+          <li>Encrypted notes stay locked until a passphrase is entered.</li>
+          <li>Open notes can float above the page like small app windows.</li>
+          <li>HTML notes are sanitised before rendering.</li>
+        </ul>
+        <h3>Example layout content</h3>
+        <p> HTML notes work well for compact dashboards, onboarding cards, guides, changelogs, and small documentation blocks. </p>
+        <pre><code>&lt;a href="https://chromewebstore.google.com/" target="_blank"&gt;Chrome Web Store&lt;/a&gt;</code></pre>
+        <p> <small>Useful link:</small> <a href="https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff" target="_blank" rel="noopener noreferrer"> Speedtab on the Chrome Web Store </a> </p>
+        <hr>
+        <p> <strong>Tip:</strong> This note is meant as a starter template. Duplicate it, then replace sections with your own dashboard guide. </p>
+      </div>
+    </div>
+  </div>
+</div>
+    `,
+  },
+  {
+    page: 'Main',
+    module: 'Notes',
+    tab: 'Start',
+    type: 'html',
+    colorScheme: 'dark',
+    title: 'Tabby Tabs',
+    content: `
+<div
+  data-yai-tabs
+  data-nav="top"
+  data-theme="dark"
+  data-color-accent="secondary"
+  data-behavior="zoom"
+  data-swipe
+  data-auto-accessibility="false"
+  data-closable="false">
+  <header data-tabs-header>
+    <div data-header-content class="p-3">
+      <p class="m-0 last-p">Each Tab Component can have it's own header. Always visible above.</p>
+    </div>
+  </header>
+  <nav data-controller>
+    <button data-tab-action="open" data-open="1" data-default>Intro</button>
+    <button data-tab-action="open" data-open="2">Usage</button>
+  </nav>
+  <div data-content>
+    <div data-tab="1" data-spaceless>
+      <div data-yai-tabs data-nav="left" data-color-accent="warning" data-behavior="blur" data-closable="false" data-swipe>
+        <nav data-controller>
+          <button data-tab-action="open" data-open="1" data-default>Speedtab</button>
+          <button data-tab-action="open" data-open="2">YaiTabs</button>
+          <button data-tab-action="open" data-open="3">Tabbed Browsing</button>
+        </nav>
+        <div data-content>
+          <div data-tab="1" class="p-2">
+            <div data-swipe-ignore>
+              <h2>Speedtab</h2>
+              <p>A new tabbed browsing experience</p>
+              <p>
+                <small>💡 <strong>Pro tip right away:</strong> Copy the entire <code>input element</code> from this note
+                and paste it into any content section in this note. It works instantly.</small>
+              </p>
+              <p>Yeah, sure. And what exactly is a "content section"?</p>
+              <p title="Speedy">We actually are communicating in <b>data-tab="1"</b>, everything within, from title till here, is the content section. Or when Text looks like Text, and not like something else, that's usually a content section, too.</p>
+              <p class="m-0 last-p">
+                <small><strong>PS tip:</strong> If you prefer lighter colors, click Edit and replace the first "dark" you see in the input element with "light".</small>
+              </p>
+            </div>
+          </div>
+          <div data-tab="2" class="p-2">
+            <div data-swipe-ignore>
+              <h2>YaiTabs</h2>
+              <p>A new tabbed browsing implementation</p>
+              <p>Unfortunately all we could say here is technically, so basically pretty boring stuff, so we skip it.</p>
+              <p class="m-0 last-p"><a href="https://yaijs.github.io/yai/" target="_blank" rel="noopener nofollow">YaiJS on Github</a></p>
+            </div>
+          </div>
+          <div data-tab="3" class="p-2">
+            <div data-swipe-ignore>
+              <h2>Tabbed Browsing Interface</h2>
+              <blockquote>
+                <p class="m-0 last-p">Faster access to a larger number of tabs</p>
+              </blockquote>
+              <p>Like most of the data in this note, this data is a placeholder for presentation purposes as well.</p>
+              <p>But the left navigation also looks so nice, that i just want to add pages only to have more nav items in that.</p>
+              <p>Can hardly keep me back—too tempting…</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div data-tab="2" data-spaceless>
+      <div data-yai-tabs data-nav="bottom" data-color-accent="success" data-behavior="blur" data-closable="false" data-swipe data-spaceless>
+        <nav data-controller>
+            <button data-tab-action="open" data-open="1" data-default>How to</button>
+            <button data-tab-action="open" data-open="2">Attributes</button>
+        </nav>
+        <div data-content>
+          <div data-tab="1">
+            <h2>How do I get YaiTabs?</h2>
+            <p>Since you can read this, you already have YaiTabs! You're Welcome!</p>
+            <p>But, YaiTabs only works in notes of type <b>html</b> (the default type, when you create notes).</p>
+            <blockquote>
+              <p class="m-0 last-p">Well, technically speaking, YaiTabs also powers the Page navigation and tabs in each module plus practically all interactions within Speedtab. It's all the same underlying system, sharing resources like hippies. Just enough to get by. But that's just a sidenote.</p>
+            </blockquote>
+            <p>After creating a note, above the content input element, click "Tabber", it will throw you in a brand-new component mentally called "<b title="Not related to Sabby Sabs">Tabby Tabs</b>".</p>
+            <p>It will come with 2 readyToGo tabs and content panels, if you need more, copy & paste from existing component following the pattern of the two, or click Tabber as many times as you need (internally, it copy & pastes the same example markup, unchanged; and no changes needed).</p>
+            <p>And why exactly do i wanted Speedtab again? I missed that part, it seems.</p>
+            <p class="m-0 last-p">Because Speedtab is now partially YaiTabs, which makes it fully YAI and therefore YEH! That's 3 reasons right there!</p>
+          </div>
+          <div data-tab="2" data-spaceless>
+            <div data-yai-tabs data-color-accent="danger" data-behavior="blur" data-closable="false" data-swipe data-nav="right">
+              <nav data-controller>
+                <button data-tab-action="open" data-open="1" data-default>DOCS</button>
+                <button data-tab-action="open" data-open="2">Attribute Details</button>
+              </nav>
+              <div data-content>
+                <div data-tab="1">
+                  <h2>DOCs</h2>
+                  <p class="m-0 last-p">Skipped because boring…</p>
+                </div>
+                <div data-tab="2">
+                  <h2>Attribute driven Architecture</h2>
+                  <p>Attri-what? What does that even mean?</p>
+                  <p>Attributes are strings. Many features can be set on/off via attributes, basically by adding strings into strings.</p>
+                  <table data-swipe-ignore>
+                    <thead>
+                      <tr>
+                        <th>Attribute</th>
+                        <th>Description</th>
+                        <th>Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><b class="text-truncate">data-yai-tabs</b></td>
+                        <td>Tabbed Browsing Component</td>
+                        <td>Can handle browser-shaking levels of nested components.</td>
+                      </tr>
+                      <tr>
+                        <td><b class="text-truncate">data-theme="light"</b></td>
+                        <td>Color preset</td>
+                        <td>light, dark (light is the default)</td>
+                      </tr>
+                      <tr>
+                        <td><b class="text-truncate">data-nav="top"</b></td>
+                        <td>Tab navigation (bottom reverses tabs-header and tabs-footer)</td>
+                        <td>top, left, right, bottom</td>
+                      </tr>
+                      <tr>
+                        <td><b class="text-truncate">data-color-accent="warning"</b></td>
+                        <td>Color of the active tab</td>
+                        <td>primary, secondary, success, warning, danger, dark, light</td>
+                      </tr>
+                      <tr>
+                        <td><b class="text-truncate">data-behavior="fade"</b></td>
+                        <td>The applied switch effect</td>
+                        <td>fade, slide-down, slide-up, slide-left, slide-right, blur, zoom, flip, instant</td>
+                      </tr>
+                      <tr>
+                        <td><b class="text-truncate">data-swipe</b></td>
+                        <td>Enables YaiSwipe for this component. Swipes work through out all levels.</td>
+                        <td>YAI + YEH = SUN</td>
+                      </tr>
+                      <tr>
+                        <td><b class="text-truncate">data-auto-accessibility="false"</b></td>
+                        <td>Enable in first tab component, nested components will inherit.</td>
+                        <td>Nested components inherit always, theme, accent, behavior. You can change them per level.</td>
+                      </tr>
+                      <tr>
+                        <td><b class="text-truncate">data-closable="false"</b></td>
+                        <td>This is not ARIA compliant, so we leave it up to you...</td>
+                        <td>true / false</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer data-tabs-footer>
+    <div data-footer-content class="p-3">
+      <p class="m-0 last-p">Each Tab Component can have it's own footer. Always visible below.</p>
+    </div>
+  </footer>
+</div>
     `,
   },
 
@@ -365,12 +554,11 @@ colspan, rowspan
     content: `
 Speedtab
 https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff
-[hr]
 Speedtab Project
 https://github.com/5ElementsDesign/Speedtab/
-[hr]
 Useful Services
 https://app.koofr.net/app/
+[hr]
 https://open-meteo.com/v
     `,
   },

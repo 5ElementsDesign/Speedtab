@@ -119,24 +119,9 @@
   }
 }
 
-[data-module-tabs-bookmarks] {
-  &[data-bookmarks-empty] {
-    .st-bookmarks-empty {
-      display: flex;
-    }
-  }
-
-  [data-bookmark-add-tile] {
-    display: none;
-  }
-
-[data-bookmark-add-tile][hidden] {
-  display: none !important;
-}
-
 /**
- * Bookmark form
- */
+* Bookmark form
+*/
 [data-bookmark-form-meta] {
   font-size: 0.75rem;
   font-weight: 400;
@@ -191,19 +176,62 @@
 }
 
 [data-bookmark-form-picker] {
-  margin-top: 8px;
+  margin-top: 0.25rem;
   padding: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(21, 21, 21, 1);
   display: flex;
   flex-direction: column;
   gap: 10px;
+
+  [data-bookmark-form-favicon-grid] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px;
+    background: #000;
+  }
+
+  [data-bookmark-favicon-tile] {
+    width: 54px;
+    min-height: 0;
+    flex: 1;
+    padding: 8px;
+    border: 0 none;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-content: center;
+    cursor: pointer;
+
+    &:hover {
+      background: #222;
+    }
+
+    img {
+      width: 38px;
+      height: 38px;
+      object-fit: contain;
+    }
+  }
 }
 
 [data-bookmark-form-picker-section] {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+[data-bookmark-form-picker-actions] {
+    display: flex;
+    flex-direction: row;
+    gap: 4px;
+
+    button {
+      --st-form-elements-min-height: 36px;
+      flex: 1;
+    }
 }
 
 [data-bookmark-form-picker-title] {
@@ -214,7 +242,6 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
-[data-bookmark-form-picker-actions],
 [data-bookmark-form-preview-buttons],
 [data-bookmark-form-crop-actions] {
   display: flex;
@@ -239,27 +266,6 @@
   &:hover {
     background: rgba(0, 0, 0, 0.6);
     color: rgba(255, 255, 255, 1);
-  }
-}
-
-[data-bookmark-form-favicon-grid] {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
-  gap: 8px;
-}
-
-[data-bookmark-favicon-tile] {
-  width: 100%;
-  aspect-ratio: 1;
-  padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(38, 38, 38, 1);
-  cursor: pointer;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
   }
 }
 
@@ -334,6 +340,22 @@
     object-fit: cover;
   }
 }
+
+
+[data-module-tabs-bookmarks] {
+  &[data-bookmarks-empty] {
+    .st-bookmarks-empty {
+      display: flex;
+    }
+  }
+
+  [data-bookmark-add-tile] {
+    display: none;
+  }
+
+  [data-bookmark-add-tile][hidden] {
+    display: none !important;
+  }
 
   [data-bookmark-tile]:focus-within [data-bookmark-actions],
   [data-bookmark-tile]:hover [data-bookmark-actions] {

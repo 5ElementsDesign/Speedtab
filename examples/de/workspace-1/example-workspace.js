@@ -31,57 +31,242 @@ const exampleWorkspaceDefinition = [
     colorScheme: 'primary',
     title: 'Willkommen bei Speedtab',
     content: `
-<h2>Willkommen bei Speedtab</h2>
-<p> Speedtab ist ein modularer Neuer-Tab-Workspace für Lesezeichen, Notizen, Feeds, Assets, Remote-Synchronisierung und portable Exporte. </p>
-<blockquote>
-  <p> Diese Notiz ist eine <strong>HTML-Notiz</strong>. Du kannst reichhaltigere Strukturen nutzen als bei reinem Text und trotzdem alles direkt in Speedtab behalten. </p>
-</blockquote>
-<figure class="st-note-html-favicon-row">
-  {{asset:image:1}}
-  {{asset:image:2}}
-  {{asset:image:3}}
-</figure>
-<h3>Highlights</h3>
-<table>
-  <thead>
-    <tr> <th>Feature</th> <th>Was es macht</th> </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>Lesezeichen</strong></td>
-      <td>Tabbasierte Sammlungen, Vorschaubilder, Quicklinks und Favicon-Handling.</td>
-    </tr>
-    <tr>
-      <td><strong>Notizen</strong></td>
-      <td>Text, Code, Links, verschlüsselte Notizen und jetzt auch strukturierte HTML-Notizen.</td>
-    </tr>
-    <tr>
-      <td><strong>Feeds</strong></td>
-      <td>RSS- und Atom-Reader mit Quellenverwaltung und lokalen Lese-Tools.</td>
-    </tr>
-    <tr>
-      <td><strong>Remote Sync</strong></td>
-      <td>WebDAV-Push und -Pull mit Statusvergleich, Archiv-Snapshots und Reparatur-Prüfungen.</td>
-    </tr>
-    <tr>
-      <td><strong>Widgets</strong></td>
-      <td>Globale Widgets in der Schiene (wie das Wetter), unabhängig vom normalen Modul-Raster.</td>
-    </tr>
-  </tbody>
-</table>
-<h3>Gut zu wissen</h3>
-<ul>
-  <li>Lokaler Export und Remote-Sync sind getrennte Konzepte.</li>
-  <li>Verschlüsselte Notizen bleiben gesperrt, bis eine Passphrase eingegeben wird.</li>
-  <li>Geöffnete Notizen können wie kleine App-Fenster frei über der Seite schweben.</li>
-  <li>HTML-Notizen werden vor dem Rendern bereinigt (sanitised).</li>
-</ul>
-<h3>Beispiel für Layout-Inhalte</h3>
-<p> HTML-Notizen eignen sich hervorragend für kompakte Dashboards, Onboarding-Karten, Leitfäden, Changelogs und kleine Dokumentationsblöcke. </p>
-<pre><code>&lt;a href="https://chromewebstore.google.com/" target="_blank"&gt;Chrome Web Store&lt;/a&gt;</code></pre>
-<p> <small>Nützlicher Link:</small> <a href="https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff" target="_blank" rel="noopener noreferrer"> Speedtab im Chrome Web Store </a> </p>
-<hr>
-<p> <strong>Tipp:</strong> Diese Notiz ist als Starter-Vorlage gedacht. Dupliziere sie einfach und ersetze die Abschnitte durch deinen eigenen Dashboard-Leitfaden. </p>
+<div data-yai-tabs="" data-nav="top" data-theme="light" data-color-accent="primary" data-behavior="blur" data-swipe="" data-closable="false" data-auto-accessibility="false">
+  <nav data-controller="">
+    <button data-tab-action="open" data-open="1" data-default="">Willkommen</button>
+    <button data-tab-action="open" data-open="2">GZW</button>
+  </nav>
+  <div data-content="">
+    <div data-tab="1" class="p-3">
+      <div data-swipe-ignore>
+        <h2>Willkommen bei Speedtab</h2>
+        <p> Speedtab ist ein modularer Neuer-Tab-Workspace für Lesezeichen, Notizen, Feeds, Assets, Remote-Synchronisierung und portable Exporte. </p>
+        <blockquote>
+          <p> Diese Notiz ist eine <strong>HTML-Notiz</strong>. Du kannst reichhaltigere Strukturen nutzen als bei reinem Text und trotzdem alles direkt in Speedtab behalten. </p>
+        </blockquote>
+        <figure class="st-note-html-favicon-row">
+          {{asset:image:1}}
+          {{asset:image:2}}
+          {{asset:image:3}}
+        </figure>
+        <h3>Highlights</h3>
+        <table>
+          <thead>
+            <tr> <th>Feature</th> <th>Was es macht</th> </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Lesezeichen</strong></td>
+              <td>Tabbasierte Sammlungen, Vorschaubilder, Quicklinks und Favicon-Handling.</td>
+            </tr>
+            <tr>
+              <td><strong>Notizen</strong></td>
+              <td>Text, Code, Links, verschlüsselte Notizen und jetzt auch strukturierte HTML-Notizen.</td>
+            </tr>
+            <tr>
+              <td><strong>Feeds</strong></td>
+              <td>RSS- und Atom-Reader mit Quellenverwaltung und lokalen Lese-Tools.</td>
+            </tr>
+            <tr>
+              <td><strong>Remote Sync</strong></td>
+              <td>WebDAV-Push und -Pull mit Statusvergleich, Archiv-Snapshots und Reparatur-Prüfungen.</td>
+            </tr>
+            <tr>
+              <td><strong>Widgets</strong></td>
+              <td>Globale Widgets in der Schiene (wie das Wetter), unabhängig vom normalen Modul-Raster.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div data-tab="2" class="p-3">
+      <div data-swipe-ignore>
+        <h2>Gut zu wissen</h2>
+        <ul>
+          <li>Lokaler Export und Remote-Sync sind getrennte Konzepte.</li>
+          <li>Verschlüsselte Notizen bleiben gesperrt, bis eine Passphrase eingegeben wird.</li>
+          <li>Geöffnete Notizen können wie kleine App-Fenster frei über der Seite schweben.</li>
+          <li>HTML-Notizen werden vor dem Rendern bereinigt (sanitised).</li>
+        </ul>
+        <h3>Beispiel für Layout-Inhalte</h3>
+        <p> HTML-Notizen eignen sich hervorragend für kompakte Dashboards, Onboarding-Karten, Leitfäden, Changelogs und kleine Dokumentationsblöcke. </p>
+        <pre><code>&lt;a href="https://chromewebstore.google.com/" target="_blank"&gt;Chrome Web Store&lt;/a&gt;</code></pre>
+        <p> <small>Nützlicher Link:</small> <a href="https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff" target="_blank" rel="noopener noreferrer"> Speedtab im Chrome Web Store </a> </p>
+        <hr>
+        <p> <strong>Tipp:</strong> Diese Notiz ist als Starter-Vorlage gedacht. Dupliziere sie einfach und ersetze die Abschnitte durch deinen eigenen Dashboard-Leitfaden. </p>
+      </div>
+    </div>
+  </div>
+</div>
+    `,
+  },
+  {
+    page: 'Main',
+    module: 'Notizen',
+    tab: 'Start',
+    type: 'html',
+    colorScheme: 'dark',
+    title: 'Tabby Tabs',
+    content: `
+<div
+  data-yai-tabs
+  data-nav="top"
+  data-theme="dark"
+  data-color-accent="secondary"
+  data-behavior="zoom"
+  data-swipe
+  data-auto-accessibility="false"
+  data-closable="false">
+  <header data-tabs-header>
+    <div data-header-content class="p-3">
+      <p class="m-0 last-p">Jede Tab-Komponente kann ihren eigenen Header haben. Immer oben sichtbar.</p>
+    </div>
+  </header>
+  <nav data-controller>
+    <button data-tab-action="open" data-open="1" data-default>Intro</button>
+    <button data-tab-action="open" data-open="2">Nutzung</button>
+  </nav>
+  <div data-content>
+    <div data-tab="1" data-spaceless>
+      <div data-yai-tabs data-nav="left" data-color-accent="warning" data-behavior="blur" data-closable="false" data-swipe>
+        <nav data-controller>
+          <button data-tab-action="open" data-open="1" data-default>Speedtab</button>
+          <button data-tab-action="open" data-open="2">YaiTabs</button>
+          <button data-tab-action="open" data-open="3">Tabbed Browsing</button>
+        </nav>
+        <div data-content>
+          <div data-tab="1" class="p-2">
+            <div data-swipe-ignore>
+              <h2>Speedtab</h2>
+              <p>Ein völlig neues Tab-Erlebnis</p>
+              <p>
+                <small>💡 <strong>Sofortiger Pro-Tipp:</strong> Kopiere das gesamte <code>input element</code> aus dieser Notiz
+                und füge es in einen beliebigen Inhaltsbereich in dieser Notiz ein. Es funktioniert sofort.</small>
+              </p>
+              <p>Ja, klar. Und was genau ist ein "Inhaltsbereich"?</p>
+              <p title="Speedy">Wir kommunizieren hier gerade in <b>data-tab="1"</b>. Alles darin, vom Titel bis hierher, ist der Inhaltsbereich. Oder wenn Text einfach wie Text aussieht und nicht wie etwas anderes, ist das normalerweise auch ein Inhaltsbereich.</p>
+              <p class="m-0 last-p">
+                <small><strong>PS-Tipp:</strong> Wenn du hellere Farben bevorzugst, klicke auf Bearbeiten und ersetze das erste "dark", das du im Input-Element siehst, durch "light".</small>
+              </p>
+            </div>
+          </div>
+          <div data-tab="2" class="p-2">
+            <div data-swipe-ignore>
+              <h2>YaiTabs</h2>
+              <p>Eine neue Tab-Implementation</p>
+              <p>Leider ist alles, was wir hier sagen könnten, rein technischer Natur, also im Grunde ziemlich langweilig – wir überspringen es einfach.</p>
+              <p class="m-0 last-p"><a href="https://yaijs.github.io/yai/" target="_blank" rel="noopener nofollow">YaiJS auf Github</a></p>
+            </div>
+          </div>
+          <div data-tab="3" class="p-2">
+            <div data-swipe-ignore>
+              <h2>Tabbed Browsing Interface</h2>
+              <blockquote>
+                <p class="m-0 last-p">Schnellerer Zugriff auf eine größere Anzahl von Tabs</p>
+              </blockquote>
+              <p>Wie die meisten Daten in dieser Notiz dienen auch diese Daten als Platzhalter für Präsentationszwecke.</p>
+              <p>Aber die linke Navigation sieht so gut aus, dass ich einfach Seiten hinzufügen möchte, nur um mehr Nav-Items darin zu haben.</p>
+              <p>Kann mich kaum zurückhalten – zu verlockend…</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div data-tab="2" data-spaceless>
+      <div data-yai-tabs data-nav="bottom" data-color-accent="success" data-behavior="blur" data-closable="false" data-swipe data-spaceless>
+        <nav data-controller>
+            <button data-tab-action="open" data-open="1" data-default>How to</button>
+            <button data-tab-action="open" data-open="2">Attribute</button>
+        </nav>
+        <div data-content>
+          <div data-tab="1">
+            <h2>Wie bekomme ich YaiTabs?</h2>
+            <p>Da du das hier lesen kannst, hast du YaiTabs bereits! Gern geschehen!</p>
+            <p>Aber: YaiTabs funktioniert nur in Notizen vom Typ <b>html</b> (der Standardtyp beim Erstellen von Notizen).</p>
+            <blockquote>
+              <p class="m-0 last-p">Nun, technisch gesehen treibt YaiTabs auch die Seitennavigation und die Tabs in jedem Modul sowie praktisch alle Interaktionen innerhalb von Speedtab an. Es ist dasselbe zugrunde liegende System, das Ressourcen hocheffizient teilt wie friedliche Hippies. Gerade genug, um perfekt auszukommen. Aber das nur am Rande.</p>
+            </blockquote>
+            <p>Klicke nach dem Erstellen einer Notiz über dem Eingabefeld auf "Tabber". Das wirft dich direkt in eine brandneue Komponente namens "<b title="Steht in keiner Verbindung zu Sabby Sabs">Tabby Tabs</b>".</p>
+            <p>Sie enthält sofort 2 fertige Tabs und Inhaltsbereiche. Wenn du mehr benötigst, kopiere sie einfach anhand des bestehenden Musters oder klicke so oft auf "Tabber", wie du willst (intern wird einfach dasselbe Beispiel-Markup unverändert kopiert; Änderungen sind nicht notwendig).</p>
+            <p>Und warum genau wollte ich Speedtab nochmal? Den Teil habe ich wohl verpasst.</p>
+            <p class="m-0 last-p">Weil Speedtab jetzt teilweise aus YaiTabs besteht, was es vollkommen YAI und daher YEH macht! Das sind direkt 3 Gründe auf einmal!</p>
+          </div>
+          <div data-tab="2" data-spaceless>
+            <div data-yai-tabs data-color-accent="danger" data-behavior="blur" data-closable="false" data-swipe data-nav="right">
+              <nav data-controller>
+                <button data-tab-action="open" data-open="1" data-default>DOCS</button>
+                <button data-tab-action="open" data-open="2">Attribut-Details</button>
+              </nav>
+              <div data-content>
+                <div data-tab="1">
+                  <h2>DOCs</h2>
+                  <p class="m-0 last-p">Übersprungen, weil langweilig…</p>
+                </div>
+                <div data-tab="2">
+                  <h2>Attributgesteuerte Architektur</h2>
+                  <p>Attri-was? Was soll das überhaupt bedeuten?</p>
+                  <p>Attribute sind Strings. Viele Features können über Attribute an- und ausgeschaltet werden – im Grunde, indem man Strings in Strings einfügt.</p>
+                  <table data-swipe-ignore>
+                    <thead>
+                      <tr> <th>Attribut</th> <th>Beschreibung</th> <th>Details</th> </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><b class="text-truncate">data-yai-tabs</b></td>
+                        <td>Tab-Komponente</td>
+                        <td>Kann browser-erschütternd tiefe Ebenen verschachtelter Komponenten verarbeiten.</td>
+                      </tr>
+                      <tr>
+                        <td><b class="text-truncate">data-theme="light"</b></td>
+                        <td>Farb-Preset</td>
+                        <td>light, dark (light ist der Standard)</td>
+                      </tr>
+                      <tr>
+                        <td><b class="text-truncate">data-nav="top"</b></td>
+                        <td>Tab-Navigation (bottom kehrt tabs-header und tabs-footer um)</td>
+                        <td>top, left, right, bottom</td>
+                      </tr>
+                      <tr>
+                        <td><b class="text-truncate">data-color-accent="warning"</b></td>
+                        <td>Aktive Tab-Farbe</td>
+                        <td>primary, secondary, success, warning, danger, dark, light</td>
+                      </tr>
+                      <tr>
+                        <td><b class="text-truncate">data-behavior="fade"</b></td>
+                        <td>Wechsel-Effekt</td>
+                        <td>fade, slide-down, slide-up, slide-left, slide-right, blur, zoom, flip, instant</td>
+                      </tr>
+                      <tr>
+                        <td><b class="text-truncate">data-swipe</b></td>
+                        <td>Aktiviert YaiSwipe für diese Komponente. Swipes funktionieren über alle Ebenen hinweg.</td>
+                        <td>YAI + YEH = SUN</td>
+                      </tr>
+                      <tr>
+                        <td><b class="text-truncate">data-auto-accessibility="false"</b></td>
+                        <td>In der ersten Tab-Komponente aktivieren, verschachtelte Komponenten erben automatisch.</td>
+                        <td>Verschachtelte Komponenten erben immer Theme, Accent und Behavior. Du kannst sie pro Ebene anpassen.</td>
+                      </tr>
+                      <tr>
+                        <td><b class="text-truncate">data-closable="false"</b></td>
+                        <td>Dies ist nicht ARIA-konform, also überlassen wir es dir...</td>
+                        <td>true / false</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer data-tabs-footer>
+    <div data-footer-content class="p-3">
+      <p class="m-0 last-p">Jede Tab-Komponente kann ihren eigenen Footer haben. Immer unten sichtbar.</p>
+    </div>
+  </footer>
+</div>
     `,
   },
 
@@ -360,12 +545,11 @@ colspan, rowspan
     content: `
 Speedtab
 https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff
-[hr]
 Speedtab Projekt
 https://github.com/5ElementsDesign/Speedtab/
-[hr]
 Nützliche Dienste
 https://app.koofr.net/app/
+[hr]
 https://open-meteo.com/
     `,
   },

@@ -12,6 +12,31 @@ function toColorInputValue(value) {
   return ''
 }
 
+function renderSettingsColorInput(name, value, widgetPath) {
+  return `
+    <div data-color-item>
+      <input
+        type="text"
+        name="${escapeHtml(name)}"
+        value="${escapeHtml(toColorInputValue(value))}"
+        data-coloris
+        data-input-immediate="changeWidgetSetting"
+        data-change="changeWidgetSetting"
+        data-widget-path="${escapeHtml(widgetPath)}"
+        data-value-type="string"
+      >
+      <button
+        type="button"
+        data-click="clearWidgetColor"
+        data-widget-path="${escapeHtml(widgetPath)}"
+        data-customizer-clear
+        title="${escapeHtml(t('customizer.reset'))}"
+        aria-label="${escapeHtml(t('customizer.reset'))}"
+      >&times;</button>
+    </div>
+  `
+}
+
 export function renderBgAssetThumbs(assets) {
   if (!assets.length) return ''
   return assets.map((asset) => {
@@ -108,7 +133,6 @@ function renderWeatherSettingsSection(widgetSettings = {}, weatherState = {}) {
   const error = weatherState.error ?? ''
 
   return `
-    <div data-customizer-divider aria-hidden="true"></div>
     <div data-customizer-section data-config-weather-widget>
       <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
         <span data-customizer-field-label>${t('settings.weatherWidget')}</span>
@@ -216,6 +240,163 @@ function renderWeatherSettingsSection(widgetSettings = {}, weatherState = {}) {
   `
 }
 
+function renderClockSettingsSection(widgetSettings = {}) {
+  const clock = widgetSettings?.clock ?? {}
+  const clockEnabled = clock.enabled === true
+  const defaultDateFormat = '{shortDay}, {day}. {shortMonth} {shortYear}'
+  const patternTokens = ['{shortDay}', '{day}', '{shortMonth}', '{month}', '{shortYear}', '{year}', '{hour}', '{minute}', '{second}']
+
+  return `
+    <div data-customizer-divider aria-hidden="true"></div>
+    <div data-customizer-section data-config-clock-widget>
+      <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
+        <span data-customizer-field-label>${t('settings.clockWidget')}</span>
+        <input
+          type="checkbox"
+          name="clock_enabled"
+          data-change="changeWidgetSetting"
+          data-widget-path="clock.enabled"
+          data-value-type="boolean"
+          ${clockEnabled ? 'checked' : ''}
+        />
+      </label>
+
+      ${clockEnabled ? `
+        <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
+          <span data-customizer-field-label>${t('settings.twoRowView')}</span>
+          <input
+            type="checkbox"
+            name="clock_two_row"
+            data-change="changeWidgetSetting"
+            data-widget-path="clock.two_row"
+            data-value-type="boolean"
+            ${clock.two_row === true ? 'checked' : ''}
+          />
+        </label>
+
+        <div data-customizer-field>
+          <span data-customizer-field-label>${t('settings.alignment')}</span>
+          <select
+            id="clock_align"
+            name="clock_align"
+            data-change="changeWidgetSetting"
+            data-widget-path="clock.align"
+          >
+            <option value="left"${clock.align === 'right' ? '' : ' selected'}>${escapeHtml(t('settings.left'))}</option>
+            <option value="right"${clock.align === 'right' ? ' selected' : ''}>${escapeHtml(t('settings.right'))}</option>
+          </select>
+        </div>
+
+        <div data-customizer-field data-customizer-field-layout="stack" data-customizer-gap="sm">
+          <button type="button" class="st-btn text-left" data-click="toggleClockPatternList">${escapeHtml(t('settings.dateFormat'))}</button>
+          <input
+            id="clock_date_format"
+            name="clock_date_format"
+            type="text"
+            value="${escapeHtml(clock.date_format ?? '')}"
+            data-change="changeWidgetSetting"
+            data-widget-path="clock.date_format"
+            data-value-type="string"
+            data-settings-wide-input
+          />
+          <span data-settings-hint>${escapeHtml(t('settings.clockDateFormatHelp'))}</span>
+          <div data-settings-pattern-list hidden>
+            ${patternTokens.map((token) => {
+              const target = ['{hour}', '{minute}', '{second}'].includes(token) ? 'time' : 'date'
+              return `<button type="button" class="st-btn" data-btn="ghost" data-click="insertClockPattern" data-insert-pattern="${escapeHtml(token)}" data-insert-target="${target}" title="${escapeHtml(token)}">${escapeHtml(token)}</button>`
+            }).join('')}
+            <button
+              type="button"
+              class="st-btn"
+              data-click="restoreClockPattern"
+              data-restore-pattern="${escapeHtml(defaultDateFormat)}"
+              ${clock.date_format === defaultDateFormat ? 'disabled' : ''}
+            >${escapeHtml(t('common.restore'))}</button>
+          </div>
+        </div>
+
+        <div data-customizer-field data-customizer-field-layout="stack" data-customizer-gap="sm">
+          <span data-customizer-field-label>${escapeHtml(t('settings.timeFormat'))}</span>
+          <input
+            id="clock_time_format"
+            name="clock_time_format"
+            type="text"
+            value="${escapeHtml(clock.time_format ?? '')}"
+            data-change="changeWidgetSetting"
+            data-widget-path="clock.time_format"
+            data-value-type="string"
+            data-settings-wide-input
+          />
+          <span data-settings-hint>${escapeHtml(t('settings.clockTimeFormatHelp'))}</span>
+        </div>
+
+        <div data-customizer-field data-customizer-field-type="color">
+          <span data-customizer-field-label>${escapeHtml(t('settings.widgetBackground'))}</span>
+          <div data-color-pair-row>
+            ${renderSettingsColorInput('clock_background', clock.background, 'clock.background')}
+          </div>
+        </div>
+
+        <div data-customizer-field data-customizer-field-type="color">
+          <span data-customizer-field-label>${escapeHtml(t('settings.widgetBorder'))}</span>
+          <div data-color-pair-row>
+            ${renderSettingsColorInput('clock_border', clock.border, 'clock.border')}
+          </div>
+        </div>
+
+        <div data-customizer-field data-customizer-field-type="color">
+          <span data-customizer-field-label>${escapeHtml(t('settings.dateColor'))}</span>
+          <div data-color-pair-row>
+            ${renderSettingsColorInput('clock_date_color', clock.date_color, 'clock.date_color')}
+          </div>
+        </div>
+
+        <div data-customizer-field data-customizer-field-type="color">
+          <span data-customizer-field-label>${escapeHtml(t('settings.timeColor'))}</span>
+          <div data-color-pair-row>
+            ${renderSettingsColorInput('clock_time_color', clock.time_color, 'clock.time_color')}
+          </div>
+        </div>
+
+        <div data-customizer-field>
+          <span data-customizer-field-label>${escapeHtml(t('settings.dateFontSize'))}</span>
+          <input
+            id="clock_date_font_size"
+            name="clock_date_font_size"
+            type="number"
+            min="8"
+            max="96"
+            value="${escapeHtml(String(clock.date_font_size ?? ''))}"
+            data-change="changeWidgetSetting"
+            data-widget-path="clock.date_font_size"
+            data-value-type="number"
+          />
+        </div>
+
+        <div data-customizer-field>
+          <span data-customizer-field-label>${escapeHtml(t('settings.timeFontSize'))}</span>
+          <input
+            id="clock_time_font_size"
+            name="clock_time_font_size"
+            type="number"
+            min="8"
+            max="96"
+            value="${escapeHtml(String(clock.time_font_size ?? ''))}"
+            data-change="changeWidgetSetting"
+            data-widget-path="clock.time_font_size"
+            data-value-type="number"
+          />
+        </div>
+
+        <div data-customizer-divider aria-hidden="true"></div>
+        <div data-customizer-field data-customizer-field-layout="end">
+          <button type="button" class="st-btn" data-btn="danger" data-click="resetClockWidgetSettings">${escapeHtml(t('customizer.reset'))}</button>
+        </div>
+      ` : ''}
+    </div>
+  `
+}
+
 function renderWidgetEntrySection(widgetSettings = {}) {
   const railEnabled = widgetSettings?.rail_enabled === true
   return section(t('settings.widgets'), `
@@ -233,8 +414,7 @@ function renderWidgetEntrySection(widgetSettings = {}) {
 
     ${railEnabled ? `
       <div data-customizer-field>
-        <span data-customizer-field-label>${t('settings.widgetConfiguration')}</span>
-        <button type="button" class="st-btn" data-click="openWidgetSettings">${escapeHtml(t('settings.configureWidgets'))}</button>
+        <button type="button" class="st-btn w-100" data-click="openWidgetSettings" title="${escapeHtml(t('settings.widgetConfiguration'))}">${escapeHtml(t('settings.configureWidgets'))}</button>
       </div>
     ` : ''}
   `)
@@ -424,11 +604,49 @@ export function renderSettingsPanel(settings, widgetSettings = {}) {
 }
 
 export function renderWidgetSettingsPanel(widgetSettings = {}, weatherState = {}) {
+  const railEnabled = widgetSettings?.rail_enabled === true
+  const railPosition = widgetSettings?.rail_position === 'bottom' ? 'bottom' : 'top'
+  const railAlign = widgetSettings?.rail_align === 'center' || widgetSettings?.rail_align === 'right'
+    ? widgetSettings.rail_align
+    : 'left'
+
   return `
     <div data-settings-form data-customizer-form>
       <p data-settings-hint>${escapeHtml(t('settings.widgetsHelp'))}</p>
-      ${renderRailSettingsSection(widgetSettings)}
+      ${railEnabled ? `
+        <div data-customizer-section>
+          <div data-customizer-field>
+            <span data-customizer-field-label>${t('settings.railPosition')}</span>
+            <select
+              id="widget_rail_position"
+              name="widget_rail_position"
+              data-change="changeWidgetSetting"
+              data-widget-path="rail_position"
+            >
+              <option value="top"${railPosition === 'top' ? ' selected' : ''}>${escapeHtml(t('settings.top'))}</option>
+              <option value="bottom"${railPosition === 'bottom' ? ' selected' : ''}>${escapeHtml(t('settings.bottom'))}</option>
+            </select>
+          </div>
+
+          <div data-customizer-field>
+            <span data-customizer-field-label>${t('settings.railAlignment')}</span>
+            <select
+              id="widget_rail_align"
+              name="widget_rail_align"
+              data-change="changeWidgetSetting"
+              data-widget-path="rail_align"
+            >
+              <option value="left"${railAlign === 'left' ? ' selected' : ''}>${escapeHtml(t('settings.left'))}</option>
+              <option value="center"${railAlign === 'center' ? ' selected' : ''}>${escapeHtml(t('settings.center'))}</option>
+              <option value="right"${railAlign === 'right' ? ' selected' : ''}>${escapeHtml(t('settings.right'))}</option>
+            </select>
+          </div>
+
+          <div data-customizer-divider aria-hidden="true"></div>
+        </div>
+      ` : ''}
       ${renderWeatherSettingsSection(widgetSettings, weatherState)}
+      ${renderClockSettingsSection(widgetSettings)}
     </div>
   `
 }

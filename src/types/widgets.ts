@@ -1,5 +1,6 @@
 export type WidgetRailPosition = 'top' | 'bottom'
 export type WidgetRailAlign = 'left' | 'center' | 'right'
+export type ClockWidgetAlign = 'left' | 'right'
 export type WeatherWidgetProvider = 'open_meteo'
 export type WeatherWidgetUnits = 'metric' | 'imperial'
 
@@ -20,11 +21,26 @@ export interface WeatherWidgetConfig {
   location: WeatherWidgetLocation | null
 }
 
+export interface ClockWidgetConfig {
+  enabled: boolean
+  align: ClockWidgetAlign
+  two_row: boolean
+  date_format: string
+  time_format: string
+  background: string | null
+  border: string | null
+  date_color: string | null
+  time_color: string | null
+  date_font_size: number | null
+  time_font_size: number | null
+}
+
 export interface WidgetSettings {
   rail_enabled: boolean
   rail_position: WidgetRailPosition
   rail_align: WidgetRailAlign
   weather: WeatherWidgetConfig
+  clock: ClockWidgetConfig
 }
 
 export interface WeatherWidgetCachePayload {
@@ -63,5 +79,18 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
     refresh_interval_minutes: 30,
     display_label: null,
     location: null,
+  },
+  clock: {
+    enabled: false,
+    align: 'right',
+    two_row: true,
+    date_format: '{shortDay}, {day}. {shortMonth} {shortYear}',
+    time_format: '{hour}:{minute}:{second}',
+    background: '#00000030',
+    border: '#3b383847',
+    date_color: '#b6b9bc',
+    time_color: '#ffffff',
+    date_font_size: 14,
+    time_font_size: 18,
   },
 }

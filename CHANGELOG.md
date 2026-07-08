@@ -2,6 +2,28 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.4.2] [UNRELEASED]
+
+### Added
+- Added a configurable clock widget for the rail, including localized date/time formats, token insertion helpers, per-part colors, font sizing, alignment, and two-row display support.
+- Added a richer weather flow with localized forecast modal access directly from the rail temperature readout.
+- Added tabbable HTML-note scaffolding from the inline note editor, making it easier to author nested YaiTabs notes directly through the UI.
+- Added inline tab/content management actions to `sorter.html`, including row-level title editing, keyboard save on `Enter`, and confirmed cascading deletes for tab contents.
+
+### Changed
+- Refined bookmark CRUD styling and behavior in the sidepanel, including favicon-picker tray presentation, test-button loading feedback, and stricter crop-before-save handling.
+- Improved feed-reader rendering to patch live DOM more conservatively, reducing refresh churn and large-list instability during open-item interaction.
+- Expanded widget and appearance configuration with cleaner grouping, better defaults, earlier color-picker initialization, and more predictable live updates.
+- Improved note, bookmark, and header-shell polish across desktop and mobile layouts with targeted UI tweaks instead of broader structural changes.
+
+### Fixed
+- Fixed bookmark form CSS scoping so visual-bookmark sidepanel styling is applied reliably outside bookmark module content.
+- Fixed multiple feed-reader regressions around expanded mode, large-item-list interaction, refresh highlighting, source favicons, and media rendering.
+- Fixed widget-rail alignment, top-rail layout behavior, and width handling against the shared page-width token.
+- Fixed bookmark test-state, preview crop state, and favicon-grid interactions in the visual-bookmark editor.
+- Fixed note-tab editing edge cases including focus loss, default-tab behavior, preview interaction, and live HTML editing flows.
+- Fixed several shell-level UI regressions, including search/header actions, empty-state affordances, module dropdown behavior, and mobile header layout issues.
+
 ## [1.4.1]
 
 ### Added

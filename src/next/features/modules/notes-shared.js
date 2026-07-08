@@ -65,6 +65,14 @@ export function parseNoteMeta(metaJson) {
   }
 }
 
+export function isTabbedHtmlNoteContent(content = '') {
+  return typeof content === 'string' && content.includes('data-yai-tabs')
+}
+
+export function getHtmlNoteSubtype(content = '') {
+  return isTabbedHtmlNoteContent(content) ? 'tabs' : ''
+}
+
 function stripTags(value = '') {
   return String(value).replace(/<[^>]+>/g, ' ')
 }
@@ -142,12 +150,14 @@ export function renderNoteContentHtml(note = {}) {
   const content = String(note.content ?? '')
 
   if (note.type === 'html') {
+    const subtype = getHtmlNoteSubtype(content)
     return `
       <div
         class="st-note-html-content st-module-notes-type-html"
         data-note-html-render
         data-note-html-render-key="note-view:${escapeHtml(String(note.id ?? ''))}"
         data-note-html-source="${escapeHtml(content)}"
+        ${subtype ? `data-note-html-subtype="${escapeHtml(subtype)}"` : ''}
       >${sanitizeHtml(content)}</div>
     `
   }

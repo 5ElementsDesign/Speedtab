@@ -1,4 +1,3 @@
-import {SPEEDTAB_SVG} from '../next/components/icons.js'
 import {escapeHtml} from '../next/utils/html.js'
 import {t} from '../next/utils/i18n.js'
 
@@ -110,7 +109,7 @@ function renderDeepCheck(state) {
         </div>
         <div data-ie-actions>
           <button type="button" data-click="runDeepOrphanCheck" data-btn="ghost"${state.busy.deepCheck ? ' disabled' : ''}>${escapeHtml(t('dataExchange.runDeepCheck'))}</button>
-          ${report?.unusedAssets && !isClean ? `<button type="button" data-click="deleteUnusedAssetsFromDeepCheck" data-btn="ghost"${state.busy.deepCheck || !selectedAssetCount ? ' disabled' : ''}>${escapeHtml(t('dataExchange.deleteUnusedAssetsSelected', {count: selectedAssetCount}))}</button>` : ''}
+          ${report?.unusedAssets && !isClean ? `<button type="button" data-click="deleteUnusedAssetsFromDeepCheck" data-btn="danger"${state.busy.deepCheck || !selectedAssetCount ? ' disabled' : ''}>${escapeHtml(t('dataExchange.deleteUnusedAssetsSelected', {count: selectedAssetCount}))}</button>` : ''}
         </div>
       </div>
       <p data-ie-copy>${escapeHtml(t('dataExchange.deepCheckCopy'))}</p>
@@ -281,7 +280,7 @@ export function renderImportExportApp(state) {
         </div>
         <div data-ie-header-actions>
           <button type="button" data-click="reloadImportExport" data-ie-link data-btn="ghost">${escapeHtml(t('sorter.reload'))}</button>
-          <a href="./newtab.html" data-ie-link data-btn="ghost">${escapeHtml(t('sorter.backToSpeedtab'))}</a>
+          <a href="./newtab.html" data-ie-link data-btn="dark">${escapeHtml(t('sorter.backToSpeedtab'))}</a>
         </div>
       </header>
 

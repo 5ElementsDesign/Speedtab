@@ -18,12 +18,17 @@ const WEATHER_ICONS = {
 }
 
 export function renderWidgetRailShell(settings = {}) {
-  if (!settings?.rail_enabled || settings?.weather?.enabled !== true) return ''
+  const hasWeather = settings?.weather?.enabled === true
+  const hasClock = settings?.clock?.enabled === true
+  if (!settings?.rail_enabled || (!hasWeather && !hasClock)) return ''
   return `
     <section class="st-widget-rail" data-widget-rail data-swipe-ignore aria-label="${escapeHtml(t('widgetRail.aria'))}">
       <div class="st-widget-rail-inner">
         <div class="st-widget-rail-center" data-widget-rail-align="${escapeHtml(settings.rail_align || 'left')}">
-          <div data-widget-rail-host></div>
+          <div data-widget-rail-host>
+            <div data-widget-weather-host></div>
+            <div data-widget-clock-host></div>
+          </div>
         </div>
       </div>
     </section>
@@ -107,6 +112,43 @@ export function renderWeatherWidget(state = {}) {
       ${statusLabel && statusLabel !== t('weather.title')
         ? `<span class="st-weather-widget-status">${escapeHtml(statusLabel)}</span>`
         : ''}
+    </section>
+  `
+}
+
+function buildClockInlineStyle(state = {}) {
+  const declarations = []
+  if (state.background) declarations.push(`--st-clock-widget-bg:${state.background}`)
+  if (state.border) declarations.push(`--st-clock-widget-border:${state.border}`)
+  if (state.dateColor) declarations.push(`--st-clock-widget-date-color:${state.dateColor}`)
+  if (state.timeColor) declarations.push(`--st-clock-widget-time-color:${state.timeColor}`)
+  if (state.dateFontSize) declarations.push(`--st-clock-widget-date-size:${state.dateFontSize}px`)
+  if (state.timeFontSize) declarations.push(`--st-clock-widget-time-size:${state.timeFontSize}px`)
+  return declarations.length ? ` style="${escapeHtml(declarations.join(';'))}"` : ''
+}
+
+export function renderClockWidget(state = {}) {
+  const {
+    enabled = false,
+    align = 'left',
+    twoRow = false,
+    dateText = '',
+    timeText = '',
+  } = state
+
+  if (!enabled) return ''
+
+  return `
+    <section
+      class="st-widget-card st-clock-widget${twoRow ? ' is-two-row' : ''}"
+      data-widget-align="${escapeHtml(align)}"
+      aria-label="${escapeHtml(t('clock.widgetAria'))}"
+      ${buildClockInlineStyle(state)}
+    >
+      <div class="st-clock-widget-body">
+        <span class="st-clock-widget-date">${escapeHtml(dateText)}</span>
+        <strong class="st-clock-widget-time">${escapeHtml(timeText)}</strong>
+      </div>
     </section>
   `
 }

@@ -10,8 +10,8 @@ import {createNoteData, softDeleteNote} from '../data/notes.js'
 import {createModuleTab, loadModuleTabById, loadModuleTabBySyncId, saveModuleTabData, softDeleteModuleTab} from '../data/tabs.js'
 import {upsertUiConfig} from '../data/ui-config.js'
 import {applyModuleUiConfig} from '../features/customizer/apply.js'
-import {initFormDirtyState, renderSidepanelDeleteFooter} from '../features/forms/actions.js'
-import {closeFloatingNote, openFloatingNote} from '../features/local-tools/manager.js'
+import {initFormDirtyState, renderSidepanelDeleteFooter, updateFormDirtyState} from '../features/forms/actions.js'
+import {closeFloatingNote, openFloatingNote, startFloatingNoteEdit} from '../features/local-tools/manager.js'
 import {
   afterBookmarkFormRender,
   applyBookmarkPreviewCrop,
@@ -780,6 +780,13 @@ async function openCrudPanel({entityType, record = null, moduleSyncId = '', pare
       parentTitle,
     })
     initFormDirtyState(body)
+    if (entityType === 'tab') {
+      requestAnimationFrame(() => {
+        const input = body.querySelector('[name="title"]')
+        input?.focus?.()
+        input?.select?.()
+      })
+    }
   }
 }
 
@@ -1309,10 +1316,17 @@ export const moduleCrudActions = {
         return
       }
 
-      await createNoteData(context.parentId, payload)
+      const record = await createNoteData(context.parentId, payload)
       closeModal()
       const {refreshModuleContent} = await import('../app/bootstrap.js')
       await refreshModuleContent(context.moduleSyncId)
+      if (record?.id) {
+        openFloatingNote(record.id, {
+          initialWidth: 820,
+          initialHeight: 360,
+        })
+        await startFloatingNoteEdit(record.id)
+      }
       return
     }
 
@@ -1371,6 +1385,10 @@ export const moduleCrudActions = {
 
   async bookmarkFormTestUrl(target) {
     const form = target.closest('[data-module-crud-form]')
+    if (target instanceof HTMLButtonElement) {
+      target.classList.add('yai-loading')
+      target.disabled = true
+    }
     syncBookmarkFormStateFromForm(form)
     await testBookmarkUrl()
     await rerenderBookmarkForm(getOpenSidepanelBody())
@@ -1500,15 +1518,37 @@ export const moduleCrudActions = {
   },
 
   noteFormSetType(target) {
-    syncNoteFormStateFromForm(target.closest('[data-module-crud-form]'))
+    const form = target.closest('[data-module-crud-form]')
+    syncNoteFormStateFromForm(form)
     setNoteFormType(target.dataset.noteType)
+    form?.querySelector?.('[name="type"]')?.setAttribute('value', target.dataset.noteType || '')
     rerenderNoteForm(getOpenModalBody())
   },
 
   noteFormSetStyle(target) {
-    syncNoteFormStateFromForm(target.closest('[data-module-crud-form]'))
+    const form = target.closest('[data-module-crud-form]')
+    syncNoteFormStateFromForm(form)
     setNoteFormStyle(target.dataset.noteStyleToken)
-    rerenderNoteForm(getOpenModalBody())
+    if (!(form instanceof HTMLFormElement)) {
+      rerenderNoteForm(getOpenModalBody())
+      return
+    }
+
+    const nextToken = target.dataset.noteStyleToken || ''
+    const hiddenInput = form.querySelector('[name="style_token"]')
+    if (hiddenInput instanceof HTMLInputElement) {
+      hiddenInput.value = nextToken
+      hiddenInput.setAttribute('value', nextToken)
+    }
+
+    form.querySelectorAll('[data-note-style-token]').forEach((button) => {
+      if (!(button instanceof HTMLElement)) return
+      const isActive = button.dataset.noteStyleToken === nextToken
+      button.toggleAttribute('data-note-token-active', isActive)
+      button.toggleAttribute('data-note-style-active', isActive)
+    })
+
+    updateFormDirtyState(form)
   },
 
   async noteFormUnlock(target) {

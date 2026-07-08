@@ -167,7 +167,6 @@ const tabs = new YaiTabs({
 | `defaultBehavior` | `string` | `'fade'` | Default animation behavior: `fade`, `slide-down`, `slide-up`, `slide-left`, `slide-right`, `blur`, `zoom`, `flip`, `instant` |
 | `autoFocus` | `boolean` | `true` | Automatically focus the first container's active tab on initialization |
 | `autoAccessibility` | `boolean` | `true` | Enable comprehensive ARIA accessibility setup (roles, labels, states) |
-| `autoDisambiguate` | `boolean` | `false` | Automatically make identical `data-open`/`data-tab` values unique to prevent cross-contamination |
 | `lazyNestedComponents` | `boolean` | `true` | On init, marks nested tab components as lazy with `data-yai-tabs-lazy` |
 | `events.setListener` | `object` | See example | Define which events to listen for and on which selectors |
 | `events.actionableAttributes` | `array` | `['data-tab-action']` | Override auto generated attributes that trigger event hooks (e.g., `data-click`, `data-input`) |

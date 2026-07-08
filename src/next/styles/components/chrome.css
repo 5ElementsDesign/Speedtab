@@ -12,10 +12,11 @@ body[data-sidepanel-active] #app {
 [data-app] {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto auto 1fr auto;
   grid-template-areas:
     "brand nav actions"
     "search search search"
+    "widget widget widget"
     "content content content"
     "footer footer footer";
   min-height: 100vh;
@@ -58,12 +59,16 @@ body[data-sidepanel-active] #app {
   grid-area: content;
   height: 100%;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 [data-search-panel] {
   grid-area: search;
+}
+
+[data-widget-rail] {
+  grid-area: widget;
+  min-width: 0;
 }
 
 [data-app-footer] {
@@ -78,10 +83,18 @@ body[data-sidepanel-active] #app {
 }
 
 .st-app-empty {
+  .st-app-empty-card,
+  .st-app-empty-card:hover,
+  .st-app-empty-card select {
+    transition: all 0.3s ease-in-out;
+  }
+}
+
+.st-app-empty {
   --st-form-elements-min-height: 38px;
   --st-form-elements-border-color: rgba(255, 255, 255, 0.14);
 
-  width: min(740px, calc(100% - 24px));
+  width: 100%;
   min-height: 100vh;
   margin: 0 auto;
   display: flex;
@@ -96,24 +109,17 @@ body[data-sidepanel-active] #app {
     width: min(740px, 100%);
     padding: 34px 44px;
     background: rgba(41, 35, 35, 0.03);
-    backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow:
-      0 2px 6px rgba(0, 0, 0, 0.5),
-      0 0 0 1px rgba(255, 255, 255, 0.02) inset,
-      0 1px 0 rgba(255, 255, 255, 0.05) inset;
-    transition: all 0.3s ease;
+    background-color: rgba(10, 10, 10, .75);
+    box-shadow: 0 2px 8px 1px var(--st-ws-module-shadow-color, rgba(1, 1, 1, .65));
 
     &:hover {
-      box-shadow:
-        0 4px 14px rgba(0, 0, 0, 0.6),
-        0 0 0 1px rgba(255, 255, 255, 0.03) inset,
-        0 1px 0 rgba(255, 255, 255, 0.06) inset;
+      box-shadow: 0 3px 10px 1px var(--st-ws-module-shadow-color, rgba(0, 0, 0, .85));
     }
     h1 {
       margin-bottom: 8px;
       padding-bottom: 20px;
-      font-size: clamp(32px, 4.5vw, 38px);
+      font-size: clamp(32px, 4.5vw, 40px);
       font-weight: 600;
       letter-spacing: -0.02em;
       display: inline-flex;
@@ -123,6 +129,7 @@ body[data-sidepanel-active] #app {
       line-height: 1.1;
       position: relative;
       color: rgba(255, 255, 255, .75);
+      opacity: .8;
 
       &:before {
         content: '⚡';
@@ -131,7 +138,6 @@ body[data-sidepanel-active] #app {
         filter: grayscale(50%);
         opacity: 0.5;
         margin-right: 4px;
-        transition: all .6s ease-in-out .2s;
       }
       &::after {
         content: '';
@@ -146,12 +152,13 @@ body[data-sidepanel-active] #app {
       }
       &,
       &:before {
-        transition: all .6s ease-in-out .2s;
+        transition: all .6s ease-in-out .3s;
       }
     }
     &:hover h1 {
       color: rgba(255, 255, 255);
       text-shadow: 0 1px 8px rgba(209, 205, 205, 0.5);
+      opacity: 1;
 
       &:before {
         filter: grayscale(0);
@@ -161,7 +168,7 @@ body[data-sidepanel-active] #app {
     }
     p {
       &:first-of-type {
-        font-size: 17px;
+        font-size: 18px;
         font-weight: 500;
         color: rgba(255, 255, 255, 0.7);
         margin: 4px 0 8px 0;
@@ -169,8 +176,8 @@ body[data-sidepanel-active] #app {
     }
     p+p {
       margin: 0 auto 0 auto;
-      color: rgba(255, 255, 255, 0.35);
-      font-size: 14px;
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 15px;
       line-height: 1.6;
       max-width: 440px;
     }
@@ -195,7 +202,7 @@ body[data-sidepanel-active] #app {
     justify-content: center;
     gap: 12px;
     color: rgba(255, 255, 255, 0.5);
-    font-size: 13px;
+    font-size: 14px;
 
     span {
       font-weight: 500;
@@ -207,14 +214,13 @@ body[data-sidepanel-active] #app {
       border: 1px solid rgba(255, 255, 255, 0.06);
       color: rgba(255, 255, 255, 0.8);
       width: auto;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 500;
       cursor: pointer;
       appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='rgba(255,255,255,0.3)'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 12px center;
-      transition: all 0.2s ease;
 
       &:hover {
         background-color: rgba(255, 255, 255, 0.07);
@@ -231,8 +237,8 @@ body[data-sidepanel-active] #app {
       }
     }
     small {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.25);
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.55);
     }
   }
 }
@@ -365,7 +371,7 @@ body[data-sidepanel-active] #app {
 }
 
 [data-app-header-nav],
-[data-prefers-nav-no-box-shadow] {
+[data-prefers-nav-no-box-shadow] [data-app-content] {
   --yai-tabs-shadow-nav-top: 0 0 0 0;
   --yai-tabs-shadow-nav-bottom: 0 0 0 0;
   --yai-tabs-shadow-nav-left: 0 0 0 0;

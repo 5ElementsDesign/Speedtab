@@ -4,7 +4,6 @@
  * **Key Features:**
  * - **Performance**: Single event listener per container, scales infinitely
  * - **Infinite Nesting**: Tested to 55+ levels without performance degradation
- * - **Auto-Disambiguation**: Intelligent ID conflict resolution for nested components
  * - **WCAG 2.1 AA Compliance**: Full accessibility with dynamic ARIA management
  * - **Dynamic Content Loading**: Fetch-based content with comprehensive delay controls
  * - **Hash Routing**: URL-based navigation with browser history integration
@@ -191,10 +190,6 @@ export interface YaiTabsConfig extends YaiCoreConfig {
   activeClass?: string;
   /** CSS class name for hidden state */
   hiddenClass?: string;
-  /** Prefix for auto-generated disambiguation IDs */
-  disambiguationPrefix?: string;
-  /** Automatically resolve ID conflicts in nested components */
-  autoDisambiguate?: boolean;
   /** Allow closing active tab by clicking it again */
   closable?: boolean;
 }
@@ -242,7 +237,6 @@ export interface TabLifecycleCallbacks extends LifecycleCallbacks {
  * **🎯 Core Architecture:**
  * - Single event listener per container using event delegation
  * - Lazy component activation for optimal performance
- * - Automatic ID disambiguation for conflict resolution
  * - Hook-based extensibility for custom behavior
  * - Dynamic content loading with comprehensive delay management
  *
@@ -258,7 +252,6 @@ export interface TabLifecycleCallbacks extends LifecycleCallbacks {
  * const tabs = new YaiTabs({
  *   behavior: 'slide-up',
  *   autoFocus: true,
- *   autoDisambiguate: true
  * });
  * ```
  *
@@ -523,16 +516,6 @@ export declare class YaiTabs extends YaiCore {
    * Enables proper component discovery while maintaining performance.
    */
   protected _activateLazyComponents(): void;
-
-  /**
-   * 🔀 **Auto-Disambiguate IDs**
-   *
-   * Automatically resolve ID conflicts between nested components.
-   * Generates unique IDs while preserving original references for routing.
-   *
-   * @param scope - Document scope to process (default: document)
-   */
-  protected _autoDisambiguateIds(scope?: Document): void;
 
   /**
    * 🏭 **Process Root Container**
@@ -855,7 +838,6 @@ export { HookContext, LifecycleCallbacks, YaiCore, YaiCoreConfig } from './yai-c
  *    const tabs = new YaiTabs({
  *      behavior: 'slide-up',
  *      autoFocus: true,
- *      autoDisambiguate: true
  *    });
  *    ```
  *
@@ -869,5 +851,4 @@ export { HookContext, LifecycleCallbacks, YaiCore, YaiCoreConfig } from './yai-c
  * **⚡ Performance Tips:**
  * - Use data-spaceless to remove default padding
  * - Leverage data-delay and data-min-loading for smooth UX
- * - Enable autoDisambiguate for conflict-free nested IDs
  */

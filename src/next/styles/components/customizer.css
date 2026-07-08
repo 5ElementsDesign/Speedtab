@@ -150,7 +150,7 @@
 [data-customizer-divider] {
   height: 1px;
   background: var(--st-sidepanel-border-color);
-  margin: 0.75rem 0;
+  margin: 0.5rem 0;
 }
 
 [data-icon-picker] {
@@ -683,6 +683,26 @@ form[data-submit]:invalid [data-form-save-btn] {
   }
 }
 
+[data-settings-pattern-list] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px;
+  background: #050505;
+
+  .st-btn {
+    flex: 1;
+    min-height: 24px;
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: 1;
+  }
+}
+
+[data-settings-pattern-list][hidden] {
+  display: none;
+}
+
 [data-bookmark-form-status],
 [data-feed-form-status] {
   margin: 0;
@@ -704,10 +724,21 @@ form[data-submit]:invalid [data-form-save-btn] {
   }
 }
 
-[data-customizer-section][data-config-weather-widget] {
+[data-customizer-section][data-config-weather-widget],
+[data-customizer-section][data-config-clock-widget] {
   padding: 10px;
   background: #222;
   border: 1px solid #333;
+}
+
+[data-customizer-section][data-config-clock-widget] {
+  [data-color-item] {
+    max-width: 150px;
+  }
+  button {
+    --st-form-elements-min-height: 20px;
+    font-size: .8rem;
+  }
 }
 
 /**

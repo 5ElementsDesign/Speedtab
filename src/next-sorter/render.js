@@ -10,7 +10,7 @@ function renderModuleSpanOptions(selectedValue) {
   return options
 }
 
-function renderContentRows(module, tab, contentItems = [], contentSortActive = false) {
+function renderContentRows(module, tab, contentItems = [], contentSortActive = false, editor = null) {
   return `
     <div
       data-sorter-content-dropzone
@@ -51,6 +51,45 @@ function renderContentRows(module, tab, contentItems = [], contentSortActive = f
               >${SPEEDTAB_SVG.dashboard}</button>
               <span data-sorter-content-title>${escapeHtml(item.title || t('sorter.untitledContent'))}</span>
               <span data-sorter-content-subtitle>${escapeHtml(item.subtitle || '')}</span>
+              <div data-sorter-row-actions>
+                <button
+                  type="button"
+                  data-click="sorterOpenItemEditor"
+                  data-sorter-kind="content"
+                  data-sorter-module-type="${escapeHtml(module.type)}"
+                  data-sorter-target-id="${escapeHtml(String(item.id))}"
+                  data-sorter-parent-id="${escapeHtml(String(tab.id))}"
+                  data-sorter-title="${escapeHtml(item.title || '')}"
+                  title="${escapeHtml(t('sorter.editItem'))}"
+                  aria-label="${escapeHtml(t('sorter.editItem'))}"
+                >${SPEEDTAB_SVG.pencil}</button>
+                <button
+                  type="button"
+                  data-click="sorterDeleteItem"
+                  data-sorter-kind="content"
+                  data-sorter-module-type="${escapeHtml(module.type)}"
+                  data-sorter-target-id="${escapeHtml(String(item.id))}"
+                  data-sorter-parent-id="${escapeHtml(String(tab.id))}"
+                  data-sorter-title="${escapeHtml(item.title || '')}"
+                  title="${escapeHtml(t('sorter.deleteItem'))}"
+                  aria-label="${escapeHtml(t('sorter.deleteItem'))}"
+                >${SPEEDTAB_SVG.x}</button>
+              </div>
+              ${editor?.kind === 'content' && editor?.targetId === item.id ? `
+                <div data-sorter-inline-editor>
+                  <input
+                    type="text"
+                    value="${escapeHtml(editor.title || item.title || '')}"
+                    data-input="sorterEditorInput"
+                    data-sorter-editor-input
+                    autocomplete="off"
+                  >
+                  <div data-sorter-inline-editor-actions>
+                    <button type="button" data-click="sorterSaveItemEditor" data-btn="danger">${escapeHtml(t('common.save'))}</button>
+                    <button type="button" data-click="sorterCancelItemEditor" data-btn="ghost">${escapeHtml(t('common.cancel'))}</button>
+                  </div>
+                </div>
+              ` : ''}
             </div>
           `).join('')}
         </div>
@@ -66,6 +105,7 @@ function renderTabRows(module, tabs = [], options = {}) {
     tabSortActive = false,
     contentSortActive = false,
     contentsByTabSyncId = new Map(),
+    editor = null,
   } = options
 
   return `
@@ -100,9 +140,48 @@ function renderTabRows(module, tabs = [], options = {}) {
                 aria-label="${escapeHtml(t('sorter.dragTab'))}"
               >${SPEEDTAB_SVG.dashboard}</button>
               <span data-sorter-tab-title>${escapeHtml(tab.title || t('moduleCard.newTabTitle'))}</span>
+              <div data-sorter-row-actions>
+                <button
+                  type="button"
+                  data-click="sorterOpenItemEditor"
+                  data-sorter-kind="tab"
+                  data-sorter-module-type="${escapeHtml(module.type)}"
+                  data-sorter-target-id="${escapeHtml(String(tab.id))}"
+                  data-sorter-parent-id="${escapeHtml(String(module.id))}"
+                  data-sorter-title="${escapeHtml(tab.title || '')}"
+                  title="${escapeHtml(t('sorter.editItem'))}"
+                  aria-label="${escapeHtml(t('sorter.editItem'))}"
+                >${SPEEDTAB_SVG.pencil}</button>
+                <button
+                  type="button"
+                  data-click="sorterDeleteItem"
+                  data-sorter-kind="tab"
+                  data-sorter-module-type="${escapeHtml(module.type)}"
+                  data-sorter-target-id="${escapeHtml(String(tab.id))}"
+                  data-sorter-parent-id="${escapeHtml(String(module.id))}"
+                  data-sorter-title="${escapeHtml(tab.title || '')}"
+                  title="${escapeHtml(t('sorter.deleteItem'))}"
+                  aria-label="${escapeHtml(t('sorter.deleteItem'))}"
+                >${SPEEDTAB_SVG.x}</button>
+              </div>
+              ${editor?.kind === 'tab' && editor?.targetId === tab.id ? `
+                <div data-sorter-inline-editor>
+                  <input
+                    type="text"
+                    value="${escapeHtml(editor.title || tab.title || '')}"
+                    data-input="sorterEditorInput"
+                    data-sorter-editor-input
+                    autocomplete="off"
+                  >
+                  <div data-sorter-inline-editor-actions>
+                    <button type="button" data-click="sorterSaveItemEditor" data-btn="danger">${escapeHtml(t('common.save'))}</button>
+                    <button type="button" data-click="sorterCancelItemEditor" data-btn="ghost">${escapeHtml(t('common.cancel'))}</button>
+                  </div>
+                </div>
+              ` : ''}
               ${contentSortActive ? `
                 <div data-sorter-tab-content-panel>
-                  ${renderContentRows(module, tab, contentsByTabSyncId.get(tab.syncId) ?? [], contentSortActive)}
+                  ${renderContentRows(module, tab, contentsByTabSyncId.get(tab.syncId) ?? [], contentSortActive, editor)}
                 </div>
               ` : ''}
             </div>
@@ -204,12 +283,13 @@ function renderModuleCard(module, options = {}) {
         tabSortActive: tabSortEnabled,
         contentSortActive: contentSortEnabled,
         contentsByTabSyncId,
+        editor: options.editor,
       })}</section>` : ''}
     </article>
   `
 }
 
-function renderGridSlot({pageSyncId, module = null, orphan = null, expandedModules, tabSort, contentSort}) {
+function renderGridSlot({pageSyncId, module = null, orphan = null, expandedModules, tabSort, contentSort, editor = null}) {
   const slotId = module?.syncId ? `slot:${pageSyncId}:${module.syncId}` : orphan?.id
   const span = module?.columnSpan ?? orphan?.columnSpan ?? 12
   const tabSortActive = !!tabSort?.moduleType
@@ -241,6 +321,7 @@ function renderGridSlot({pageSyncId, module = null, orphan = null, expandedModul
             contentSortEnabled,
             contentSortDisabled,
             contentsByTabSyncId: contentSort?.contentsByTabSyncId ?? new Map(),
+            editor,
           })
         : `<div data-sorter-orphan-slot>
             <span data-sorter-orphan-label>${escapeHtml(t('sorter.emptySlot'))}</span>
@@ -249,7 +330,7 @@ function renderGridSlot({pageSyncId, module = null, orphan = null, expandedModul
   `
 }
 
-function renderPageSection(page, expandedModules, collapsedPages, orphanSlots = [], tabSort = null, contentSort = null) {
+function renderPageSection(page, expandedModules, collapsedPages, orphanSlots = [], tabSort = null, contentSort = null, editor = null) {
   const slots = [
     ...page.modules.map((module) => ({module})),
     ...orphanSlots.map((orphan) => ({orphan})),
@@ -291,7 +372,7 @@ function renderPageSection(page, expandedModules, collapsedPages, orphanSlots = 
 
       <div data-sorter-module-lane data-page-sync-id="${escapeHtml(page.syncId)}"${collapsed ? ' hidden' : ''}>
         ${slots.length
-          ? slots.map(({module, orphan}) => renderGridSlot({pageSyncId: page.syncId, module, orphan, expandedModules, tabSort, contentSort})).join('')
+          ? slots.map(({module, orphan}) => renderGridSlot({pageSyncId: page.syncId, module, orphan, expandedModules, tabSort, contentSort, editor})).join('')
           : `<div data-sorter-empty-page>${escapeHtml(t('sorter.emptyPage'))}</div>`}
       </div>
     </section>
@@ -308,14 +389,14 @@ export function renderSorterApp(state) {
         </div>
         <div data-sorter-app-actions>
           <button type="button" data-click="sorterReload" data-sorter-link data-btn="ghost">${escapeHtml(t('sorter.reload'))}</button>
-          <a href="./newtab.html" data-sorter-link data-btn="ghost">${escapeHtml(t('sorter.backToSpeedtab'))}</a>
+          <a href="./newtab.html" data-sorter-link data-btn="dark">${escapeHtml(t('sorter.backToSpeedtab'))}</a>
         </div>
       </header>
 
       <p data-sorter-status data-tone="${escapeHtml(state.status.tone || 'idle')}">${escapeHtml(state.status.text || t('sorter.ready'))}</p>
 
       <main data-sorter-pages>
-        ${state.pages.map((page) => renderPageSection(page, state.expandedModules, state.collapsedPages, state.orphanSlotsByPage.get(page.syncId) ?? [], state.tabSort, state.contentSort)).join('')}
+        ${state.pages.map((page) => renderPageSection(page, state.expandedModules, state.collapsedPages, state.orphanSlotsByPage.get(page.syncId) ?? [], state.tabSort, state.contentSort, state.editor)).join('')}
       </main>
     </div>
   `

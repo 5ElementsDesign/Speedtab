@@ -17,6 +17,13 @@ export function createSorterState() {
       tone: 'idle',
       text: '',
     },
+    editor: {
+      kind: null,
+      targetId: null,
+      moduleType: null,
+      parentId: null,
+      title: '',
+    },
     drag: {
       kind: null,
       pageSyncId: null,
@@ -67,6 +74,26 @@ export function setSorterStatus(state, text = '', tone = 'idle') {
   state.status = {
     tone,
     text,
+  }
+}
+
+export function openSorterEditor(state, patch = {}) {
+  state.editor = {
+    kind: patch.kind || null,
+    targetId: patch.targetId || null,
+    moduleType: patch.moduleType || null,
+    parentId: patch.parentId || null,
+    title: patch.title ?? '',
+  }
+}
+
+export function closeSorterEditor(state) {
+  state.editor = {
+    kind: null,
+    targetId: null,
+    moduleType: null,
+    parentId: null,
+    title: '',
   }
 }
 

@@ -289,6 +289,13 @@
   min-width: max-content;
 }
 
+[data-note-type="code"] {
+  pre,
+  code {
+    height: 100%;
+  }
+}
+
 .st-note-html-content,
 .st-module-notes-type-html {
   font-family: var(--st-font-family-base);
@@ -297,6 +304,14 @@
 
 .st-note-html-content {
   padding: .5rem;
+}
+
+.st-note-window [data-note-window-body][data-note-mode="view"][data-note-html-subtype="tabs"] {
+  padding: 0;
+}
+
+.st-note-html-content[data-note-html-subtype="tabs"] {
+  padding: 0;
 }
 
 .st-note-html-content > * + * {
@@ -388,8 +403,11 @@
 }
 
 .st-module-notes-type-html p {
-  margin: 0 0 0.85em;
   line-height: 1.5;
+
+  &:not(.last-p) {
+    margin: 0 0 0.85em;
+  }
 }
 
 .st-module-notes-type-html a {
@@ -406,7 +424,7 @@
 }
 
 .st-module-notes-type-html code {
-  background: color-mix(in srgb, var(--st-note-window-content-background-color) 88%, black 12%);
+  background: color-mix(in srgb, var(--st-note-window-content-background-color) 40%, black 12%);
 }
 
 .st-module-notes-type-html blockquote p {
@@ -717,11 +735,14 @@
 }
 
 .st-note-editor-panel-head {
+  --st-form-elements-min-height: 24px;
+
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   line-height: 1cap;
+  min-height: 30px;
 }
 
 .st-note-editor-type-badge {
@@ -835,9 +856,30 @@
   border-color: color-mix(in srgb, var(--st-note-window-accent-color) 44%, rgb(0 0 0 / 18%));
 }
 
+.st-note-editor-panel-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.st-note-editor-panel-tools-spread {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.st-note-editor-html-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 [data-note-form] {
   display: grid;
   gap: 12px;
+}
+
+[data-note-form] [data-customizer-section-title] {
+  display: none;
 }
 
 [data-note-form] [data-note-form-button-row] {
@@ -846,12 +888,20 @@
   gap: 4px;
 }
 
+[data-note-form] [data-note-form-button-row] button,
+[data-note-form] [data-note-form-button-row] .st-btn {
+  opacity: .8;
+}
+
 [data-note-form] [data-note-form-style-row] button,
 [data-note-form] [data-note-form-button-row] .st-btn {
   flex: auto;
 }
 
-[data-note-form] [data-note-token-active] {
+[data-note-form] [data-note-token-active],
+[data-note-form] [data-note-style-active],
+[data-note-form] [data-note-type-active] {
+  opacity: 1;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
 }
 
@@ -874,4 +924,309 @@
 [data-note-form] [data-note-form-error] {
   margin: 0;
   color: var(--st-color-danger);
+}
+
+/** Additional CSS for Tabs in Notes */
+
+/* Color schemes, default is light */
+[data-floating-windows] {
+  [data-yai-tabs] {
+    --yai-tabs-button-padding: 0 16px;
+    --st-note-tabs-nav-button-height: 44px;
+    --st-note-tabs-nav-flex: 1 25%;
+    --st-note-tabs-content-flex: 1 75%;
+  }
+
+  [data-theme="default"],
+  [data-theme="light"] {
+    /* 1. Wrapper */
+    --st-note-tabs-bg: #ffffff;
+    --st-note-tabs-color: #252525;
+    /* 2. Border color */
+    --st-border-color: #d9d2d2aa;
+    /* 3. Tab component Header & Footer */
+    --st-note-tabs-main-header-bg: #f3f3f3d4;
+    --st-note-tabs-main-footer-bg: #f3f3f3d4;
+    /* 4. Navigation */
+    --st-note-tabs-header-bg: #dfdfdf5c;
+    /* 5. Navigation Buttons */
+    --st-note-tabs-nav-button-bg: #e8e5e599;
+    --st-note-tabs-nav-button-hover-bg: #dddadaf8;
+    --st-note-tabs-nav-button-active-bg: #ffffff;
+    /* 6. Navigation Buttons Contrasts */
+    --st-note-tabs-nav-button-color: #333;
+    --st-note-tabs-nav-button-hover-color: #111;
+  }
+
+  [data-theme="dark"] {
+    --st-note-tabs-bg: #1e1e1e;
+    --st-note-tabs-color: #f5f5f5;
+    --st-border-color: rgba(255, 255, 255, 0.08);
+    --st-note-tabs-main-header-bg: #181818cc;
+    --st-note-tabs-main-footer-bg: #181818cc;
+    --st-note-tabs-header-bg: #262626;
+    --st-note-tabs-nav-button-bg: rgba(255, 255, 255, 0.03);
+    --st-note-tabs-nav-button-hover-bg: rgba(255, 255, 255, 0.08);
+    --st-note-tabs-nav-button-active-bg: #1e1e1e;
+    --st-note-tabs-nav-button-color: #aaaaaa;
+    --st-note-tabs-nav-button-hover-color: #e0e0e0;
+    --st-note-window-content-background-color: #191919;
+    --st-note-window-content-text-color: #aaaaaa;
+  }
+}
+
+[data-floating-windows] {
+  /* Reset default box-shadows */
+  [data-note-html-subtype="tabs"] [data-yai-tabs] {
+    [data-controller],
+    [data-controller] [data-open],
+    [data-controller] [data-open].active,
+    [data-controller] [data-open].active::before {
+      box-shadow: 0 0 0;
+      transition: all .3s ease-in-out;
+    }
+  }
+
+  /* Adjust YaiTabs in notes */
+  [data-note-html-subtype="tabs"] {
+
+    [data-yai-tabs] [data-tabs-header] {
+      background: var(--st-note-tabs-main-header-bg);
+      border-bottom: 1px solid var(--st-border-color);
+    }
+
+    [data-yai-tabs] [data-tabs-footer] {
+      background: var(--st-note-tabs-main-footer-bg);
+      border-top: 1px solid var(--st-border-color);
+      position: relative;
+      z-index: 3;
+    }
+
+    [data-yai-tabs] {
+      background: var(--st-note-tabs-bg);
+      color: var(--st-note-tabs-color);
+
+      [data-controller] {
+        background: var(--st-note-tabs-header-bg);
+
+        [data-open] {
+          background: var(--st-note-tabs-nav-button-bg);
+          min-height: var(--st-note-tabs-nav-button-height);
+
+          &.active {
+            background: var(--st-note-tabs-nav-button-active-bg);
+            text-shadow: .71px 0 currentColor, -.73px 0 currentColor;
+            cursor: default;
+          }
+          &:not(.active) {
+            color: var(--st-note-tabs-nav-button-color);
+
+            &:focus,
+            &:hover {
+              color: var(--st-note-tabs-nav-button-hover-color);
+              background: var(--st-note-tabs-nav-button-hover-bg);
+              text-shadow: .3px 0 currentColor, -.31px 0 currentColor;
+            }
+          }
+        }
+      }
+    }
+
+    [data-nav="top"],
+    [data-nav="bottom"] {
+      [data-controller] {
+        [data-open] {
+          &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+          }
+          &.active {
+            &::before {
+              width: 100%;
+              height: 3px;
+              background: var(--yai-tabs-color-accent);
+            }
+          }
+        }
+      }
+    }
+
+    [data-yai-tabs]:not([data-nav]) [data-controller],
+    [data-nav="top"] [data-controller] {
+      border-bottom: 3px solid var(--st-border-color);
+
+      [data-open] {
+        margin-bottom: -3px;
+        padding-bottom: 0;
+
+        &.active::before {
+          bottom: 0;
+        }
+      }
+    }
+    [data-nav="bottom"] [data-controller] {
+      border-top: 3px solid var(--st-border-color);
+      border-bottom: 0 none;
+
+      [data-open] {
+        margin-top: -3px;
+        margin-bottom: initial;
+        padding-top: 6px;
+
+        &.active::before {
+          top: 0;
+          bottom: unset;
+        }
+      }
+    }
+
+    [data-nav="left"],
+    [data-nav="right"] {
+      [data-controller] {
+        padding: 8px;
+        border: 0 none;
+
+        [data-open] {
+          margin-bottom: initial;
+
+          &.active::before {
+            content: '';
+            width: 3px;
+            height: 100%;
+            background: var(--yai-tabs-color-accent);
+            position: absolute;
+            top: 0;
+          }
+        }
+      }
+    }
+    [data-nav="left"] [data-controller] {
+      border-right: 1px solid var(--st-border-color);
+
+      [data-open].active::before {
+        left: 0;
+        right: unset;
+      }
+    }
+    [data-nav="right"] [data-controller] {
+      border-left: 1px solid var(--st-border-color);
+
+      [data-open].active::before {
+        left: unset;
+        right: 0;
+      }
+    }
+  }
+
+  /*
+    Adjust YaiTabs flex core in notes
+  */
+  [data-note-html-subtype="tabs"] {
+    &,
+    [data-note-html-render] {
+      height: 100%;
+    }
+    [data-yai-tabs] {
+      display: flex;
+      flex-direction: column;
+    }
+    > [data-yai-tabs] {
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+
+      > [data-controller] {
+        z-index: 5;
+      }
+    }
+    [data-controller] {
+      flex-shrink: 0;
+
+      [data-open] {
+        line-height: 1;
+      }
+    }
+    [data-content],
+    [data-content]::before {
+      flex: 1;
+      overflow: unset;
+
+      [data-tab] {
+        &:not([data-spaceless]) {
+          padding: 22px;
+        }
+      }
+    }
+  }
+
+  [data-yai-tabs] [data-nav-button="left"] [data-open],
+  [data-yai-tabs] [data-controller][data-align="start"],
+  [data-yai-tabs] [data-controller][data-align="left"] {
+    justify-content: start;
+  }
+  [data-yai-tabs] [data-nav-button="right"] [data-open],
+  [data-yai-tabs] [data-controller][data-align="end"],
+  [data-yai-tabs] [data-controller][data-align="right"] {
+    justify-content: end;
+  }
+  [data-yai-tabs] [data-nav-button="center"] [data-open],
+  [data-yai-tabs] [data-controller][data-align="center"] {
+    justify-content: center;
+  }
+  [data-yai-tabs] [data-controller][data-grow] [data-open] {
+    flex-grow: 1;
+    justify-content: center;
+  }
+  [data-yai-tabs][data-nav="left"]>[data-controller][data-grow] [data-open],
+  [data-yai-tabs][data-nav="right"]>[data-controller][data-grow] [data-open] {
+    flex-grow: unset;
+  }
+  [data-yai-tabs][data-nav="top"],
+  [data-yai-tabs][data-nav="bottom"],
+  [data-yai-tabs][data-nav="left"],
+  [data-yai-tabs][data-nav="right"] {
+    display: flex;
+  }
+  [data-yai-tabs][data-nav="top"] {
+    flex-direction: column;
+  }
+  [data-yai-tabs][data-nav="bottom"] {
+    flex-direction: column-reverse;
+  }
+  [data-yai-tabs][data-nav="left"],
+  [data-yai-tabs][data-nav="right"] {
+    flex-wrap: wrap;
+  }
+  [data-yai-tabs][data-nav="left"] [data-controller],
+  [data-yai-tabs][data-nav="right"] [data-controller] {
+    flex: var(--st-note-tabs-nav-flex);
+    flex-direction: column;
+  }
+  [data-yai-tabs][data-nav="left"] [data-content],
+  [data-yai-tabs][data-nav="right"] [data-content] {
+    flex: var(--st-note-tabs-content-flex);
+  }
+  [data-yai-tabs][data-nav="left"]>[data-controller] [data-open],
+  [data-yai-tabs][data-nav="right"]>[data-controller] [data-open] {
+    padding: 4px 14px;
+  }
+  [data-yai-tabs][data-nav="left"]>[data-controller] [data-open].active,
+  [data-yai-tabs][data-nav="right"]>[data-controller] [data-open].active {
+    padding: 4px 18px;
+  }
+  [data-yai-tabs][data-nav="left"]>[data-controller] [data-open] {
+    text-align: left;
+    justify-content: left;
+  }
+  [data-yai-tabs][data-nav="right"]>[data-controller] [data-open] {
+    text-align: right;
+    justify-content: end;
+  }
+  [data-yai-tabs][data-nav="left"] {
+    flex-direction: row;
+  }
+  [data-yai-tabs][data-nav="right"] {
+    flex-direction: row-reverse;
+  }
 }

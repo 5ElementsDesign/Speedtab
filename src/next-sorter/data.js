@@ -1,5 +1,9 @@
 import {db, isActiveRecord, makeUpdatedAtPatch} from '../db/db.ts'
 import {loadUiConfigsByEntitySyncIds, upsertUiConfig} from '../next/data/ui-config.js'
+import {softDeleteBookmark} from '../next/data/bookmarks.js'
+import {clearFeedItemsBySourceIds, softDeleteFeedSource} from '../next/data/feeds.js'
+import {softDeleteNote} from '../next/data/notes.js'
+import {softDeleteModuleTab} from '../next/data/tabs.js'
 
 function clampColumnSpan(value) {
   const parsed = parseInt(value, 10)
@@ -142,6 +146,55 @@ export async function updateModuleTitle(moduleId, title) {
     ...makeUpdatedAtPatch(),
   })
   return nextTitle
+}
+
+export async function updateModuleTabTitle(tabId, title) {
+  if (!tabId) return null
+  const nextTitle = String(title ?? '').trim() || 'New Tab'
+  await db.collections.update(tabId, {
+    title: nextTitle,
+    ...makeUpdatedAtPatch(),
+  })
+  return nextTitle
+}
+
+export async function updateCollectionContentTitle(moduleType, contentId, title) {
+  const table = getCollectionContentTable(moduleType)
+  if (!table || !contentId) return null
+  const nextTitle = String(title ?? '').trim() || 'Untitled'
+  await table.update(contentId, {
+    title: nextTitle,
+    ...makeUpdatedAtPatch(),
+  })
+  return nextTitle
+}
+
+export async function softDeleteCollectionContent(moduleType, contentId) {
+  if (!contentId) return
+  if (moduleType === 'tabs') return softDeleteBookmark(contentId)
+  if (moduleType === 'notes') return softDeleteNote(contentId)
+  if (moduleType === 'feeds') return softDeleteFeedSource(contentId)
+}
+
+export async function softDeleteModuleTabCascade(tabId, moduleType) {
+  if (!tabId) return
+
+  await db.transaction('rw', db.collections, db.tabs, db.notes, db.feed_sources, db.feed_items, async () => {
+    if (moduleType === 'tabs') {
+      const rows = await loadActiveCollectionContents('tabs', tabId)
+      await Promise.all(rows.map((row) => softDeleteBookmark(row.id)))
+    } else if (moduleType === 'notes') {
+      const rows = await loadActiveCollectionContents('notes', tabId)
+      await Promise.all(rows.map((row) => softDeleteNote(row.id)))
+    } else if (moduleType === 'feeds') {
+      const rows = await loadActiveCollectionContents('feeds', tabId)
+      const sourceIds = rows.map((row) => row.id).filter(Boolean)
+      await clearFeedItemsBySourceIds(sourceIds)
+      await Promise.all(rows.map((row) => softDeleteFeedSource(row.id)))
+    }
+
+    await softDeleteModuleTab(tabId)
+  })
 }
 
 export async function updateModuleColumnSpan(module, columnSpan) {

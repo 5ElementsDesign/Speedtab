@@ -313,11 +313,9 @@
   height: 100%;
   min-height: 60px;
   padding: 16px;
-  font-size: 0.8rem;
   color: var(--yai-tabs-color-text-muted);
   font-style: italic;
   line-height: 1.45;
   border: 1px dashed color-mix(in srgb, var(--yai-tabs-color-text-muted) 32%, transparent);
-  background: color-mix(in srgb, var(--yai-tabs-nav-background) 78%, transparent);
-  border-radius: 8px;
+  background: color-mix(in srgb, var(--yai-tabs-nav-background) 100%, var(--yai-tabs-nav-background) 95%);
 }

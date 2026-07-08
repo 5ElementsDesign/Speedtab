@@ -30,6 +30,7 @@ const DEFAULT_LOCAL_TOOLS_STATE = {
   quicknote: {...DEFAULT_QUICKNOTE_STATE},
   noteWindows: [],
   noteLayouts: [],
+  noteTabStates: [],
 }
 
 function toFiniteNumber(value, fallback) {
@@ -79,6 +80,26 @@ function normalizeNoteLayoutState(source = {}) {
   }
 }
 
+function normalizeNoteTabEntry(source = {}) {
+  if (!source || typeof source !== 'object') return null
+  const path = typeof source.path === 'string' ? source.path.trim() : ''
+  const lastActive = typeof source.lastActive === 'string' ? source.lastActive.trim() : ''
+  if (!path || !lastActive) return null
+  return {path, lastActive}
+}
+
+function normalizeNoteTabState(source = {}) {
+  const noteId = toFiniteNumber(source.noteId, null)
+  if (!Number.isInteger(noteId) || noteId <= 0) return null
+
+  return {
+    noteId,
+    tabs: Array.isArray(source.tabs)
+      ? source.tabs.map((entry) => normalizeNoteTabEntry(entry)).filter(Boolean)
+      : [],
+  }
+}
+
 export function normalizeLocalToolsState(source = {}) {
   return {
     zIndexTracker: Math.max(
@@ -94,6 +115,11 @@ export function normalizeLocalToolsState(source = {}) {
     noteLayouts: Array.isArray(source.noteLayouts)
       ? source.noteLayouts
         .map((entry) => normalizeNoteLayoutState(entry))
+        .filter(Boolean)
+      : [],
+    noteTabStates: Array.isArray(source.noteTabStates)
+      ? source.noteTabStates
+        .map((entry) => normalizeNoteTabState(entry))
         .filter(Boolean)
       : [],
   }

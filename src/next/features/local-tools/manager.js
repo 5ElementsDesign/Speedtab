@@ -35,14 +35,151 @@ function isMobileNoteViewport() {
   return window.innerWidth <= MOBILE_NOTE_BREAKPOINT
 }
 
-function getShellTabsInstance() {
-  return document.querySelector('#app')?.__nextTabsInstance ?? null
+function getFloatingTabsInstance() {
+  return document.body?.__floatingTabsInstance
+    ?? document.querySelector('#app')?.__floatingTabsInstance
+    ?? document.querySelector('#app')?.__nextTabsInstance
+    ?? null
+}
+
+function syncShellTabsEditorMode() {
+  const tabs = getFloatingTabsInstance()
+  if (!tabs) return
+
+  const hasActiveEditor = editorSessions.size > 0
+
+  if (hasActiveEditor) {
+    if (!tabs._editorModeFocusState) {
+      tabs._editorModeFocusState = {
+        autoFocus: tabs.config.autoFocus,
+        suspendFocusBlur: tabs._suspendFocusBlur === true,
+      }
+    }
+    tabs.config.autoFocus = false
+    tabs._suspendFocusBlur = true
+    return
+  }
+
+  if (!tabs._editorModeFocusState) return
+  tabs.config.autoFocus = tabs._editorModeFocusState.autoFocus
+  tabs._suspendFocusBlur = tabs._editorModeFocusState.suspendFocusBlur
+  delete tabs._editorModeFocusState
 }
 
 function syncNestedTabsInFloatingWindows(scope = null) {
-  const tabs = getShellTabsInstance()
+  const tabs = getFloatingTabsInstance()
   if (!tabs || !(scope instanceof HTMLElement)) return
-  tabs.initializeAllContainers(scope)
+  const shouldPreserveEditorFocus = !!scope.closest?.('[data-note-editor-preview]')
+  if (!shouldPreserveEditorFocus) {
+    tabs.initializeAllContainers(scope)
+    return
+  }
+
+  const previousAutoFocus = tabs.config.autoFocus
+  const previousSuspendFocusBlur = tabs._suspendFocusBlur
+  tabs.config.autoFocus = false
+  tabs._suspendFocusBlur = true
+  try {
+    tabs.initializeAllContainers(scope, { staticDefaults: true })
+  } finally {
+    tabs.config.autoFocus = previousAutoFocus
+    tabs._suspendFocusBlur = previousSuspendFocusBlur
+  }
+}
+
+function getElementPath(root, element) {
+  if (!(root instanceof HTMLElement) || !(element instanceof HTMLElement)) return ''
+  const segments = []
+  let current = element
+
+  while (current && current !== root) {
+    const parent = current.parentElement
+    if (!parent) return ''
+    const index = Array.from(parent.children).indexOf(current)
+    if (index < 0) return ''
+    segments.unshift(String(index))
+    current = parent
+  }
+
+  return current === root ? segments.join('.') : ''
+}
+
+function getElementByPath(root, path = '') {
+  if (!(root instanceof HTMLElement) || !path) return null
+  let current = root
+  const segments = path.split('.').map((entry) => Number.parseInt(entry, 10))
+
+  for (const segment of segments) {
+    if (!Number.isInteger(segment) || segment < 0) return null
+    current = current.children?.[segment]
+    if (!(current instanceof HTMLElement)) return null
+  }
+
+  return current
+}
+
+function getSavedNoteTabState(noteId) {
+  return state.noteTabStates.find((entry) => entry.noteId === noteId)?.tabs ?? []
+}
+
+function saveNoteTabState(noteId, tabs = []) {
+  const nextState = {noteId, tabs}
+  const index = state.noteTabStates.findIndex((entry) => entry.noteId === noteId)
+  if (index === -1) {
+    state.noteTabStates = [...state.noteTabStates, nextState]
+    return
+  }
+  state.noteTabStates = state.noteTabStates.map((entry, currentIndex) => (
+    currentIndex === index ? nextState : entry
+  ))
+}
+
+function removeNoteTabState(noteId) {
+  state.noteTabStates = state.noteTabStates.filter((entry) => entry.noteId !== noteId)
+}
+
+function applySavedNoteTabStateToScope(noteId, scope) {
+  if (!Number.isInteger(noteId) || noteId <= 0 || !(scope instanceof HTMLElement)) return
+  const savedTabs = getSavedNoteTabState(noteId)
+  if (!savedTabs.length) return
+
+  savedTabs.forEach(({path, lastActive}) => {
+    const container = getElementByPath(scope, path)
+    if (!(container instanceof HTMLElement) || !container.matches('[data-yai-tabs]')) return
+    if (!container.querySelector(`:scope > [data-controller] [data-open="${CSS.escape(lastActive)}"]`)) return
+    container.dataset.lastActive = lastActive
+  })
+}
+
+function persistNoteTabStateFromContainer(container) {
+  const noteWindow = container?.closest?.('[data-note-window-id]')
+  if (!(noteWindow instanceof HTMLElement)) return
+  if (noteWindow.querySelector('[data-note-window-body]')?.getAttribute('data-note-mode') !== 'view') return
+  if (container.closest('[data-note-editor-preview]')) return
+
+  const noteId = Number.parseInt(noteWindow.dataset.noteWindowId || '', 10)
+  if (!Number.isInteger(noteId) || noteId <= 0) return
+
+  const htmlScope = noteWindow.querySelector('[data-note-html-render]')
+  if (!(htmlScope instanceof HTMLElement)) return
+
+  const tabs = [...htmlScope.querySelectorAll('[data-yai-tabs]')]
+    .map((entry) => {
+      if (!(entry instanceof HTMLElement)) return null
+      const activeButton = entry.querySelector(':scope > [data-controller] [data-open].active')
+      const lastActive = entry.dataset.lastActive || activeButton?.getAttribute('data-open') || activeButton?.dataset?.open || ''
+      const path = getElementPath(htmlScope, entry)
+      if (!path || !lastActive) return null
+      return {path, lastActive}
+    })
+    .filter(Boolean)
+
+  if (!tabs.length) {
+    removeNoteTabState(noteId)
+  } else {
+    saveNoteTabState(noteId, tabs)
+  }
+  queueSave()
 }
 
 function getSavedNoteLayout(noteId) {
@@ -51,6 +188,7 @@ function getSavedNoteLayout(noteId) {
 
 function saveNoteLayout(windowState) {
   if (!windowState?.noteId) return
+  if (windowState.transientInitialLayout === true) return
   const layout = {
     noteId: windowState.noteId,
     x: windowState.x,
@@ -151,7 +289,7 @@ export function refreshOpenNotePreviewState() {
 }
 
 function ensureRoot() {
-  const host = appRoot instanceof HTMLElement ? appRoot : document.body
+  const host = appRoot || document.querySelector('#app') || document.body
 
   if (!root) {
     root = document.createElement('div')
@@ -262,6 +400,34 @@ function setEditorSession(noteId, patch = {}) {
   })
 }
 
+function buildTabberMarkup(selectedContent = '', {nested = false} = {}) {
+  const contentA = selectedContent.trim() || 'Content A …'
+  const lines = [
+    '<div data-yai-tabs="" data-theme="light" data-color-accent="secondary" data-nav="top" data-behavior="blur" data-swipe="" data-closable="false" data-auto-accessibility="false">',
+    '    <nav data-controller="">',
+    '        <button data-tab-action="open" data-open="1" data-default>Tab A</button>',
+    '        <button data-tab-action="open" data-open="2">Tab B</button>',
+    '    </nav>',
+    '    <div data-content="">',
+    `        <div data-tab="1" class="p-3">${contentA}</div>`,
+    '        <div data-tab="2" class="p-3">Content B…</div>',
+    '    </div>',
+    '</div>',
+  ]
+
+  if (!nested) return lines.join('\n')
+
+  return [
+    `\n<!--`,
+    '  Nested Tabs start here',
+    '-->',
+    ...lines,
+    '<!--',
+    '  Nested Tabs ends here',
+    `-->\n`,
+  ].join('\n')
+}
+
 async function hydrateNoteCodeBlocks(container) {
   const codeBlocks = [...container.querySelectorAll('[data-note-code-block]')]
   await Promise.all(codeBlocks.map(async (block) => {
@@ -305,6 +471,20 @@ async function hydrateNoteHtmlRenders(container) {
     }
 
     el.innerHTML = rendered.html
+
+    // HTML note preview lives inside the editor <form>. Any nested tab buttons
+    // without an explicit type would become submit buttons and exit edit mode.
+    if (el.hasAttribute('data-note-editor-preview')) {
+      el.querySelectorAll('button:not([type])').forEach((button) => {
+        if (!(button instanceof HTMLButtonElement)) return
+        button.type = 'button'
+      })
+    }
+
+    if (renderKey.startsWith('note-view:')) {
+      const noteId = Number.parseInt(renderKey.slice('note-view:'.length), 10)
+      applySavedNoteTabStateToScope(noteId, el)
+    }
     syncNestedTabsInFloatingWindows(el)
     initFavicons(el, {force: true})
   }))
@@ -495,8 +675,8 @@ function autoFitSingleNoteWindow(noteId) {
 
   const nextState = clampWindowState({
     ...windowState,
-    width: measured.width,
-    height: measured.height,
+    width: windowState.autoWidth ? measured.width : windowState.width,
+    height: windowState.autoHeight ? measured.height : windowState.height,
     autoHeight: false,
     autoWidth: false,
     windowId: `note:${noteId}`,
@@ -632,6 +812,10 @@ function startSession(type, windowEl, event) {
   const windowState = getWindowState(windowId)
   if (!windowId || !windowState) return
 
+  if (windowState.transientInitialLayout === true) {
+    setWindowState(windowId, {transientInitialLayout: false})
+  }
+
   const point = getPointerPoint(event)
   session = {
     type,
@@ -725,6 +909,10 @@ export async function initializeLocalTools(appEl) {
   await render({reloadNotes: true})
 }
 
+export function persistFloatingNoteTabState(container) {
+  persistNoteTabStateFromContainer(container)
+}
+
 export function openQuicknote() {
   if (!state.quicknote.open) {
     state.quicknote.open = true
@@ -759,9 +947,13 @@ export function updateQuicknoteContent(value) {
   queueSave()
 }
 
-export function openFloatingNote(noteId) {
+export function openFloatingNote(noteId, options = {}) {
   const parsedNoteId = parseInt(String(noteId), 10)
   if (!Number.isInteger(parsedNoteId) || parsedNoteId <= 0) return
+  const transientWidth = Number(options.initialWidth)
+  const transientHeight = Number(options.initialHeight)
+  const hasTransientWidth = Number.isFinite(transientWidth) && transientWidth >= 300
+  const hasTransientHeight = Number.isFinite(transientHeight) && transientHeight >= NOTE_MIN_HEIGHT
   if (isMobileNoteViewport()) {
     const removedIds = state.noteWindows
       .map((entry) => entry.noteId)
@@ -776,6 +968,13 @@ export function openFloatingNote(noteId) {
   }
   const existing = state.noteWindows.find((entry) => entry.noteId === parsedNoteId)
   if (existing) {
+    if (hasTransientWidth || hasTransientHeight) {
+      applyWindowPatch(`note:${parsedNoteId}`, {
+        ...(hasTransientWidth ? {width: transientWidth, autoWidth: false} : {}),
+        ...(hasTransientHeight ? {height: transientHeight, autoHeight: false} : {}),
+        transientInitialLayout: true,
+      }, {persist: false, rerender: true})
+    }
     bringToFront(`note:${parsedNoteId}`, {persist: true, rerender: false})
     syncOpenNotePreviewState()
     return
@@ -791,11 +990,12 @@ export function openFloatingNote(noteId) {
       noteId: parsedNoteId,
       x: savedLayout?.x ?? (40 + offset),
       y: savedLayout?.y ?? (72 + offset),
-      width: savedLayout?.width ?? 420,
-      height: savedLayout?.height ?? 320,
+      width: savedLayout?.width ?? (hasTransientWidth ? transientWidth : 420),
+      height: savedLayout?.height ?? (hasTransientHeight ? transientHeight : 320),
       z: nextZ,
-      autoHeight: !savedLayout,
-      autoWidth: !savedLayout,
+      autoHeight: !savedLayout && !hasTransientHeight,
+      autoWidth: !savedLayout && !hasTransientWidth,
+      transientInitialLayout: !savedLayout && hasTransientWidth,
     },
   ]
   enteringWindowIds.add(`note:${parsedNoteId}`)
@@ -820,6 +1020,7 @@ export function closeFloatingNote(noteId) {
     removeFloatingNoteWindowDom(parsedNoteId)
     cryptSessions.delete(parsedNoteId)
     editorSessions.delete(parsedNoteId)
+    syncShellTabsEditorMode()
     state.noteWindows = state.noteWindows.filter((entry) => entry.noteId !== parsedNoteId)
     removeCachedNote(parsedNoteId)
     syncOpenNotePreviewState()
@@ -835,6 +1036,7 @@ export function closeFloatingNote(noteId) {
     removeFloatingNoteWindowDom(parsedNoteId)
     cryptSessions.delete(parsedNoteId)
     editorSessions.delete(parsedNoteId)
+    syncShellTabsEditorMode()
     state.noteWindows = state.noteWindows.filter((entry) => entry.noteId !== parsedNoteId)
     removeCachedNote(parsedNoteId)
     syncOpenNotePreviewState()
@@ -920,17 +1122,19 @@ export async function startFloatingNoteEdit(noteId) {
   noteRecords.set(parsedNoteId, note)
   if (note.type === 'crypt') {
     cryptSessions.delete(parsedNoteId)
-    setEditorSession(parsedNoteId, {
+  setEditorSession(parsedNoteId, {
       editMode: true,
       editTitle: note.title ?? '',
       editStyleToken: note.style_token ?? 'primary',
       editContent: '',
       editError: '',
     })
+    syncShellTabsEditorMode()
     await mountSingleFloatingNoteWindow(parsedNoteId)
     return
   }
   setEditorSession(parsedNoteId, normalizeEditorSession(note))
+  syncShellTabsEditorMode()
   await mountSingleFloatingNoteWindow(parsedNoteId)
   requestAnimationFrame(() => {
     const form = root?.querySelector?.(`[data-floating-note-form][data-note-id="${parsedNoteId}"]`)
@@ -948,6 +1152,7 @@ export async function cancelFloatingNoteEdit(noteId) {
   const parsedNoteId = parseInt(String(noteId), 10)
   if (!Number.isInteger(parsedNoteId) || parsedNoteId <= 0) return
   editorSessions.delete(parsedNoteId)
+  syncShellTabsEditorMode()
   const note = noteRecords.get(parsedNoteId)
   if (note?.type === 'crypt') {
     cryptSessions.delete(parsedNoteId)
@@ -999,6 +1204,33 @@ export function syncFloatingNoteEditorField(noteId, field, value) {
       windowRoot.className = `st-note-window ${getNoteBorderClass(String(value ?? 'primary'))}`
     }
   }
+}
+
+export function insertFloatingNoteTabber(noteId) {
+  const parsedNoteId = parseInt(String(noteId), 10)
+  if (!Number.isInteger(parsedNoteId) || parsedNoteId <= 0) return
+
+  const textarea = root?.querySelector?.(
+    `[data-note-window-id="${parsedNoteId}"] textarea[name="content"][data-editor-field="content"]`
+  )
+  if (!(textarea instanceof HTMLTextAreaElement)) return
+
+  const start = textarea.selectionStart ?? textarea.value.length
+  const end = textarea.selectionEnd ?? start
+  const selectedText = textarea.value.slice(start, end)
+  const hasExistingTabs = textarea.value.includes('data-yai-tabs')
+  const insertion = buildTabberMarkup(selectedText, {nested: hasExistingTabs})
+  const prefix = textarea.value.slice(0, start)
+  const suffix = textarea.value.slice(end)
+  const beforeNeedsGap = prefix.length > 0 && !prefix.endsWith('\n')
+  const afterNeedsGap = suffix.length > 0 && !suffix.startsWith('\n')
+  const nextValue = `${prefix}${beforeNeedsGap ? '\n' : ''}${insertion}${afterNeedsGap ? '\n' : ''}${suffix}`
+
+  textarea.value = nextValue
+  const nextCaret = `${prefix}${beforeNeedsGap ? '\n' : ''}${insertion}`.length
+  textarea.focus()
+  textarea.setSelectionRange(nextCaret, nextCaret)
+  syncFloatingNoteEditorField(parsedNoteId, 'content', nextValue)
 }
 
 export async function toggleFloatingNotePreview(noteId) {
@@ -1059,6 +1291,7 @@ export async function saveFloatingNoteEdit(noteId, form) {
   }
 
   editorSessions.delete(parsedNoteId)
+  syncShellTabsEditorMode()
   await mountSingleFloatingNoteWindow(parsedNoteId)
   const moduleSyncId = document.querySelector(`[data-note-id="${CSS.escape(String(parsedNoteId))}"][data-module-sync-id]`)?.getAttribute('data-module-sync-id')
   if (moduleSyncId) {

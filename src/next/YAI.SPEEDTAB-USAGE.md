@@ -55,7 +55,6 @@ Recommended first config shape:
 ```js
 const tabs = new YaiTabs({
   autoAccessibility: true,
-  autoDisambiguate: false,
   lazyNestedComponents: true,
   autoFocusNested: false,
   autoFocus: false,

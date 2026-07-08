@@ -9,6 +9,7 @@ import {
   saveFloatingNoteEdit as saveFloatingNoteEditWindow,
   startFloatingNoteEdit as startFloatingNoteEditWindow,
   syncFloatingNoteEditorField as syncFloatingNoteEditorFieldWindow,
+  insertFloatingNoteTabber as insertFloatingNoteTabberWindow,
   toggleFloatingNotePreview as toggleFloatingNotePreviewWindow,
   toggleFloatingCryptPassphrase as toggleFloatingCryptPassphraseWindow,
   unlockFloatingCryptNote as unlockFloatingCryptNoteWindow,
@@ -55,6 +56,10 @@ export const localToolsActions = {
 
   syncFloatingNoteEditorField(target) {
     syncFloatingNoteEditorFieldWindow(target?.dataset?.noteId, target?.dataset?.editorField, target?.value ?? '')
+  },
+
+  insertFloatingNoteTabber(target) {
+    insertFloatingNoteTabberWindow(target?.dataset?.noteId)
   },
 
   async toggleFloatingNotePreview(target) {

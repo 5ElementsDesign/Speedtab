@@ -1,10 +1,10 @@
-import {loadAssetById, loadAssetsByKinds, loadAssetObjectUrl, storeOrGetAsset, TILE_H, TILE_W, canvasToWebpBlob} from '../../data/assets.js'
+import fallbackFaviconUrl from '@/assets/st-favicon.ico'
+import {TILE_H, TILE_W, canvasToWebpBlob, loadAssetById, loadAssetObjectUrl, loadAssetsByKinds, storeOrGetAsset} from '../../data/assets.js'
+import {customizerDivider, customizerField, customizerSection, textInput, textarea, urlInput} from '../../ui/primitives.js'
+import {ensureFaviconAssetIdForUrl, initFavicons, normalizeStoredFaviconBlob} from '../../utils/favicon.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
-import {ensureFaviconAssetIdForUrl, initFavicons, normalizeStoredFaviconBlob} from '../../utils/favicon.js'
 import {initFormDirtyState, renderFormActions} from '../forms/actions.js'
-import {customizerDivider, customizerField, customizerSection, textInput, textarea, urlInput} from '../../ui/primitives.js'
-import fallbackFaviconUrl from '@/assets/st-favicon.ico'
 
 let bookmarkFormState = null
 let cropperInstance = null
@@ -191,9 +191,9 @@ function renderFaviconPicker(state) {
         ${assetTiles}
       </section>
       <section data-bookmark-form-picker-section data-bookmark-form-picker-actions>
-        <button type="button" data-click="bookmarkFormTriggerFaviconUpload" data-bookmark-form-picker-btn>${escapeHtml(t('tabForm.upload'))}</button>
-        <button type="button" data-click="bookmarkFormClearFavicon" data-bookmark-form-picker-btn>${escapeHtml(t('tabForm.clear'))}</button>
-        <button type="button" data-click="bookmarkFormToggleFaviconPicker" data-bookmark-form-picker-btn>${escapeHtml(t('common.close'))}</button>
+        <button type="button" data-btn="ghost" data-click="bookmarkFormTriggerFaviconUpload" data-bookmark-form-picker-btn>${escapeHtml(t('tabForm.upload'))}</button>
+        <button type="button" data-btn="ghost" data-click="bookmarkFormClearFavicon" data-bookmark-form-picker-btn>${escapeHtml(t('tabForm.clear'))}</button>
+        <button type="button" data-btn="ghost" data-click="bookmarkFormToggleFaviconPicker" data-bookmark-form-picker-btn>${escapeHtml(t('common.close'))}</button>
         <input type="file" accept="image/*" hidden data-bookmark-favicon-file data-change="bookmarkFormFaviconFileChange">
       </section>
     </div>
@@ -218,18 +218,18 @@ function renderPreviewSelection(state) {
           <img src="${escapeHtml(state.imageDataUrl)}" alt="${escapeHtml(t('tabForm.cropSourceAlt'))}" data-bookmark-cropper-image>
         </div>
         <div data-bookmark-form-cropper-controls>
-          <button type="button" data-click="bookmarkFormCropZoomIn" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.zoomIn'))}</button>
-          <button type="button" data-click="bookmarkFormCropZoomOut" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.zoomOut'))}</button>
-          <button type="button" data-click="bookmarkFormCropMoveLeft" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.moveLeft'))}</button>
-          <button type="button" data-click="bookmarkFormCropMoveRight" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.moveRight'))}</button>
-          <button type="button" data-click="bookmarkFormCropMoveUp" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.moveUp'))}</button>
-          <button type="button" data-click="bookmarkFormCropMoveDown" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.moveDown'))}</button>
-          <button type="button" data-click="bookmarkFormCropFlipX" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.flipX'))}</button>
-          <button type="button" data-click="bookmarkFormCropFlipY" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.flipY'))}</button>
+          <button type="button" data-btn="ghost" data-click="bookmarkFormCropZoomIn" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.zoomIn'))}</button>
+          <button type="button" data-btn="ghost" data-click="bookmarkFormCropZoomOut" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.zoomOut'))}</button>
+          <button type="button" data-btn="ghost" data-click="bookmarkFormCropMoveLeft" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.moveLeft'))}</button>
+          <button type="button" data-btn="ghost" data-click="bookmarkFormCropMoveRight" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.moveRight'))}</button>
+          <button type="button" data-btn="ghost" data-click="bookmarkFormCropMoveUp" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.moveUp'))}</button>
+          <button type="button" data-btn="ghost" data-click="bookmarkFormCropMoveDown" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.moveDown'))}</button>
+          <button type="button" data-btn="ghost" data-click="bookmarkFormCropFlipX" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.flipX'))}</button>
+          <button type="button" data-btn="ghost" data-click="bookmarkFormCropFlipY" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.flipY'))}</button>
         </div>
         <div data-bookmark-form-crop-actions>
           <button type="button" data-click="bookmarkFormApplyCrop" data-btn="primary" title="${escapeHtml(t('tabForm.cropBeforeSaving'))}">${escapeHtml(t('tabForm.applyCrop', {width: TILE_W, height: TILE_H}))}</button>
-          <button type="button" data-click="bookmarkFormClearPreview" data-bookmark-form-link-btn>${escapeHtml(t('common.cancel'))}</button>
+          <button type="button" data-click="bookmarkFormClearPreview" data-btn="ghost" data-bookmark-form-link-btn>${escapeHtml(t('common.cancel'))}</button>
         </div>
       </div>
     `
@@ -304,6 +304,7 @@ export function renderBookmarkCrudForm(state) {
   return `
     <form
       data-module-crud-form
+      ${state.imageDataUrl ? 'data-bookmark-crop-active ' : ''}
       data-submit="moduleCrudSave"
       data-entity-type="bookmark"
       data-record-id="${escapeHtml(String(state.record?.id ?? ''))}"
@@ -339,7 +340,7 @@ export function renderBookmarkCrudForm(state) {
                   spellcheck: 'false',
                 },
               })}
-              <button type="button" data-click="bookmarkFormTestUrl" data-bookmark-form-test-btn title="${escapeHtml(t('tabForm.faviconPickerLockedTitle'))}" ${state.isTesting || !hasUrl ? 'disabled ' : ''}>${escapeHtml(state.isTesting ? t('tabForm.testing') : t('tabForm.test'))}</button>
+              <button type="button" class="${state.isTesting ? 'yai-loading' : ''}" data-click="bookmarkFormTestUrl" data-bookmark-form-test-btn title="${escapeHtml(t('tabForm.faviconPickerLockedTitle'))}" ${state.isTesting || !hasUrl ? 'disabled ' : ''}>${escapeHtml(state.isTesting ? t('tabForm.testing') : t('tabForm.test'))}</button>
             </div>
             ${renderFaviconPicker(state)}
             <p data-bookmark-form-status data-variant="${escapeHtml(status.variant)}">${escapeHtml(status.text)}</p>

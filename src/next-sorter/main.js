@@ -1,8 +1,9 @@
 import {SPEEDTAB_SVG} from '../next/components/icons.js'
 import {YEH} from '../lib/yai/yeh.js'
 import {t, initI18n} from '../next/utils/i18n.js'
+import {applyWorkspaceBackground} from '../next/utils/workspace-background.js'
 import '../next/styles/next.css'
-import {buildSorterState, loadModuleContentsForSorter, moveCollectionContent, moveModule, moveModuleTab, movePage, updateModuleColumnSpan, updateModuleTitle} from './data.js'
+import {buildSorterState, loadModuleContentsForSorter, moveCollectionContent, moveModule, moveModuleTab, movePage, softDeleteCollectionContent, softDeleteModuleTabCascade, updateCollectionContentTitle, updateModuleColumnSpan, updateModuleTabTitle, updateModuleTitle} from './data.js'
 import {initSorterDnd} from './dnd.js'
 import {renderSorterApp} from './render.js'
 import {
@@ -11,9 +12,11 @@ import {
   clearDragState,
   clearTabSort,
   clearPageOrphanSlots,
+  closeSorterEditor,
   createSorterState,
   isContentSortActive,
   isTabSortActive,
+  openSorterEditor,
   removeOrphanSlot,
   setSorterPages,
   setContentSortContents,
@@ -118,6 +121,12 @@ function render() {
   document.scrollingElement?.scrollTo({top: scrollTop})
 }
 
+async function applyPageBackground() {
+  const mount = getMount()
+  if (!(mount instanceof HTMLElement)) return
+  await applyWorkspaceBackground(mount)
+}
+
 function setExpandedModules(moduleSyncIds = []) {
   state.expandedModules = new Set(moduleSyncIds.filter(Boolean))
 }
@@ -157,6 +166,7 @@ async function boot() {
   await refreshState()
   setSorterStatus(state, t('sorter.ready'), 'idle')
   render()
+  await applyPageBackground()
 
   const root = getSorterEventRoot()
   if (!root) return
@@ -269,6 +279,8 @@ async function boot() {
   new YEH({
     body: [
       'click',
+      {type: 'input', debounce: 40},
+      'keydown',
       {type: 'change', debounce: 80},
     ],
   }, {}, {
@@ -276,7 +288,7 @@ async function boot() {
     enableConfigValidation: false,
     enableHandlerValidation: false,
     methods: {
-      handleClick(event, target) {
+      async handleClick(event, target) {
         const clickable = target.closest?.('[data-click]')
         if (!clickable?.dataset?.click) return
         event.preventDefault()
@@ -352,6 +364,121 @@ async function boot() {
           location.reload()
           return
         }
+
+        if (clickable.dataset.click === 'sorterOpenItemEditor') {
+          const kind = clickable.dataset.sorterKind || null
+          const targetId = parseInt(clickable.dataset.sorterTargetId ?? '', 10)
+          if (!kind || !targetId) return
+          openSorterEditor(state, {
+            kind,
+            targetId,
+            moduleType: clickable.dataset.sorterModuleType || null,
+            parentId: parseInt(clickable.dataset.sorterParentId ?? '', 10) || null,
+            title: clickable.dataset.sorterTitle || '',
+          })
+          render()
+          return
+        }
+
+        if (clickable.dataset.click === 'sorterCancelItemEditor') {
+          closeSorterEditor(state)
+          render()
+          return
+        }
+
+        if (clickable.dataset.click === 'sorterSaveItemEditor') {
+          const {kind, targetId, moduleType, title} = state.editor
+          if (!kind || !targetId) return
+          setSorterStatus(state, t('sorter.saving'), 'idle')
+          render()
+          try {
+            if (kind === 'tab') {
+              await updateModuleTabTitle(targetId, title)
+            } else if (kind === 'content') {
+              await updateCollectionContentTitle(moduleType, targetId, title)
+            }
+            closeSorterEditor(state)
+            await refreshState()
+            if (isContentSortActive(state)) {
+              await refreshContentSortContents()
+            }
+            setSorterStatus(state, t('sorter.saved'), 'success')
+          } catch (error) {
+            setSorterStatus(state, error instanceof Error ? error.message : t('sorter.saveFailed'), 'error')
+          }
+          render()
+          return
+        }
+
+        if (clickable.dataset.click === 'sorterDeleteItem') {
+          const kind = clickable.dataset.sorterKind || null
+          const moduleType = clickable.dataset.sorterModuleType || null
+          const targetId = parseInt(clickable.dataset.sorterTargetId ?? '', 10)
+          const title = clickable.dataset.sorterTitle || ''
+          if (!kind || !targetId) return
+
+          const confirmMessage = kind === 'tab'
+            ? t('sorter.confirmDeleteTab', {title: title || t('moduleCard.newTabTitle')})
+            : t('sorter.confirmDeleteContent', {title: title || t('sorter.untitledContent')})
+
+          if (!confirm(confirmMessage)) return
+
+          setSorterStatus(state, t('sorter.saving'), 'idle')
+          render()
+          try {
+            if (kind === 'tab') {
+              await softDeleteModuleTabCascade(targetId, moduleType)
+            } else if (kind === 'content') {
+              await softDeleteCollectionContent(moduleType, targetId)
+            }
+            closeSorterEditor(state)
+            await refreshState()
+            if (isContentSortActive(state)) {
+              await refreshContentSortContents()
+            }
+            setSorterStatus(state, t('sorter.itemDeleted'), 'success')
+          } catch (error) {
+            setSorterStatus(state, error instanceof Error ? error.message : t('sorter.saveFailed'), 'error')
+          }
+          render()
+          return
+        }
+      },
+
+      handleInput(event, target) {
+        if (target?.dataset?.input === 'sorterEditorInput') {
+          state.editor.title = target.value ?? ''
+        }
+      },
+
+      async handleKeydown(event, target) {
+        if (target?.dataset?.input !== 'sorterEditorInput') return
+        if (event.key !== 'Enter') return
+        event.preventDefault()
+
+        const {kind, targetId, moduleType, title} = state.editor
+        if (!kind || !targetId) return
+
+        setSorterStatus(state, t('sorter.saving'), 'idle')
+        render()
+
+        try {
+          if (kind === 'tab') {
+            await updateModuleTabTitle(targetId, title)
+          } else if (kind === 'content') {
+            await updateCollectionContentTitle(moduleType, targetId, title)
+          }
+          closeSorterEditor(state)
+          await refreshState()
+          if (isContentSortActive(state)) {
+            await refreshContentSortContents()
+          }
+          setSorterStatus(state, t('sorter.saved'), 'success')
+        } catch (error) {
+          setSorterStatus(state, error instanceof Error ? error.message : t('sorter.saveFailed'), 'error')
+        }
+
+        render()
       },
 
       async handleChange(event, target) {

@@ -13,7 +13,6 @@ import {settingsActions} from '../actions/settings.js'
 import {workspaceActions} from '../actions/workspace.js'
 import {closeAll, closeDropdown} from '../components/dropdown.js'
 import {getCachedAppSettings, loadAppSettings} from '../data/app-settings.js'
-import {loadAssetObjectUrl} from '../data/assets.js'
 import {loadCaptureInboxCount} from '../data/capture-inbox.js'
 import {loadModuleBySyncId, loadModulesByPageId} from '../data/modules.js'
 import {getHashPageSlug, loadPages, resolveActivePage} from '../data/pages.js'
@@ -21,7 +20,7 @@ import {loadUiConfigsByEntitySyncIds} from '../data/ui-config.js'
 import {applyModuleUiConfigMap, applyShellUiConfig} from '../features/customizer/apply.js'
 import {initCustomizerListeners} from '../features/customizer/panel.js'
 import {SHELL_SYNC_ID} from '../features/customizer/render.js'
-import {initializeLocalTools, refreshOpenNotePreviewState, refreshQuicknoteWindow} from '../features/local-tools/manager.js'
+import {initializeLocalTools, persistFloatingNoteTabState, refreshOpenNotePreviewState, refreshQuicknoteWindow} from '../features/local-tools/manager.js'
 import {adaptModule} from '../features/modules/registry.js'
 import {enrichModules} from '../features/modules/service.js'
 import {renderModuleCardBody, renderPageGrid} from '../features/pages/modules/render.js'
@@ -32,6 +31,7 @@ import {renderWidgetRailShell} from '../features/widgets/render.js'
 import {initBookmarkMedia} from '../utils/bookmark-media.js'
 import {initFavicons} from '../utils/favicon.js'
 import {getLocale, initI18n, t} from '../utils/i18n.js'
+import {applyWorkspaceBackground} from '../utils/workspace-background.js'
 import {dispatch} from './dispatch.js'
 import {createHandler} from './handler.js'
 
@@ -214,7 +214,7 @@ export function initializeNextTabs(mount, pages) {
     : [{type: 'mouseup', handler: 'globalMouseWatch', debounce: 50}]
 
   const tabs = new YaiTabs({
-    autoDisambiguate: false,
+    rootSelector: '[data-app][data-yai-tabs], [data-app] [data-yai-tabs]',
     autoAccessibility: true,
     lazyNestedComponents: true,
     autoFocusNested: false,
@@ -230,6 +230,7 @@ export function initializeNextTabs(mount, pages) {
         ...(globalReleaseListeners.length ? {body: globalReleaseListeners} : {}),
         '[data-yai-tabs]': ['click', 'keydown', 'submit', 'input', 'change'],
         '[data-app-content]': setListenerType,
+        '[data-floating-windows]': setListenerType,
       },
       actionableAttributes: ['data-tab-action', 'data-swipe', 'data-click', 'data-input', 'data-input-immediate', 'data-change', 'data-submit'],
       actionableClasses: ['st-btn'],
@@ -279,7 +280,7 @@ export function initializeNextTabs(mount, pages) {
 
   const swype = new YaiTabsSwipe({
     axis: YaiDevice.hasTouch ? 'horizontal' : 'auto',
-    ignoreClosestSelector: 'nav[data-controller], [data-app-footer], [data-dropdown]',
+    ignoreClosestSelector: 'nav[data-controller], [data-app-footer], [data-dropdown], [data-window-actions], textarea, input, select',
     cancelDragClickSelector: [
       'a.st-trigger-tab',
       'button.st-trigger-note',
@@ -300,7 +301,7 @@ export function initializeNextTabs(mount, pages) {
   if (!YaiDevice.hasTouch) {
     tabs.hook('globalMouseWatch', ({target}) => {
       if (!swype.isDragging()) return
-      if (target?.closest?.('main[data-app-content]')) return
+      if (target?.closest?.('main[data-app-content], [data-floating-windows]')) return
       swype.resetDraggingState()
     })
   }
@@ -392,7 +393,6 @@ export async function renderNextRoot() {
   if (!mount) throw new Error('Missing #app mount')
 
   destroyExistingTabs(mount)
-
   await initI18n()
   bindRuntimeInboxListener()
 
@@ -477,14 +477,7 @@ export async function renderNextRoot() {
 
   const appRoot = mount.querySelector('[data-app]')
   if (appRoot) {
-    if (appSettings.background_asset_id) {
-      const objUrl = await loadAssetObjectUrl(appSettings.background_asset_id)
-      if (objUrl) appRoot.style.background = `url('${objUrl}') center/cover no-repeat`
-    } else if (appSettings.background_properties) {
-      appRoot.style.background = appSettings.background_properties
-    } else {
-      appRoot.style.background = `url('${defaultWallpaperUrl}') center/cover no-repeat`
-    }
+    await applyWorkspaceBackground(appRoot)
   }
 
   if (renderPages.length && activePage) {
@@ -495,13 +488,14 @@ export async function renderNextRoot() {
     return tabs
   } else {
     mount.innerHTML = `
-      <div class="st-app-empty">
+      <div class="st-app-empty" style="background:url('${defaultWallpaperUrl}') center/cover no-repeat;">
         <div class="st-app-empty-card">
           <h1><span>${t('app.title')}</span></h1>
           <p>${t('app.noPagesTitle')}</p>
           <p>${t('app.noPagesDescription')}</p>
           <div class="st-app-empty-actions">
             <button type="button" data-btn="ghost" data-click="addPage" data-empty-add-page>${t('app.newPage')}</button>
+            <button type="button" data-btn="ghost" data-click="openImportExport">${t('settings.importExportTitle')}</button>
             ${canLoadExampleWorkspace
               ? `<button type="button" data-btn="primary" data-click="loadExampleWorkspace">${t('app.quickStart')}</button>`
               : ''}

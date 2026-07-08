@@ -1,5 +1,5 @@
 .st-widget-rail-inner {
-  width: min(100%, 1500px);
+  width: min(100%, var(--st-page-grid-max-width, 1500px));
   margin: 0 auto;
   padding: 8px 0;
 }
@@ -18,6 +18,25 @@
   justify-content: flex-end;
 }
 
+.st-widget-rail-center[data-widget-rail-align="center"] [data-widget-rail-host] {
+  justify-content: center;
+}
+
+.st-widget-rail-center[data-widget-rail-align="right"] [data-widget-rail-host] {
+  justify-content: flex-end;
+}
+
+[data-widget-rail-host] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+[data-widget-clock-host][data-widget-align="right"] {
+  margin-left: auto;
+}
+
 .st-widget-rail-placeholder {
   width: 100%;
   height: 44px;
@@ -30,6 +49,51 @@
   backdrop-filter: blur(var(--st-widget-backdrop-blur));
   color: var(--st-widget-text);
   max-width: 220px;
+}
+
+.st-clock-widget {
+  --st-clock-widget-bg: var(--st-widget-bg);
+  --st-clock-widget-border: var(--st-widget-border);
+  --st-clock-widget-date-color: var(--st-widget-text-muted);
+  --st-clock-widget-time-color: var(--st-widget-text);
+  --st-clock-widget-date-size: 12px;
+  --st-clock-widget-time-size: 20px;
+  min-width: 0;
+  width: auto;
+  max-width: none;
+  padding: 10px 12px;
+  border-color: var(--st-clock-widget-border);
+  background: var(--st-clock-widget-bg);
+}
+
+.st-clock-widget-body {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.st-clock-widget.is-two-row .st-clock-widget-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.st-clock-widget-date {
+  color: var(--st-clock-widget-date-color);
+  font-size: var(--st-clock-widget-date-size);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.st-clock-widget-time {
+  color: var(--st-clock-widget-time-color);
+  font-size: var(--st-clock-widget-time-size);
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .st-weather-widget {
@@ -205,6 +269,14 @@
 }
 
 @media (max-width: 640px) {
+  [data-widget-rail-host] {
+    flex-wrap: wrap;
+  }
+
+  [data-widget-clock-host][data-widget-align="right"] {
+    margin-left: 0;
+  }
+
   .st-weather-forecast-row {
     grid-template-columns: 1fr auto;
   }

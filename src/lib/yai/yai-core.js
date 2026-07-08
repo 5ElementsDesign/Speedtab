@@ -875,7 +875,7 @@ class YaiCore {
         // Show loading state using hook system
         this._executeHook('contentLoading', { container: content, isLoading: true, target });
 
-        if (!content.hasAttribute('aria-live')) {
+        if (this.config.autoAccessibility && !content.hasAttribute('aria-live')) {
             content.setAttribute('aria-live', 'polite');
         }
 
@@ -960,7 +960,9 @@ class YaiCore {
         }
         finally {
             // Clear ARIA busy state
-            content.setAttribute('aria-busy', 'false');
+            if (this.config.autoAccessibility) {
+                content.setAttribute('aria-busy', 'false');
+            }
 
             // Reset content height after dynamic content settles
             this._resetContentHeight(container);

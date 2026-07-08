@@ -15,7 +15,7 @@ const ALLOWED_TAGS = [
   'blockquote', 'pre', 'code', 'kbd', 'samp',
   'picture', 'figure', 'img',
   'details', 'summary',
-  'nav', 'aside', 'article', 'address',
+  'nav', 'aside', 'article', 'address', 'header', 'footer',
   'table', 'thead', 'tbody', 'tr', 'th', 'td',
   'button',
   'textarea',

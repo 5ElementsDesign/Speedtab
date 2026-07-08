@@ -1,5 +1,5 @@
 import { db as defaultDb, type SpeedtabDB } from '@/db/db'
-import { DEFAULT_WIDGET_SETTINGS, type WeatherWidgetConfig, type WeatherWidgetLocation, type WidgetSettings } from '@/types/widgets'
+import { DEFAULT_WIDGET_SETTINGS, type ClockWidgetConfig, type WeatherWidgetConfig, type WeatherWidgetLocation, type WidgetSettings } from '@/types/widgets'
 
 export const WIDGET_SETTINGS_KEY = 'widget_settings'
 
@@ -34,6 +34,42 @@ function normalizeWeatherConfig(value: unknown): WeatherWidgetConfig {
   }
 }
 
+function normalizeClockConfig(value: unknown): ClockWidgetConfig {
+  if (!value || typeof value !== 'object') return { ...DEFAULT_WIDGET_SETTINGS.clock }
+  const candidate = value as Record<string, unknown>
+  const normalizeSize = (input: unknown, fallback: number): number => {
+    const parsed = Number(input)
+    if (!Number.isFinite(parsed)) return fallback
+    return Math.max(8, Math.min(96, parsed))
+  }
+  const normalizeColor = (input: unknown, fallback: string): string => {
+    if (typeof input !== 'string') return fallback
+    const trimmed = input.trim()
+    return trimmed || fallback
+  }
+  const normalizeFormat = (input: unknown, fallback: string): string => {
+    if (typeof input !== 'string') return fallback
+    const trimmed = input.trim()
+    return trimmed || fallback
+  }
+
+  return {
+    enabled: candidate.enabled === true,
+    align: candidate.align === 'left' ? 'left' : DEFAULT_WIDGET_SETTINGS.clock.align,
+    two_row: typeof candidate.two_row === 'boolean'
+      ? candidate.two_row
+      : DEFAULT_WIDGET_SETTINGS.clock.two_row,
+    date_format: normalizeFormat(candidate.date_format, DEFAULT_WIDGET_SETTINGS.clock.date_format),
+    time_format: normalizeFormat(candidate.time_format, DEFAULT_WIDGET_SETTINGS.clock.time_format),
+    background: normalizeColor(candidate.background, DEFAULT_WIDGET_SETTINGS.clock.background),
+    border: normalizeColor(candidate.border, DEFAULT_WIDGET_SETTINGS.clock.border),
+    date_color: normalizeColor(candidate.date_color, DEFAULT_WIDGET_SETTINGS.clock.date_color),
+    time_color: normalizeColor(candidate.time_color, DEFAULT_WIDGET_SETTINGS.clock.time_color),
+    date_font_size: normalizeSize(candidate.date_font_size, DEFAULT_WIDGET_SETTINGS.clock.date_font_size),
+    time_font_size: normalizeSize(candidate.time_font_size, DEFAULT_WIDGET_SETTINGS.clock.time_font_size),
+  }
+}
+
 export function parseWidgetSettings(valueJson: string | null | undefined): WidgetSettings {
   if (!valueJson) return structuredClone(DEFAULT_WIDGET_SETTINGS)
   try {
@@ -43,6 +79,7 @@ export function parseWidgetSettings(valueJson: string | null | undefined): Widge
       rail_position: parsed.rail_position === 'bottom' ? 'bottom' : 'top',
       rail_align: parsed.rail_align === 'center' || parsed.rail_align === 'right' ? parsed.rail_align : 'left',
       weather: normalizeWeatherConfig(parsed.weather),
+      clock: normalizeClockConfig(parsed.clock),
     }
   } catch {
     return structuredClone(DEFAULT_WIDGET_SETTINGS)

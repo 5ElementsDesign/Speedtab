@@ -1,7 +1,7 @@
 import {SPEEDTAB_SVG} from '../../components/icons.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
-import {getNoteAccentCssValue, getNoteBorderClass, getNoteTokenClass, normalizeNoteStyleToken, renderNoteContentHtml} from '../modules/notes-shared.js'
+import {getHtmlNoteSubtype, getNoteAccentCssValue, getNoteBorderClass, getNoteTokenClass, normalizeNoteStyleToken, renderNoteContentHtml} from '../modules/notes-shared.js'
 
 export function renderQuicknoteWindow(state = {}) {
   return `
@@ -58,6 +58,9 @@ function renderFloatingNoteWindow(note) {
   const borderClass = getNoteBorderClass(note.style_token)
   const accentColor = getNoteAccentCssValue(note.style_token)
   const title = escapeHtml((note.editMode ? note.editTitle : note.title) || note.title || t('openNotes.noteTitle'))
+  const htmlSubtype = !note.editMode && note.type === 'html'
+    ? getHtmlNoteSubtype(note.content ?? '')
+    : ''
   const contentHtml = note.editMode
     ? renderFloatingNoteEditor(note)
     : renderNoteContentHtml(note)
@@ -84,6 +87,7 @@ function renderFloatingNoteWindow(note) {
         data-note-window-body
         data-note-type="${escapeHtml(note.type ?? 'text')}"
         data-note-mode="${note.editMode ? 'edit' : 'view'}"
+        ${htmlSubtype ? `data-note-html-subtype="${escapeHtml(htmlSubtype)}"` : ''}
       >${contentHtml}</div>
       <button type="button" data-window-resize-handle aria-label="${escapeHtml(t('noteViewer.resizeAria'))}">
         ${SPEEDTAB_SVG.resizeGrip}
@@ -148,6 +152,23 @@ function renderFloatingNoteEditorActions(note) {
       data-note-id="${escapeHtml(String(note.id ?? ''))}"
       aria-label="${escapeHtml(t('noteViewer.closeAria'))}"
     >${escapeHtml(t('noteViewer.close'))}</button>
+  `
+}
+
+function renderHtmlEditorToolbar(note) {
+  if (note.type !== 'html') return ''
+  return `
+    <div class="st-note-editor-html-toolbar">
+      <button
+        type="button"
+        class="st-btn"
+        data-btn="primary"
+        data-click="insertFloatingNoteTabber"
+        data-note-id="${escapeHtml(String(note.id ?? ''))}"
+        title="${escapeHtml(t('noteForm.insertTabberTitle'))}"
+        aria-label="${escapeHtml(t('noteForm.insertTabberTitle'))}"
+      >${escapeHtml(t('noteForm.insertTabber'))}</button>
+    </div>
   `
 }
 
@@ -285,13 +306,16 @@ function renderFloatingNoteEditor(note) {
               data-note-html-render
               data-note-html-render-key="note-preview:${escapeHtml(String(note.id ?? ''))}"
               data-note-html-source="${escapeHtml(note.editContent ?? '')}"
+              ${isHtml && getHtmlNoteSubtype(note.editContent ?? '') ? 'data-note-html-subtype="tabs"' : ''}
             ></div>
           </section>
         ` : ''}
         <section class="st-note-editor-input-panel">
           <div class="st-note-editor-panel-head">
-            <div class="st-note-editor-panel-title">${escapeHtml(contentLabel)}</div>
-            <span class="st-note-editor-type-badge">${escapeHtml(t(`noteForm.types.${note.type}`))}</span>
+            <div class="st-note-editor-panel-tools st-note-editor-panel-tools-spread">
+              <span class="st-note-editor-type-badge">${escapeHtml(t(`noteForm.types.${note.type}`))}</span>
+              ${renderHtmlEditorToolbar(note)}
+            </div>
           </div>
           <textarea
             name="content"

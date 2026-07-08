@@ -42,26 +42,6 @@ select {
   transition: var(--st-motion-colors-fast), var(--st-motion-fade);
 }
 
-/*
-  Extras
-*/
-
-[data-bookmark-form-url-row] {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-
-  input[type="url"] {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-  button {
-    padding: 0 4px;
-    align-items: center;
-    display: inline-flex;
-  }
-}
-
 [data-prefers-reduced-motion],
 [data-prefers-reduced-motion] *,
 [data-prefers-reduced-motion] *::before,

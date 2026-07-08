@@ -105,25 +105,25 @@
   }
   .st-module-feed-item-copy {
     margin-bottom: 15px;
-    max-height: 460px;
+    max-height: 500px;
     overflow: auto;
 
     p:last-of-type {
       margin-bottom: 0;
     }
     [data-feed-img] {
-      margin: 0 0 15px;
-      width: auto;
+      margin: 0 0 15px 6px;
+      width: fit-content;
       height: 260px;
       display: block;
       background: #333;
+      box-shadow: 0 2px 6px 1px rgb(0 0 0 / 35%);
     }
     img {
       display: block;
       width: 100%;
       height: 100%;
       object-fit: cover;
-      box-shadow: 0 6px 8px 1px rgb(0 0 0 / 35%);
       background: #333;
     }
   }
@@ -201,12 +201,16 @@
 }
 
 .st-module-feed-empty {
-  padding: 10px 0;
+  padding: 8px 0;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
+
+  p {
+    margin-bottom: 0;
+  }
 }
 
 /* Main Container Module Grid Split */
@@ -260,8 +264,8 @@
 .st-module-feed-sources {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 8px;
+  gap: 1px;
+  padding: 0;
   overflow-y: auto;
   flex-grow: 1;
 }
@@ -271,7 +275,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-radius: 4px;
   transition: background-color var(--st-timeout-auto-reset, 0.15s) ease;
 }
 
@@ -739,8 +742,8 @@ main[data-app-content][data-feed-focus-app-open] {
 
   [data-tab].active {
     position: fixed;
-    top: 6px;
-    bottom: 6px;
+    top: 0;
+    bottom: 0;
     left: 0;
     right: 0;
     width: var(--st-feed-focus-width, 740px);

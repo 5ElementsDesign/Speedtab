@@ -25,6 +25,7 @@ import {DEFAULT_REMOTE_LOCAL_SETTINGS} from '../types/remote.ts'
 import YaiWorker from '../lib/yai/worker/yai-worker.js'
 import {YEH} from '../lib/yai/yeh.js'
 import {initI18n, t} from '../next/utils/i18n.js'
+import {applyWorkspaceBackground} from '../next/utils/workspace-background.js'
 import '../next/styles/next.css'
 import deepCleanupWorkerUrl from './deep-cleanup-worker.js?url'
 import {renderImportExportApp} from './render.js'
@@ -52,6 +53,12 @@ function render() {
   const mount = getMount()
   if (!mount) return
   mount.innerHTML = renderImportExportApp(state)
+}
+
+async function applyPageBackground() {
+  const mount = getMount()
+  if (!(mount instanceof HTMLElement)) return
+  await applyWorkspaceBackground(mount)
 }
 
 function setStatus(text = '', tone = 'idle', details = '') {
@@ -146,6 +153,7 @@ async function hydrate() {
   state.remoteSettings = await getLocalSettings()
   state.remoteDraft = {...state.remoteSettings}
   state.loading = false
+  await applyPageBackground()
 }
 
 function readTimestampSetting(setting) {

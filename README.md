@@ -11,7 +11,7 @@ Everything runs in the browser. There is no backend, no account, and no required
 
 Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff)
 
-Current public version: `1.4.1`
+Current public version: `1.4.2`
 
 ## Highlights
 

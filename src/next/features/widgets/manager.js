@@ -3,9 +3,11 @@ import {getWeatherCodeMeta} from '../../../composables/useWeatherCodes.ts'
 import {clearWeatherWidgetCache, getWeatherWidgetCache, setWeatherWidgetCache} from '../../../composables/useWeatherWidgetLocal.ts'
 import {openModal, isModalOpen} from '../../components/modal.js'
 import {t, getLocale} from '../../utils/i18n.js'
-import {getWeatherIcon, renderWeatherForecastModal, renderWeatherWidget} from './render.js'
+import {getWeatherIcon, renderClockWidget, renderWeatherForecastModal, renderWeatherWidget} from './render.js'
 
 let host = null
+let weatherHost = null
+let clockHost = null
 let widgetSettings = null
 let weatherData = null
 let loading = false
@@ -15,12 +17,20 @@ let fetchedAt = null
 let usingCachedData = false
 let refreshController = null
 let refreshIntervalHandle = null
+let clockTickHandle = null
 let visibilityBound = false
 
 function stopRefreshLoop() {
   if (refreshIntervalHandle !== null) {
     window.clearInterval(refreshIntervalHandle)
     refreshIntervalHandle = null
+  }
+}
+
+function stopClockLoop() {
+  if (clockTickHandle !== null) {
+    window.clearTimeout(clockTickHandle)
+    clockTickHandle = null
   }
 }
 
@@ -61,6 +71,106 @@ function formatForecastDay(value) {
     day: 'numeric',
     month: 'short',
   }).format(date)
+}
+
+function getClockConfig() {
+  return widgetSettings?.clock ?? {}
+}
+
+function getClockTickUnit() {
+  const clock = getClockConfig()
+  const source = `${clock.time_format ?? ''}`
+  if (source.includes('{second}')) return 'second'
+  if (source.includes('{minute}')) return 'minute'
+  if (source.includes('{hour}')) return 'hour'
+  return null
+}
+
+function getClockTickDelay(unit) {
+  const now = new Date()
+  const ms = now.getMilliseconds()
+  const sec = now.getSeconds()
+  const min = now.getMinutes()
+
+  if (unit === 'second') {
+    return Math.max(1, 1000 - ms)
+  }
+  if (unit === 'minute') {
+    return Math.max(1, 60_000 - ((sec * 1000) + ms))
+  }
+  if (unit === 'hour') {
+    return Math.max(1, 3_600_000 - ((min * 60_000) + (sec * 1000) + ms))
+  }
+  return 0
+}
+
+function getClockDate() {
+  const timezone = widgetSettings?.weather?.location?.timezone || undefined
+  if (!timezone) return new Date()
+  try {
+    const localized = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date())
+    const read = (type) => localized.find((part) => part.type === type)?.value ?? '00'
+    return new Date(`${read('year')}-${read('month')}-${read('day')}T${read('hour')}:${read('minute')}:${read('second')}`)
+  } catch {
+    return new Date()
+  }
+}
+
+function formatClockToken(date, token) {
+  const locale = getLocale()
+  switch (token) {
+    case 'shortDay':
+      return new Intl.DateTimeFormat(locale, {weekday: 'short'}).format(date)
+    case 'day':
+      return String(date.getDate())
+    case 'shortMonth':
+      return new Intl.DateTimeFormat(locale, {month: 'short'}).format(date)
+    case 'month':
+      return new Intl.DateTimeFormat(locale, {month: 'long'}).format(date)
+    case 'shortYear':
+      return new Intl.DateTimeFormat(locale, {year: '2-digit'}).format(date)
+    case 'year':
+      return new Intl.DateTimeFormat(locale, {year: 'numeric'}).format(date)
+    case 'hour':
+      return String(date.getHours()).padStart(2, '0')
+    case 'minute':
+      return String(date.getMinutes()).padStart(2, '0')
+    case 'second':
+      return String(date.getSeconds()).padStart(2, '0')
+    default:
+      return ''
+  }
+}
+
+function formatClockString(template = '', date) {
+  return String(template ?? '').replace(/\{([a-zA-Z]+)\}/g, (_match, token) => formatClockToken(date, token))
+}
+
+function buildClockState() {
+  const clock = getClockConfig()
+  const now = getClockDate()
+  return {
+    enabled: clock.enabled === true && widgetSettings?.rail_enabled === true,
+    align: clock.align === 'right' ? 'right' : 'left',
+    twoRow: clock.two_row === true,
+    dateText: formatClockString(clock.date_format, now),
+    timeText: formatClockString(clock.time_format, now),
+    background: clock.background || '',
+    border: clock.border || '',
+    dateColor: clock.date_color || '',
+    timeColor: clock.time_color || '',
+    dateFontSize: clock.date_font_size,
+    timeFontSize: clock.time_font_size,
+  }
 }
 
 function buildState() {
@@ -112,10 +222,50 @@ function renderWeatherModalBody() {
   body.innerHTML = renderWeatherForecastModal(buildState())
 }
 
+function renderWeatherHost() {
+  if (!(weatherHost instanceof HTMLElement)) return
+  weatherHost.innerHTML = renderWeatherWidget(buildState())
+  if (isModalOpen()) renderWeatherModalBody()
+}
+
+function renderClockHost() {
+  if (!(clockHost instanceof HTMLElement)) return
+  const state = buildClockState()
+  clockHost.setAttribute('data-widget-align', state.align)
+  clockHost.innerHTML = renderClockWidget(state)
+}
+
+function updateClockText() {
+  if (!(clockHost instanceof HTMLElement)) return
+  const dateNode = clockHost.querySelector('.st-clock-widget-date')
+  const timeNode = clockHost.querySelector('.st-clock-widget-time')
+  if (!(dateNode instanceof HTMLElement) || !(timeNode instanceof HTMLElement)) {
+    renderClockHost()
+    return
+  }
+  const state = buildClockState()
+  clockHost.setAttribute('data-widget-align', state.align)
+  dateNode.textContent = state.dateText
+  timeNode.textContent = state.timeText
+}
+
 function renderHost() {
   if (!(host instanceof HTMLElement)) return
-  host.innerHTML = renderWeatherWidget(buildState())
-  if (isModalOpen()) renderWeatherModalBody()
+  renderWeatherHost()
+  renderClockHost()
+}
+
+function queueClockRender() {
+  stopClockLoop()
+  const clock = getClockConfig()
+  if (!(widgetSettings?.rail_enabled && clock?.enabled)) return
+  const unit = getClockTickUnit()
+  if (!unit) return
+  const interval = getClockTickDelay(unit)
+  clockTickHandle = window.setTimeout(() => {
+    updateClockText()
+    queueClockRender()
+  }, interval)
 }
 
 async function hydrateFromCache() {
@@ -217,11 +367,13 @@ async function syncWeatherState() {
     fetchedAt = null
     usingCachedData = false
     renderHost()
+    queueClockRender()
     return
   }
 
   await hydrateFromCache()
   renderHost()
+  queueClockRender()
   syncRefreshLoop()
   if (!weatherData || isWeatherStaleNow()) {
     await refreshWeather(false)
@@ -231,8 +383,11 @@ async function syncWeatherState() {
 export function initializeWidgetRail(settings) {
   widgetSettings = settings
   host = document.querySelector('[data-widget-rail-host]')
+  weatherHost = document.querySelector('[data-widget-weather-host]')
+  clockHost = document.querySelector('[data-widget-clock-host]')
   abortRefresh()
   stopRefreshLoop()
+  stopClockLoop()
   renderHost()
 
   if (!visibilityBound) {
@@ -241,6 +396,7 @@ export function initializeWidgetRail(settings) {
   }
 
   void syncWeatherState()
+  queueClockRender()
 }
 
 export async function refreshWeatherWidgetNow() {

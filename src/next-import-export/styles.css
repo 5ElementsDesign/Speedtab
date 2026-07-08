@@ -20,6 +20,10 @@ body {
   min-height: 100%;
 }
 
+#app {
+  min-height: 100vh;
+}
+
 body {
   margin: 0;
   color: var(--st-ie-text);
@@ -113,7 +117,7 @@ select option {
   margin-bottom: 14px;
   padding: 12px 14px;
   border: 1px solid var(--st-ie-border);
-  background: rgba(255, 255, 255, 0.035);
+  background: rgba(15, 15, 15, 0.5);
 }
 
 [data-ie-transfer] {

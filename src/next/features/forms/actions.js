@@ -107,7 +107,7 @@ function getFormStateKey(form) {
 }
 
 function getFormStateHost(form) {
-  return form.closest('[data-sidepanel]') || form
+  return form.closest('[data-sidepanel]') || form.closest('[data-modal]') || form
 }
 
 function readFormStateStore(host) {
@@ -129,7 +129,7 @@ function updateBookmarkFormActionState(form) {
   const urlInput = form.querySelector('input[name="url"]')
   const testButton = form.querySelector('[data-bookmark-form-test-btn]')
   if (!(urlInput instanceof HTMLInputElement) || !(testButton instanceof HTMLButtonElement)) return
-  const isTesting = testButton.textContent?.trim() === '...'
+  const isTesting = testButton.classList.contains('yai-loading')
   testButton.disabled = isTesting || urlInput.value.trim().length === 0
 }
 
@@ -176,6 +176,7 @@ export function updateFormDirtyState(form) {
   const currentState = stringifyFormState(form)
   const isDirty = currentHash !== initialHash
   const isValid = form.checkValidity()
+  const isBookmarkCropActive = form.hasAttribute('data-bookmark-crop-active')
   store[stateKey] = {
     ...entry,
     currentHash,
@@ -184,7 +185,7 @@ export function updateFormDirtyState(form) {
   writeFormStateStore(host, store)
   form.dataset.formHashCurrent = currentHash
   form.toggleAttribute('data-form-invalid', !isValid)
-  saveButton.disabled = !isDirty || !isValid
+  saveButton.disabled = !isDirty || !isValid || isBookmarkCropActive
   updateBookmarkFormActionState(form)
   updateFeedFormActionState(form, saveButton)
 }

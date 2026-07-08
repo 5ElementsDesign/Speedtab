@@ -11,6 +11,17 @@
     overflow: hidden;
 }
 
+[data-note-html-subtype="tabs"] {
+    > [data-yai-tabs] {
+        scrollbar-gutter: stable;
+    }
+}
+
+[data-yai-tabs] [data-live-switch],
+.dragging {
+    overflow: hidden !important;
+}
+
 [data-yai-tabs] [data-content] {
     position: relative;
     min-height: var(--yai-tabs-content-min-height);
@@ -36,6 +47,11 @@
     visibility: visible;
     opacity: 1;
     pointer-events: all;
+}
+
+[data-yai-tabs] [data-tab]:not(.active) {
+    max-height: 100%;
+    overflow: hidden;
 }
 
 /* Navigation controller */
@@ -93,10 +109,10 @@
 
 /* Shadow adjustments for active tab buttons */
 
-[data-theme]:not([data-nav])>[data-controller] [data-open].active,
-[data-theme] [data-yai-tabs]:not([data-nav])>[data-controller] [data-open].active,
-[data-theme][data-nav="top"]>[data-controller] [data-open].active,
-[data-theme] [data-yai-tabs][data-nav="top"]>[data-controller] [data-open].active {
+[data-app-content] [data-yai-tabs]:not([data-nav])>[data-controller] [data-open].active,
+[data-app-content] [data-theme] [data-yai-tabs]:not([data-nav])>[data-controller] [data-open].active,
+[data-app-content] [data-yai-tabs][data-nav="top"]>[data-controller] [data-open].active,
+[data-app-content] [data-theme] [data-yai-tabs][data-nav="top"]>[data-controller] [data-open].active {
     box-shadow: var(--yai-tabs-shadow-nav-top) var(--yai-tabs-shadow-accent);
 }
 
@@ -115,14 +131,14 @@
     justify-content: center;
 }
 
+/* Default content styles & utils */
+
 [data-yai-tabs] [data-controller][data-grow] [data-open] {
     flex-grow: 1;
     justify-content: center;
 }
 
-/* Default content styles & utils */
-
-[data-yai-tabs] [data-tab]:not([data-spaceless]) {
+[data-app-content] [data-yai-tabs] [data-tab]:not([data-spaceless]) {
     padding: var(--yai-tabs-content-padding);
 }
 
@@ -296,14 +312,6 @@
 
 /**
  * Default Theme */
- [data-theme] {
-    border-radius: var(--yai-tabs-border-radius);
-}
-[data-theme],
-[data-theme] [data-yai-tabs] {
-    background-color: var(--yai-tabs-color-background);
-    /* box-shadow: var(--yai-tabs-shadow-medium); */
-}
 
 /* Navigation Styles */
 [data-theme] [data-controller] {
@@ -339,16 +347,6 @@
 }
 
 /* UTILITY CLASSES FOR CUSTOMIZATION */
-
-[data-yai-tabs] [data-tabs-header] {
-    background-color: var(--yai-tabs-header-color-background, #ffffff);
-    color: var(--yai-tabs-header-color, #2b2929);
-}
-[data-yai-tabs] [data-tabs-footer] {
-    position: relative;
-    background-color: var(--yai-tabs-nav-background);
-    box-shadow: var(--yai-tabs-shadow-nav-bottom) var(--yai-tabs-shadow-medium-color);
-}
 
 /* Semantic Variants for Active Buttons */
 [data-yai-tabs][data-theme] [data-controller][data-variant] [data-open].active {
@@ -509,7 +507,7 @@ button.yai-loading::after {
     100% { opacity: 1; }
 }
 
-@media (max-width: 800px) {
+@media (max-width: 900px) {
     :root {
         --yai-tabs-content-padding: 14px;
         --yai-tabs-content-line-height: 1.7;
@@ -531,7 +529,7 @@ button.yai-loading::after {
     }
     [data-yai-tabs][data-nav] [data-controller] {
         background: var(--yai-tabs-content-inactive-background);
-        overflow: auto;
+        overflow: unset;
     }
     [data-yai-tabs] [data-controller] [data-open] {
         box-shadow: 0 2px 4px 1px var(--yai-tabs-shadow-medium-color),
@@ -541,3 +539,4 @@ button.yai-loading::after {
         justify-content: left;
     }
 }
+

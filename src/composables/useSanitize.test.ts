@@ -126,6 +126,30 @@ describe('useSanitize – allowlist preservation', () => {
     expect(out).toContain('<div data-tab="1">Content A</div>')
     expect(out).toContain('<div data-tab="2">Content B</div>')
   })
+
+  it('keeps YaiTabs header and footer wrappers with data attributes', () => {
+    const html = `
+      <div data-yai-tabs>
+        <header data-tabs-header>
+          <div data-header-content>Header</div>
+        </header>
+        <nav data-controller>
+          <button data-tab-action="open" data-open="1">Tab A</button>
+        </nav>
+        <div data-content>
+          <div data-tab="1">Content A</div>
+        </div>
+        <footer data-tabs-footer>
+          <div data-footer-content>Footer</div>
+        </footer>
+      </div>
+    `
+    const out = sanitizeHtml(html)
+    expect(out).toContain('<header data-tabs-header="">')
+    expect(out).toContain('<div data-header-content="">Header</div>')
+    expect(out).toContain('<footer data-tabs-footer="">')
+    expect(out).toContain('<div data-footer-content="">Footer</div>')
+  })
 })
 
 describe('useSanitize – anchor hardening hook', () => {

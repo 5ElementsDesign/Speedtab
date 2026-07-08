@@ -59,6 +59,7 @@ function renderBookmarkTile(bookmark, moduleSyncId = '', config = {}) {
         target="_blank"
         rel="noopener noreferrer"
         draggable="false"
+        tabindex="-1"
         aria-label="${title}"
         data-bookmark-id="${escapeHtml(bookmark.id)}"
         data-bookmark-sync-id="${escapeHtml(bookmark.sync_id ?? '')}"

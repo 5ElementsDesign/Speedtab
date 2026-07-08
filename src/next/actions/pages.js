@@ -42,6 +42,11 @@ function openPageEditor(page) {
   if (body) {
     body.innerHTML = renderPageForm(page)
     initFormDirtyState(body)
+    requestAnimationFrame(() => {
+      const input = body.querySelector('[name="page-title"]')
+      input?.focus?.()
+      input?.select?.()
+    })
   }
 }
 
@@ -51,7 +56,7 @@ function createDraftPage() {
     nav_group: 'main',
     icon: null,
     is_home: 0,
-    config_json: JSON.stringify({modulesPerRow: 2, maxWidth: null}),
+    config_json: JSON.stringify({modulesPerRow: 12, maxWidth: null}),
   }
 }
 

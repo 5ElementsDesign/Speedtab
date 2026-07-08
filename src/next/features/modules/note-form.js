@@ -7,7 +7,7 @@ import {normalizeNoteStyleToken, parseNoteMeta} from './notes-shared.js'
 import {customizerDivider, customizerField, customizerSection, passwordInput, select, textInput, textarea} from '../../ui/primitives.js'
 
 const STYLE_OPTIONS = ['primary', 'secondary', 'success', 'warning', 'danger', 'light', 'dark']
-const TYPE_OPTIONS = ['text', 'code', 'links', 'html', 'crypt']
+const TYPE_OPTIONS = ['html', 'text', 'links', 'code', 'crypt']
 
 let noteFormState = null
 
@@ -20,8 +20,10 @@ function buildInitialState({record = null, moduleSyncId = '', parentId = '', par
     parentSyncId,
     parentTitle,
     title: record?.title ?? '',
-    type: record?.type ?? 'text',
-    styleToken: normalizeNoteStyleToken(record?.style_token),
+    type: record?.type ?? 'html',
+    styleToken: record?.style_token
+      ? normalizeNoteStyleToken(record?.style_token)
+      : 'primary',
     content: record?.type === 'crypt' ? '' : (record?.content ?? ''),
     language: meta.language ?? 'auto',
     passphrase: '',
@@ -72,6 +74,7 @@ function renderTypeButtons(state) {
           type="button"
           class="st-btn"
           data-btn="${state.type === type ? 'primary' : 'outline'}"
+          ${state.type === type ? 'data-note-type-active' : ''}
           data-click="noteFormSetType"
           data-note-type="${type}"
         >${escapeHtml(t(`noteForm.types.${type}`))}</button>
@@ -88,7 +91,7 @@ function renderStyleButtons(state) {
           type="button"
           class="st-btn"
           data-btn="${token}"
-          ${state.styleToken === token ? 'data-note-token-active' : ''}
+          ${state.styleToken === token ? 'data-note-token-active data-note-style-active' : ''}
           data-click="noteFormSetStyle"
           data-note-style-token="${token}"
           title="${escapeHtml(t(`noteForm.styleTokens.${token}`))}"
@@ -184,6 +187,7 @@ function renderCryptFields(state) {
 }
 
 function renderContentField(state) {
+  if (!state.record?.id) return ''
   const disabled = state.type === 'crypt' && state.record?.id && !state.decrypted ? ' disabled' : ''
   return customizerField({
     layout: 'stack',
@@ -205,7 +209,7 @@ function renderError(state) {
 export function renderNoteCrudForm(state = noteFormState) {
   if (!state) return ''
   const isLockedCryptEdit = state.type === 'crypt' && !!state.record?.id && !state.decrypted
-  const saveLabel = state.record?.id ? t('noteForm.saveChanges') : t('noteForm.createNote')
+  const saveLabel = state.record?.id ? t('noteForm.saveChanges') : t('noteForm.createContent')
 
   return `
     <form
