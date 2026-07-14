@@ -11,8 +11,6 @@ Everything runs in the browser. There is no backend, no account, and no required
 
 Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff)
 
-Current public version: `1.4.2`
-
 ## Highlights
 
 - Local-first architecture with IndexedDB via Dexie
@@ -20,12 +18,15 @@ Current public version: `1.4.2`
 - Rebuilt in `1.4.0` from a Vue-based UI to a lighter YaiJS/YEH runtime with delegated event handling
 - Dense module-based layout with pages, modules, and tabs
 - Fully keyboard-navigable tabbed interfaces with nested YaiTabs components
+- Google Drive and WebDAV remote-sync flows, plus checksum-based local export/import
 - Global default wallpaper plus background overrides
 - Expanded appearance controls for shell, bookmarks, and notes
 - Visual bookmark tiles with preview images and favicons
 - Optional bookmark titles below full-size tiles
 - Notes with text, code, links, HTML, and encrypted content
+- Interactive nested tabbed notes authored directly inside HTML notes
 - RSS/Atom feed reader with source navigation, read state, archiving, and optional auto-refresh
+- Widget rail with weather, digital or analog clock, and remote-sync indicator support
 - Module quick settings directly inside module dropdowns
 - Asset browser with favicon repair tools for difficult transparent icons
 - Identity-aware JSON export/import for portable local workspaces
@@ -34,6 +35,8 @@ Current public version: `1.4.2`
 - UI translations for English, German, Turkish, and Hindi
 
 ## Screenshots
+
+![Speedtab Banner](screenshots/st-banner.1400x560.png)
 
 ### Speedtab - Speed Dial 4.0
 
@@ -51,6 +54,10 @@ Current public version: `1.4.2`
 
 ![Speedtab Custom](screenshots/4-speedtab-theme-customizable.1.jpg)
 
+### Interactive Nested Notes
+
+![Speedtab open tabbed note](screenshots/5-speedtab-tabbed-note.1.jpg)
+
 ### Sort Speedtab
 
 ![Speedtab Sorter](screenshots/5-speedtab-manage-content.1.jpg)
@@ -66,6 +73,7 @@ Speedtab is designed to keep user data local.
 - Feed requests are performed by the extension service worker to bypass CORS, not by a remote Speedtab server
 - Feed favicons are resolved through DuckDuckGo's favicon service
 - Export/import uses a local `export.json` file
+- Optional Google Drive sync uses the user's own hidden Drive app-data folder through `chrome.identity`, with no Speedtab-operated backend
 
 ## What Speedtab Stores
 
@@ -80,6 +88,8 @@ Speedtab stores:
 - feed sources
 - archived feed items
 - bookmark preview and favicon assets
+- widget configuration
+- remote provider settings and sync metadata
 
 Speedtab does not currently export feed cache responses. Feed items fetched from sources are treated as local cache and can be rebuilt by refreshing sources.
 
@@ -104,6 +114,9 @@ Speedtab does not currently export feed cache responses. Feed items fetched from
 - `links` notes with one-link-per-line parsing
 - `html` notes sanitized before rendering
 - `crypt` notes encrypted locally before storage
+- floating note windows with persisted open state, size, and position
+- nested interactive YaiTabs inside HTML notes
+- safe `data-st-*` utility attributes for trusted HTML-note styling
 
 ### Feeds
 
@@ -124,13 +137,15 @@ Speedtab does not currently export feed cache responses. Feed items fetched from
 - Re-import the same export without duplicating authored records
 - Move workspaces between browser profiles with identity-aware merge import
 - Feed cache stays local; archived feed items remain portable
-- Local-first data model now provides a real foundation for future sync work
+- Optional WebDAV sync for manual remote backup and restore
+- Optional Google Drive sync with auto-push checks, remote health verification, and app-data reset controls
 
 ### Appearance
 
 - Upload a default background image globally
 - Override backgrounds per page
 - Customize shell, bookmark, and note appearance with CSS variable-driven controls
+- Configure widget rail placement, analog/digital clock mode, colors, and formatting
 - Repair dark transparent favicons directly from the asset browser when needed
 - Tune module spacing, shell sizing, and module quick settings without leaving the workspace
 
@@ -163,6 +178,8 @@ Current extension permissions:
 - `storage`
 - `unlimitedStorage`
 - `contextMenus`
+- `identity`
+- `identity.email`
 - host permissions for `http://*/*` and `https://*/*`
 
 Why they are needed:
@@ -170,6 +187,7 @@ Why they are needed:
 - `storage`: required for local-only extension settings such as remote sync configuration and credentials in `chrome.storage.local`
 - `unlimitedStorage`: allows larger local datasets and image assets in IndexedDB
 - `contextMenus`: lets users send selected text or the current page into Speedtab from the browser context menu
+- `identity` and `identity.email`: required for optional Google Drive OAuth and account display
 - host permissions: required so the background service worker can fetch RSS/Atom feeds across origins
 
 Speedtab requests broad host permissions because users can configure RSS/Atom feeds from arbitrary domains, and those domains cannot be enumerated in advance.
@@ -253,7 +271,7 @@ manifest.json      Extension manifest
 - Event handling is delegation-first: shared listeners route actions across nested UI without per-component lifecycle registration
 - Data is modeled around `Page -> Module -> Collection -> Item`
 - YaiTabs powers the main page shell, module tabs, and even deeply nested tab structures inside HTML notes
-- Feed fetching is delegated to the background service worker
+- Feed fetching, remote sync, Google Drive OAuth-backed sync checks, and context-menu capture are delegated to the background service worker
 - Feed cache is local and rebuildable; archived feed items are portable user data
 - Bookmark images are stored as binary blobs in IndexedDB
 - Heavy UI dependencies such as CropperJS and Highlight.js are lazy-loaded on demand
@@ -264,6 +282,7 @@ Related links:
 
 - YaiTabs Demo: https://yaijs.github.io/yai/tabs/Example.html
 - YaiJS Repo: https://github.com/yaijs/yai
+- YEH: https://yaijs.github.io/yai/docs/yeh/
 
 ## Chrome Web Store Draft Copy
 

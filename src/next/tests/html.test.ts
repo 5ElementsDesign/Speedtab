@@ -58,4 +58,31 @@ describe('buildAttributes', () => {
     const result = buildAttributes({ title: '"hello"' })
     expect(result).toBe(' title="&quot;hello&quot;"')
   })
+
+  it('can skip empty and falsey values for primitive render helpers', () => {
+    const result = buildAttributes({
+      'data-test': 'ok',
+      hidden: false,
+      empty: '',
+      nil: null,
+      undef: undefined,
+    }, {
+      leadingSpace: false,
+      skipFalsy: true,
+      booleanBare: true,
+    })
+    expect(result).toBe('data-test="ok"')
+  })
+
+  it('can render boolean attributes without a value', () => {
+    const result = buildAttributes({
+      disabled: true,
+      'data-id': 3,
+    }, {
+      leadingSpace: false,
+      skipFalsy: true,
+      booleanBare: true,
+    })
+    expect(result).toBe('disabled data-id="3"')
+  })
 })

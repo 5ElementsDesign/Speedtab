@@ -46,6 +46,15 @@ Practical rule:
 If you catch yourself thinking "in React I would just re-render this subtree", stop. That instinct is
 wrong for Speedtab Next unless there is a very specific reason.
 
+## Critical path marker
+
+Some render entry points are deliberately marked with ALL-CAPS warnings in code.
+
+- If you see a marker saying a path is **CRITICAL** or **DO NOT USE FOR STATE-ONLY UPDATES**,
+  treat that as a hard repo rule, not a suggestion.
+- On those paths, use shared DOM patch helpers from `utils/dom-patch.js` first.
+- If you still think a rerender is needed, the code should explain exactly why the structure changed.
+
 ## Directory map
 
 | Folder | Holds |

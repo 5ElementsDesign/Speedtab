@@ -7,6 +7,7 @@ import {createPageData, loadPageBySyncId, savePageData, softDeletePage} from '..
 import {renderSidepanelDeleteFooter} from '../features/forms/actions.js'
 import {initFormDirtyState} from '../features/forms/actions.js'
 import {renderModuleCreateForm, renderPageForm} from '../features/pages/page-form.js'
+import {patchInner} from '../utils/dom-patch.js'
 import {escapeHtml} from '../utils/html.js'
 import {t} from '../utils/i18n.js'
 import {radioActive} from '../utils/radio-active.js'
@@ -40,7 +41,7 @@ function openPageEditor(page) {
   })
   const body = panelEl.querySelector('[data-sidepanel-body]')
   if (body) {
-    body.innerHTML = renderPageForm(page)
+    patchInner(body, renderPageForm(page))
     initFormDirtyState(body)
     requestAnimationFrame(() => {
       const input = body.querySelector('[name="page-title"]')
@@ -333,8 +334,8 @@ export const pageActions = {
     if (!module?.sync_id) return
 
     closeModal()
-    const {renderNextRoot} = await import('../app/bootstrap.js')
-    await renderNextRoot()
+    const {refreshPageContent} = await import('../app/bootstrap.js')
+    await refreshPageContent({pageId})
 
     const moduleCard = document.querySelector(`[data-module-card][data-sync-id="${CSS.escape(module.sync_id)}"]`)
     moduleCard?.querySelector('[data-click="openCustomizer"]')?.click()

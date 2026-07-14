@@ -10,13 +10,27 @@
  *   The UI sends a { type: 'FETCH_FEED', url: string } message and awaits the
  *   response with the raw XML string (or an error object).
  *
- * Current phase: Phase 1 scaffold only.
- *   The message handler is wired up and typed; the actual fetch + XML parsing
- *   will be implemented in Phase 5.
+ *   The service worker now handles feed fetching, URL metadata lookups,
+ *   context-menu capture flows, alarm-driven remote auto-sync checks/pushes,
+ *   and runtime coordination for extension-side background tasks.
  */
 
 import { db } from '@/db/db'
+import {
+  REMOTE_AUTO_SYNC_CHECK_ALARM,
+  REMOTE_AUTO_SYNC_MARK_DIRTY_MESSAGE,
+  REMOTE_AUTO_SYNC_PUSH_ALARM,
+  REMOTE_AUTO_SYNC_PUSH_DEBOUNCE_MS,
+  REMOTE_AUTO_SYNC_REFRESH_MESSAGE,
+  REMOTE_AUTO_SYNC_STALE_CHECK_MS,
+  resolveRemoteAutoSyncIntervalMs,
+  runRemoteAutoSyncCheckPass,
+  runRemoteAutoSyncPass,
+} from '@/composables/useRemoteAutoSync'
+import { getLocalSettings } from '@/composables/useLocalSettings'
+import { isRemoteProviderConfigured } from '@/composables/useRemoteProvider'
 import { loadLocalToolsState, saveLocalToolsState } from '../next/data/local-tools.js'
+import { extractDescription } from '../next/utils/page-meta.js'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,6 +47,20 @@ interface FetchUrlMetaMessage {
 interface FetchUrlContentMessage {
   type: 'FETCH_URL_CONTENT'
   url:  string
+}
+
+interface RemoteAutoSyncRefreshMessage {
+  type: typeof REMOTE_AUTO_SYNC_REFRESH_MESSAGE
+}
+
+interface RemoteAutoSyncMarkDirtyMessage {
+  type: typeof REMOTE_AUTO_SYNC_MARK_DIRTY_MESSAGE
+}
+
+interface RemoteAutoSyncActivityMessage {
+  type: 'REMOTE_AUTO_SYNC_ACTIVITY'
+  kind: 'check' | 'push'
+  phase: 'start' | 'end'
 }
 
 interface FetchFeedResponse {
@@ -57,78 +85,197 @@ interface FetchUrlContentResponse {
   error?: string
 }
 
-type IncomingMessage = FetchFeedMessage | FetchUrlMetaMessage | FetchUrlContentMessage
+type IncomingMessage =
+  | FetchFeedMessage
+  | FetchUrlMetaMessage
+  | FetchUrlContentMessage
+  | RemoteAutoSyncRefreshMessage
+  | RemoteAutoSyncMarkDirtyMessage
 
 const CONTEXT_MENU_CAPTURE_NOTE = 'speedtab-capture-note'
 const CONTEXT_MENU_CAPTURE_BOOKMARK = 'speedtab-capture-bookmark'
 const CONTEXT_MENU_CAPTURE_PAGE_NOTE = 'speedtab-capture-page-note'
 const CONTEXT_MENU_APPEND_SELECTION_TO_QUICKNOTE = 'speedtab-append-selection-to-quicknote'
 const CONTEXT_MENU_PARENT = 'speedtab-parent'
-
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-function findMetaContent(html: string, attribute: 'name' | 'property' | 'itemprop', value: string): string | null {
-  const escapedValue = escapeRegex(value)
-  const patterns = [
-    new RegExp(`<meta\\b[^>]*\\b${attribute}\\s*=\\s*(["'])${escapedValue}\\1[^>]*\\bcontent\\s*=\\s*(["'])([\\s\\S]*?)\\2[^>]*>`, 'i'),
-    new RegExp(`<meta\\b[^>]*\\bcontent\\s*=\\s*(["'])([\\s\\S]*?)\\1[^>]*\\b${attribute}\\s*=\\s*(["'])${escapedValue}\\3[^>]*>`, 'i'),
-    new RegExp(`<meta\\b[^>]*\\b${attribute}\\s*=\\s*(?:["']${escapedValue}["']|${escapedValue})[^>]*\\bcontent\\s*=\\s*(["'])([\\s\\S]*?)\\1[^>]*>`, 'i'),
-    new RegExp(`<meta\\b[^>]*\\bcontent\\s*=\\s*(["'])([\\s\\S]*?)\\1[^>]*\\b${attribute}\\s*=\\s*(?:["']${escapedValue}["']|${escapedValue})[^>]*>`, 'i'),
-  ]
-
-  for (const pattern of patterns) {
-    const match = html.match(pattern)
-    const content = match?.[3] ?? match?.[2] ?? null
-    if (content?.trim()) return content.replace(/\s+/g, ' ').trim()
-  }
-
-  return null
-}
-
-function extractDescription(html: string): string | null {
-  return findMetaContent(html, 'name', 'description')
-    || findMetaContent(html, 'property', 'og:description')
-    || findMetaContent(html, 'name', 'twitter:description')
-    || findMetaContent(html, 'itemprop', 'description')
-}
+let contextMenuSetupPromise: Promise<void> | null = null
+let remoteAutoSyncRefreshPromise: Promise<void> | null = null
+let remoteAutoSyncPushPromise: Promise<void> | null = null
 
 function msg(name: string, substitutions?: string | string[]): string {
   return chrome.i18n.getMessage(name, substitutions) || name
 }
 
-async function ensureContextMenus() {
+function createContextMenu(createProperties: chrome.contextMenus.CreateProperties) {
+  return new Promise<void>((resolve, reject) => {
+    chrome.contextMenus.create(createProperties, () => {
+      const errorMessage = chrome.runtime.lastError?.message
+      if (errorMessage) {
+        if (errorMessage.includes('duplicate id')) {
+          resolve()
+          return
+        }
+        reject(new Error(errorMessage))
+        return
+      }
+      resolve()
+    })
+  })
+}
+
+async function rebuildContextMenus() {
   await chrome.contextMenus.removeAll()
-  chrome.contextMenus.create({
+  await createContextMenu({
     id: CONTEXT_MENU_PARENT,
     title: msg('contextMenuRoot'),
     contexts: ['selection', 'page'],
   })
-  chrome.contextMenus.create({
+  await createContextMenu({
     id: CONTEXT_MENU_CAPTURE_BOOKMARK,
     parentId: CONTEXT_MENU_PARENT,
     title: msg('saveCurrentPageAsBookmark'),
     contexts: ['page', 'selection'],
   })
-  chrome.contextMenus.create({
+  await createContextMenu({
     id: CONTEXT_MENU_CAPTURE_PAGE_NOTE,
     parentId: CONTEXT_MENU_PARENT,
     title: msg('storeCurrentPageAsNote'),
     contexts: ['page', 'selection'],
   })
-  chrome.contextMenus.create({
+  await createContextMenu({
     id: CONTEXT_MENU_CAPTURE_NOTE,
     parentId: CONTEXT_MENU_PARENT,
     title: msg('saveSelectionAsNote'),
     contexts: ['selection'],
   })
-  chrome.contextMenus.create({
+  await createContextMenu({
     id: CONTEXT_MENU_APPEND_SELECTION_TO_QUICKNOTE,
     parentId: CONTEXT_MENU_PARENT,
     title: msg('appendSelectionToQuicknote'),
     contexts: ['selection'],
   })
+}
+
+async function ensureContextMenus() {
+  if (contextMenuSetupPromise) return contextMenuSetupPromise
+
+  contextMenuSetupPromise = rebuildContextMenus()
+    .catch((error) => {
+      console.error('[Speedtab SW] Failed to rebuild context menus', error)
+      throw error
+    })
+    .finally(() => {
+      contextMenuSetupPromise = null
+    })
+
+  return contextMenuSetupPromise
+}
+
+function createAlarm(name: string, delayMs: number, periodMs?: number) {
+  const delayInMinutes = Math.max(delayMs / 60_000, 0.1)
+  if (periodMs != null) {
+    chrome.alarms.create(name, {
+      delayInMinutes,
+      periodInMinutes: Math.max(periodMs / 60_000, 1),
+    })
+    return
+  }
+
+  chrome.alarms.create(name, {delayInMinutes})
+}
+
+function isRemoteAutoSyncConfigured(settings: Awaited<ReturnType<typeof getLocalSettings>>) {
+  return settings.remote_auto_sync_enabled === true
+    && isRemoteProviderConfigured(settings)
+}
+
+async function ensurePeriodicAlarm(name: string, intervalMs: number) {
+  const existing = await chrome.alarms.get(name)
+  const nextPeriodMinutes = Math.max(intervalMs / 60_000, 1)
+  const samePeriod = existing?.periodInMinutes != null
+    && Math.abs(existing.periodInMinutes - nextPeriodMinutes) < 0.0001
+
+  if (samePeriod) return
+  createAlarm(name, intervalMs, intervalMs)
+}
+
+async function notifyRemoteSyncActivity(kind: 'check' | 'push', phase: 'start' | 'end') {
+  try {
+    await chrome.runtime.sendMessage({
+      type: 'REMOTE_AUTO_SYNC_ACTIVITY',
+      kind,
+      phase,
+    } satisfies RemoteAutoSyncActivityMessage)
+  } catch {
+    // Ignore delivery errors when no extension page is listening.
+  }
+}
+
+async function clearRemoteAutoSyncAlarms() {
+  await chrome.alarms.clear(REMOTE_AUTO_SYNC_CHECK_ALARM)
+  await chrome.alarms.clear(REMOTE_AUTO_SYNC_PUSH_ALARM)
+}
+
+async function refreshRemoteAutoSyncSchedule(options: {forceCheck?: boolean} = {}) {
+  const settings = await getLocalSettings()
+  const intervalMs = resolveRemoteAutoSyncIntervalMs(settings)
+  const enabled = isRemoteAutoSyncConfigured(settings)
+
+  if (!enabled || intervalMs <= 0) {
+    await clearRemoteAutoSyncAlarms()
+    return
+  }
+
+  await ensurePeriodicAlarm(REMOTE_AUTO_SYNC_CHECK_ALARM, intervalMs)
+
+  const now = Date.now()
+  const lastCheckAt = settings.remote_auto_sync_last_check_at ?? 0
+  if (options.forceCheck === true && now - lastCheckAt >= REMOTE_AUTO_SYNC_STALE_CHECK_MS) {
+    await notifyRemoteSyncActivity('check', 'start')
+    await handleRemoteAutoSyncCheckAlarm()
+  }
+}
+
+async function queueRemoteAutoSyncPush() {
+  const settings = await getLocalSettings()
+  const enabled = isRemoteAutoSyncConfigured(settings)
+  if (!enabled) return
+  createAlarm(REMOTE_AUTO_SYNC_PUSH_ALARM, REMOTE_AUTO_SYNC_PUSH_DEBOUNCE_MS)
+}
+
+async function handleRemoteAutoSyncCheckAlarm() {
+  if (remoteAutoSyncRefreshPromise) return remoteAutoSyncRefreshPromise
+  await notifyRemoteSyncActivity('check', 'start')
+  remoteAutoSyncRefreshPromise = runRemoteAutoSyncCheckPass()
+    .then(async (result) => {
+      await notifyRemoteSyncActivity('check', 'end')
+      return result
+    })
+    .catch((error) => {
+      console.warn('[Speedtab SW] Remote auto-sync check failed', error)
+    })
+    .then(() => undefined)
+    .finally(() => {
+      remoteAutoSyncRefreshPromise = null
+    })
+  return remoteAutoSyncRefreshPromise
+}
+
+async function handleRemoteAutoSyncPushAlarm() {
+  if (remoteAutoSyncPushPromise) return remoteAutoSyncPushPromise
+  await notifyRemoteSyncActivity('push', 'start')
+  remoteAutoSyncPushPromise = runRemoteAutoSyncPass()
+    .then(async (result) => {
+      await notifyRemoteSyncActivity('push', 'end')
+      return result
+    })
+    .catch((error) => {
+      console.warn('[Speedtab SW] Remote auto-sync push failed', error)
+    })
+    .then(() => undefined)
+    .finally(() => {
+      remoteAutoSyncPushPromise = null
+    })
+  return remoteAutoSyncPushPromise
 }
 
 async function fetchPageMeta(url: string) {
@@ -258,10 +405,22 @@ async function appendQuicknoteContent(text: string) {
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('[Speedtab SW] Installed – reason:', details.reason)
   void ensureContextMenus()
+  void refreshRemoteAutoSyncSchedule({forceCheck: true})
 })
 
 chrome.runtime.onStartup.addListener(() => {
   void ensureContextMenus()
+  void refreshRemoteAutoSyncSchedule({forceCheck: true})
+})
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === REMOTE_AUTO_SYNC_CHECK_ALARM) {
+    void handleRemoteAutoSyncCheckAlarm()
+    return
+  }
+  if (alarm.name === REMOTE_AUTO_SYNC_PUSH_ALARM) {
+    void handleRemoteAutoSyncPushAlarm()
+  }
 })
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -336,8 +495,32 @@ chrome.runtime.onMessage.addListener(
   (
     message: IncomingMessage,
     _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: FetchFeedResponse) => void,
+    sendResponse: (response: any) => void,
   ) => {
+    if (message.type === REMOTE_AUTO_SYNC_REFRESH_MESSAGE) {
+      refreshRemoteAutoSyncSchedule({forceCheck: true})
+        .then(() => sendResponse({ok: true}))
+        .catch((err: unknown) => {
+          sendResponse({
+            ok: false,
+            error: err instanceof Error ? err.message : String(err),
+          })
+        })
+      return true
+    }
+
+    if (message.type === REMOTE_AUTO_SYNC_MARK_DIRTY_MESSAGE) {
+      queueRemoteAutoSyncPush()
+        .then(() => sendResponse({ok: true}))
+        .catch((err: unknown) => {
+          sendResponse({
+            ok: false,
+            error: err instanceof Error ? err.message : String(err),
+          })
+        })
+      return true
+    }
+
     if (message.type === 'FETCH_FEED') {
       // Phase 5: fetch the URL, parse XML, return raw string.
       // Stub response for Phase 1 so the message channel is testable.

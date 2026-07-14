@@ -1,43 +1,16 @@
 import fallbackFaviconUrl from '@/assets/st-favicon.ico'
 import {TILE_H, TILE_W, canvasToWebpBlob, loadAssetById, loadAssetObjectUrl, loadAssetsByKinds, storeOrGetAsset} from '../../data/assets.js'
+import {patchHost, readActiveFieldState, replaceNode, restoreActiveFieldState} from '../../utils/dom-patch.js'
 import {customizerDivider, customizerField, customizerSection, textInput, textarea, urlInput} from '../../ui/primitives.js'
 import {ensureFaviconAssetIdForUrl, initFavicons, normalizeStoredFaviconBlob} from '../../utils/favicon.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
+import {extractDescription} from '../../utils/page-meta.js'
 import {initFormDirtyState, renderFormActions} from '../forms/actions.js'
 
 let bookmarkFormState = null
 let cropperInstance = null
 let cropperLoaderPromise = null
-
-function escapeRegex(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-function findMetaContent(html, attribute, value) {
-  const escapedValue = escapeRegex(value)
-  const patterns = [
-    new RegExp(`<meta\\b[^>]*\\b${attribute}\\s*=\\s*(["'])${escapedValue}\\1[^>]*\\bcontent\\s*=\\s*(["'])([\\s\\S]*?)\\2[^>]*>`, 'i'),
-    new RegExp(`<meta\\b[^>]*\\bcontent\\s*=\\s*(["'])([\\s\\S]*?)\\1[^>]*\\b${attribute}\\s*=\\s*(["'])${escapedValue}\\3[^>]*>`, 'i'),
-    new RegExp(`<meta\\b[^>]*\\b${attribute}\\s*=\\s*(?:["']${escapedValue}["']|${escapedValue})[^>]*\\bcontent\\s*=\\s*(["'])([\\s\\S]*?)\\1[^>]*>`, 'i'),
-    new RegExp(`<meta\\b[^>]*\\bcontent\\s*=\\s*(["'])([\\s\\S]*?)\\1[^>]*\\b${attribute}\\s*=\\s*(?:["']${escapedValue}["']|${escapedValue})[^>]*>`, 'i'),
-  ]
-
-  for (const pattern of patterns) {
-    const match = html.match(pattern)
-    const content = match?.[3] ?? match?.[2] ?? null
-    if (content?.trim()) return content.replace(/\s+/g, ' ').trim()
-  }
-
-  return null
-}
-
-function extractDescription(html) {
-  return findMetaContent(html, 'name', 'description')
-    || findMetaContent(html, 'property', 'og:description')
-    || findMetaContent(html, 'name', 'twitter:description')
-    || findMetaContent(html, 'itemprop', 'description')
-}
 
 function revokeObjectUrl(url) {
   if (url) URL.revokeObjectURL(url)
@@ -200,6 +173,38 @@ function renderFaviconPicker(state) {
   `
 }
 
+function renderFaviconField(state) {
+  const status = getUrlStatusLine(state)
+  const hasUrl = state.url.trim().length > 0
+
+  return `
+    <div data-bookmark-form-favicon-wrap>
+      <div data-bookmark-form-url-row>
+        <button
+          type="button"
+          data-click="bookmarkFormToggleFaviconPicker"
+          data-bookmark-form-favicon-btn
+          ${state.hasUnlockedFaviconPicker ? '' : 'disabled '}
+          title="${escapeHtml(state.hasUnlockedFaviconPicker ? t('tabForm.faviconPickerTitle') : t('tabForm.faviconPickerLockedTitle'))}"
+        >${renderFaviconPreview(state)}</button>
+        ${urlInput({
+          name: 'url',
+          value: state.url,
+          attrs: {
+            placeholder: t('tabForm.urlPlaceholder'),
+            required: true,
+            autocomplete: 'off',
+            spellcheck: 'false',
+          },
+        })}
+        <button type="button" class="${state.isTesting ? 'yai-loading' : ''}" data-click="bookmarkFormTestUrl" data-bookmark-form-test-btn title="${escapeHtml(t('tabForm.faviconPickerLockedTitle'))}" ${state.isTesting || !hasUrl ? 'disabled ' : ''}>${escapeHtml(state.isTesting ? t('tabForm.testing') : t('tabForm.test'))}</button>
+      </div>
+      ${renderFaviconPicker(state)}
+      <p data-bookmark-form-status data-variant="${escapeHtml(status.variant)}">${escapeHtml(status.text)}</p>
+    </div>
+  `
+}
+
 function renderPreviewSelection(state) {
   const currentPreviewUrl = state.croppedPreviewUrl || state.selectedPreviewAssetUrl
   if (currentPreviewUrl) {
@@ -299,8 +304,6 @@ function buildBookmarkFaviconStateToken(state) {
 }
 
 export function renderBookmarkCrudForm(state) {
-  const status = getUrlStatusLine(state)
-  const hasUrl = state.url.trim().length > 0
   return `
     <form
       data-module-crud-form
@@ -322,28 +325,7 @@ export function renderBookmarkCrudForm(state) {
         children: `
           <div data-customizer-field data-customizer-field-layout="stack">
             <span data-customizer-field-label>${escapeHtml(t('tabForm.url'))}</span>
-            <div data-bookmark-form-url-row>
-              <button
-                type="button"
-                data-click="bookmarkFormToggleFaviconPicker"
-                data-bookmark-form-favicon-btn
-                ${state.hasUnlockedFaviconPicker ? '' : 'disabled '}
-                title="${escapeHtml(state.hasUnlockedFaviconPicker ? t('tabForm.faviconPickerTitle') : t('tabForm.faviconPickerLockedTitle'))}"
-              >${renderFaviconPreview(state)}</button>
-              ${urlInput({
-                name: 'url',
-                value: state.url,
-                attrs: {
-                  placeholder: t('tabForm.urlPlaceholder'),
-                  required: true,
-                  autocomplete: 'off',
-                  spellcheck: 'false',
-                },
-              })}
-              <button type="button" class="${state.isTesting ? 'yai-loading' : ''}" data-click="bookmarkFormTestUrl" data-bookmark-form-test-btn title="${escapeHtml(t('tabForm.faviconPickerLockedTitle'))}" ${state.isTesting || !hasUrl ? 'disabled ' : ''}>${escapeHtml(state.isTesting ? t('tabForm.testing') : t('tabForm.test'))}</button>
-            </div>
-            ${renderFaviconPicker(state)}
-            <p data-bookmark-form-status data-variant="${escapeHtml(status.variant)}">${escapeHtml(status.text)}</p>
+            ${renderFaviconField(state)}
           </div>
 
           ${customizerField({
@@ -376,7 +358,7 @@ export function renderBookmarkCrudForm(state) {
       ${customizerSection({
         title: t('tabForm.previewImage'),
         section: 'preview',
-        children: renderPreviewSelection(state),
+        children: `<div data-bookmark-form-preview-wrap>${renderPreviewSelection(state)}</div>`,
       }).replace('<p data-customizer-section-title>', `<p data-customizer-section-title title="${escapeHtml(t('tabForm.previewImageMeta', {width: TILE_W, height: TILE_H}))}">`)}
 
       ${customizerDivider()}
@@ -396,9 +378,13 @@ async function createImageDataUrl(blob) {
 }
 
 export async function afterBookmarkFormRender(body) {
+  await afterBookmarkFormRenderWithOptions(body)
+}
+
+async function afterBookmarkFormRenderWithOptions(body, {autoFocus = true} = {}) {
   if (!bookmarkFormState || !body) return
   initFavicons(body)
-  if (!bookmarkFormState.record) {
+  if (autoFocus && !bookmarkFormState.record) {
     const urlInput = body.querySelector('input[name="url"]')
     if (urlInput instanceof HTMLInputElement) {
       requestAnimationFrame(() => urlInput.focus())
@@ -424,9 +410,76 @@ export async function rerenderBookmarkForm(body) {
   if (!bookmarkFormState || !body) return
   await hydrateSelectedUrls(bookmarkFormState)
   await hydrateAssetLibrary(bookmarkFormState)
-  body.innerHTML = renderBookmarkCrudForm(bookmarkFormState)
-  await afterBookmarkFormRender(body)
+  const currentForm = body.matches?.('[data-module-crud-form]') ? body : body.querySelector?.('[data-module-crud-form]')
+  const activeState = readActiveFieldState()
+
+  if (currentForm instanceof HTMLFormElement) {
+    replaceNode(currentForm, renderBookmarkCrudForm(bookmarkFormState))
+  } else {
+    body.innerHTML = renderBookmarkCrudForm(bookmarkFormState)
+  }
+
+  await afterBookmarkFormRenderWithOptions(body, {autoFocus: false})
   initFormDirtyState(body, {useExistingBaseline: true})
+  const form = body.matches?.('[data-module-crud-form]') ? body : body.querySelector?.('[data-module-crud-form]')
+  if (form instanceof HTMLElement) {
+    restoreActiveFieldState(form, activeState)
+  }
+}
+
+export async function patchBookmarkForm(body) {
+  if (!bookmarkFormState || !body) return
+  await hydrateSelectedUrls(bookmarkFormState)
+  await hydrateAssetLibrary(bookmarkFormState)
+
+  const form = body.matches?.('[data-module-crud-form]') ? body : body.querySelector?.('[data-module-crud-form]')
+  if (!(form instanceof HTMLFormElement)) {
+    await rerenderBookmarkForm(body)
+    return
+  }
+
+  const activeState = readActiveFieldState()
+
+  const urlInputEl = form.querySelector('[name="url"]')
+  if (urlInputEl instanceof HTMLInputElement && urlInputEl !== document.activeElement) {
+    urlInputEl.value = bookmarkFormState.url
+  }
+
+  const titleInputEl = form.querySelector('[name="title"]')
+  if (titleInputEl instanceof HTMLInputElement && titleInputEl !== document.activeElement) {
+    titleInputEl.value = bookmarkFormState.title
+  }
+
+  const descriptionInputEl = form.querySelector('[name="description"]')
+  if (descriptionInputEl instanceof HTMLTextAreaElement && descriptionInputEl !== document.activeElement) {
+    descriptionInputEl.value = bookmarkFormState.description
+  }
+
+  const previewToken = form.querySelector('[name="preview-state-token"]')
+  if (previewToken instanceof HTMLInputElement) {
+    previewToken.value = buildBookmarkPreviewStateToken(bookmarkFormState)
+  }
+
+  const faviconToken = form.querySelector('[name="favicon-state-token"]')
+  if (faviconToken instanceof HTMLInputElement) {
+    faviconToken.value = buildBookmarkFaviconStateToken(bookmarkFormState)
+  }
+
+  const faviconWrap = form.querySelector('[data-bookmark-form-favicon-wrap]')
+  if (faviconWrap instanceof HTMLElement) {
+    patchHost(faviconWrap, renderFaviconField(bookmarkFormState))
+  }
+
+  const previewWrap = form.querySelector('[data-bookmark-form-preview-wrap]')
+  if (previewWrap instanceof HTMLElement) {
+    patchHost(previewWrap, `<div data-bookmark-form-preview-wrap>${renderPreviewSelection(bookmarkFormState)}</div>`)
+  }
+
+  form.toggleAttribute('data-bookmark-crop-active', Boolean(bookmarkFormState.imageDataUrl))
+
+  await afterBookmarkFormRenderWithOptions(body, {autoFocus: false})
+  initFormDirtyState(body, {useExistingBaseline: true})
+  restoreActiveFieldState(form, activeState)
 }
 
 async function fetchUrlMetaDirect(url) {

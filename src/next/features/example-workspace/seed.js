@@ -1,8 +1,8 @@
-import {ensureFaviconAssetIdForUrl} from '../../utils/favicon.js'
 import {encryptNote, serialiseCryptPayload} from '../../../composables/useCrypt'
-import {db as defaultDb, isActiveRecord, makeCreateMetadata} from '../../../db/db.ts'
 import {WIDGET_SETTINGS_KEY} from '../../../composables/useWidgetSettings.ts'
+import {db as defaultDb, isActiveRecord, makeCreateMetadata} from '../../../db/db.ts'
 import {upsertUiConfig} from '../../data/ui-config.js'
+import {ensureFaviconAssetIdForUrl} from '../../utils/favicon.js'
 import {DEFAULT_LOCALE, SUPPORTED_LOCALES, getLocale} from '../../utils/i18n.js'
 
 const MANIFEST_LOADERS = import.meta.glob('../../../../examples/*/workspace-*/*.json', {import: 'default'})
@@ -80,6 +80,7 @@ function normalizeSeedNote(note = {}) {
     style_token: note.style_token ?? note.colorScheme ?? null,
     language: note.language ?? null,
     passphrase: note.passphrase ?? null,
+    meta: note.meta && typeof note.meta === 'object' ? note.meta : null,
   }
 }
 
@@ -460,13 +461,17 @@ export async function seedExampleWorkspace(database = defaultDb, options = {}) {
             if (moduleDef.type === 'notes') {
               let noteSortOrder = 0
               for (const note of tabDef.notes ?? []) {
+                const noteMeta = {
+                  ...(note.meta && typeof note.meta === 'object' ? note.meta : {}),
+                  ...(note.language ? {language: note.language} : {}),
+                }
                 await database.notes.add({
                   collection_id: collectionId,
                   title: note.title,
                   type: note.type,
                   content: note.content,
                   style_token: note.style_token,
-                  meta_json: note.language ? JSON.stringify({language: note.language}) : null,
+                  meta_json: Object.keys(noteMeta).length ? JSON.stringify(noteMeta) : null,
                   sort_order: noteSortOrder++,
                   ...makeCreateMetadata(now),
                 })
@@ -502,7 +507,22 @@ export async function seedExampleWorkspace(database = defaultDb, options = {}) {
         value_json: JSON.stringify({
           rail_enabled: true,
           rail_position: 'bottom',
-          rail_align: 'left',
+          rail_align: 'space-between',
+          clock: {
+            enabled: true,
+            align: 'right',
+            display: 'analog',
+            smooth_motion: true,
+            two_row: false,
+            date_format: '{dayName} [hr] {day}. {monthShort} {yearShort}',
+            time_format: '{hour}:{minute}:{second}',
+            background: '#00000030',
+            border: '#3b383847',
+            date_color: '#b6b9bc',
+            time_color: '#d9dde2',
+            date_font_size: 14,
+            time_font_size: 18,
+          },
           weather: {
             enabled: true,
             provider: 'open_meteo',

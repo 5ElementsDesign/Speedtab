@@ -1,13 +1,7 @@
-import {escapeHtml} from '../utils/html.js'
+import {buildAttributes, escapeHtml} from '../utils/html.js'
 
 function attrsToString(attrs = {}) {
-  return Object.entries(attrs)
-    .filter(([, value]) => value !== null && value !== undefined && value !== false && value !== '')
-    .map(([key, value]) => {
-      if (value === true) return key
-      return `${key}="${escapeHtml(String(value))}"`
-    })
-    .join(' ')
+  return buildAttributes(attrs, {leadingSpace: false, skipFalsy: true, booleanBare: true})
 }
 
 export function section({title = '', helper = '', children = '', attrs = {}} = {}) {
@@ -108,8 +102,11 @@ export function textarea({name, value = '', rows = 4, attrs = {}} = {}) {
 export function select({name, value = '', options = [], attrs = {}} = {}) {
   const attrString = attrsToString(attrs)
   const optionsHtml = options.map((option) => {
-    const optionAttrs = attrsToString(option.attrs ?? {})
-    return `<option value="${escapeHtml(option.value)}"${String(option.value) === String(value) ? ' selected' : ''}${optionAttrs ? ` ${optionAttrs}` : ''}>${escapeHtml(option.label)}</option>`
+    const isSelected = String(option.value) === String(value)
+    const optionAttributes = {...(option.attrs ?? {})}
+    if (isSelected && optionAttributes.selected === true) delete optionAttributes.selected
+    const optionAttrs = attrsToString(optionAttributes)
+    return `<option value="${escapeHtml(option.value)}"${isSelected ? ' selected' : ''}${optionAttrs ? ` ${optionAttrs}` : ''}>${escapeHtml(option.label)}</option>`
   }).join('')
   return `<select name="${escapeHtml(name)}"${attrString ? ` ${attrString}` : ''}>${optionsHtml}</select>`
 }

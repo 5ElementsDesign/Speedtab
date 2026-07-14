@@ -8,10 +8,13 @@ import type {
   FeedItem,
   FeedSource,
   Module,
+  NextUiConfig,
   Note,
   Page,
   SavedFeedItem,
   Tab,
+  UiConfigEntityType,
+  UiConfigPayload,
 } from '@/types/db'
 
 // ─── Manifest schema ──────────────────────────────────────────────────────────
@@ -22,6 +25,8 @@ export const IMPORT_LOCK_KEY = 'backup_import_lock'
 export const LAST_IMPORT_EXPORTED_AT_KEY = 'last_import_exported_at'
 export const LAST_EXPORT_CHECKSUM_KEY = 'last_export_checksum'
 const IMPORT_LOCK_TTL_MS = 5 * 60 * 1000
+const NEXT_WORKSPACE_ID_KEY = 'next_workspace_id'
+const NEXT_DEVICE_ID_KEY = 'next_device_id'
 
 export interface SerializedAsset {
   original_id: number
@@ -57,6 +62,15 @@ export type ExportedTabV2 = Omit<Tab, 'id' | 'collection_id'> & { collection_syn
 export type ExportedNoteV2 = Omit<Note, 'id' | 'collection_id'> & { collection_sync_id: string; original_id?: number }
 export type ExportedFeedSourceV2 = Omit<FeedSource, 'id' | 'collection_id'> & { collection_sync_id: string; original_id?: number }
 export type ExportedSavedFeedItemV2 = Omit<SavedFeedItem, 'id' | 'collection_id'> & { collection_sync_id: string; original_id?: number }
+export interface ExportedNextUiConfigV2 {
+  entity_type: UiConfigEntityType
+  entity_subtype: string | null
+  entity_sync_id: string
+  version: number
+  preset_id: string | null
+  config: UiConfigPayload
+  updated_at: number
+}
 
 export interface BackupManifestV2 {
   version:      typeof BACKUP_VERSION
@@ -69,6 +83,7 @@ export interface BackupManifestV2 {
   feed_sources: ExportedFeedSourceV2[]
   saved_feed_items: ExportedSavedFeedItemV2[]
   assets:       SerializedAsset[]
+  next_ui_config?: ExportedNextUiConfigV2[]
   bg_archive?:  BgArchiveItem[]
 }
 
@@ -83,6 +98,37 @@ type JsonLike =
   | { [key: string]: JsonLike }
 
 const NOTE_IMAGE_TOKEN_RE = /{{asset:image:(\d+)}}/g
+
+function isPortableAssetKind(kind: AssetKind): boolean {
+  return kind !== 'background'
+}
+
+function getPortableAssets<T extends { kind: AssetKind }>(assets: T[]): T[] {
+  return assets.filter((asset) => isPortableAssetKind(asset.kind))
+}
+
+async function getOrCreateBackupSetting(database: SpeedtabDB, key: string): Promise<string> {
+  const existing = await database.app_settings.get(key)
+  if (existing?.value_json) {
+    return JSON.parse(existing.value_json) as string
+  }
+
+  const value = crypto.randomUUID()
+  await database.app_settings.put({
+    key,
+    value_json: JSON.stringify(value),
+    updated_at: Date.now(),
+  })
+  return value
+}
+
+async function getBackupUiContext(database: SpeedtabDB): Promise<{workspace_id: string, device_id: string}> {
+  const [workspace_id, device_id] = await Promise.all([
+    getOrCreateBackupSetting(database, NEXT_WORKSPACE_ID_KEY),
+    getOrCreateBackupSetting(database, NEXT_DEVICE_ID_KEY),
+  ])
+  return {workspace_id, device_id}
+}
 
 // ─── Blob ↔ base64 helpers ────────────────────────────────────────────────────
 
@@ -291,6 +337,21 @@ function validateManifestV2(obj: unknown): asserts obj is BackupManifestV2 {
   }
 
   validateAssets(manifest.assets as unknown[])
+
+  if (manifest.next_ui_config != null) {
+    assertArrayField(manifest, 'next_ui_config')
+    for (const row of manifest.next_ui_config as Array<Record<string, unknown>>) {
+      if (typeof row.entity_sync_id !== 'string' || !UUID_RE.test(row.entity_sync_id)) {
+        throw new BackupValidationError('Row in "next_ui_config" is missing valid entity_sync_id')
+      }
+      if (row.entity_type !== 'page' && row.entity_type !== 'module') {
+        throw new BackupValidationError('Row in "next_ui_config" has invalid entity_type')
+      }
+      if (typeof row.updated_at !== 'number') {
+        throw new BackupValidationError('Row in "next_ui_config" is missing updated_at')
+      }
+    }
+  }
 }
 
 export function validateManifest(obj: unknown): asserts obj is BackupManifest {
@@ -347,7 +408,8 @@ function throwExportIntegrityError(orphanCounts: Record<string, number>): never 
 export async function exportAll(database: SpeedtabDB = defaultDb): Promise<BackupManifestV2> {
   await ensureSyncMetadataMigration(database, { force: true })
 
-  const [rawPages, rawModules, rawCollections, rawTabs, rawNotes, rawFeedSources, rawSavedFeedItems, assets, bgArchive] =
+  const [rawPages, rawModules, rawCollections, rawTabs, rawNotes, rawFeedSources, rawSavedFeedItems, assets, uiContext, allNextUiConfig]:
+  [Page[], Module[], Collection[], Tab[], Note[], FeedSource[], SavedFeedItem[], Asset[], {workspace_id: string, device_id: string}, NextUiConfig[]] =
     await Promise.all([
       database.pages.filter(isActiveRecord).toArray(),
       database.modules.filter(isActiveRecord).toArray(),
@@ -357,7 +419,8 @@ export async function exportAll(database: SpeedtabDB = defaultDb): Promise<Backu
       database.feed_sources.filter(isActiveRecord).toArray(),
       database.saved_feed_items.filter(isActiveRecord).toArray(),
       database.assets.toArray(),
-      database.bg_archive.orderBy('created_at').toArray(),
+      getBackupUiContext(database),
+      database.next_ui_config.toArray(),
     ])
 
   const pages = rawPages.filter((row) => row.id != null)
@@ -402,7 +465,7 @@ export async function exportAll(database: SpeedtabDB = defaultDb): Promise<Backu
   const collectionSyncById = new Map(collections.filter((row) => row.id != null).map((row) => [row.id!, row.sync_id]))
 
   const serializedAssets: SerializedAsset[] = await Promise.all(
-    assets.map(async (a) => ({
+    getPortableAssets(assets).map(async (a) => ({
       original_id: a.id!,
       kind: a.kind,
       checksum: a.checksum,
@@ -413,6 +476,17 @@ export async function exportAll(database: SpeedtabDB = defaultDb): Promise<Backu
       data_base64: await blobToBase64(a.blob),
     })),
   )
+
+  const portableEntitySyncIds = new Set([
+    ...pages.map((row) => row.sync_id),
+    ...modules.map((row) => row.sync_id),
+  ])
+
+  const nextUiConfig = allNextUiConfig
+    .filter((row) =>
+      row.workspace_id === uiContext.workspace_id &&
+      portableEntitySyncIds.has(row.entity_sync_id))
+    .map(({ workspace_id: _workspaceId, device_id: _deviceId, id: _id, ...row }) => row)
 
   return {
     version: BACKUP_VERSION,
@@ -449,7 +523,7 @@ export async function exportAll(database: SpeedtabDB = defaultDb): Promise<Backu
       original_id: _id,
     })),
     assets: serializedAssets,
-    bg_archive: bgArchive,
+    next_ui_config: nextUiConfig,
   }
 }
 
@@ -514,7 +588,7 @@ function canonicalizeManifest(manifest: BackupManifest): BackupManifest {
       saved_feed_items: sortRows(manifest.saved_feed_items, (left, right) =>
         compareScalars(left.collection_id, right.collection_id) ||
         compareScalars(left.original_id, right.original_id)),
-      assets: sortRows(manifest.assets, (left, right) =>
+      assets: sortRows(getPortableAssets(manifest.assets), (left, right) =>
         compareScalars(left.checksum, right.checksum) ||
         compareScalars(left.kind, right.kind) ||
         compareScalars(left.original_id, right.original_id)),
@@ -542,13 +616,13 @@ function canonicalizeManifest(manifest: BackupManifest): BackupManifest {
     saved_feed_items: sortRows(manifest.saved_feed_items, (left, right) =>
       compareScalars(left.collection_sync_id, right.collection_sync_id) ||
       compareScalars(left.sync_id, right.sync_id)),
-    assets: sortRows(manifest.assets, (left, right) =>
+    next_ui_config: sortRows(manifest.next_ui_config ?? [], (left, right) =>
+      compareScalars(left.entity_type, right.entity_type) ||
+      compareScalars(left.entity_sync_id, right.entity_sync_id)),
+    assets: sortRows(getPortableAssets(manifest.assets), (left, right) =>
       compareScalars(left.checksum, right.checksum) ||
       compareScalars(left.kind, right.kind) ||
       compareScalars(left.original_id, right.original_id)),
-    bg_archive: sortRows(manifest.bg_archive ?? [], (left, right) =>
-      compareScalars(left.created_at, right.created_at) ||
-      compareScalars(left.id ?? null, right.id ?? null)),
   }
 }
 
@@ -609,8 +683,10 @@ function buildChecksumPayload(manifest: BackupManifest): JsonLike {
     })
   }
 
+  const { bg_archive: _bgArchive, ...portableCanonical } = canonical as BackupManifestV2
+
   return sortObjectKeys({
-    ...canonical,
+    ...portableCanonical,
     exported_at: '',
     modules: canonical.modules.map(({ original_id: _originalId, ...row }) => row),
     collections: canonical.collections.map(({ original_id: _originalId, ...row }) => row),
@@ -627,7 +703,7 @@ function buildChecksumPayload(manifest: BackupManifest): JsonLike {
     feed_sources: canonical.feed_sources.map(({ original_id: _originalId, ...row }) => row),
     saved_feed_items: canonical.saved_feed_items.map(({ original_id: _originalId, ...row }) => row),
     assets: canonical.assets.map(({ original_id: _originalId, ...row }) => row),
-    bg_archive: (canonical as BackupManifestV2).bg_archive ?? [],
+    next_ui_config: canonical.next_ui_config ?? [],
   } as unknown as JsonLike)
 }
 
@@ -642,8 +718,12 @@ export async function manifestChecksum(manifest: BackupManifest): Promise<string
   return bytes.map(byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
+export function buildExportFilename(part: string, checksum: string): string {
+  return `speedtab-${part}.${checksum}.json`
+}
+
 function exportFilename(_manifest: BackupManifest, checksum: string): string {
-  return `speedtab-export-${checksum}.json`
+  return buildExportFilename('export', checksum)
 }
 
 // ─── Import ───────────────────────────────────────────────────────────────────
@@ -934,9 +1014,11 @@ async function importManifestV2(
       database.pages, database.modules, database.collections,
       database.tabs, database.notes, database.feed_sources,
       database.saved_feed_items, database.assets, database.app_settings,
+      database.next_ui_config,
       database.bg_archive,
     ],
     async () => {
+      const {workspace_id, device_id} = await getBackupUiContext(database)
       const assetIdByChecksum = new Map<string, number>()
       const assetIdByOriginalId = new Map<number, number>()
       for (const existing of await database.assets.toArray()) {
@@ -1200,6 +1282,31 @@ async function importManifestV2(
         await database.bg_archive.bulkAdd(
           manifest.bg_archive.map(({ id: _id, ...row }) => row),
         )
+      }
+
+      if (Array.isArray(manifest.next_ui_config) && manifest.next_ui_config.length > 0) {
+        const existingUiConfigRows = await database.next_ui_config
+          .where('[workspace_id+entity_sync_id]')
+          .anyOf(manifest.next_ui_config.map((row) => [workspace_id, row.entity_sync_id]))
+          .toArray()
+        const existingUiConfigMap = new Map(existingUiConfigRows.map((row) => [row.entity_sync_id, row] as const))
+
+        for (const row of manifest.next_ui_config) {
+          const existing = existingUiConfigMap.get(row.entity_sync_id)
+          if (existing && row.updated_at <= existing.updated_at) continue
+          await database.next_ui_config.put({
+            ...(existing?.id ? {id: existing.id} : {}),
+            workspace_id,
+            device_id,
+            entity_type: row.entity_type,
+            entity_subtype: row.entity_subtype,
+            entity_sync_id: row.entity_sync_id,
+            version: row.version,
+            preset_id: row.preset_id,
+            config: row.config,
+            updated_at: row.updated_at,
+          } satisfies NextUiConfig)
+        }
       }
 
       await database.app_settings.put({

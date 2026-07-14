@@ -6,10 +6,12 @@ import {
   openFloatingNote,
   openQuicknote,
   refreshQuicknoteWindow,
+  resetFloatingNoteWindowLayout as resetFloatingNoteWindowLayoutWindow,
   saveFloatingNoteEdit as saveFloatingNoteEditWindow,
   startFloatingNoteEdit as startFloatingNoteEditWindow,
   syncFloatingNoteEditorField as syncFloatingNoteEditorFieldWindow,
   insertFloatingNoteTabber as insertFloatingNoteTabberWindow,
+  insertFloatingNoteTableau as insertFloatingNoteTableauWindow,
   toggleFloatingNotePreview as toggleFloatingNotePreviewWindow,
   toggleFloatingCryptPassphrase as toggleFloatingCryptPassphraseWindow,
   unlockFloatingCryptNote as unlockFloatingCryptNoteWindow,
@@ -62,8 +64,16 @@ export const localToolsActions = {
     insertFloatingNoteTabberWindow(target?.dataset?.noteId)
   },
 
+  insertFloatingNoteTableau(target) {
+    insertFloatingNoteTableauWindow(target?.dataset?.noteId)
+  },
+
   async toggleFloatingNotePreview(target) {
     await toggleFloatingNotePreviewWindow(target?.dataset?.noteId)
+  },
+
+  async resetFloatingNoteWindowLayout(target) {
+    await resetFloatingNoteWindowLayoutWindow(target?.dataset?.noteId)
   },
 
   async unlockFloatingCryptNote(target) {

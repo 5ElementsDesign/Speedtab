@@ -92,11 +92,11 @@ describe('normalizeLocalToolsState', () => {
     expect(state.noteWindows[0].width).toBe(280)
   })
 
-  it('clamps note window height to minimum 180', () => {
+  it('clamps note window height to minimum 96', () => {
     const state = normalizeLocalToolsState({
       noteWindows: [{ noteId: 1, x: 0, y: 0, width: 400, height: 10, z: 221 }],
     })
-    expect(state.noteWindows[0].height).toBe(180)
+    expect(state.noteWindows[0].height).toBe(96)
   })
 
   it('filters noteLayouts the same as noteWindows', () => {

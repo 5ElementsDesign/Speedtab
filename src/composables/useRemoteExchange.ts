@@ -1,14 +1,18 @@
 import packageJson from '../../package.json'
 import {
   clearRemoteOutOfDate as clearRemoteOutOfDateDefault,
+  getExportState as getExportStateDefault,
   noteImportedWorkspace as noteImportedWorkspaceDefault,
 } from '@/composables/useExportState'
 import {
+  BACKUP_VERSION,
+  buildExportFilename,
   exportAll,
   importAll,
   manifestChecksum,
   manifestToJsonString,
   parseManifestText,
+  type SerializedAsset,
   type BackupManifestV2,
   type ImportReport,
 } from '@/composables/useBackup'
@@ -19,7 +23,7 @@ import {
 } from '@/composables/useRemoteProvider'
 import { updateLocalSettings } from '@/composables/useLocalSettings'
 import { db as defaultDb, type SpeedtabDB } from '@/db/db'
-import { cleanupOrphans, type CleanupReport } from '@/composables/useMaintenance'
+import { cleanupOrphans, clearAuthoredWorkspace as clearAuthoredWorkspaceDefault, type CleanupReport } from '@/composables/useMaintenance'
 import type { RemoteExportMetadata, RemoteProviderVerifyResult } from '@/types/remote'
 
 export type RemoteCompareState =
@@ -36,7 +40,15 @@ export interface RemoteExportArtifacts {
   manifest: BackupManifestV2
   checksum: string
   exportBlob: Blob
+  assetsBlob: Blob
   metadata: RemoteExportMetadata
+}
+
+interface RemoteAssetsPayload {
+  version: number
+  exported_at: string
+  workspace_checksum?: string
+  assets: SerializedAsset[]
 }
 
 export interface RemotePushInspection {
@@ -78,6 +90,7 @@ export type RemoteVerifyHealth =
   | 'healthy'
   | 'sidecar_missing'
   | 'export_missing'
+  | 'assets_missing'
   | 'metadata_mismatch'
   | 'corrupt_metadata'
   | 'auth_failure'
@@ -112,9 +125,57 @@ interface RemoteExchangeDeps {
   parseManifestText: typeof parseManifestText
   getRemoteExportProvider: typeof getRemoteExportProvider
   updateLocalSettings: UpdateLocalSettingsFn
+  getExportState: typeof getExportStateDefault
+  clearAuthoredWorkspace: typeof clearAuthoredWorkspaceDefault
   cleanupOrphans: typeof cleanupOrphans
   clearRemoteOutOfDate: typeof clearRemoteOutOfDateDefault
   noteImportedWorkspace: typeof noteImportedWorkspaceDefault
+}
+
+function normalizeArchiveRetentionCount(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
+  const normalized = Math.trunc(value)
+  if (normalized < 1) return null
+  return normalized
+}
+
+function sortArchivesNewestFirst<T extends { exported_at: string | null }>(entries: T[] = []): T[] {
+  return [...entries].sort((left, right) => {
+    const leftTime = Date.parse(left?.exported_at ?? '')
+    const rightTime = Date.parse(right?.exported_at ?? '')
+    const safeLeft = Number.isFinite(leftTime) ? leftTime : 0
+    const safeRight = Number.isFinite(rightTime) ? rightTime : 0
+    return safeRight - safeLeft
+  })
+}
+
+async function pruneRemoteArchivesAfterArchiveUpload(
+  provider: RemoteExportProvider,
+  requestOptions: RemoteProviderRequestOptions,
+): Promise<string[]> {
+  const keepLatest = normalizeArchiveRetentionCount(provider.settings.remote_archive_keep_latest_count)
+  if (keepLatest == null) return []
+
+  const archivesResult = await provider.listArchives(requestOptions)
+  if (!archivesResult.ok) {
+    return [translateDataExchangeMessage('dataExchange.status.archivePruneFailed', { message: archivesResult.error.message })]
+  }
+
+  const victims = sortArchivesNewestFirst(archivesResult.value).slice(keepLatest)
+  if (!victims.length) return []
+
+  let deleted = 0
+  for (const archive of victims) {
+    const result = await provider.deleteArchive(archive.workspace_checksum, requestOptions)
+    if (!result.ok) {
+      return [translateDataExchangeMessage('dataExchange.status.archivePruneFailed', { message: result.error.message })]
+    }
+    deleted += 1
+  }
+
+  return deleted > 0
+    ? [translateDataExchangeMessage('dataExchange.status.archivePruneComplete', { count: deleted, keep: keepLatest })]
+    : []
 }
 
 const defaultDeps: RemoteExchangeDeps = {
@@ -125,9 +186,27 @@ const defaultDeps: RemoteExchangeDeps = {
   parseManifestText,
   getRemoteExportProvider,
   updateLocalSettings,
+  getExportState: getExportStateDefault,
+  clearAuthoredWorkspace: clearAuthoredWorkspaceDefault,
   cleanupOrphans,
   clearRemoteOutOfDate: clearRemoteOutOfDateDefault,
   noteImportedWorkspace: noteImportedWorkspaceDefault,
+}
+
+function hydrateRemoteBaselineFromExportState(
+  settings: RemoteExportProvider['settings'],
+  exportState: Awaited<ReturnType<typeof getExportStateDefault>>,
+): RemoteExportProvider['settings'] {
+  const fallbackPullChecksum = exportState.last_remote_pull_checksum ?? null
+  const fallbackPushChecksum = exportState.last_remote_push_checksum ?? null
+  const fallbackSeenChecksum = fallbackPullChecksum ?? fallbackPushChecksum
+
+  return {
+    ...settings,
+    last_remote_pull_checksum: settings.last_remote_pull_checksum ?? fallbackPullChecksum,
+    last_remote_push_checksum: settings.last_remote_push_checksum ?? fallbackPushChecksum,
+    last_remote_seen_checksum: settings.last_remote_seen_checksum ?? fallbackSeenChecksum,
+  }
 }
 
 const remoteFallbackMessages = {
@@ -151,6 +230,8 @@ const remoteFallbackMessages = {
       remoteSidecarMissingGuidance: 'Push local state again to recreate the sidecar, or pull/download the remote export before deciding how to repair it.',
       remoteExportFileMissing: 'Remote metadata exists but the export file is missing.',
       remoteExportFileMissingGuidance: 'Push local state again to recreate the export file.',
+      remoteAssetsFileMissing: 'Remote split export exists but the assets file is missing.',
+      remoteAssetsFileMissingGuidance: 'Push local state again to recreate the assets payload, or download the remote data before deciding how to repair it.',
       remoteMetadataContextMismatch: 'Remote metadata points at a different endpoint context.',
       remoteMetadataContextMismatchGuidance: 'Confirm that the remote endpoint is correct. If it is, push local state again to rewrite the sidecar for this endpoint.',
       remoteHealthy: 'Remote export and metadata look healthy.',
@@ -302,6 +383,63 @@ function classifyRemoteState(
   return 'divergent'
 }
 
+function createDataManifest(manifest: BackupManifestV2): BackupManifestV2 {
+  return {
+    ...manifest,
+    assets: [],
+  }
+}
+
+function createAssetsPayload(manifest: BackupManifestV2, workspaceChecksum: string): RemoteAssetsPayload {
+  return {
+    version: manifest.version,
+    exported_at: manifest.exported_at,
+    workspace_checksum: workspaceChecksum,
+    assets: manifest.assets,
+  }
+}
+
+function parseRemoteAssetsPayload(text: string): RemoteAssetsPayload {
+  const parsed = JSON.parse(text) as Record<string, unknown>
+  if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.assets)) {
+    throw new Error('Remote assets payload is invalid.')
+  }
+
+  return {
+    version: typeof parsed.version === 'number' ? parsed.version : BACKUP_VERSION,
+    exported_at: typeof parsed.exported_at === 'string' ? parsed.exported_at : '',
+    workspace_checksum: typeof parsed.workspace_checksum === 'string' ? parsed.workspace_checksum : '',
+    assets: parsed.assets as SerializedAsset[],
+  }
+}
+
+async function mergeSplitAssetsIntoManifest(
+  manifest: BackupManifestV2,
+  provider: RemoteExportProvider,
+  requestOptions: RemoteProviderRequestOptions,
+  expectedChecksum: string | null = null,
+): Promise<BackupManifestV2> {
+  if (manifest.version !== BACKUP_VERSION || manifest.assets.length > 0) {
+    return manifest
+  }
+
+  const assetsResult = await provider.downloadAssets(requestOptions)
+  if (!assetsResult.ok) {
+    if (assetsResult.error.code === 'file_missing') {
+      return manifest
+    }
+    throw new Error(assetsResult.error.message)
+  }
+
+  const assetsPayload = parseRemoteAssetsPayload(await blobToText(assetsResult.value))
+  if (expectedChecksum && assetsPayload.workspace_checksum && assetsPayload.workspace_checksum !== expectedChecksum) {
+    throw new Error('Remote assets payload checksum does not match the remote data export.')
+  }
+
+  manifest.assets = Array.isArray(assetsPayload.assets) ? assetsPayload.assets : []
+  return manifest
+}
+
 function shouldConfirmOverwrite(state: RemotePushInspection['state']): boolean {
   return !['remote_missing', 'identical', 'up_to_date'].includes(state)
 }
@@ -352,18 +490,23 @@ async function buildRemoteExportArtifacts(
 ): Promise<RemoteExportArtifacts> {
   const manifest = await deps.exportAll(database)
   const checksum = await deps.manifestChecksum(manifest)
-  const exportJson = deps.manifestToJsonString(manifest)
+  const dataManifest = createDataManifest(manifest)
+  const exportJson = deps.manifestToJsonString(dataManifest)
   const exportBlob = new Blob([exportJson], { type: 'application/json' })
+  const assetsBlob = new Blob([JSON.stringify(createAssetsPayload(manifest, checksum))], { type: 'application/json' })
 
   return {
     manifest,
     checksum,
     exportBlob,
+    assetsBlob,
     metadata: {
       manifest_version: manifest.version,
       app_version: packageJson.version,
       exported_at: manifest.exported_at,
       workspace_checksum: checksum,
+      payload_mode: 'split',
+      assets_count: manifest.assets.length,
       source_device_label: null,
       provider_endpoint_hash: null,
     },
@@ -376,12 +519,32 @@ export async function inspectRemotePush(
 ): Promise<RemotePushInspection> {
   const provider = options.provider ?? await deps.getRemoteExportProvider()
   const local = await buildRemoteExportArtifacts(deps, options.database)
+  const exportState = await deps.getExportState(options.database ?? defaultDb)
 
-  await deps.updateLocalSettings({
+  let currentSettings = await deps.updateLocalSettings({
     last_known_local_checksum: local.checksum,
   })
 
-  local.metadata.source_device_label = provider.settings.device_label
+  const hydratedSettings = hydrateRemoteBaselineFromExportState(currentSettings, exportState)
+  const recoveredPatch: Partial<RemoteExportProvider['settings']> = {}
+
+  if (!currentSettings.last_remote_pull_checksum && hydratedSettings.last_remote_pull_checksum) {
+    recoveredPatch.last_remote_pull_checksum = hydratedSettings.last_remote_pull_checksum
+  }
+  if (!currentSettings.last_remote_push_checksum && hydratedSettings.last_remote_push_checksum) {
+    recoveredPatch.last_remote_push_checksum = hydratedSettings.last_remote_push_checksum
+  }
+  if (!currentSettings.last_remote_seen_checksum && hydratedSettings.last_remote_seen_checksum) {
+    recoveredPatch.last_remote_seen_checksum = hydratedSettings.last_remote_seen_checksum
+  }
+
+  if (Object.keys(recoveredPatch).length > 0) {
+    currentSettings = await deps.updateLocalSettings(recoveredPatch)
+  } else {
+    currentSettings = hydratedSettings
+  }
+
+  local.metadata.source_device_label = currentSettings.device_label ?? provider.settings.device_label
 
   if (!provider.isConfigured()) {
     return {
@@ -428,8 +591,8 @@ export async function inspectRemotePush(
   })
   const archiveWarnings = archiveResult.ok ? [] : [archiveResult.error.message]
 
-  const state = classifyRemoteState(provider.settings, local, verifyResult.value)
-  const baselineWarning = getNoBaselineOverwriteWarning(provider.settings, state)
+  const state = classifyRemoteState(currentSettings, local, verifyResult.value)
+  const baselineWarning = getNoBaselineOverwriteWarning(currentSettings, state)
 
   return {
     state,
@@ -463,11 +626,17 @@ export async function pushToRemote(
       }
     }
 
-    const archiveUpload = await provider.uploadArchive(inspection.local.checksum, inspection.local.exportBlob, requestOptions)
+    const archiveUpload = await provider.uploadArchive(
+      inspection.local.checksum,
+      inspection.local.exportBlob,
+      inspection.local.assetsBlob,
+      requestOptions,
+    )
     if (archiveUpload.ok) {
+      const pruneWarnings = await pruneRemoteArchivesAfterArchiveUpload(provider, requestOptions)
       return {
         archiveExists: true,
-        warnings: [] as string[],
+        warnings: pruneWarnings,
       }
     }
 
@@ -504,19 +673,24 @@ export async function pushToRemote(
     throw new Error(exportUpload.error.message)
   }
 
+  const assetsUpload = await provider.uploadAssets(inspection.local.assetsBlob, requestOptions)
+  if (!assetsUpload.ok) {
+    throw new Error(assetsUpload.error.message)
+  }
+
   const archive = await ensureArchive()
 
   await deps.updateLocalSettings({
     last_remote_push_checksum: inspection.local.checksum,
     last_remote_push_exported_at: inspection.local.metadata.exported_at,
-    last_remote_provider_id: exportUpload.value.provider_id,
+    last_remote_provider_id: assetsUpload.value.provider_id ?? exportUpload.value.provider_id,
     last_known_local_checksum: inspection.local.checksum,
   })
 
   const metadata = {
     ...inspection.local.metadata,
     source_device_label: provider.settings.device_label,
-    provider_endpoint_hash: exportUpload.value.provider_id,
+    provider_endpoint_hash: assetsUpload.value.provider_id ?? exportUpload.value.provider_id,
   }
 
   const metaUpload = await provider.uploadMeta(metadata, requestOptions)
@@ -579,10 +753,24 @@ export async function downloadRemoteExportArtifact(
     throw new Error(exportResult.error.message)
   }
 
+  let blob = exportResult.value
+  if (preview.remoteMeta?.payload_mode === 'split') {
+    const manifest = deps.parseManifestText(await blobToText(exportResult.value))
+    if (manifest.version === BACKUP_VERSION) {
+      const merged = await mergeSplitAssetsIntoManifest(
+        manifest,
+        provider,
+        requestOptions,
+        preview.remoteMeta?.workspace_checksum ?? null,
+      )
+      blob = new Blob([deps.manifestToJsonString(merged)], { type: 'application/json' })
+    }
+  }
+
   const suffix = preview.remoteMeta?.workspace_checksum ?? 'remote'
   return {
-    blob: exportResult.value,
-    filename: `speedtab-remote-${suffix}.json`,
+    blob,
+    filename: buildExportFilename('remote-export', suffix),
   }
 }
 
@@ -663,6 +851,18 @@ export async function verifyRemoteHealth(
       message: translateDataExchangeMessage('dataExchange.status.remoteExportFileMissing'),
       guidance: translateDataExchangeMessage('dataExchange.status.remoteExportFileMissingGuidance'),
       repairActions: ['push', 'verify'],
+      warnings: remote.warnings,
+    }
+  }
+
+  if (remote.payload_mode === 'split' && remote.export_exists && !remote.assets_exists) {
+    return {
+      health: 'assets_missing',
+      providerId: remote.provider_id,
+      remote,
+      message: translateDataExchangeMessage('dataExchange.status.remoteAssetsFileMissing'),
+      guidance: translateDataExchangeMessage('dataExchange.status.remoteAssetsFileMissingGuidance'),
+      repairActions: ['push', 'download_remote', 'verify'],
       warnings: remote.warnings,
     }
   }
@@ -813,6 +1013,15 @@ export async function pullFromRemote(
   }
 
   const manifest = deps.parseManifestText(await blobToText(exportResult.value))
+  if (preview.remoteMeta?.payload_mode === 'split' && manifest.version === BACKUP_VERSION) {
+    await mergeSplitAssetsIntoManifest(
+      manifest,
+      provider,
+      requestOptions,
+      preview.remoteMeta?.workspace_checksum ?? null,
+    )
+  }
+  await deps.clearAuthoredWorkspace(options.database ?? defaultDb)
   const report = await deps.importAll(manifest, {}, options.database ?? defaultDb)
   const cleanup = await deps.cleanupOrphans(options.database ?? defaultDb)
   await deps.noteImportedWorkspace('import:remote', options.database ?? defaultDb)

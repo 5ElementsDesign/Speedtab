@@ -1,4 +1,5 @@
 import {
+  downloadRemoteExportArtifact,
   getCompareActions,
   inspectRemotePush,
   previewRemotePull,
@@ -60,6 +61,15 @@ function err<T>(message: string): RemoteProviderResult<T> {
   }
 }
 
+function readBlobAsText(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result ?? ''))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsText(blob)
+  })
+}
+
 function makeProvider(overrides: Partial<RemoteExportProvider> = {}): RemoteExportProvider {
   const settings = configuredSettings()
   return {
@@ -74,23 +84,33 @@ function makeProvider(overrides: Partial<RemoteExportProvider> = {}): RemoteExpo
       app_version: '1.1.0',
       exported_at: '2026-05-30T00:00:00.000Z',
       workspace_checksum: 'remote-checksum',
+      payload_mode: 'split',
+      assets_count: 0,
       source_device_label: 'desktop',
       provider_endpoint_hash: 'provider-hash',
     }),
     downloadExport: async () => ok(new Blob(['{}'], { type: 'application/json' })),
+    downloadAssets: async () => ok(new Blob([JSON.stringify({ version: 2, exported_at: '2026-05-30T00:00:00.000Z', workspace_checksum: 'remote-checksum', assets: [] })], { type: 'application/json' })),
+    downloadArchiveExport: async () => ok(new Blob(['{}'], { type: 'application/json' })),
+    listArchives: async () => ok([]),
+    deleteArchive: async () => ok(true),
     uploadExport: async (exportBlob) => ok({ provider_id: 'provider-hash', bytes_uploaded: exportBlob.size }),
+    uploadAssets: async (assetsBlob) => ok({ provider_id: 'provider-hash', bytes_uploaded: assetsBlob.size }),
     archiveExists: async () => ok(false),
-    uploadArchive: async (workspaceChecksum, exportBlob) => ok({
+    uploadArchive: async (workspaceChecksum, exportBlob, assetsBlob) => ok({
       provider_id: 'provider-hash',
-      bytes_uploaded: exportBlob.size + workspaceChecksum.length,
+      bytes_uploaded: exportBlob.size + assetsBlob.size + workspaceChecksum.length,
     }),
     uploadMeta: async () => ok({ provider_id: 'provider-hash', bytes_uploaded: 128 }),
     verify: async () => ok({
       provider_id: 'provider-hash',
       meta: null,
       export_exists: false,
+      assets_exists: false,
       meta_exists: false,
+      payload_mode: 'missing',
       export_size_bytes: null,
+      assets_size_bytes: null,
       warnings: [],
     }),
     ...overrides,
@@ -98,10 +118,17 @@ function makeProvider(overrides: Partial<RemoteExportProvider> = {}): RemoteExpo
 }
 
 function makeDeps(provider: RemoteExportProvider, exportedAt = '2026-05-30T00:00:00.000Z', checksum = 'local-checksum') {
-  const updateLocalSettings = vi.fn(async (patch: Partial<RemoteLocalSettings>) => ({
+  let currentSettings: RemoteLocalSettings = {
     ...configuredSettings(),
-    ...patch,
-  }))
+    ...provider.settings,
+  }
+  const updateLocalSettings = vi.fn(async (patch: Partial<RemoteLocalSettings>) => {
+    currentSettings = {
+      ...currentSettings,
+      ...patch,
+    }
+    return currentSettings
+  })
 
   return {
     deps: {
@@ -121,10 +148,12 @@ function makeDeps(provider: RemoteExportProvider, exportedAt = '2026-05-30T00:00
         manifest_version: 2,
       } satisfies ImportReport)),
       manifestChecksum: vi.fn(async () => checksum),
-      manifestToJsonString: vi.fn(() => JSON.stringify(manifest(exportedAt))),
+      manifestToJsonString: vi.fn((value: BackupManifestV2) => JSON.stringify(value)),
       parseManifestText: vi.fn((text: string) => JSON.parse(text)),
       getRemoteExportProvider: vi.fn(async () => provider),
       updateLocalSettings,
+      getExportState: vi.fn(async () => ({ ...DEFAULT_LOCAL_EXPORT_STATE })),
+      clearAuthoredWorkspace: vi.fn(async () => undefined),
       cleanupOrphans: vi.fn(async () => ({
         removedModules: 0,
         removedCollections: 0,
@@ -163,6 +192,49 @@ describe('useRemoteExchange', () => {
     })
   })
 
+  it('prunes older archived snapshots after archive upload when retention is configured', async () => {
+    const listArchives = vi.fn(async () => ok([
+      {
+        workspace_checksum: 'local-checksum',
+        exported_at: '2026-05-30T00:00:00.000Z',
+        source_device_label: 'desktop',
+        payload_mode: 'split' as const,
+        assets_count: null,
+      },
+      {
+        workspace_checksum: 'older-1',
+        exported_at: '2026-05-29T00:00:00.000Z',
+        source_device_label: 'desktop',
+        payload_mode: 'split' as const,
+        assets_count: null,
+      },
+      {
+        workspace_checksum: 'older-2',
+        exported_at: '2026-05-28T00:00:00.000Z',
+        source_device_label: 'desktop',
+        payload_mode: 'split' as const,
+        assets_count: null,
+      },
+    ]))
+    const deleteArchive = vi.fn(async () => ok(true))
+    const provider = makeProvider({
+      settings: configuredSettings({
+        remote_archive_keep_latest_count: 1,
+      }),
+      listArchives,
+      deleteArchive,
+    })
+    const { deps } = makeDeps(provider)
+
+    const result = await pushToRemote({ provider }, deps)
+
+    expect(result.outcome).toBe('pushed')
+    expect(listArchives).toHaveBeenCalledTimes(1)
+    expect(deleteArchive).toHaveBeenCalledTimes(2)
+    expect(deleteArchive).toHaveBeenNthCalledWith(1, 'older-1', expect.any(Object))
+    expect(deleteArchive).toHaveBeenNthCalledWith(2, 'older-2', expect.any(Object))
+  })
+
   it('classifies identical remote state when checksums match', async () => {
     const provider = makeProvider({
       verify: async () => ok({
@@ -172,12 +244,17 @@ describe('useRemoteExchange', () => {
           app_version: '1.1.0',
           exported_at: '2026-05-30T00:00:00.000Z',
           workspace_checksum: 'local-checksum',
+          payload_mode: 'split',
+          assets_count: 0,
           source_device_label: 'desktop',
           provider_endpoint_hash: 'provider-hash',
         },
         export_exists: true,
+        assets_exists: true,
         meta_exists: true,
+        payload_mode: 'split',
         export_size_bytes: 512,
+        assets_size_bytes: 64,
         warnings: [],
       }),
     })
@@ -199,12 +276,17 @@ describe('useRemoteExchange', () => {
           app_version: '1.1.0',
           exported_at: '2026-05-30T00:00:00.000Z',
           workspace_checksum: 'remote-checksum',
+          payload_mode: 'split',
+          assets_count: 0,
           source_device_label: 'desktop',
           provider_endpoint_hash: 'provider-hash',
         },
         export_exists: true,
+        assets_exists: true,
         meta_exists: true,
+        payload_mode: 'split',
         export_size_bytes: 512,
+        assets_size_bytes: 64,
         warnings: [],
       }),
     })
@@ -226,12 +308,17 @@ describe('useRemoteExchange', () => {
           app_version: '1.1.0',
           exported_at: '2026-05-30T00:00:00.000Z',
           workspace_checksum: 'remote-checksum',
+          payload_mode: 'split',
+          assets_count: 0,
           source_device_label: 'desktop',
           provider_endpoint_hash: 'provider-hash',
         },
         export_exists: true,
+        assets_exists: true,
         meta_exists: true,
+        payload_mode: 'split',
         export_size_bytes: 512,
+        assets_size_bytes: 64,
         warnings: [],
       }),
     })
@@ -250,12 +337,17 @@ describe('useRemoteExchange', () => {
           app_version: '1.1.0',
           exported_at: '2026-05-30T00:00:00.000Z',
           workspace_checksum: 'remote-checksum',
+          payload_mode: 'split',
+          assets_count: 0,
           source_device_label: 'desktop',
           provider_endpoint_hash: 'other-provider-hash',
         },
         export_exists: true,
+        assets_exists: true,
         meta_exists: true,
+        payload_mode: 'split',
         export_size_bytes: 512,
+        assets_size_bytes: 64,
         warnings: [],
       }),
     })
@@ -274,12 +366,17 @@ describe('useRemoteExchange', () => {
           app_version: '1.1.0',
           exported_at: '2026-05-30T00:00:00.000Z',
           workspace_checksum: 'remote-checksum',
+          payload_mode: 'split',
+          assets_count: 0,
           source_device_label: 'desktop',
           provider_endpoint_hash: 'provider-hash',
         },
         export_exists: true,
+        assets_exists: true,
         meta_exists: true,
+        payload_mode: 'split',
         export_size_bytes: 512,
+        assets_size_bytes: 64,
         warnings: [],
       }),
     })
@@ -311,6 +408,83 @@ describe('useRemoteExchange', () => {
 
     const inspection = await inspectRemotePush({ provider }, deps)
     expect(inspection.state).toBe('divergent')
+  })
+
+  it('classifies local_newer after refreshing last_known_local_checksum in local settings', async () => {
+    const provider = makeProvider({
+      settings: configuredSettings({
+        last_remote_seen_checksum: 'remote-checksum',
+        last_known_local_checksum: 'older-local-checksum',
+      }),
+      verify: async () => ok({
+        provider_id: 'provider-hash',
+        meta: {
+          manifest_version: 2,
+          app_version: '1.1.0',
+          exported_at: '2026-05-30T00:00:00.000Z',
+          workspace_checksum: 'remote-checksum',
+          payload_mode: 'split',
+          assets_count: 0,
+          source_device_label: 'desktop',
+          provider_endpoint_hash: 'provider-hash',
+        },
+        export_exists: true,
+        assets_exists: true,
+        meta_exists: true,
+        payload_mode: 'split',
+        export_size_bytes: 512,
+        assets_size_bytes: 64,
+        warnings: [],
+      }),
+    })
+    const { deps } = makeDeps(provider)
+
+    const inspection = await inspectRemotePush({ provider }, deps)
+    expect(inspection.state).toBe('local_newer')
+  })
+
+  it('recovers a missing seen baseline from export state push history', async () => {
+    const provider = makeProvider({
+      settings: configuredSettings({
+        last_remote_pull_checksum: null,
+        last_remote_push_checksum: null,
+        last_remote_seen_checksum: null,
+        last_known_local_checksum: null,
+      }),
+      verify: async () => ok({
+        provider_id: 'provider-hash',
+        meta: {
+          manifest_version: 2,
+          app_version: '1.1.0',
+          exported_at: '2026-05-30T00:00:00.000Z',
+          workspace_checksum: 'remote-checksum',
+          payload_mode: 'split',
+          assets_count: 0,
+          source_device_label: 'desktop',
+          provider_endpoint_hash: 'provider-hash',
+        },
+        export_exists: true,
+        assets_exists: true,
+        meta_exists: true,
+        payload_mode: 'split',
+        export_size_bytes: 512,
+        assets_size_bytes: 64,
+        warnings: [],
+      }),
+    })
+    const { deps, updateLocalSettings } = makeDeps(provider, '2026-05-30T00:00:00.000Z', 'local-checksum')
+    deps.getExportState = vi.fn(async () => ({
+      ...DEFAULT_LOCAL_EXPORT_STATE,
+      last_remote_push_checksum: 'remote-checksum',
+    }))
+
+    const inspection = await inspectRemotePush({ provider }, deps)
+
+    expect(inspection.state).toBe('local_newer')
+    expect(updateLocalSettings).toHaveBeenCalledWith(expect.objectContaining({
+      last_remote_push_checksum: 'remote-checksum',
+      last_remote_seen_checksum: 'remote-checksum',
+    }))
   })
 
   it('returns up-to-date without uploading when checksums already match', async () => {
@@ -526,6 +700,7 @@ describe('useRemoteExchange', () => {
     const result = await pullFromRemote({ provider, confirmImport: async () => true }, deps)
 
     expect(result.preview.state).toBe('ready')
+    expect(deps.clearAuthoredWorkspace).toHaveBeenCalledTimes(1)
     expect(deps.importAll).toHaveBeenCalledTimes(1)
     expect(updateLocalSettings).toHaveBeenCalledWith({
       last_remote_pull_checksum: 'remote-checksum',
@@ -536,6 +711,56 @@ describe('useRemoteExchange', () => {
       last_remote_seen_exported_at: '2026-05-31T00:00:00.000Z',
       last_known_local_checksum: null,
     })
+  })
+
+  it('rebuilds a normal single-file backup when downloading a split remote export', async () => {
+    const remoteManifest = manifest('2026-05-31T00:00:00.000Z')
+    const provider = makeProvider({
+      verify: async () => ok({
+        provider_id: 'provider-hash',
+        meta: {
+          manifest_version: 2,
+          app_version: '1.1.0',
+          exported_at: '2026-05-31T00:00:00.000Z',
+          workspace_checksum: 'remote-checksum',
+          payload_mode: 'split',
+          assets_count: 1,
+          source_device_label: 'laptop',
+          provider_endpoint_hash: 'provider-hash',
+        },
+        export_exists: true,
+        assets_exists: true,
+        meta_exists: true,
+        payload_mode: 'split',
+        export_size_bytes: 256,
+        assets_size_bytes: 128,
+        warnings: [],
+      }),
+      downloadExport: vi.fn(async () => ok(new Blob([JSON.stringify(remoteManifest)], { type: 'application/json' }))),
+      downloadAssets: vi.fn(async () => ok(new Blob([JSON.stringify({
+        version: 2,
+        exported_at: '2026-05-31T00:00:00.000Z',
+        workspace_checksum: 'remote-checksum',
+        assets: [{
+          original_id: 11,
+          kind: 'favicon',
+          checksum: 'asset-checksum',
+          width: 32,
+          height: 32,
+          meta_json: null,
+          mime_type: 'image/png',
+          data_base64: '',
+        }],
+      })], { type: 'application/json' }))),
+    })
+    const { deps } = makeDeps(provider)
+
+    const result = await downloadRemoteExportArtifact({ provider }, deps)
+    const parsed = JSON.parse(await readBlobAsText(result.blob))
+
+    expect(result.filename).toBe('speedtab-remote-export.remote-checksum.json')
+    expect(parsed.assets).toHaveLength(1)
+    expect(parsed.assets[0].checksum).toBe('asset-checksum')
   })
 
   it('marks legacy remote manifests with a warning after import', async () => {
@@ -606,6 +831,7 @@ describe('useRemoteExchange', () => {
     const { deps, updateLocalSettings } = makeDeps(provider)
 
     await expect(pullFromRemote({ provider, confirmImport: async () => false }, deps)).rejects.toThrow('Remote pull cancelled.')
+    expect(deps.clearAuthoredWorkspace).not.toHaveBeenCalled()
     expect(deps.importAll).not.toHaveBeenCalled()
     expect(updateLocalSettings).not.toHaveBeenCalledWith(expect.objectContaining({
       last_remote_pull_checksum: expect.anything(),
@@ -652,6 +878,36 @@ describe('useRemoteExchange', () => {
 
     const diagnostics = await verifyRemoteHealth({ provider }, deps)
     expect(diagnostics.health).toBe('sidecar_missing')
+    expect(diagnostics.repairActions).toContain('push')
+  })
+
+  it('reports missing split assets payload during verify', async () => {
+    const provider = makeProvider({
+      verify: async () => ok({
+        provider_id: 'provider-hash',
+        meta: {
+          manifest_version: 2,
+          app_version: '1.1.0',
+          exported_at: '2026-05-31T00:00:00.000Z',
+          workspace_checksum: 'remote-checksum',
+          payload_mode: 'split',
+          assets_count: 12,
+          source_device_label: 'desktop',
+          provider_endpoint_hash: 'provider-hash',
+        },
+        export_exists: true,
+        assets_exists: false,
+        meta_exists: true,
+        payload_mode: 'split',
+        export_size_bytes: 512,
+        assets_size_bytes: null,
+        warnings: ['Split remote export is missing the assets payload.'],
+      }),
+    })
+    const { deps } = makeDeps(provider)
+
+    const diagnostics = await verifyRemoteHealth({ provider }, deps)
+    expect(diagnostics.health).toBe('assets_missing')
     expect(diagnostics.repairActions).toContain('push')
   })
 

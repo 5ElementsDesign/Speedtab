@@ -2,7 +2,39 @@
 
 All notable changes to Speedtab will be documented in this file.
 
-## [1.4.2] [UNRELEASED]
+## [1.4.3]
+
+### Added
+- Added optional Google Drive remote sync in `import-export.html`, including remote status checks, manual verification flows, configurable auto-push intervals, and a subtle widget-rail sync indicator.
+- Added remote reset controls for Google Drive app-data workspaces inside `import-export.html`, separated from normal remote-provider setup actions.
+- Added per-note default floating-window geometry through note metadata, allowing seeded or exported notes to define first-open width/height without hardcoded note-specific logic.
+- Added note-editor window tools for resetting stored floating-note size/position back to the note's default open geometry.
+- Added a safe attribute-driven style API for HTML notes and other trusted content surfaces via `data-st-*` utilities, providing controlled layout and visual overrides without re-enabling raw inline `style` attributes.
+- Added an analog clock mode for the widget rail, including smooth-motion hand animation, configurable date/time formatting, localized token helpers, and widget-configuration shortcuts from both clock and weather modals.
+- Added richer clock date-format helpers, including normalized token names, multiline `[br]` support, and inline divider `[hr]` support.
+- Added local note-tab authoring improvements for HTML notes, including direct `Tabber` scaffolding and better default geometry support for seeded example notes such as `Tabby Tabs`.
+
+### Changed
+- Refined remote configuration and remote-sync UI flows for Google Drive, including provider-specific setup, account display, disconnect handling, and clearer sync-state messaging.
+- Refined reset and destructive-action UX in `import-export.html` so provider setup stays clean while remote wipe actions live under reset options.
+- Refined open-note editor tooling so window actions sit in a compact local menu instead of using the global teleported dropdown behavior.
+- Refined the widget rail with a more capable clock widget, stronger default analog styling, and direct settings shortcuts from modal surfaces.
+- Refined example-workspace widget defaults so the starter rail ships with the analog clock flow enabled and better note metadata coverage.
+
+### Fixed
+- Fixed remote auto-sync lineage recovery so existing synced workspaces are not misclassified as first-time devices when local remote bookkeeping is incomplete.
+- Fixed widget-rail remote sync indicator timing so overlapping check/push phases no longer flicker, disappear early, or downgrade each other mid-sync.
+- Fixed note-module refresh reapplication so module-level UI config such as `data-color-accent` survives note save/edit updates.
+- Fixed remote pull restore behavior so pulling from WebDAV or Google Drive replaces the authored local workspace cleanly instead of colliding with existing page slugs after reinstall or reseeding.
+- Fixed contradictory remote-sync states in `import-export.html` by clearing stale preview state after `Check Status` and by disabling pull/download guidance when the remote workspace is actually missing.
+- Fixed example-workspace note seeding so note metadata is preserved end-to-end, allowing notes like `Tabby Tabs` to use metadata-defined default open sizes.
+- Fixed note-window metadata sizing so explicit default width/height no longer get immediately overridden by HTML auto-fit on first open.
+- Fixed clock-widget rerender noise so the widget shell no longer thrashes attributes or DOM every second.
+- Fixed analog clock smooth-motion rendering so CSS-driven hands no longer double-rotate or drift to incorrect times.
+- Fixed weather forecast modal parity by exposing the same configuration shortcut used by the clock-tools modal.
+
+
+## [1.4.2]
 
 ### Added
 - Added a configurable clock widget for the rail, including localized date/time formats, token insertion helpers, per-part colors, font sizing, alignment, and two-row display support.

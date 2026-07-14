@@ -94,6 +94,8 @@ describe('useWebDavProvider', () => {
   it('reports missing sidecar and missing export separately during verify', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
       .mockResolvedValueOnce(new Response(null, { status: 200, headers: { 'content-length': '512' } }))
 
     vi.stubGlobal('fetch', fetchMock)
@@ -168,26 +170,8 @@ describe('useWebDavProvider', () => {
       .mockResolvedValueOnce(new Response(null, { status: 404 }))
       .mockResolvedValueOnce(new Response(null, { status: 201 }))
       .mockResolvedValueOnce(new Response(null, { status: 201 }))
-
-    vi.stubGlobal('fetch', fetchMock)
-
-    const result = await createWebDavProvider(configuredSettings()).uploadArchive(
-      'abc123',
-      new Blob(['payload'], { type: 'application/json' }),
-    )
-
-    expect(result.ok).toBe(true)
-    expect(fetchMock).toHaveBeenCalledTimes(3)
-    expect(fetchMock.mock.calls[0][1]?.method).toBe('HEAD')
-    expect(fetchMock.mock.calls[1][1]?.method).toBe('MKCOL')
-    expect(fetchMock.mock.calls[2][1]?.method).toBe('PUT')
-    expect(fetchMock.mock.calls[1][0]).toContain('/st-archive/')
-    expect(fetchMock.mock.calls[2][0]).toContain('/st-archive/speedtab-export.abc123.json')
-  })
-
-  it('treats a 405 archive collection probe as an existing folder', async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response(null, { status: 405 }))
+      .mockResolvedValueOnce(new Response(null, { status: 201 }))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
       .mockResolvedValueOnce(new Response(null, { status: 201 }))
 
     vi.stubGlobal('fetch', fetchMock)
@@ -195,11 +179,45 @@ describe('useWebDavProvider', () => {
     const result = await createWebDavProvider(configuredSettings()).uploadArchive(
       'abc123',
       new Blob(['payload'], { type: 'application/json' }),
+      new Blob(['assets'], { type: 'application/json' }),
     )
 
     expect(result.ok).toBe(true)
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenCalledTimes(6)
+    expect(fetchMock.mock.calls[0][1]?.method).toBe('HEAD')
+    expect(fetchMock.mock.calls[1][1]?.method).toBe('MKCOL')
+    expect(fetchMock.mock.calls[2][1]?.method).toBe('PUT')
+    expect(fetchMock.mock.calls[3][1]?.method).toBe('PUT')
+    expect(fetchMock.mock.calls[4][1]?.method).toBe('GET')
+    expect(fetchMock.mock.calls[5][1]?.method).toBe('PUT')
+    expect(fetchMock.mock.calls[1][0]).toContain('/st-archive/')
+    expect(fetchMock.mock.calls[2][0]).toContain('/st-archive/speedtab-export.abc123.data.json')
+    expect(fetchMock.mock.calls[3][0]).toContain('/st-archive/speedtab-export.abc123.assets.json')
+    expect(fetchMock.mock.calls[5][0]).toContain('/speedtab-archive-index.json')
+  })
+
+  it('treats a 405 archive collection probe as an existing folder', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 405 }))
+      .mockResolvedValueOnce(new Response(null, { status: 201 }))
+      .mockResolvedValueOnce(new Response(null, { status: 201 }))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }))
+      .mockResolvedValueOnce(new Response(null, { status: 201 }))
+
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await createWebDavProvider(configuredSettings()).uploadArchive(
+      'abc123',
+      new Blob(['payload'], { type: 'application/json' }),
+      new Blob(['assets'], { type: 'application/json' }),
+    )
+
+    expect(result.ok).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(5)
     expect(fetchMock.mock.calls[0][1]?.method).toBe('HEAD')
     expect(fetchMock.mock.calls[1][1]?.method).toBe('PUT')
+    expect(fetchMock.mock.calls[2][1]?.method).toBe('PUT')
+    expect(fetchMock.mock.calls[3][1]?.method).toBe('GET')
+    expect(fetchMock.mock.calls[4][1]?.method).toBe('PUT')
   })
 })

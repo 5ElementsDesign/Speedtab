@@ -114,7 +114,7 @@
 }
 
 [data-bookmarks-quicklinks] {
-  [data-bookmark-actions] {
+  [data-click="deleteModuleBookmark"] {
     display: none;
   }
 }

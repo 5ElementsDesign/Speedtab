@@ -2,6 +2,7 @@ import {useFeed} from '../../../composables/useFeed.ts'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 import {renderFormActions} from '../forms/actions.js'
+import {updateFormDirtyState} from '../forms/actions.js'
 import {customizerDivider, customizerField, customizerSection, textInput, urlInput} from '../../ui/primitives.js'
 
 const feedApi = useFeed()
@@ -250,18 +251,56 @@ export async function useDiscoveredFeedUrl(url) {
   await testFeedSourceUrl()
 }
 
-export function renderFeedSourceCrudForm(state) {
+function renderTestedUrlLink(state) {
   const testedUrl = state.lastTestedUrl || ''
-  const testedUrlHtml = testedUrl
-    ? `<a
-        href="${escapeHtml(testedUrl)}"
-        title="${escapeHtml(testedUrl)}"
-        target="_blank"
-        rel="noopener noreferrer"
-        data-feed-form-inline-link
-      >${escapeHtml(t('common.openUrl'))}</a>`
-    : ''
+  if (!testedUrl) return ''
+  return `<a
+    href="${escapeHtml(testedUrl)}"
+    title="${escapeHtml(testedUrl)}"
+    target="_blank"
+    rel="noopener noreferrer"
+    data-feed-form-inline-link
+  >${escapeHtml(t('common.openUrl'))}</a>`
+}
 
+function renderFeedUrlStatus(state) {
+  if (state.testError) {
+    return `<p data-feed-form-status data-status="error">${escapeHtml(state.testError)}</p>`
+  }
+  if (state.testSuccess) {
+    return `<p data-feed-form-status data-status="success">${escapeHtml(t('feedForm.connectionSuccessful'))}</p>`
+  }
+  return `<p data-feed-form-status>${escapeHtml(t('feedForm.testBeforeSaving'))}</p>`
+}
+
+function renderDiscoveredFeedsBlock(state) {
+  if (!state.discoveredFeeds.length) return ''
+  return `
+    <div data-feed-form-discovered>
+      ${state.lookupStatus ? `<p data-feed-form-status>${escapeHtml(state.lookupStatus)}</p>` : ''}
+      <div data-feed-form-discovered-list>
+        ${state.discoveredFeeds.map((candidate) => `
+          <button
+            type="button"
+            data-click="feedFormUseDiscovered"
+            data-discovered-feed-url="${escapeHtml(candidate.url)}"
+            data-feed-form-discovered-item
+          >
+            <span data-feed-form-discovered-title>${escapeHtml(candidate.title)}</span>
+            <span data-feed-form-discovered-url>${escapeHtml(candidate.url)}</span>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `
+}
+
+function renderLookupStatus(state) {
+  if (!state.lookupStatus || state.discoveredFeeds.length) return ''
+  return `<p data-feed-form-status>${escapeHtml(state.lookupStatus)}</p>`
+}
+
+export function renderFeedSourceCrudForm(state) {
   return `
     <form
       data-module-crud-form
@@ -284,7 +323,7 @@ export function renderFeedSourceCrudForm(state) {
           <div data-customizer-field data-customizer-field-layout="stack" data-feed-form-field>
             <div data-feed-form-inline-head>
               <span data-customizer-field-label>${escapeHtml(t('feedForm.feedUrl'))}</span>
-              ${testedUrlHtml}
+              <span data-feed-form-tested-link>${renderTestedUrlLink(state)}</span>
             </div>
             <div data-feed-form-inline-row>
               ${urlInput({
@@ -306,29 +345,8 @@ export function renderFeedSourceCrudForm(state) {
                 ${state.isTesting || !state.feedUrl ? 'disabled' : ''}
               >${state.isTesting ? '...' : escapeHtml(t('common.test'))}</button>
             </div>
-            ${state.testError
-              ? `<p data-feed-form-status data-status="error">${escapeHtml(state.testError)}</p>`
-              : state.testSuccess
-                ? `<p data-feed-form-status data-status="success">${escapeHtml(t('feedForm.connectionSuccessful'))}</p>`
-                : `<p data-feed-form-status>${escapeHtml(t('feedForm.testBeforeSaving'))}</p>`}
-            ${state.discoveredFeeds.length ? `
-              <div data-feed-form-discovered>
-                ${state.lookupStatus ? `<p data-feed-form-status>${escapeHtml(state.lookupStatus)}</p>` : ''}
-                <div data-feed-form-discovered-list>
-                  ${state.discoveredFeeds.map((candidate) => `
-                    <button
-                      type="button"
-                      data-click="feedFormUseDiscovered"
-                      data-discovered-feed-url="${escapeHtml(candidate.url)}"
-                      data-feed-form-discovered-item
-                    >
-                      <span data-feed-form-discovered-title>${escapeHtml(candidate.title)}</span>
-                      <span data-feed-form-discovered-url>${escapeHtml(candidate.url)}</span>
-                    </button>
-                  `).join('')}
-                </div>
-              </div>
-            ` : ''}
+            <div data-feed-form-test-status>${renderFeedUrlStatus(state)}</div>
+            <div data-feed-form-discovered-wrap>${renderDiscoveredFeedsBlock(state)}</div>
           </div>
 
           ${customizerField({
@@ -368,9 +386,7 @@ export function renderFeedSourceCrudForm(state) {
               >${state.isLookingUp ? '...' : escapeHtml(t('common.lookup'))}</button>
             </div>
             <p data-settings-hint>${escapeHtml(t('feedForm.siteUrlHelp'))}</p>
-            ${state.lookupStatus && !state.discoveredFeeds.length
-              ? `<p data-feed-form-status>${escapeHtml(state.lookupStatus)}</p>`
-              : ''}
+            <div data-feed-form-lookup-status>${renderLookupStatus(state)}</div>
           </div>
         `,
       })}
@@ -388,4 +404,78 @@ export function renderFeedSourceCrudForm(state) {
 
 export function canSaveFeedSourceForm() {
   return canSave(feedFormState)
+}
+
+export function patchFeedSourceCrudForm(root, state = feedFormState) {
+  if (!(root instanceof HTMLElement) || !state) return false
+  const form = root.matches('[data-feed-form]') ? root : root.querySelector('[data-feed-form]')
+  if (!(form instanceof HTMLFormElement)) return false
+
+  form.dataset.feedTestSuccess = state.testSuccess ? 'true' : 'false'
+  form.dataset.feedLastTestedUrl = state.lastTestedUrl || ''
+
+  const feedUrlInput = form.querySelector('input[name="feed_url"]')
+  if (feedUrlInput instanceof HTMLInputElement && feedUrlInput.value !== state.feedUrl) {
+    feedUrlInput.value = state.feedUrl
+  }
+
+  const titleInput = form.querySelector('input[name="title"]')
+  if (titleInput instanceof HTMLInputElement && titleInput.value !== state.title) {
+    titleInput.value = state.title
+  }
+
+  const siteUrlInput = form.querySelector('input[name="site_url"]')
+  if (siteUrlInput instanceof HTMLInputElement && siteUrlInput.value !== state.siteUrl) {
+    siteUrlInput.value = state.siteUrl
+  }
+
+  const testedLink = form.querySelector('[data-feed-form-tested-link]')
+  if (testedLink instanceof HTMLElement) {
+    testedLink.innerHTML = renderTestedUrlLink(state)
+  }
+
+  const testButton = form.querySelector('[data-feed-form-test-btn]')
+  if (testButton instanceof HTMLButtonElement) {
+    testButton.textContent = state.isTesting ? '...' : t('common.test')
+    testButton.disabled = state.isTesting || !state.feedUrl
+  }
+
+  const lookupButton = form.querySelector('[data-feed-form-lookup-btn]')
+  if (lookupButton instanceof HTMLButtonElement) {
+    lookupButton.textContent = state.isLookingUp ? '...' : t('common.lookup')
+    lookupButton.disabled = state.isLookingUp || !state.siteUrl
+  }
+
+  const testStatus = form.querySelector('[data-feed-form-test-status]')
+  if (testStatus instanceof HTMLElement) {
+    testStatus.innerHTML = renderFeedUrlStatus(state)
+  }
+
+  const discoveredWrap = form.querySelector('[data-feed-form-discovered-wrap]')
+  if (discoveredWrap instanceof HTMLElement) {
+    discoveredWrap.innerHTML = renderDiscoveredFeedsBlock(state)
+  }
+
+  const lookupStatus = form.querySelector('[data-feed-form-lookup-status]')
+  if (lookupStatus instanceof HTMLElement) {
+    lookupStatus.innerHTML = renderLookupStatus(state)
+  }
+
+  const testSuccessInput = form.querySelector('input[name="feed_test_success"]')
+  if (testSuccessInput instanceof HTMLInputElement) {
+    testSuccessInput.value = state.testSuccess ? '1' : ''
+  }
+
+  const lastTestedInput = form.querySelector('input[name="feed_last_tested_url"]')
+  if (lastTestedInput instanceof HTMLInputElement) {
+    lastTestedInput.value = state.lastTestedUrl || ''
+  }
+
+  const canSaveInput = form.querySelector('input[name="feed_can_save"]')
+  if (canSaveInput instanceof HTMLInputElement) {
+    canSaveInput.value = canSave(state) ? '1' : ''
+  }
+
+  updateFormDirtyState(form)
+  return true
 }

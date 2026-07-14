@@ -10,7 +10,7 @@ import type { RemoteLocalSettingKey } from '@/types/remote'
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-type StoredValue = string | null
+type StoredValue = string | number | boolean | null
 
 function withMeta<T extends object>(data: T) {
   return { ...makeCreateMetadata(1_700_000_000_000), ...data }
@@ -86,15 +86,24 @@ describe('useLocalSettings', () => {
       remote_secret: 'secret-token',
       remote_path: '/speedtab',
       device_label: 'work-laptop',
+      remote_auto_sync_enabled: true,
+      remote_auto_sync_interval_minutes: 15,
+      remote_archive_keep_latest_count: 12,
       last_known_local_checksum: 'abc123',
     })
 
     expect(settings.remote_provider_type).toBe('webdav')
     expect(settings.remote_endpoint_url).toBe('https://dav.example.com/speedtab')
     expect(settings.device_label).toBe('work-laptop')
+    expect(settings.remote_auto_sync_enabled).toBe(true)
+    expect(settings.remote_auto_sync_interval_minutes).toBe(15)
+    expect(settings.remote_archive_keep_latest_count).toBe(12)
     expect(settings.last_known_local_checksum).toBe('abc123')
     expect(store.get('remote_secret')).toBe('secret-token')
     expect(store.get('remote_provider_type')).toBe('webdav')
+    expect(store.get('remote_auto_sync_enabled')).toBe(true)
+    expect(store.get('remote_auto_sync_interval_minutes')).toBe(15)
+    expect(store.get('remote_archive_keep_latest_count')).toBe(12)
   })
 
   it('keeps remote settings out of the portable workspace export path', async () => {
@@ -154,5 +163,19 @@ describe('useLocalSettings', () => {
     expect(settings.remote_username).toBeNull()
     expect(pages).toHaveLength(1)
     expect(pages[0].slug).toBe('home')
+  })
+
+  it('normalizes invalid auto-sync storage values back to defaults', async () => {
+    installChromeStorageMock({
+      remote_auto_sync_enabled: 'yes' as unknown as StoredValue,
+      remote_auto_sync_interval_minutes: 0 as StoredValue,
+      remote_archive_keep_latest_count: 0 as StoredValue,
+    })
+
+    const settings = await getLocalSettings()
+
+    expect(settings.remote_auto_sync_enabled).toBe(false)
+    expect(settings.remote_auto_sync_interval_minutes).toBeNull()
+    expect(settings.remote_archive_keep_latest_count).toBeNull()
   })
 })

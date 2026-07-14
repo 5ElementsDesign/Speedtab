@@ -1,3 +1,8 @@
+import defaultWallpaperUrl from '../../assets/wallpaper-y-tree.webp'
+import {searchOpenMeteoLocations} from '../../composables/useOpenMeteoWeather.ts'
+import {getWidgetSettings, saveWidgetSettings} from '../../composables/useWidgetSettings.ts'
+import {YEH} from '../../lib/yai/yeh.js'
+import {closeModal} from '../components/modal.js'
 import {openSidepanel} from '../components/sidepanel.js'
 import {
   archiveBgItem,
@@ -7,14 +12,26 @@ import {
   saveAppSetting,
 } from '../data/app-settings.js'
 import {deleteBgAsset, loadAssetObjectUrl, loadBgAssets, normalizeImageBlob, storeOrGetAsset} from '../data/assets.js'
-import {renderBgArchiveSwatches, renderBgAssetThumbs, renderSettingsPanel, renderWidgetSettingsPanel} from '../features/settings/render.js'
-import {initializeWidgetRail, openWeatherForecastModal, refreshWeatherWidgetNow} from '../features/widgets/manager.js'
-import {getWidgetSettings, saveWidgetSettings} from '../../composables/useWidgetSettings.ts'
-import {searchOpenMeteoLocations} from '../../composables/useOpenMeteoWeather.ts'
+import {renderBgArchiveSwatches, renderBgAssetThumbs, renderSettingsPanel, renderWeatherLocationSearchState, renderWidgetSettingsPanel} from '../features/settings/render.js'
+import {
+  createClockPresetTimer,
+  createClockTimer,
+  deleteClockTimer,
+  openClockToolsModal,
+  openWeatherForecastModal,
+  patchWidgetRailSettings,
+  pauseClockStopwatch,
+  refreshWeatherWidgetNow,
+  resetClockStopwatch,
+  resetClockTimerDraft,
+  resumeClockStopwatch,
+  startClockStopwatch,
+  syncClockTimerCreateState,
+  toggleClockTimer
+} from '../features/widgets/manager.js'
 import {initColorPicker, wrapColorPicker} from '../utils/color-picker.js'
+import {patchInner, replaceNode} from '../utils/dom-patch.js'
 import {t} from '../utils/i18n.js'
-import defaultWallpaperUrl from '../../assets/wallpaper-y-tree.webp'
-import {YEH} from '../../lib/yai/yeh.js'
 
 const weatherSearchState = {
   query: '',
@@ -24,7 +41,7 @@ const weatherSearchState = {
 }
 
 let weatherSearchController = null
-const DEFAULT_CLOCK_DATE_FORMAT = '{shortDay}, {day}. {shortMonth} {shortYear}'
+const DEFAULT_CLOCK_DATE_FORMAT = '{dayName} [hr] {day}. {monthShort} {yearShort}'
 const DEFAULT_CLOCK_TIME_FORMAT = '{hour}:{minute}:{second}'
 let liveWidgetSettings = null
 
@@ -108,6 +125,15 @@ function getSettingsBody() {
   return document.querySelector('[data-sidepanel-body]')
 }
 
+function patchWeatherLocationSearchState() {
+  const body = getSettingsBody()
+  if (!(body instanceof HTMLElement)) return false
+  const host = body.querySelector('[data-weather-location-search-state]')
+  if (!(host instanceof HTMLElement)) return false
+  const location = liveWidgetSettings?.weather?.location ?? null
+  return replaceNode(host, renderWeatherLocationSearchState(location, weatherSearchState)) instanceof HTMLElement
+}
+
 function getSettingsPanelKind() {
   return document.querySelector('[data-sidepanel]')?.dataset?.panelKind || 'settings'
 }
@@ -116,10 +142,13 @@ function focusSettingsField(id) {
   if (!id) return
   requestAnimationFrame(() => {
     const field = document.getElementById(id)
-    if (!(field instanceof HTMLInputElement)) return
+    if (!(field instanceof HTMLElement)) return
+    field.scrollIntoView({block: 'center', behavior: 'smooth'})
     field.focus()
-    const length = field.value.length
-    field.setSelectionRange(length, length)
+    if (field instanceof HTMLInputElement) {
+      const length = field.value.length
+      field.setSelectionRange(length, length)
+    }
   })
 }
 
@@ -128,6 +157,8 @@ async function rerenderSettingsBodyPreserveState(preferredFocusId = '') {
   if (!(body instanceof HTMLElement)) return
 
   const scrollTop = body.scrollTop
+  const openAdvancedOptions = Array.from(body.querySelectorAll('[data-settings-advanced-options]'))
+    .map((entry) => entry instanceof HTMLDetailsElement && entry.open)
   const active = document.activeElement
   const activeId = active instanceof HTMLElement ? active.id : ''
   const activeName = active instanceof HTMLInputElement || active instanceof HTMLSelectElement || active instanceof HTMLTextAreaElement
@@ -143,9 +174,20 @@ async function rerenderSettingsBodyPreserveState(preferredFocusId = '') {
   await renderSettingsBody(preferredFocusId)
   body.scrollTop = scrollTop
 
+  const nextAdvancedOptions = Array.from(body.querySelectorAll('[data-settings-advanced-options]'))
+  nextAdvancedOptions.forEach((entry, index) => {
+    if (!(entry instanceof HTMLDetailsElement)) return
+    entry.open = openAdvancedOptions[index] === true
+  })
+
+  requestAnimationFrame(() => {
+    body.scrollTop = scrollTop
+  })
+
   if (preferredFocusId) return
 
   requestAnimationFrame(() => {
+    body.scrollTop = scrollTop
     let field = null
     if (activeId) field = document.getElementById(activeId)
     if (!field && activeName) {
@@ -165,24 +207,29 @@ async function rerenderSettingsBodyPreserveState(preferredFocusId = '') {
 
 function updateClockPatternRestoreButton(field) {
   const restoreButton = field?.querySelector?.('[data-restore-pattern]')
-  const input = field?.querySelector?.('input[name="clock_date_format"]')
-  if (!(restoreButton instanceof HTMLButtonElement) || !(input instanceof HTMLInputElement)) return
+  const input = field?.querySelector?.('textarea[name="clock_date_format"]')
+  if (!(restoreButton instanceof HTMLButtonElement) || !(input instanceof HTMLTextAreaElement)) return
   restoreButton.disabled = input.value.trim() === DEFAULT_CLOCK_DATE_FORMAT
 }
 
 async function renderSettingsBody(focusId = '') {
+  // CRITICAL PANEL RENDER PATH:
+  // DO NOT REBUILD THE SETTINGS BODY FOR SMALL LOCAL STATE CHANGES
+  // IF A PATCHABLE SUBSECTION ALREADY EXISTS.
   const body = getSettingsBody()
   if (!(body instanceof HTMLElement)) return
-  const [settings, widgetSettings] = await Promise.all([
+  const [settings, persistedWidgetSettings] = await Promise.all([
     loadAppSettings(),
     getWidgetSettings(),
   ])
-  body.innerHTML = getSettingsPanelKind() === 'settings-widgets'
+  const widgetSettings = getSettingsPanelKind() === 'settings-widgets' && liveWidgetSettings
+    ? liveWidgetSettings
+    : persistedWidgetSettings
+  patchInner(body, getSettingsPanelKind() === 'settings-widgets'
     ? renderWidgetSettingsPanel(widgetSettings, weatherSearchState)
-    : renderSettingsPanel(settings, widgetSettings)
+    : renderSettingsPanel(settings, widgetSettings))
 
   const shouldInitWidgetColorPicker = getSettingsPanelKind() === 'settings-widgets'
-    && widgetSettings?.clock?.enabled === true
     && Boolean(body.querySelector('[data-coloris]'))
 
   if (shouldInitWidgetColorPicker) {
@@ -221,9 +268,9 @@ function shouldRerenderAppForWidgetSettings(prev, next) {
 }
 
 function applyWidgetRailAlignment(settings) {
-  const railCenter = document.querySelector('[data-widget-rail-align]')
-  if (railCenter instanceof HTMLElement) {
-    railCenter.setAttribute('data-widget-rail-align', settings?.rail_align || 'left')
+  const railHost = document.querySelector('[data-widget-rail-host]')
+  if (railHost instanceof HTMLElement) {
+    railHost.setAttribute('data-widget-rail-align', settings?.rail_align || 'left')
   }
 }
 
@@ -257,11 +304,11 @@ export const settingsActions = {
   async openSettings() {
     liveWidgetSettings = null
     const panel = openSidepanel({title: t('common.settings'), panelKind: 'settings'})
-    panel.querySelector('[data-sidepanel-body]').innerHTML = ''
+    patchInner(panel.querySelector('[data-sidepanel-body]'), '')
     await renderSettingsBody()
   },
 
-  async openWidgetSettings() {
+  async openWidgetSettings(focusId = '') {
     liveWidgetSettings = null
     const panel = openSidepanel({
       title: t('settings.widgetConfiguration'),
@@ -269,8 +316,18 @@ export const settingsActions = {
       showBack: true,
       backAction: 'openSettings',
     })
-    panel.querySelector('[data-sidepanel-body]').innerHTML = ''
-    await renderSettingsBody()
+    patchInner(panel.querySelector('[data-sidepanel-body]'), '')
+    await renderSettingsBody(focusId)
+  },
+
+  async openClockWidgetSettings() {
+    closeModal()
+    await settingsActions.openWidgetSettings('clock_display')
+  },
+
+  async openWeatherWidgetSettings() {
+    closeModal()
+    await settingsActions.openWidgetSettings('weather_location_query')
   },
 
   async openWidgetSettingsLocation() {
@@ -281,7 +338,7 @@ export const settingsActions = {
       showBack: true,
       backAction: 'openSettings',
     })
-    panel.querySelector('[data-sidepanel-body]').innerHTML = ''
+    patchInner(panel.querySelector('[data-sidepanel-body]'), '')
     await renderSettingsBody('weather_location_query')
   },
 
@@ -317,6 +374,7 @@ export const settingsActions = {
     const currentSettings = liveWidgetSettings ?? await getWidgetSettings()
     const nextSettings = setWidgetSetting(target, currentSettings)
     liveWidgetSettings = nextSettings
+    const widgetPath = target.dataset.widgetPath || ''
 
     if (shouldRerenderAppForWidgetSettings(currentSettings, nextSettings)) {
       await saveWidgetSettings(nextSettings)
@@ -325,13 +383,12 @@ export const settingsActions = {
     }
 
     applyWidgetRailAlignment(nextSettings)
-    initializeWidgetRail(nextSettings)
+    patchWidgetRailSettings(nextSettings, widgetPath)
 
     if (target.name === 'clock_date_format') {
       updateClockPatternRestoreButton(target.closest('[data-customizer-field]'))
     }
 
-    const widgetPath = target.dataset.widgetPath || ''
     const needsSettingsRerender = [
       'weather.enabled',
       'clock.enabled',
@@ -348,6 +405,7 @@ export const settingsActions = {
     await saveWidgetSettings(nextSettings)
 
     if (needsSettingsRerender) {
+      await new Promise((resolve) => setTimeout(resolve, 0))
       await rerenderSettingsBodyPreserveState()
     }
   },
@@ -358,26 +416,29 @@ export const settingsActions = {
     nextSettings.clock = {
       ...nextSettings.clock,
       align: 'right',
-      two_row: true,
-      date_format: '{shortDay}, {day}. {shortMonth} {shortYear}',
+      display: 'digital',
+      smooth_motion: true,
+      two_row: false,
+      date_format: DEFAULT_CLOCK_DATE_FORMAT,
       time_format: '{hour}:{minute}:{second}',
       background: '#00000030',
       border: '#3b383847',
       date_color: '#b6b9bc',
-      time_color: '#ffffff',
+      time_color: '#d9dde2',
       date_font_size: 14,
       time_font_size: 18,
     }
     await saveWidgetSettings(nextSettings)
+    liveWidgetSettings = nextSettings
     applyWidgetRailAlignment(nextSettings)
-    initializeWidgetRail(nextSettings)
+    patchWidgetRailSettings(nextSettings)
     await rerenderSettingsBodyPreserveState()
   },
 
   async clearWidgetColor(target) {
     const widgetPath = target.dataset.widgetPath
     if (!widgetPath) return
-    const currentSettings = await getWidgetSettings()
+    const currentSettings = liveWidgetSettings ?? await getWidgetSettings()
     const nextSettings = structuredClone(currentSettings)
     const parts = widgetPath.split('.')
     let cursor = nextSettings
@@ -389,8 +450,16 @@ export const settingsActions = {
     await saveWidgetSettings(nextSettings)
     liveWidgetSettings = nextSettings
     applyWidgetRailAlignment(nextSettings)
-    initializeWidgetRail(nextSettings)
-    await rerenderSettingsBodyPreserveState()
+    patchWidgetRailSettings(nextSettings, widgetPath)
+
+    const colorInput = target.closest('[data-color-item]')?.querySelector('input[data-coloris]')
+    if (colorInput instanceof HTMLInputElement) {
+      colorInput.value = ''
+      const clrField = colorInput.closest('.clr-field')
+      if (clrField instanceof HTMLElement) {
+        clrField.style.color = ''
+      }
+    }
   },
 
   toggleClockPatternList(target) {
@@ -410,8 +479,8 @@ export const settingsActions = {
     const settingsBody = getSettingsBody()
     const input = insertTarget === 'time'
       ? settingsBody?.querySelector?.('input[name="clock_time_format"]')
-      : field?.querySelector?.('input[name="clock_date_format"]')
-    if (!(input instanceof HTMLInputElement)) return
+      : field?.querySelector?.('textarea[name="clock_date_format"]')
+    if (!(input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) return
 
     if (insertTarget === 'date' && input.value.trim() === DEFAULT_CLOCK_DATE_FORMAT) {
       input.value = ''
@@ -434,8 +503,8 @@ export const settingsActions = {
   async restoreClockPattern(target) {
     const pattern = target.dataset.restorePattern || DEFAULT_CLOCK_DATE_FORMAT
     const field = target.closest('[data-customizer-field]')
-    const input = field?.querySelector?.('input[name="clock_date_format"]')
-    if (!(input instanceof HTMLInputElement)) return
+    const input = field?.querySelector?.('textarea[name="clock_date_format"]')
+    if (!(input instanceof HTMLTextAreaElement)) return
     input.value = pattern
     input.focus()
     input.setSelectionRange(pattern.length, pattern.length)
@@ -453,6 +522,10 @@ export const settingsActions = {
       weatherSearchState.results = []
       weatherSearchState.status = 'idle'
       weatherSearchState.error = ''
+      if (patchWeatherLocationSearchState()) {
+        focusSettingsField('weather_location_query')
+        return
+      }
       await renderSettingsBody('weather_location_query')
       return
     }
@@ -460,7 +533,11 @@ export const settingsActions = {
     weatherSearchController = new AbortController()
     weatherSearchState.status = 'loading'
     weatherSearchState.error = ''
-    await renderSettingsBody('weather_location_query')
+    if (patchWeatherLocationSearchState()) {
+      focusSettingsField('weather_location_query')
+    } else {
+      await renderSettingsBody('weather_location_query')
+    }
 
     try {
       const results = await searchOpenMeteoLocations(query, weatherSearchController.signal)
@@ -474,6 +551,10 @@ export const settingsActions = {
       weatherSearchState.error = error instanceof Error ? error.message : String(error)
     }
 
+    if (patchWeatherLocationSearchState()) {
+      focusSettingsField('weather_location_query')
+      return
+    }
     await renderSettingsBody('weather_location_query')
   },
 
@@ -515,6 +596,50 @@ export const settingsActions = {
 
   openWeatherForecast() {
     openWeatherForecastModal()
+  },
+
+  openClockTools(target) {
+    openClockToolsModal(target)
+  },
+
+  startClockStopwatch() {
+    startClockStopwatch()
+  },
+
+  pauseClockStopwatch() {
+    pauseClockStopwatch()
+  },
+
+  resumeClockStopwatch() {
+    resumeClockStopwatch()
+  },
+
+  resetClockStopwatch() {
+    resetClockStopwatch()
+  },
+
+  updateClockTimerCreateState() {
+    syncClockTimerCreateState()
+  },
+
+  resetClockTimerDraft() {
+    resetClockTimerDraft()
+  },
+
+  createClockTimer() {
+    createClockTimer()
+  },
+
+  createClockPresetTimer(target) {
+    createClockPresetTimer(target)
+  },
+
+  toggleClockTimer(target) {
+    toggleClockTimer(target)
+  },
+
+  deleteClockTimer(target) {
+    deleteClockTimer(target)
   },
 
   previewBgProperty(target) {

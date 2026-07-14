@@ -357,8 +357,8 @@ export const customizerActions = {
     if (!confirm(t('app.confirms.deleteModule'))) return
     await softDeleteModule(module.id)
     closeSidepanel()
-    const {renderNextRoot} = await import('../app/bootstrap.js')
-    await renderNextRoot()
+    const {refreshPageContent} = await import('../app/bootstrap.js')
+    await refreshPageContent({pageId: module.page_id})
   },
 
   async customizerModuleTitleChange(target) {

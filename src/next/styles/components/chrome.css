@@ -435,19 +435,6 @@ body[data-sidepanel-active] #app {
   opacity: .8;
 }
 
-[data-app] [data-theme] {
-  [data-controller] {
-    [data-open].active {
-      color: var(--st-ws-shell-nav-active-text-color, var(--yai-tabs-nav-button-active-color, var(--yai-tabs-color-accent)));
-    }
-  }
-}
-
-[data-app][data-color-accent] {
-  --yai-tabs-nav-button-active-color: var(--st-ws-shell-nav-active-text-color, var(--yai-tabs-color-accent));
-  --yai-loader-color: var(--st-ws-shell-nav-active-text-color, var(--yai-tabs-color-accent));
-}
-
 /**
  * Orphan maintenance page
  */
@@ -545,6 +532,27 @@ body[data-sidepanel-active] #app {
   [data-orphans-page-header] > button,
   [data-orphan-row] > button {
     margin-top: 10px;
+  }
+  [data-app][data-yai-tabs][data-nav="top"] > [data-app-header-nav][data-controller] {
+    flex: 0 0 auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: start;
+    align-items: stretch;
+    gap: 0;
+    overflow: visible;
+  }
+
+  [data-app][data-yai-tabs][data-nav="top"] > [data-app-header-nav][data-controller] > [data-open],
+  [data-app][data-yai-tabs][data-nav="top"] > [data-app-header-nav][data-controller] > [data-dropdown],
+  [data-app][data-yai-tabs][data-nav="top"] > [data-app-header-nav][data-controller] > .st-app-header-inbox {
+    flex: 1 1 30%;
+    min-width: 0;
+  }
+
+  [data-app][data-yai-tabs][data-nav="top"] > [data-app-header-nav][data-controller] > [data-open] {
+    width: 100%;
+    height: var(--yai-tabs-button-min-height);
   }
 }
 
@@ -683,42 +691,6 @@ body[data-sidepanel-active] #app {
   }
 }
 
-@media (max-width: 800px) {
-  [data-app][data-yai-tabs][data-nav="top"] > [data-app-header-nav][data-controller] {
-    flex: 0 0 auto;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: start;
-    align-items: stretch;
-    gap: 0;
-    overflow: visible;
-  }
-
-  [data-app][data-yai-tabs][data-nav="top"] > [data-app-header-nav][data-controller] > [data-open],
-  [data-app][data-yai-tabs][data-nav="top"] > [data-app-header-nav][data-controller] > [data-dropdown],
-  [data-app][data-yai-tabs][data-nav="top"] > [data-app-header-nav][data-controller] > .st-app-header-inbox {
-    flex: 1 1 30%;
-    min-width: 0;
-  }
-
-  [data-app][data-yai-tabs][data-nav="top"] > [data-app-header-nav][data-controller] > [data-open] {
-    width: 100%;
-    height: var(--yai-tabs-button-min-height);
-  }
-}
-
-@media (hover: none) {
-  [data-app-header-nav][data-controller] [data-open]:hover:not(.active) {
-    color: var(--yai-tabs-nav-button-color, var(--yai-tabs-color-text-muted));
-    background-color: var(--yai-tabs-nav-button-background);
-  }
-
-  [data-app-header-nav][data-controller] [data-open].active:hover {
-    color: var(--st-ws-shell-nav-active-text-color, var(--yai-tabs-nav-button-active-color, var(--yai-tabs-color-accent)));
-    background-color: var(--st-ws-shell-nav-active-background-color, var(--yai-tabs-nav-button-active-background));
-  }
-}
-
 /**
  * Dropdown
  * Variables live in next.css ( --st-dropdown-* )
@@ -773,6 +745,13 @@ body[data-sidepanel-active] #app {
   [data-svg-plus] {
     background: #10101065;
     padding: 8px;
+  }
+}
+
+@media (max-width: 900px) {
+  [data-dropdown] [data-svg-plus] {
+    background: #10101065;
+    padding: 12px;
   }
 }
 

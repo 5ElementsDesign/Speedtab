@@ -1,6 +1,7 @@
 import {
   BackupValidationError,
   LAST_IMPORT_EXPORTED_AT_KEY,
+  buildExportFilename,
   downloadManifest,
   exportAll,
   importAll,
@@ -9,6 +10,10 @@ import {
   readManifestFile,
 } from '../composables/useBackup.ts'
 import {cleanupOrphans, getCleanupCandidates} from '../composables/useMaintenance.ts'
+import {
+  getRemoteAutoSyncUiStatus,
+  requestRemoteAutoSyncRefresh,
+} from '../composables/useRemoteAutoSync.ts'
 import {clearExportDirty, getExportState, noteImportedWorkspace} from '../composables/useExportState.ts'
 import {clearRemoteProviderSettings, getLocalSettings, updateLocalSettings} from '../composables/useLocalSettings.ts'
 import {
@@ -22,11 +27,12 @@ import {
 import {createRemoteExportProvider, isRemoteProviderConfigured} from '../composables/useRemoteProvider.ts'
 import {db, isActiveRecord} from '../db/db.ts'
 import {DEFAULT_REMOTE_LOCAL_SETTINGS} from '../types/remote.ts'
+import {getWidgetSettings, saveWidgetSettings} from '../composables/useWidgetSettings.ts'
 import YaiWorker from '../lib/yai/worker/yai-worker.js'
 import {YEH} from '../lib/yai/yeh.js'
 import {initI18n, t} from '../next/utils/i18n.js'
 import {applyWorkspaceBackground} from '../next/utils/workspace-background.js'
-import '../next/styles/next.css'
+import '../next/styles/foundation.css'
 import deepCleanupWorkerUrl from './deep-cleanup-worker.js?url'
 import {renderImportExportApp} from './render.js'
 import {createImportExportState} from './state.js'
@@ -49,10 +55,96 @@ function getMount() {
   return document.querySelector('#app')
 }
 
-function render() {
+function setRootBooleanDataFlag(name, value) {
+  const mount = getMount()
+  if (!(mount instanceof HTMLElement)) return
+  mount.dataset[name] = value ? 'true' : 'false'
+}
+
+function syncImportExportRootFlags() {
+  const hasProviderSet = !!(state.remoteDraft?.remote_provider_type || state.remoteSettings?.remote_provider_type)
+  setRootBooleanDataFlag('hasProviderSet', hasProviderSet)
+}
+
+function patchImportExportRegions(mount, html, regionNames = null) {
+  const template = document.createElement('template')
+  template.innerHTML = html.trim()
+
+  const nextApp = template.content.querySelector('[data-ie-app]')
+  const currentApp = mount.querySelector('[data-ie-app]')
+  if (!(nextApp instanceof HTMLElement) || !(currentApp instanceof HTMLElement)) {
+    mount.innerHTML = html
+    return
+  }
+
+  const nextRegions = new Map(
+    Array.from(nextApp.querySelectorAll('[data-ie-region]')).map((node) => [node.getAttribute('data-ie-region'), node]),
+  )
+
+  const allowedRegions = Array.isArray(regionNames) && regionNames.length
+    ? new Set(regionNames)
+    : null
+
+  const nextOrder = Array.from(nextApp.querySelectorAll('[data-ie-region]'))
+    .map((node) => node.getAttribute('data-ie-region'))
+    .filter(Boolean)
+
+  const targetRegionNames = allowedRegions
+    ? nextOrder.filter((name) => allowedRegions.has(name))
+    : nextOrder
+
+  for (const regionName of targetRegionNames) {
+    const nextRegion = nextRegions.get(regionName)
+    if (!regionName || !(nextRegion instanceof HTMLElement)) continue
+
+    const currentRegion = currentApp.querySelector(`[data-ie-region="${CSS.escape(regionName)}"]`)
+    if (currentRegion instanceof HTMLElement) {
+      currentRegion.replaceWith(nextRegion.cloneNode(true))
+      continue
+    }
+
+    const nextIndex = nextOrder.indexOf(regionName)
+    const followingRegionName = nextOrder
+      .slice(nextIndex + 1)
+      .find((name) => !allowedRegions || allowedRegions.has(name))
+
+    if (followingRegionName) {
+      const followingCurrentRegion = currentApp.querySelector(`[data-ie-region="${CSS.escape(followingRegionName)}"]`)
+      if (followingCurrentRegion instanceof HTMLElement) {
+        followingCurrentRegion.before(nextRegion.cloneNode(true))
+        continue
+      }
+    }
+
+    currentApp.append(nextRegion.cloneNode(true))
+  }
+
+  if (allowedRegions) {
+    for (const currentRegion of Array.from(currentApp.querySelectorAll('[data-ie-region]'))) {
+      const regionName = currentRegion.getAttribute('data-ie-region')
+      if (!regionName || !allowedRegions.has(regionName)) continue
+      if (nextRegions.has(regionName)) continue
+      currentRegion.remove()
+    }
+  }
+}
+
+function render(regions = null) {
   const mount = getMount()
   if (!mount) return
-  mount.innerHTML = renderImportExportApp(state)
+  const scrollX = globalThis.scrollX || 0
+  const scrollY = globalThis.scrollY || 0
+  state.remoteConfigValidationMessage = getRemoteConfigValidationMessage()
+  const html = renderImportExportApp(state)
+  if (mount.querySelector('[data-ie-app]')) {
+    patchImportExportRegions(mount, html, regions)
+  } else {
+    mount.innerHTML = html
+  }
+  syncImportExportRootFlags()
+  globalThis.requestAnimationFrame?.(() => {
+    globalThis.scrollTo(scrollX, scrollY)
+  })
 }
 
 async function applyPageBackground() {
@@ -61,12 +153,68 @@ async function applyPageBackground() {
   await applyWorkspaceBackground(mount)
 }
 
-function setStatus(text = '', tone = 'idle', details = '') {
-  state.status = {text, tone, details}
+function setStatus(text = '', tone = 'idle', details = '', area = '') {
+  state.status = {text, tone, details, area}
 }
 
-function setTransfer(active = false, label = '') {
-  state.transfer = {active, label}
+function setTransfer(active = false, label = '', area = '') {
+  state.transfer = {active, label, area}
+}
+
+function isImmediateRemotePreferenceField(name = '') {
+  return name === 'remote_auto_sync_enabled' ||
+    name === 'remote_auto_sync_interval_minutes' ||
+    name === 'remote_archive_keep_latest_count'
+}
+
+async function persistImmediateRemotePreference(name, value) {
+  if (!isImmediateRemotePreferenceField(name)) return
+  try {
+    state.remoteSettings = await updateLocalSettings({
+      [name]: value,
+    })
+    await requestRemoteAutoSyncRefresh()
+  } catch {
+    // Ignore background persistence failures here; the explicit save path still validates and reports.
+  }
+}
+
+function dismissUiNode(target) {
+  const selector = target?.dataset?.dismissClosest?.trim?.() || ''
+  const clearKey = target?.dataset?.dismissClear?.trim?.() || ''
+  const node = selector
+    ? target.closest?.(selector)
+    : target.parentElement
+
+  if (clearKey === 'status') {
+    state.status = {text: '', tone: 'idle', details: '', area: ''}
+    render(['global', 'local', 'remote-config', 'remote-sync', 'deep-check', 'reset'])
+    return
+  }
+
+  if (clearKey === 'transfer') {
+    state.transfer = {active: false, label: '', area: ''}
+    render(['global', 'local', 'remote-config', 'remote-sync', 'deep-check', 'reset'])
+    return
+  }
+
+  if (clearKey === 'deep-check-clean') {
+    state.deepCheckCleanDismissed = true
+    render(['deep-check'])
+    return
+  }
+
+  if (node instanceof HTMLElement) {
+    node.remove()
+  }
+}
+
+function updateRemoteAutoSyncState(compareState = null) {
+  state.remoteAutoSync = getRemoteAutoSyncUiStatus(
+    state.remoteDraft ?? state.remoteSettings ?? DEFAULT_REMOTE_LOCAL_SETTINGS,
+    state.exportState,
+    compareState,
+  )
 }
 
 function clearChromeLocalStorage() {
@@ -96,6 +244,21 @@ function remoteIdentityChanged(nextDraft, currentSettings) {
 }
 
 function clearRemoteBookkeepingPatch() {
+  return {
+    last_remote_pull_checksum: null,
+    last_remote_pull_exported_at: null,
+    last_remote_push_checksum: null,
+    last_remote_push_exported_at: null,
+    last_remote_provider_id: null,
+    last_remote_source_device: null,
+    last_remote_seen_checksum: null,
+    last_remote_seen_exported_at: null,
+    last_known_local_checksum: null,
+    remote_provider_account_email: null,
+  }
+}
+
+function clearRemoteBaselinePatch() {
   return {
     last_remote_pull_checksum: null,
     last_remote_pull_exported_at: null,
@@ -148,10 +311,15 @@ async function hydrate() {
   revokeDeepCheckAssetUrls()
   state.deepCheckReport = null
   state.deepCheckSelectedUnusedAssetIds = []
+  state.deepCheckCleanDismissed = false
   state.exportState = await getExportState(db)
   state.localSummary = await readSummary()
+  state.widgetSettings = await getWidgetSettings(db)
   state.remoteSettings = await getLocalSettings()
   state.remoteDraft = {...state.remoteSettings}
+  state.remoteArchiveKeepLatest = state.remoteSettings.remote_archive_keep_latest_count ?? 10
+  state.remoteArchives = []
+  updateRemoteAutoSyncState()
   state.loading = false
   await applyPageBackground()
 }
@@ -241,6 +409,16 @@ function validateOptionalHttpUrl(value, label) {
       ? t('dataExchange.status.dashboardMustBeValid')
       : `${label} must be a valid http:// or https:// URL.`
   }
+}
+
+function normalizeDraftBoolean(target) {
+  return target.checked === true
+}
+
+function normalizeDraftNumber(target) {
+  const value = Number(target.value)
+  if (!Number.isFinite(value) || value < 1) return null
+  return Math.trunc(value)
 }
 
 function formatDateTime(timestamp) {
@@ -442,6 +620,10 @@ async function buildDeepCleanupSnapshot() {
 function getRemoteConfigValidationMessage() {
   const draft = state.remoteDraft ?? {}
   if (!draft.remote_provider_type) return t('dataExchange.status.selectProvider')
+  if (draft.remote_provider_type === 'gdrive') {
+    if (!draft.device_label?.trim()) return t('dataExchange.status.deviceLabelRequired')
+    return null
+  }
   const endpointValidation = validateRemoteEndpointUrl(draft.remote_endpoint_url)
   if (endpointValidation) return endpointValidation
   const dashboardValidation = validateOptionalHttpUrl(draft.remote_dashboard_url, 'Dashboard URL')
@@ -453,32 +635,67 @@ function getRemoteConfigValidationMessage() {
   return null
 }
 
+function getRemoteCompareStatusMessage(compareState, remoteHealth) {
+  if (compareState === 'remote_missing') {
+    return {
+      message: t('dataExchange.status.remoteMissing'),
+      guidance: t('dataExchange.status.remoteMissingGuidance'),
+    }
+  }
+
+  if (compareState === 'identical' || compareState === 'up_to_date') {
+    return {
+      message: t('dataExchange.status.remoteAlreadyMatchesLocal'),
+      guidance: '',
+    }
+  }
+
+  return {
+    message: remoteHealth?.message || t('dataExchange.status.remoteHealthy'),
+    guidance: remoteHealth?.guidance || '',
+  }
+}
+
 async function refreshRemoteCompare() {
+  if (!state.remoteSettings || !isRemoteProviderConfigured(state.remoteSettings)) {
+    setStatus(t('dataExchange.status.providerNotConfigured'), 'error', '', 'remote-sync')
+    render()
+    return
+  }
+
   state.busy.remoteCheck = true
   state.remoteWarnings = []
-  setTransfer(true, t('dataExchange.status.verifyingRemoteCompare'))
+  state.remotePullPreview = null
+  state.remotePreviewSummary = null
+  setTransfer(true, t('dataExchange.status.verifyingRemoteCompare'), 'remote-sync')
   render()
   try {
-    state.compareInspection = await inspectRemotePush()
-    state.remoteHealth = await verifyRemoteHealth()
+    const provider = createRemoteExportProvider(state.remoteSettings)
+    state.compareInspection = await inspectRemotePush({provider})
+    state.remoteHealth = await verifyRemoteHealth({provider})
+    const archives = await provider.listArchives()
+    state.remoteArchives = archives.ok ? archives.value : []
+    updateRemoteAutoSyncState(state.compareInspection?.state ?? null)
     state.remoteWarnings = [
       ...(state.compareInspection?.warnings ?? []),
       ...(state.remoteHealth?.warnings ?? []),
+      ...(!archives.ok ? [archives.error.message] : []),
     ]
-    state.remoteActivity = state.remoteHealth?.message || ''
-    setStatus(state.remoteHealth?.message || t('dataExchange.status.remoteHealthy'), 'success', state.remoteHealth?.guidance || '')
+    const nextStatus = getRemoteCompareStatusMessage(state.compareInspection?.state ?? null, state.remoteHealth)
+    state.remoteActivity = nextStatus.message
+    setStatus(nextStatus.message, 'success', nextStatus.guidance, 'remote-sync')
   } catch (error) {
-    setStatus(t('dataExchange.status.remoteCheckFailed', {message: error instanceof Error ? error.message : String(error)}), 'error')
+    setStatus(t('dataExchange.status.remoteCheckFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'remote-sync')
   } finally {
     state.busy.remoteCheck = false
-    setTransfer(false, '')
+    setTransfer(false, '', 'remote-sync')
     render()
   }
 }
 
 async function previewRemoteContents() {
   if (!state.remoteSettings || !isRemoteProviderConfigured(state.remoteSettings)) {
-    setStatus(t('dataExchange.status.configureToEnablePull'), 'error')
+    setStatus(t('dataExchange.status.configureToEnablePull'), 'error', '', 'remote-sync')
     render()
     return
   }
@@ -486,7 +703,7 @@ async function previewRemoteContents() {
   state.busy.remotePreview = true
   state.remoteWarnings = []
   state.remotePreviewSummary = null
-  setTransfer(true, t('dataExchange.status.checkingRemoteContents'))
+  setTransfer(true, t('dataExchange.status.checkingRemoteContents'), 'remote-sync')
   render()
   try {
     const provider = createRemoteExportProvider(state.remoteSettings)
@@ -498,6 +715,19 @@ async function previewRemoteContents() {
       const exportResult = await provider.downloadExport()
       if (!exportResult.ok) throw new Error(exportResult.error.message)
       const manifest = parseManifestText(await exportResult.value.text())
+      let assetCount = manifest.assets.length
+
+      if (preview.remoteMeta?.payload_mode === 'split' && assetCount === 0) {
+        const assetsResult = await provider.downloadAssets()
+        if (!assetsResult.ok && assetsResult.error.code !== 'file_missing') {
+          throw new Error(assetsResult.error.message)
+        }
+        if (assetsResult.ok) {
+          const assetsPayload = JSON.parse(await assetsResult.value.text())
+          assetCount = Array.isArray(assetsPayload?.assets) ? assetsPayload.assets.length : 0
+        }
+      }
+
       state.remotePreviewSummary = {
         pages: manifest.pages.length,
         modules: manifest.modules.length,
@@ -506,26 +736,38 @@ async function previewRemoteContents() {
         notes: manifest.notes.length,
         feedSources: manifest.feed_sources.length,
         savedFeedItems: manifest.saved_feed_items.length,
-        assets: manifest.assets.length,
+        assets: assetCount,
         exportedAt: manifest.exported_at,
         checksum: preview.remoteMeta?.workspace_checksum ?? null,
+        packageLabel: preview.remoteMeta?.payload_mode === 'split'
+          ? t('dataExchange.remotePackageSplit')
+          : t('dataExchange.remotePackageSingle'),
       }
     }
 
     state.remoteActivity = t('dataExchange.checkRemoteContents')
-    setStatus(t('dataExchange.status.remoteExportReady'), 'success')
+    const previewState = preview?.state ?? null
+    if (previewState === 'up_to_date') {
+      setStatus(t('dataExchange.status.remoteAlreadyMatchesLocal'), 'success', '', 'remote-sync')
+    } else if (previewState === 'remote_missing') {
+      setStatus(t('dataExchange.status.remoteMissing'), 'error', '', 'remote-sync')
+    } else if (previewState === 'not_configured') {
+      setStatus(t('dataExchange.status.providerNotConfigured'), 'error', '', 'remote-sync')
+    } else {
+      setStatus(t('dataExchange.status.remoteExportReady'), 'success', '', 'remote-sync')
+    }
   } catch (error) {
-    setStatus(t('dataExchange.status.remoteCheckFailed', {message: error instanceof Error ? error.message : String(error)}), 'error')
+    setStatus(t('dataExchange.status.remoteCheckFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'remote-sync')
   } finally {
     state.busy.remotePreview = false
-    setTransfer(false, '')
+    setTransfer(false, '', 'remote-sync')
     render()
   }
 }
 
 async function handleDownloadLocalExport() {
   state.busy.localExport = true
-  setTransfer(true, t('dataExchange.downloading'))
+  setTransfer(true, t('dataExchange.downloading'), 'local')
   render()
   try {
     const manifest = await exportAll()
@@ -541,12 +783,12 @@ async function handleDownloadLocalExport() {
       pages: manifest.pages.length,
       archived: manifest.saved_feed_items.length,
       assets: manifest.assets.length,
-    }), 'success')
+    }), 'success', '', 'local')
   } catch (error) {
-    setStatus(t('app.statuses.exportFailed', {message: error instanceof Error ? error.message : String(error)}), 'error')
+    setStatus(t('app.statuses.exportFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'local')
   } finally {
     state.busy.localExport = false
-    setTransfer(false, '')
+    setTransfer(false, '', 'local')
     render()
   }
 }
@@ -558,7 +800,7 @@ function triggerLocalImport() {
 async function handleImportFile(file) {
   if (!file) return
   state.busy.localImport = true
-  setTransfer(true, t('dataExchange.working'))
+  setTransfer(true, t('dataExchange.working'), 'local')
   render()
 
   try {
@@ -589,7 +831,7 @@ async function handleImportFile(file) {
     ].join('\n\n')
 
     if (!window.confirm(confirmMessage)) {
-      setStatus(t('common.cancel'), 'idle')
+      setStatus(t('common.cancel'), 'idle', '', 'local')
       return
     }
 
@@ -604,15 +846,15 @@ async function handleImportFile(file) {
       last_remote_source_device: null,
     })
     await hydrate()
-    setStatus(formatImportReport(report, cleaned), 'success')
+    setStatus(formatImportReport(report, cleaned), 'success', '', 'local')
   } catch (error) {
     const message = error instanceof BackupValidationError
       ? t('app.statuses.invalidBackup', {message: error.message})
       : t('app.statuses.importFailed', {message: error instanceof Error ? error.message : String(error)})
-    setStatus(message, 'error')
+    setStatus(message, 'error', '', 'local')
   } finally {
     state.busy.localImport = false
-    setTransfer(false, '')
+    setTransfer(false, '', 'local')
     const fileInput = document.getElementById('workspace_import_file')
     if (fileInput) fileInput.value = ''
     render()
@@ -621,7 +863,8 @@ async function handleImportFile(file) {
 
 async function runDeepOrphanCheck() {
   state.busy.deepCheck = true
-  setTransfer(true, t('dataExchange.working'))
+  state.deepCheckCleanDismissed = false
+  setTransfer(true, t('dataExchange.working'), 'deep-check')
   render()
 
   try {
@@ -639,17 +882,21 @@ async function runDeepOrphanCheck() {
       unusedAssetIds: preview.unusedAssetIds,
     }
     state.deepCheckSelectedUnusedAssetIds = [...preview.unusedAssetIds]
-    setStatus(
-      result.total > 0
-        ? t('dataExchange.deepCheckFound', {count: result.total})
-        : t('dataExchange.deepCheckClean'),
-      result.total > 0 ? 'error' : 'success',
-    )
+    if (result.total > 0) {
+      setStatus(
+        t('dataExchange.deepCheckFound', {count: result.total}),
+        'error',
+        '',
+        'deep-check',
+      )
+    } else {
+      state.status = {text: '', tone: 'idle', details: '', area: ''}
+    }
   } catch (error) {
-    setStatus(t('dataExchange.status.remoteCheckFailed', {message: error instanceof Error ? error.message : String(error)}), 'error')
+    setStatus(t('dataExchange.status.remoteCheckFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'deep-check')
   } finally {
     state.busy.deepCheck = false
-    setTransfer(false, '')
+    setTransfer(false, '', 'deep-check')
     render()
   }
 }
@@ -660,18 +907,18 @@ async function deleteUnusedAssetsFromDeepCheck() {
   if (!window.confirm(t('dataExchange.confirmDeleteUnusedAssets', {count: assetIds.length}))) return
 
   state.busy.deepCheck = true
-  setTransfer(true, t('dataExchange.working'))
+  setTransfer(true, t('dataExchange.working'), 'deep-check')
   render()
 
   try {
     await db.assets.bulkDelete(assetIds)
     await runDeepOrphanCheck()
-    setStatus(t('dataExchange.unusedAssetsDeleted', {count: assetIds.length}), 'success')
+    setStatus(t('dataExchange.unusedAssetsDeleted', {count: assetIds.length}), 'success', '', 'deep-check')
   } catch (error) {
-    setStatus(t('dataExchange.status.remoteCheckFailed', {message: error instanceof Error ? error.message : String(error)}), 'error')
+    setStatus(t('dataExchange.status.remoteCheckFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'deep-check')
   } finally {
     state.busy.deepCheck = false
-    setTransfer(false, '')
+    setTransfer(false, '', 'deep-check')
     render()
   }
 }
@@ -681,7 +928,7 @@ async function resetImportExportDatabase() {
   if (!window.confirm(t('cleanup.confirmReset'))) return
 
   state.busy.resetDatabase = true
-  setTransfer(true, t('cleanup.resetting'))
+  setTransfer(true, t('cleanup.resetting'), 'reset')
   render()
 
   try {
@@ -692,68 +939,106 @@ async function resetImportExportDatabase() {
     window.location.reload()
   } finally {
     state.busy.resetDatabase = false
-    setTransfer(false, '')
+    setTransfer(false, '', 'reset')
   }
 }
 
 async function saveRemoteConfig() {
   const validationMessage = getRemoteConfigValidationMessage()
   if (validationMessage) {
-    setStatus(validationMessage, 'error')
+    setStatus(validationMessage, 'error', '', 'remote-config')
     render()
     return
   }
 
   state.busy.remoteConfig = true
-  setTransfer(true, t('dataExchange.working'))
+  setTransfer(true, t('dataExchange.working'), 'remote-config')
   render()
   try {
     const patch = {
       remote_provider_type: state.remoteDraft.remote_provider_type,
-      remote_endpoint_url: state.remoteDraft.remote_endpoint_url?.trim() || null,
-      remote_username: state.remoteDraft.remote_username?.trim() || null,
-      remote_secret: state.remoteDraft.remote_secret?.trim() || null,
-      remote_path: state.remoteDraft.remote_path?.trim() || null,
+      remote_endpoint_url: state.remoteDraft.remote_provider_type === 'webdav'
+        ? state.remoteDraft.remote_endpoint_url?.trim() || null
+        : null,
+      remote_username: state.remoteDraft.remote_provider_type === 'webdav'
+        ? state.remoteDraft.remote_username?.trim() || null
+        : null,
+      remote_secret: state.remoteDraft.remote_provider_type === 'webdav'
+        ? state.remoteDraft.remote_secret?.trim() || null
+        : null,
+      remote_path: state.remoteDraft.remote_provider_type === 'webdav'
+        ? state.remoteDraft.remote_path?.trim() || null
+        : null,
       device_label: state.remoteDraft.device_label?.trim() || null,
-      remote_dashboard_url: state.remoteDraft.remote_dashboard_url?.trim() || null,
+      remote_dashboard_url: state.remoteDraft.remote_provider_type === 'webdav'
+        ? state.remoteDraft.remote_dashboard_url?.trim() || null
+        : null,
+      remote_auto_sync_enabled: state.remoteDraft.remote_auto_sync_enabled === true,
+      remote_auto_sync_interval_minutes: state.remoteDraft.remote_auto_sync_enabled === true
+        ? (state.remoteDraft.remote_auto_sync_interval_minutes ?? 10)
+        : null,
+      remote_archive_keep_latest_count: state.remoteDraft.remote_archive_keep_latest_count ?? null,
       ...(remoteIdentityChanged(state.remoteDraft, state.remoteSettings) ? clearRemoteBookkeepingPatch() : {}),
+      remote_provider_account_email: state.remoteDraft.remote_provider_type === 'gdrive'
+        ? state.remoteDraft.remote_provider_account_email || null
+        : null,
     }
 
     state.remoteSettings = await updateLocalSettings(patch)
     state.remoteDraft = {...state.remoteSettings}
-    setStatus(t('dataExchange.status.remoteConfigSaved'), 'success')
+    state.remoteArchiveKeepLatest = state.remoteSettings.remote_archive_keep_latest_count ?? ''
+    await requestRemoteAutoSyncRefresh()
+    updateRemoteAutoSyncState(state.compareInspection?.state ?? null)
+    setStatus(t('dataExchange.status.remoteConfigSaved'), 'success', '', 'remote-config')
   } catch (error) {
-    setStatus(t('dataExchange.status.saveFailed', {message: error instanceof Error ? error.message : String(error)}), 'error')
+    setStatus(t('dataExchange.status.saveFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'remote-config')
   } finally {
     state.busy.remoteConfig = false
-    setTransfer(false, '')
+    setTransfer(false, '', 'remote-config')
     render()
   }
 }
 
 async function clearRemoteConfig() {
   state.busy.remoteConfig = true
-  setTransfer(true, t('dataExchange.working'))
+  setTransfer(true, t('dataExchange.working'), 'remote-config')
   render()
   try {
+    const providerType = state.remoteSettings?.remote_provider_type || state.remoteDraft?.remote_provider_type
+    if (providerType === 'gdrive') {
+      const provider = createRemoteExportProvider({
+        ...DEFAULT_REMOTE_LOCAL_SETTINGS,
+        ...state.remoteSettings,
+        ...state.remoteDraft,
+      })
+      const disconnect = await provider.disconnect?.()
+      if (disconnect && !disconnect.ok) throw new Error(disconnect.error.message)
+    }
     await clearRemoteProviderSettings()
     state.remoteSettings = await updateLocalSettings({
       device_label: null,
+      remote_auto_sync_enabled: false,
+      remote_auto_sync_interval_minutes: null,
+      remote_archive_keep_latest_count: null,
       ...clearRemoteBookkeepingPatch(),
     })
     state.remoteDraft = {...state.remoteSettings}
+    state.remoteArchiveKeepLatest = ''
     state.compareInspection = null
     state.remotePullPreview = null
     state.remotePreviewSummary = null
     state.remoteHealth = null
+    state.remoteArchives = []
     state.remoteWarnings = []
     state.remoteActivity = ''
-    setStatus(t('dataExchange.status.remoteConfigCleared'), 'success')
+    await requestRemoteAutoSyncRefresh()
+    updateRemoteAutoSyncState()
+    setStatus(t('dataExchange.status.remoteConfigCleared'), 'success', '', 'remote-config')
   } catch (error) {
-    setStatus(t('dataExchange.status.clearFailed', {message: error instanceof Error ? error.message : String(error)}), 'error')
+    setStatus(t('dataExchange.status.clearFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'remote-config')
   } finally {
     state.busy.remoteConfig = false
-    setTransfer(false, '')
+    setTransfer(false, '', 'remote-config')
     render()
   }
 }
@@ -761,13 +1046,13 @@ async function clearRemoteConfig() {
 async function testRemoteConfig() {
   const validationMessage = getRemoteConfigValidationMessage()
   if (validationMessage) {
-    setStatus(validationMessage, 'error')
+    setStatus(validationMessage, 'error', '', 'remote-config')
     render()
     return
   }
 
   state.busy.remoteConfig = true
-  setTransfer(true, t('dataExchange.testConnection'))
+  setTransfer(true, t('dataExchange.testConnection'), 'remote-config')
   render()
   try {
     const provider = createRemoteExportProvider({
@@ -777,28 +1062,158 @@ async function testRemoteConfig() {
     })
     const result = await provider.testConnection({timeoutMs: 10_000})
     if (result.ok) {
-      setStatus(`${t('dataExchange.status.connectionOk')}${result.value.provider_id ? ` · ${result.value.provider_id}` : ''}`, 'success')
+      if (state.remoteDraft?.remote_provider_type === 'gdrive') {
+        const persistedSettings = await updateLocalSettings({
+          remote_provider_account_email: result.value.account_email || null,
+        })
+        state.remoteSettings = persistedSettings
+        state.remoteDraft = {
+          ...(state.remoteDraft ?? {}),
+          remote_provider_account_email: persistedSettings.remote_provider_account_email,
+        }
+      }
+      setStatus(`${t('dataExchange.status.connectionOk')}${result.value.provider_id ? ` · ${result.value.provider_id}` : ''}`, 'success', '', 'remote-config')
     } else {
-      setStatus(t('dataExchange.status.connectionFailed', {message: result.error.message}), 'error')
+      setStatus(t('dataExchange.status.connectionFailed', {message: result.error.message}), 'error', '', 'remote-config')
     }
   } catch (error) {
-    setStatus(t('dataExchange.status.connectionFailed', {message: error instanceof Error ? error.message : String(error)}), 'error')
+    setStatus(t('dataExchange.status.connectionFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'remote-config')
   } finally {
     state.busy.remoteConfig = false
-    setTransfer(false, '')
+    setTransfer(false, '', 'remote-config')
+    render()
+  }
+}
+
+async function disconnectGoogleDrive() {
+  if (!state.remoteSettings || state.remoteSettings.remote_provider_type !== 'gdrive') return
+  if (!window.confirm(t('dataExchange.confirm.disconnectGoogleDrive'))) return
+
+  state.busy.remoteDisconnect = true
+  setTransfer(true, t('dataExchange.disconnectGoogleDrive'), 'remote-config')
+  render()
+  try {
+    const provider = createRemoteExportProvider({
+      ...DEFAULT_REMOTE_LOCAL_SETTINGS,
+      ...state.remoteSettings,
+      ...state.remoteDraft,
+    })
+    const disconnect = await provider.disconnect?.()
+    if (disconnect && !disconnect.ok) throw new Error(disconnect.error.message)
+    state.remoteSettings = await updateLocalSettings({
+      remote_provider_type: null,
+      remote_provider_account_email: null,
+      remote_auto_sync_enabled: false,
+      remote_auto_sync_interval_minutes: null,
+      remote_archive_keep_latest_count: null,
+      ...clearRemoteBookkeepingPatch(),
+    })
+    state.remoteDraft = {...state.remoteSettings}
+    state.compareInspection = null
+    state.remotePullPreview = null
+    state.remotePreviewSummary = null
+    state.remoteHealth = null
+    state.remoteArchives = []
+    state.remoteWarnings = []
+    state.remoteActivity = ''
+    await requestRemoteAutoSyncRefresh()
+    updateRemoteAutoSyncState()
+    setStatus(t('dataExchange.status.googleDriveDisconnected'), 'success', '', 'remote-config')
+  } catch (error) {
+    setStatus(t('dataExchange.status.disconnectFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'remote-config')
+  } finally {
+    state.busy.remoteDisconnect = false
+    setTransfer(false, '', 'remote-config')
+    render()
+  }
+}
+
+async function deleteLiveRemoteExport() {
+  if (!state.remoteSettings || !isRemoteProviderConfigured(state.remoteSettings)) {
+    setStatus(t('dataExchange.status.providerNotConfigured'), 'error', '', 'remote-config')
+    return
+  }
+  if (!window.confirm(t('dataExchange.confirm.deleteLiveRemote'))) return
+
+  state.busy.remoteConfig = true
+  setTransfer(true, t('dataExchange.deleteLiveRemote'), 'remote-config')
+  render()
+  try {
+    const provider = createRemoteExportProvider(state.remoteSettings)
+    const result = await provider.deleteLiveExport?.()
+    if (!result?.ok) throw new Error(result?.error?.message || 'Remote live export deletion is unavailable.')
+
+    state.remoteSettings = await updateLocalSettings(clearRemoteBaselinePatch())
+    state.remoteDraft = {
+      ...state.remoteDraft,
+      ...clearRemoteBaselinePatch(),
+    }
+    state.compareInspection = null
+    state.remotePullPreview = null
+    state.remotePreviewSummary = null
+    state.remoteHealth = null
+    state.remoteWarnings = []
+    state.remoteActivity = t('dataExchange.status.liveRemoteDeleted')
+    await requestRemoteAutoSyncRefresh()
+    updateRemoteAutoSyncState()
+    setStatus(t('dataExchange.status.liveRemoteDeleted'), 'success', '', 'remote-config')
+  } catch (error) {
+    setStatus(t('dataExchange.status.liveRemoteDeleteFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'remote-config')
+  } finally {
+    state.busy.remoteConfig = false
+    setTransfer(false, '', 'remote-config')
+    render()
+  }
+}
+
+async function wipeRemoteData() {
+  if (!state.remoteSettings || !isRemoteProviderConfigured(state.remoteSettings)) {
+    setStatus(t('dataExchange.status.providerNotConfigured'), 'error', '', 'remote-config')
+    return
+  }
+  if (!window.confirm(t('dataExchange.confirm.wipeRemoteData'))) return
+
+  state.busy.remoteConfig = true
+  setTransfer(true, t('dataExchange.wipeRemoteData'), 'remote-config')
+  render()
+  try {
+    const provider = createRemoteExportProvider(state.remoteSettings)
+    const result = await provider.wipeRemoteData?.()
+    if (!result?.ok) throw new Error(result?.error?.message || 'Remote wipe is unavailable.')
+
+    state.remoteSettings = await updateLocalSettings(clearRemoteBaselinePatch())
+    state.remoteDraft = {
+      ...state.remoteDraft,
+      ...clearRemoteBaselinePatch(),
+    }
+    state.compareInspection = null
+    state.remotePullPreview = null
+    state.remotePreviewSummary = null
+    state.remoteHealth = null
+    state.remoteArchives = []
+    state.remoteWarnings = []
+    state.remoteActivity = t('dataExchange.status.remoteWiped')
+    await requestRemoteAutoSyncRefresh()
+    updateRemoteAutoSyncState()
+    setStatus(t('dataExchange.status.remoteWiped'), 'success', '', 'remote-config')
+  } catch (error) {
+    setStatus(t('dataExchange.status.remoteWipeFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'remote-config')
+  } finally {
+    state.busy.remoteConfig = false
+    setTransfer(false, '', 'remote-config')
     render()
   }
 }
 
 async function pushRemoteWorkspace() {
   if (!state.remoteSettings || !isRemoteProviderConfigured(state.remoteSettings)) {
-    setStatus(t('dataExchange.status.configureToEnablePush'), 'error')
+    setStatus(t('dataExchange.status.configureToEnablePush'), 'error', '', 'remote-sync')
     render()
     return
   }
 
   state.busy.remotePush = true
-  setTransfer(true, t('dataExchange.status.pushingLocalState'))
+  setTransfer(true, t('dataExchange.status.pushingLocalState'), 'remote-sync')
   render()
   try {
     const result = await pushToRemote({
@@ -808,6 +1223,7 @@ async function pushRemoteWorkspace() {
       ].filter(Boolean).join('\n\n')),
     })
     state.compareInspection = result.inspection
+    updateRemoteAutoSyncState(result.inspection?.state ?? null)
     state.remoteWarnings = [...(result.warnings ?? [])]
     state.remoteActivity = result.outcome === 'up_to_date'
       ? t('dataExchange.status.remoteAlreadyMatches')
@@ -815,25 +1231,25 @@ async function pushRemoteWorkspace() {
         ? t('dataExchange.status.exportUploadedRepairNeeded')
         : t('dataExchange.status.remotePushComplete')
     await hydrate()
-    setStatus(state.remoteActivity, 'success')
+    setStatus(state.remoteActivity, 'success', '', 'remote-sync')
   } catch (error) {
-    setStatus(t('dataExchange.status.remotePushFailed', {message: error instanceof Error ? error.message : String(error)}), 'error')
+    setStatus(t('dataExchange.status.remotePushFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'remote-sync')
   } finally {
     state.busy.remotePush = false
-    setTransfer(false, '')
+    setTransfer(false, '', 'remote-sync')
     render()
   }
 }
 
 async function pullRemoteWorkspace() {
   if (!state.remoteSettings || !isRemoteProviderConfigured(state.remoteSettings)) {
-    setStatus(t('dataExchange.status.configureToEnablePull'), 'error')
+    setStatus(t('dataExchange.status.configureToEnablePull'), 'error', '', 'remote-sync')
     render()
     return
   }
 
   state.busy.remotePull = true
-  setTransfer(true, t('dataExchange.status.pullingRemoteState'))
+  setTransfer(true, t('dataExchange.status.pullingRemoteState'), 'remote-sync')
   render()
   try {
     const result = await pullFromRemote({
@@ -847,15 +1263,15 @@ async function pullRemoteWorkspace() {
     state.remoteWarnings = [...(result.preview?.warnings ?? [])]
     state.remoteActivity = formatImportReport(result.report, cleanupCount)
     await hydrate()
-    setStatus(state.remoteActivity, 'success')
+    setStatus(state.remoteActivity, 'success', '', 'remote-sync')
   } catch (error) {
     const message = error instanceof BackupValidationError
       ? t('dataExchange.status.invalidRemoteBackup', {message: error.message})
       : t('dataExchange.status.remotePullFailed', {message: error instanceof Error ? error.message : String(error)})
-    setStatus(message, 'error')
+    setStatus(message, 'error', '', 'remote-sync')
   } finally {
     state.busy.remotePull = false
-    setTransfer(false, '')
+    setTransfer(false, '', 'remote-sync')
     render()
   }
 }
@@ -871,20 +1287,269 @@ function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
+function makeJsonDownloadBlob(value) {
+  return new Blob([JSON.stringify(value, null, 2)], {type: 'application/json'})
+}
+
+function getKnownRemoteChecksum() {
+  return state.compareInspection?.remote?.meta?.workspace_checksum ||
+    state.remotePreviewSummary?.checksum ||
+    state.remoteHealth?.remote?.workspace_checksum ||
+    null
+}
+
+async function resolveRemoteChecksum(provider) {
+  const knownChecksum = getKnownRemoteChecksum()
+  if (knownChecksum) return knownChecksum
+
+  const metaResult = await provider.downloadMeta()
+  if (!metaResult.ok) return null
+  return metaResult.value?.workspace_checksum || null
+}
+
 async function downloadRemoteExport() {
   state.busy.remoteDownload = true
-  setTransfer(true, t('dataExchange.status.downloadingRemoteExport'))
+  setTransfer(true, t('dataExchange.status.downloadingRemoteExport'), 'remote-sync')
   render()
   try {
     const artifact = await downloadRemoteExportArtifact()
     downloadBlob(artifact.blob, artifact.filename)
     state.remoteActivity = t('dataExchange.status.downloadedFile', {filename: artifact.filename})
-    setStatus(state.remoteActivity, 'success')
+    setStatus(state.remoteActivity, 'success', '', 'remote-sync')
   } catch (error) {
-    setStatus(t('dataExchange.status.remoteDownloadFailed', {message: error instanceof Error ? error.message : String(error)}), 'error')
+    setStatus(t('dataExchange.status.remoteDownloadFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'remote-sync')
   } finally {
     state.busy.remoteDownload = false
-    setTransfer(false, '')
+    setTransfer(false, '', 'remote-sync')
+    render()
+  }
+}
+
+async function downloadRemotePackagePart(kind) {
+  if (!state.remoteSettings || !isRemoteProviderConfigured(state.remoteSettings)) {
+    setStatus(t('dataExchange.status.providerNotConfigured'), 'error', '', 'remote-sync')
+    render()
+    return
+  }
+
+  state.busy.remoteDownload = true
+  setTransfer(true, t('dataExchange.status.downloadingRemoteExport'), 'remote-sync')
+  render()
+
+  try {
+    const provider = createRemoteExportProvider(state.remoteSettings)
+    const checksum = await resolveRemoteChecksum(provider)
+    if (kind === 'data') {
+      const result = await provider.downloadExport()
+      if (!result.ok) throw new Error(result.error.message)
+      const filename = buildExportFilename('remote-data', checksum || 'remote')
+      downloadBlob(result.value, filename)
+      setStatus(t('dataExchange.status.downloadedFile', {filename}), 'success', '', 'remote-sync')
+    } else if (kind === 'assets') {
+      const result = await provider.downloadAssets()
+      if (!result.ok) throw new Error(result.error.message)
+      const filename = buildExportFilename('remote-assets', checksum || 'remote')
+      downloadBlob(result.value, filename)
+      setStatus(t('dataExchange.status.downloadedFile', {filename}), 'success', '', 'remote-sync')
+    } else if (kind === 'meta') {
+      const result = await provider.downloadMeta()
+      if (!result.ok) throw new Error(result.error.message)
+      const filename = buildExportFilename('remote-meta', result.value?.workspace_checksum || checksum || 'remote')
+      downloadBlob(makeJsonDownloadBlob(result.value), filename)
+      setStatus(t('dataExchange.status.downloadedFile', {filename}), 'success', '', 'remote-sync')
+    }
+  } catch (error) {
+    setStatus(t('dataExchange.status.remoteDownloadFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'remote-sync')
+  } finally {
+    state.busy.remoteDownload = false
+    setTransfer(false, '', 'remote-sync')
+    render()
+  }
+}
+
+async function downloadRemoteArchive(checksum) {
+  if (!checksum) return
+  if (!state.remoteSettings || !isRemoteProviderConfigured(state.remoteSettings)) {
+    setStatus(t('dataExchange.status.providerNotConfigured'), 'error', '', 'remote-sync')
+    render()
+    return
+  }
+
+  state.busy.remoteDownload = true
+  setTransfer(true, t('dataExchange.status.downloadingRemoteExport'), 'remote-sync')
+  render()
+
+  try {
+    const provider = createRemoteExportProvider(state.remoteSettings)
+    const result = await provider.downloadArchiveExport(checksum)
+    if (!result.ok) throw new Error(result.error.message)
+    const filename = buildExportFilename('archive', checksum)
+    downloadBlob(result.value, filename)
+    state.remoteActivity = t('dataExchange.status.downloadedFile', {filename})
+    setStatus(state.remoteActivity, 'success', '', 'remote-sync')
+  } catch (error) {
+    setStatus(t('dataExchange.status.remoteDownloadFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'remote-sync')
+  } finally {
+    state.busy.remoteDownload = false
+    setTransfer(false, '', 'remote-sync')
+    render()
+  }
+}
+
+async function restoreRemoteArchive(checksum) {
+  if (!checksum) return
+  if (!state.remoteSettings || !isRemoteProviderConfigured(state.remoteSettings)) {
+    setStatus(t('dataExchange.status.providerNotConfigured'), 'error', '', 'remote-sync')
+    render()
+    return
+  }
+
+  if (!window.confirm(t('dataExchange.confirm.restoreArchive', {checksum}))) {
+    setStatus(t('common.cancel'), 'idle', '', 'remote-sync')
+    render()
+    return
+  }
+
+  state.busy.remoteRestore = true
+  setTransfer(true, t('dataExchange.status.restoringArchive'), 'remote-sync')
+  render()
+
+  try {
+    const provider = createRemoteExportProvider(state.remoteSettings)
+    const archiveResult = await provider.downloadArchiveExport(checksum)
+    if (!archiveResult.ok) throw new Error(archiveResult.error.message)
+
+    const manifest = parseManifestText(await archiveResult.value.text())
+    const report = await importAll(manifest, {}, db)
+    const cleanup = await cleanupOrphans(db)
+    const cleaned = Object.values(cleanup).reduce((sum, value) => sum + value, 0)
+
+    await noteImportedWorkspace('import:local', db)
+    await updateLocalSettings({
+      last_known_local_checksum: null,
+      last_remote_seen_checksum: null,
+      last_remote_seen_exported_at: null,
+      last_remote_source_device: null,
+    })
+
+    state.remoteActivity = formatImportReport(report, cleaned)
+    await hydrate()
+    setStatus(t('dataExchange.status.archiveRestoreComplete', {checksum}), 'success', state.remoteActivity, 'remote-sync')
+  } catch (error) {
+    const message = error instanceof BackupValidationError
+      ? t('dataExchange.status.invalidRemoteBackup', {message: error.message})
+      : t('dataExchange.status.archiveRestoreFailed', {message: error instanceof Error ? error.message : String(error)})
+    setStatus(message, 'error', '', 'remote-sync')
+  } finally {
+    state.busy.remoteRestore = false
+    setTransfer(false, '', 'remote-sync')
+    render()
+  }
+}
+
+async function deleteRemoteArchive(checksum) {
+  if (!checksum) return
+  if (!state.remoteSettings || !isRemoteProviderConfigured(state.remoteSettings)) {
+    setStatus(t('dataExchange.status.providerNotConfigured'), 'error', '', 'remote-sync')
+    render()
+    return
+  }
+
+  if (!window.confirm(t('dataExchange.confirm.deleteArchive', {checksum}))) {
+    setStatus(t('common.cancel'), 'idle', '', 'remote-sync')
+    render()
+    return
+  }
+
+  state.busy.remoteArchiveDelete = true
+  setTransfer(true, t('dataExchange.status.deletingArchive'), 'remote-sync')
+  render()
+
+  try {
+    const provider = createRemoteExportProvider(state.remoteSettings)
+    const result = await provider.deleteArchive(checksum)
+    if (!result.ok) throw new Error(result.error.message)
+    state.remoteArchives = (state.remoteArchives ?? []).filter((archive) => archive.workspace_checksum !== checksum)
+    state.remoteActivity = t('dataExchange.status.archiveDeleteComplete', {checksum})
+    setStatus(state.remoteActivity, 'success', '', 'remote-sync')
+  } catch (error) {
+    setStatus(t('dataExchange.status.archiveDeleteFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'remote-sync')
+  } finally {
+    state.busy.remoteArchiveDelete = false
+    setTransfer(false, '', 'remote-sync')
+    render()
+  }
+}
+
+function normalizeArchiveKeepLatestValue(value) {
+  const parsed = Number.parseInt(String(value ?? ''), 10)
+  if (!Number.isFinite(parsed) || parsed < 1) return null
+  return parsed
+}
+
+function sortArchivesNewestFirst(archives = []) {
+  return [...archives].sort((left, right) => {
+    const leftTime = Date.parse(left?.exported_at ?? '')
+    const rightTime = Date.parse(right?.exported_at ?? '')
+    const safeLeft = Number.isFinite(leftTime) ? leftTime : 0
+    const safeRight = Number.isFinite(rightTime) ? rightTime : 0
+    return safeRight - safeLeft
+  })
+}
+
+async function pruneRemoteArchives() {
+  if (!state.remoteSettings || !isRemoteProviderConfigured(state.remoteSettings)) {
+    setStatus(t('dataExchange.status.providerNotConfigured'), 'error', '', 'remote-sync')
+    render()
+    return
+  }
+
+  const keepLatest = normalizeArchiveKeepLatestValue(
+    state.remoteDraft?.remote_archive_keep_latest_count
+      ?? state.remoteSettings?.remote_archive_keep_latest_count
+      ?? state.remoteArchiveKeepLatest,
+  )
+  if (keepLatest == null) {
+    setStatus(t('dataExchange.status.archiveRetentionRequired'), 'error', '', 'remote-sync')
+    render()
+    return
+  }
+  const archives = sortArchivesNewestFirst(state.remoteArchives ?? [])
+  const victims = archives.slice(keepLatest)
+
+  if (!victims.length) {
+    setStatus(t('dataExchange.status.noArchivesToPrune'), 'idle', '', 'remote-sync')
+    render()
+    return
+  }
+
+  if (!window.confirm(t('dataExchange.confirm.pruneArchives', {count: victims.length, keep: keepLatest}))) {
+    setStatus(t('common.cancel'), 'idle', '', 'remote-sync')
+    render()
+    return
+  }
+
+  state.busy.remoteArchivePrune = true
+  setTransfer(true, t('dataExchange.status.pruningArchives', {count: victims.length}), 'remote-sync')
+  render()
+
+  try {
+    const provider = createRemoteExportProvider(state.remoteSettings)
+    let deleted = 0
+    for (const archive of victims) {
+      const result = await provider.deleteArchive(archive.workspace_checksum)
+      if (!result.ok) throw new Error(result.error.message)
+      deleted += 1
+    }
+    const victimChecksums = new Set(victims.map((archive) => archive.workspace_checksum))
+    state.remoteArchives = (state.remoteArchives ?? []).filter((archive) => !victimChecksums.has(archive.workspace_checksum))
+    state.remoteActivity = t('dataExchange.status.archivePruneComplete', {count: deleted, keep: keepLatest})
+    setStatus(state.remoteActivity, 'success', '', 'remote-sync')
+  } catch (error) {
+    setStatus(t('dataExchange.status.archivePruneFailed', {message: error instanceof Error ? error.message : String(error)}), 'error', '', 'remote-sync')
+  } finally {
+    state.busy.remoteArchivePrune = false
+    setTransfer(false, '', 'remote-sync')
     render()
   }
 }
@@ -910,6 +1575,10 @@ async function boot() {
         event.preventDefault()
 
         const action = clickable.dataset.click
+        if (action === 'dismissUiNode') {
+          dismissUiNode(clickable)
+          return
+        }
         if (action === 'reloadImportExport') {
           location.reload()
           return
@@ -951,6 +1620,18 @@ async function boot() {
           void testRemoteConfig()
           return
         }
+        if (action === 'deleteLiveRemoteExport') {
+          void deleteLiveRemoteExport()
+          return
+        }
+        if (action === 'wipeRemoteData') {
+          void wipeRemoteData()
+          return
+        }
+        if (action === 'disconnectGoogleDrive') {
+          void disconnectGoogleDrive()
+          return
+        }
         if (action === 'refreshRemoteCompare') {
           void refreshRemoteCompare()
           return
@@ -969,6 +1650,35 @@ async function boot() {
         }
         if (action === 'downloadRemoteExport') {
           void downloadRemoteExport()
+          return
+        }
+        if (action === 'downloadRemoteData') {
+          void downloadRemotePackagePart('data')
+          return
+        }
+        if (action === 'downloadRemoteAssets') {
+          void downloadRemotePackagePart('assets')
+          return
+        }
+        if (action === 'downloadRemoteMeta') {
+          void downloadRemotePackagePart('meta')
+          return
+        }
+        if (action === 'downloadRemoteArchive') {
+          void downloadRemoteArchive(clickable.dataset.archiveChecksum || '')
+          return
+        }
+        if (action === 'restoreRemoteArchive') {
+          void restoreRemoteArchive(clickable.dataset.archiveChecksum || '')
+          return
+        }
+        if (action === 'deleteRemoteArchive') {
+          void deleteRemoteArchive(clickable.dataset.archiveChecksum || '')
+          return
+        }
+        if (action === 'pruneRemoteArchives') {
+          void pruneRemoteArchives()
+          return
         }
       },
 
@@ -979,9 +1689,64 @@ async function boot() {
         }
 
         if (target?.dataset?.change === 'updateRemoteDraft') {
+          if (target.name === 'remote_sync_indicator') {
+            const nextIndicatorState = normalizeDraftBoolean(target)
+            const currentSettings = state.widgetSettings
+            if (currentSettings) {
+              const nextSettings = {
+                ...currentSettings,
+                remote_sync_indicator: nextIndicatorState,
+              }
+              state.widgetSettings = nextSettings
+              void saveWidgetSettings(nextSettings, db)
+            } else {
+              void getWidgetSettings(db).then((loadedSettings) => {
+                const nextSettings = {
+                  ...loadedSettings,
+                  remote_sync_indicator: nextIndicatorState,
+                }
+                state.widgetSettings = nextSettings
+                return saveWidgetSettings(nextSettings, db)
+              })
+            }
+            return
+          }
+
+          const value = target.type === 'checkbox'
+            ? normalizeDraftBoolean(target)
+            : target.type === 'number'
+              ? normalizeDraftNumber(target)
+              : target.value || null
+
+          const nextDraft = {
+            ...(state.remoteDraft ?? {}),
+            [target.name]: value,
+          }
+
+          if (target.name === 'remote_auto_sync_enabled' && value === true && nextDraft.remote_auto_sync_interval_minutes == null) {
+            nextDraft.remote_auto_sync_interval_minutes = 10
+          }
+
+          state.remoteDraft = nextDraft
+          if (isImmediateRemotePreferenceField(target.name)) {
+            void persistImmediateRemotePreference(target.name, value)
+          }
+          if (target.name === 'remote_auto_sync_enabled' && value === true && nextDraft.remote_auto_sync_interval_minutes === 10) {
+            void persistImmediateRemotePreference('remote_auto_sync_interval_minutes', 10)
+          }
+          updateRemoteAutoSyncState(state.compareInspection?.state ?? null)
+          if (target.name === 'remote_provider_type' || target.type === 'checkbox') {
+            render(['remote-config'])
+          }
+          return
+        }
+
+        if (target?.dataset?.change === 'updateRemoteArchiveKeepLatest') {
+          const value = normalizeArchiveKeepLatestValue(target.value)
+          state.remoteArchiveKeepLatest = value ?? ''
           state.remoteDraft = {
             ...(state.remoteDraft ?? {}),
-            [target.name]: target.value || null,
+            remote_archive_keep_latest_count: value,
           }
           return
         }

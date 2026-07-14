@@ -353,6 +353,27 @@ describe('exportAll', () => {
     expect(m.saved_feed_items).toHaveLength(1)
   })
 
+  it('excludes wallpaper assets and background archive rows from new exports', async () => {
+    await src.assets.add({
+      kind: 'background',
+      checksum: 'wallpaper-checksum',
+      blob: new Blob([new Uint8Array([1, 2, 3])], { type: 'image/webp' }),
+      width: 1920,
+      height: 1080,
+      meta_json: null,
+    })
+    await src.bg_archive.add({
+      name: 'Wallpaper preset',
+      value: 'linear-gradient(90deg, #111, #333)',
+      created_at: 1_700_000_000_000,
+    })
+
+    const manifest = await exportAll(src)
+
+    expect(manifest.assets).toHaveLength(0)
+    expect('bg_archive' in manifest).toBe(false)
+  })
+
   it('serialises backup JSON in minified form', async () => {
     await seedFullChain(src)
     const manifest = await exportAll(src)
@@ -444,6 +465,31 @@ describe('exportAll', () => {
 
     expect(await manifestChecksum(leftManifest)).toBe(await manifestChecksum(rightManifest))
   })
+
+  it('ignores wallpaper assets and background archive rows when computing checksum', async () => {
+    const baseManifest = emptyManifest()
+    const variantManifest: BackupManifest = {
+      ...baseManifest,
+      assets: [{
+        original_id: 99,
+        kind: 'background',
+        checksum: 'wallpaper-checksum',
+        width: 1920,
+        height: 1080,
+        meta_json: null,
+        mime_type: 'image/webp',
+        data_base64: await blobToBase64(new Blob([new Uint8Array([7, 8, 9])], { type: 'image/webp' })),
+      }],
+      bg_archive: [{
+        id: 1,
+        name: 'Wallpaper preset',
+        value: 'linear-gradient(90deg, #111, #333)',
+        created_at: 1_700_000_000_000,
+      }],
+    }
+
+    expect(await manifestChecksum(baseManifest)).toBe(await manifestChecksum(variantManifest))
+  })
 })
 
 describe('importAll – round-trip', () => {
@@ -527,13 +573,14 @@ describe('importAll – round-trip', () => {
     expect(importedFavicon?.kind).toBe('favicon')
   })
 
-  it('appends background archive items on import instead of overwriting existing local rows', async () => {
-    await src.bg_archive.add({
+  it('still imports background archive rows from older manifests without overwriting local rows', async () => {
+    const manifest = emptyManifest()
+    manifest.bg_archive = [{
+      id: 1,
       name: 'Source item',
       value: 'linear-gradient(90deg, #111, #333)',
       created_at: 1_700_000_000_000,
-    })
-    const manifest = await exportAll(src)
+    }]
 
     await dst.bg_archive.add({
       name: 'Existing item',

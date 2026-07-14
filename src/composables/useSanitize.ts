@@ -15,7 +15,7 @@ const ALLOWED_TAGS = [
   'blockquote', 'pre', 'code', 'kbd', 'samp',
   'picture', 'figure', 'img',
   'details', 'summary',
-  'nav', 'aside', 'article', 'address', 'header', 'footer',
+  'nav', 'aside', 'article', 'main', 'address', 'header', 'footer',
   'table', 'thead', 'tbody', 'tr', 'th', 'td',
   'button',
   'textarea',
@@ -58,6 +58,8 @@ export function sanitizeHtml(dirty: string): string {
 let hookInstalled = false
 export function installSanitizeHooks(): void {
   if (hookInstalled) return
+  if (typeof DOMPurify.addHook !== 'function') return
+
   DOMPurify.addHook('afterSanitizeAttributes', (node) => {
     if (node.nodeName === 'A' && node instanceof Element) {
       node.setAttribute('target', '_blank')
@@ -67,5 +69,7 @@ export function installSanitizeHooks(): void {
   hookInstalled = true
 }
 
-// Auto-install on first import so callers don't have to remember.
-installSanitizeHooks()
+// Auto-install only in DOM-capable contexts.
+if (typeof document !== 'undefined') {
+  installSanitizeHooks()
+}

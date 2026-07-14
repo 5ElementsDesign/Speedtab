@@ -7,11 +7,29 @@ import {loadModuleBySyncId} from '../../data/modules.js'
 import {getUiConfigSpec} from '../../config/ui-config-spec.js'
 import {loadStoredUiConfigsByEntitySyncIds, loadUiConfigsByEntitySyncIds} from '../../data/ui-config.js'
 import {closeColorPicker, initColorPicker, wrapColorPicker} from '../../utils/color-picker.js'
+import {patchInner} from '../../utils/dom-patch.js'
 import {t} from '../../utils/i18n.js'
 import {hasCustomUiConfig} from './normalize.js'
 import {renderCustomizerAppearancePanel, renderCustomizerForm, renderCustomizerList, SHELL_SYNC_ID} from './render.js'
 
 let activeCustomizerTrigger = null
+let customizerHoverDelegationActive = false
+
+async function activateCustomizerHoverDelegation() {
+  if (customizerHoverDelegationActive) return
+  const {handler} = await import('../../app/bootstrap.js')
+  handler?.addEvent?.('[data-sidepanel]', 'mouseover')
+  handler?.addEvent?.('[data-sidepanel]', 'mouseout')
+  customizerHoverDelegationActive = true
+}
+
+async function deactivateCustomizerHoverDelegation() {
+  if (!customizerHoverDelegationActive) return
+  const {handler} = await import('../../app/bootstrap.js')
+  handler?.removeEvent?.('[data-sidepanel]', 'mouseover')
+  handler?.removeEvent?.('[data-sidepanel]', 'mouseout')
+  customizerHoverDelegationActive = false
+}
 
 function getActivePagePanel() {
   const activeBtn = document.querySelector('[data-controller] [data-tab-action="open"][aria-selected="true"]')
@@ -70,6 +88,9 @@ export function clearCustomizerFocus() {
 }
 
 async function renderCustomizerListBody(body, showResetOptions = false) {
+  // CRITICAL PANEL RENDER PATH:
+  // KEEP THIS FOR REAL LIST SHAPE CHANGES ONLY.
+  // DO NOT ROUTE SIMPLE FIELD OR TOGGLE STATE THROUGH A LIST REBUILD.
   clearCustomizerFocus()
   const activePanel = getActivePagePanel()
   const pageSyncId = activePanel?.querySelector('[data-app-tab-shell]')?.dataset?.pageSyncId ?? ''
@@ -85,7 +106,7 @@ async function renderCustomizerListBody(body, showResetOptions = false) {
   const shellConfigMap = await loadUiConfigsByEntitySyncIds('shell', [{sync_id: SHELL_SYNC_ID, type: 'app'}])
   const shellConfig = shellConfigMap.get(SHELL_SYNC_ID)
   const shellHasConfig = hasCustomUiConfig('shell', 'app', shellConfig)
-  body.innerHTML = renderCustomizerList(moduleCards, shellHasConfig, pageLabel, pageSyncId, showResetOptions)
+  patchInner(body, renderCustomizerList(moduleCards, shellHasConfig, pageLabel, pageSyncId, showResetOptions))
 }
 
 function colorToHex(value = '') {
@@ -216,7 +237,11 @@ export function openCustomizerListPanel(showResetOptions = false, trigger = acti
     footer: renderCustomizerListFooter(showResetOptions),
   })
   panelEl.dataset.showResetOptions = showResetOptions ? 'true' : ''
+  void activateCustomizerHoverDelegation()
   onSidepanelClose(clearCustomizerFocus)
+  onSidepanelClose(() => {
+    void deactivateCustomizerHoverDelegation()
+  })
   onSidepanelClose((reason) => {
     if (reason === 'close') {
       releaseActiveCustomizerTrigger()
@@ -267,7 +292,7 @@ export async function openCustomizerFormPanel(syncId, moduleType, trigger = acti
   }
 
   const body = panelEl.querySelector('[data-sidepanel-body]')
-  if (body) body.innerHTML = `<p data-customizer-loading>${t('common.loading')}</p>`
+  if (body) patchInner(body, `<p data-customizer-loading>${t('common.loading')}</p>`)
 
   const [effectiveConfigMap, storedConfigMap, bgData, moduleData] = await Promise.all([
     loadUiConfigsByEntitySyncIds(entityType, [{sync_id: syncId, type: isShell ? 'app' : moduleType}]),
@@ -279,14 +304,17 @@ export async function openCustomizerFormPanel(syncId, moduleType, trigger = acti
   const storedConfig = storedConfigMap.get(syncId)
 
   if (body && isSidepanelOpen()) {
-    body.innerHTML = renderCustomizerForm(
+    // CRITICAL PANEL RENDER PATH:
+    // THIS REBUILDS THE CUSTOMIZER FORM BODY.
+    // PATCH LOCAL CONTROLS IN PLACE WHEN STRUCTURE DID NOT CHANGE.
+    patchInner(body, renderCustomizerForm(
       entityType,
       isShell ? 'app' : moduleType,
       storedConfig ?? {behavior: {}, layout: {}, appearance: {}},
       bgData,
       moduleData,
       effectiveConfig,
-    )
+    ))
     await initColorPicker()
     wrapColorPicker(body)
   }
@@ -320,7 +348,7 @@ export async function openCustomizerAppearancePanel(syncId = SHELL_SYNC_ID, modu
   syncActiveCustomizerTrigger(trigger)
 
   const body = panelEl.querySelector('[data-sidepanel-body]')
-  if (body) body.innerHTML = `<p data-customizer-loading>${t('common.loading')}</p>`
+  if (body) patchInner(body, `<p data-customizer-loading>${t('common.loading')}</p>`)
 
   const [effectiveConfigMap, storedConfigMap, bgData] = await Promise.all([
     loadUiConfigsByEntitySyncIds('shell', [{sync_id: syncId, type: 'app'}]),
@@ -332,13 +360,15 @@ export async function openCustomizerAppearancePanel(syncId = SHELL_SYNC_ID, modu
   const resolvedEffectiveConfig = resolveShellAppearancePreview(effectiveConfig)
 
   if (body && isSidepanelOpen()) {
-    body.innerHTML = renderCustomizerAppearancePanel(
+    // CRITICAL PANEL RENDER PATH:
+    // APPEARANCE BODY REBUILDS ARE ONLY FOR REAL SECTION SHAPE CHANGES.
+    patchInner(body, renderCustomizerAppearancePanel(
       'shell',
       'app',
       storedConfig ?? {behavior: {}, layout: {}, appearance: {}},
       bgData,
       resolvedEffectiveConfig,
-    )
+    ))
     await initColorPicker()
     wrapColorPicker(body)
   }

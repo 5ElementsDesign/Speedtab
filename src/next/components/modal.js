@@ -8,7 +8,7 @@ let closeHook = null
 
 // content is raw HTML (developer-composed, e.g. another render function's output) —
 // same trust model as buildDropdown's `trigger`. title is plain text and gets escaped.
-export function buildModal({title = '', content = '', panelClass = '', panelStyle = ''} = {}) {
+export function buildModal({title = '', content = '', panelClass = '', panelStyle = '', headerActions = ''} = {}) {
   const panelAttrs = buildAttributes({
     ...(panelClass ? {class: panelClass} : {}),
     ...(panelStyle ? {style: panelStyle} : {}),
@@ -18,7 +18,10 @@ export function buildModal({title = '', content = '', panelClass = '', panelStyl
     <div data-modal-panel role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}"${panelAttrs}>
       <header data-modal-header>
         <h2 data-modal-title>${escapeHtml(title)}</h2>
-        <button type="button" data-modal-close aria-label="${escapeHtml(t('common.close'))}">${SPEEDTAB_SVG.sidepanelClose}</button>
+        <div data-modal-header-actions>
+          ${headerActions}
+          <button type="button" data-modal-close aria-label="${escapeHtml(t('common.close'))}">${SPEEDTAB_SVG.sidepanelClose}</button>
+        </div>
       </header>
       <div data-modal-body>${content}</div>
     </div>
@@ -34,10 +37,10 @@ function ensureRoot() {
   return root
 }
 
-export function openModal({title, content, onClose = null, panelClass = '', panelStyle = ''} = {}) {
+export function openModal({title, content, onClose = null, panelClass = '', panelStyle = '', headerActions = ''} = {}) {
   const el = ensureRoot()
   closeHook = typeof onClose === 'function' ? onClose : null
-  el.innerHTML = buildModal({title, content, panelClass, panelStyle})
+  el.innerHTML = buildModal({title, content, panelClass, panelStyle, headerActions})
   el.removeAttribute('inert')
   el.setAttribute(OPEN, '')
 }

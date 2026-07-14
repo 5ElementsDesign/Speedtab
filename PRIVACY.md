@@ -1,6 +1,6 @@
 # Speedtab Privacy Policy
 
-Last updated: 2026-05-22
+Last updated: 2026-07-10
 
 Speedtab is a local-first browser extension. Its purpose is to provide a structured new-tab dashboard for bookmarks, notes, RSS/Atom feeds, and workspace organization.
 
@@ -14,7 +14,7 @@ Speedtab does not:
 - sell user data
 - use user data for advertising
 
-Network access is used only for user-facing features such as fetching user-configured feeds and loading favicon images for links and feed sources.
+Network access is used only for user-facing features such as fetching user-configured feeds, loading favicon images for links and feed sources, and optional remote sync features the user explicitly enables.
 
 ## Data Speedtab Stores
 
@@ -46,8 +46,12 @@ Speedtab may make external requests for these user-facing features:
 
 - fetching RSS/Atom feeds from URLs the user configures
 - requesting favicon images for feed sources or links
+- optional Google Drive sync to the user's own hidden app-data folder
+- optional remote metadata checks and export uploads for configured remote sync providers
 
 These requests are made directly by the extension. They are not proxied through a Speedtab-controlled backend.
+
+If the user enables Google Drive sync, Speedtab uses Chrome's `chrome.identity` OAuth flow to request access only to the user's own Speedtab app-data folder. Synced workspace files are stored in the user's Google Drive `appDataFolder`, which is hidden from the normal Drive file list. Speedtab does not send synced workspace data to a Speedtab-controlled server.
 
 ## Data Sharing
 
@@ -56,7 +60,7 @@ Speedtab does not rent user data.
 Speedtab does not use user data for personalized advertising.
 Speedtab does not transfer user workspace data to a Speedtab-controlled third-party server.
 
-The only third-party network interactions are those needed for the user-facing features listed above, such as feed fetching and favicon loading.
+The only third-party network interactions are those needed for the user-facing features listed above, such as feed fetching, favicon loading, and optional user-configured remote sync.
 
 ## Export and Import
 
@@ -64,6 +68,8 @@ Speedtab allows users to export their workspace data to a local JSON file and im
 
 Exported files are created locally on the user’s device.
 Imported files are processed locally inside the browser.
+
+If the user enables remote sync, Speedtab may also upload workspace export files and metadata directly to the user-selected remote target, such as Google Drive `appDataFolder` or a user-configured WebDAV endpoint.
 
 Transient feed cache data is not treated as portable workspace data.
 

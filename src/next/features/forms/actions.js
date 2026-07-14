@@ -1,4 +1,4 @@
-import {escapeHtml} from '../../utils/html.js'
+import {buildAttributes, escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 
 export function renderFormActions({saveLabel = t('moduleForm.saveChanges')} = {}) {
@@ -11,11 +11,7 @@ export function renderFormActions({saveLabel = t('moduleForm.saveChanges')} = {}
 
 export function renderSidepanelDeleteFooter({action, label, attrs = {}} = {}) {
   if (!action || !label) return ''
-
-  const attrString = Object.entries(attrs)
-    .filter(([, value]) => value !== null && value !== undefined && value !== '')
-    .map(([key, value]) => `${key}="${escapeHtml(String(value))}"`)
-    .join(' ')
+  const attrString = buildAttributes(attrs, {leadingSpace: false, skipFalsy: true, booleanBare: true})
 
   return `
     <div data-sidepanel-action-footer>

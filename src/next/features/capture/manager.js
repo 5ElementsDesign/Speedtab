@@ -2,6 +2,7 @@ import {openModal, closeModal, isModalOpen} from '../../components/modal.js'
 import {createBookmark} from '../../data/bookmarks.js'
 import {deleteCaptureInboxItem, loadCaptureInboxContext, loadCaptureInboxItems} from '../../data/capture-inbox.js'
 import {createNoteData, loadNoteById, saveNoteData} from '../../data/notes.js'
+import {readActiveFieldState, replaceNode, restoreActiveFieldState} from '../../utils/dom-patch.js'
 import {t} from '../../utils/i18n.js'
 import {renderCaptureInboxModal} from './render.js'
 
@@ -64,15 +65,30 @@ function buildRenderState() {
   }
 }
 
+function getSelectedModuleSyncId() {
+  return state.modules.find((module) => module.id === state.selectedModuleId)?.sync_id ?? ''
+}
+
 function renderModalBody() {
   const modalBody = document.querySelector('[data-modal-body]')
   if (!(modalBody instanceof HTMLElement)) return
-  modalBody.innerHTML = renderCaptureInboxModal(buildRenderState())
-}
+  const activeState = readActiveFieldState()
+  const markup = renderCaptureInboxModal(buildRenderState())
+  const current = modalBody.querySelector('[data-capture-inbox], [data-capture-empty]')
 
-async function rerenderApp() {
-  const {renderNextRoot} = await import('../../app/bootstrap.js')
-  await renderNextRoot()
+  if (current instanceof HTMLElement) {
+    const next = replaceNode(current, markup)
+    if (next instanceof HTMLElement) {
+      restoreActiveFieldState(next, activeState)
+      return
+    }
+  }
+
+  modalBody.innerHTML = markup
+  const next = modalBody.querySelector('[data-capture-inbox], [data-capture-empty]')
+  if (next instanceof HTMLElement) {
+    restoreActiveFieldState(next, activeState)
+  }
 }
 
 async function refreshState() {
@@ -211,10 +227,12 @@ export async function discardCaptureItem(itemId) {
   } else if (isModalOpen()) {
     renderModalBody()
   }
-  await rerenderApp()
+  const {syncCaptureInboxChrome} = await import('../../app/bootstrap.js')
+  syncCaptureInboxChrome(state.items.length)
 }
 
 export async function saveCaptureItem() {
+  const moduleSyncId = getSelectedModuleSyncId()
   await saveActiveItem()
   await refreshState()
   if (!state.items.length) {
@@ -222,5 +240,9 @@ export async function saveCaptureItem() {
   } else if (isModalOpen()) {
     renderModalBody()
   }
-  await rerenderApp()
+  const {refreshModuleContent, syncCaptureInboxChrome} = await import('../../app/bootstrap.js')
+  syncCaptureInboxChrome(state.items.length)
+  if (moduleSyncId) {
+    await refreshModuleContent(moduleSyncId)
+  }
 }

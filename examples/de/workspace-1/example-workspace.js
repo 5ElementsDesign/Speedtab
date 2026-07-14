@@ -107,6 +107,12 @@ const exampleWorkspaceDefinition = [
     type: 'html',
     colorScheme: 'dark',
     title: 'Tabby Tabs',
+    meta: {
+      window: {
+        width: 1200,
+        height: 740,
+      },
+    },
     content: `
 <div
   data-yai-tabs

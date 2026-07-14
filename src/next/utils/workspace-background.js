@@ -18,8 +18,17 @@ export async function loadWorkspaceBackgroundStyle() {
 }
 
 export async function applyWorkspaceBackground(target) {
-  if (!(target instanceof HTMLElement)) return ''
+  const root = target instanceof HTMLElement ? target : null
   const background = await loadWorkspaceBackgroundStyle()
-  target.style.background = background
+
+  document.documentElement.style.background = background
+  document.body.style.background = background
+  document.body.style.backgroundAttachment = 'fixed'
+
+  if (root) {
+    root.style.background = background
+    root.style.backgroundAttachment = 'fixed'
+  }
+
   return background
 }

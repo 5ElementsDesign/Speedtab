@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Style Attribute API Test</title>
+
+  <!-- Your CSS API -->
+  <link rel="stylesheet" href="utility-style-api.css" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f0f2f5;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+      color: #1a1a2e;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .test-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 20px;
+      max-width: 1600px;
+    }
+
+    .test-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border: 1px solid #e4e7ec;
+    }
+
+    .test-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .test-card-header .property {
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: #2563eb;
+      background: #eff6ff;
+      padding: 2px 10px;
+      border-radius: 4px;
+    }
+
+    .test-card-header .example {
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 11px;
+      color: #888;
+      background: #f8f9fa;
+      padding: 2px 10px;
+      border-radius: 4px;
+    }
+
+    .test-input {
+      width: 100%;
+      padding: 8px 12px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      transition: border-color 0.2s;
+    }
+
+    .test-input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .test-input::placeholder {
+      color: #b0b0b0;
+      font-size: 12px;
+    }
+
+    .test-box {
+      background: #fafbfc;
+      border: 2px dashed #d1d5db;
+      border-radius: 8px;
+      padding: 16px;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      font-size: 14px;
+      color: #1a1a2e;
+      position: relative;
+      word-break: break-word;
+    }
+
+    .test-box .label {
+      color: #9ca3af;
+      font-size: 12px;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .test-box .label span {
+      background: #f3f4f6;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .test-box.has-value .label {
+      display: none;
+    }
+
+    /* Special styling for box-shadow test */
+    .test-box-shadow-target {
+      min-height: 100px;
+    }
+
+    /* Status indicator */
+    .status {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-left: 8px;
+    }
+
+    .status.active {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status.inactive {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* Quick value buttons */
+    .quick-values {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .quick-values button {
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 10px;
+      padding: 2px 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #374151;
+    }
+
+    .quick-values button:hover {
+      background: #f3f4f6;
+      border-color: #9ca3af;
+    }
+
+    .quick-values button:active {
+      background: #e5e7eb;
+    }
+
+    @media (max-width: 600px) {
+      .test-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Style Attribute API Test</h1>
+  <p class="subtitle">
+    Enter values in the inputs to test each CSS attribute selector.
+    The test box will update automatically.
+  </p>
+
+  <div class="test-grid" id="testGrid">
+    <!-- Tests will be rendered here -->
+  </div>
+
+  <script>
+    // Test configuration
+    const tests = [
+      // Layout, sizing, overflow
+      {
+        selector: '[data-st-width]',
+        attr: 'data-st-width',
+        property: 'width',
+        examples: ['200px', '50%', 'auto', '100vw'],
+        description: 'width'
+      },
+      {
+        selector: '[data-st-height]',
+        attr: 'data-st-height',
+        property: 'height',
+        examples: ['100px', '50%', 'auto', '80vh'],
+        description: 'height'
+      },
+      {
+        selector: '[data-st-min-width]',
+        attr: 'data-st-min-width',
+        property: 'min-width',
+        examples: ['100px', '50%', 'none'],
+        description: 'min-width'
+      },
+      {
+        selector: '[data-st-min-height]',
+        attr: 'data-st-min-height',
+        property: 'min-height',
+        examples: ['100px', '50%', 'none'],
+        description: 'min-height'
+      },
+      {
+        selector: '[data-st-max-width]',
+        attr: 'data-st-max-width',
+        property: 'max-width',
+        examples: ['300px', '80%', 'none'],
+        description: 'max-width'
+      },
+      {
+        selector: '[data-st-max-height]',
+        attr: 'data-st-max-height',
+        property: 'max-height',
+        examples: ['200px', '80%', 'none'],
+        description: 'max-height'
+      },
+      {
+        selector: '[data-st-overflow]',
+        attr: 'data-st-overflow',
+        property: 'overflow',
+        examples: ['auto', 'hidden', 'scroll', 'visible'],
+        description: 'overflow',
+        boxStyle: 'height: 60px;'
+      },
+
+      // Box model
+      {
+        selector: '[data-st-margin]',
+        attr: 'data-st-margin',
+        property: 'margin',
+        examples: ['10px', '20px 10px', '5px 10px 15px', '0px'],
+        description: 'margin'
+      },
+      {
+        selector: '[data-st-padding]',
+        attr: 'data-st-padding',
+        property: 'padding',
+        examples: ['10px', '20px 10px', '5px 10px 15px', '0px'],
+        description: 'padding'
+      },
+      {
+        selector: '[data-st-margin-top]',
+        attr: 'data-st-margin-top',
+        property: 'margin-top',
+        examples: ['10px', '20px', '0px'],
+        description: 'margin-top'
+      },
+      {
+        selector: '[data-st-margin-bottom]',
+        attr: 'data-st-margin-bottom',
+        property: 'margin-bottom',
+        examples: ['10px', '20px', '0px'],
+        description: 'margin-bottom'
+      },
+      {
+        selector: '[data-st-margin-left]',
+        attr: 'data-st-margin-left',
+        property: 'margin-left',
+        examples: ['10px', '20px', '0px'],
+        description: 'margin-left'
+      },
+      {
+        selector: '[data-st-margin-right]',
+        attr: 'data-st-margin-right',
+        property: 'margin-right',
+        examples: ['10px', '20px', '0px'],
+        description: 'margin-right'
+      },
+      {
+        selector: '[data-st-padding-top]',
+        attr: 'data-st-padding-top',
+        property: 'padding-top',
+        examples: ['10px', '20px', '0px'],
+        description: 'padding-top'
+      },
+      {
+        selector: '[data-st-padding-bottom]',
+        attr: 'data-st-padding-bottom',
+        property: 'padding-bottom',
+        examples: ['10px', '20px', '0px'],
+        description: 'padding-bottom'
+      },
+      {
+        selector: '[data-st-padding-left]',
+        attr: 'data-st-padding-left',
+        property: 'padding-left',
+        examples: ['10px', '20px', '0px'],
+        description: 'padding-left'
+      },
+      {
+        selector: '[data-st-padding-right]',
+        attr: 'data-st-padding-right',
+        property: 'padding-right',
+        examples: ['10px', '20px', '0px'],
+        description: 'padding-right'
+      },
+      {
+        selector: '[data-st-border-radius]',
+        attr: 'data-st-border-radius',
+        property: 'border-radius',
+        examples: ['8px', '50%', '12px 4px', '0px'],
+        description: 'border-radius'
+      },
+      {
+        selector: '[data-st-border]',
+        attr: 'data-st-border',
+        property: 'border',
+        examples: ['2px solid red', '1px solid #2563eb', 'none', '4px dotted green'],
+        description: 'border'
+      },
+      {
+        selector: '[data-st-border-color]',
+        attr: 'data-st-border-color',
+        property: 'border-color',
+        examples: ['red', '#2563eb', 'rgba(0,0,0,0.5)'],
+        description: 'border-color',
+        boxStyle: 'border: 2px solid currentColor;'
+      },
+      {
+        selector: '[data-st-border-width]',
+        attr: 'data-st-border-width',
+        property: 'border-width',
+        examples: ['2px', '4px', '0px'],
+        description: 'border-width',
+        boxStyle: 'border-style: solid; border-color: #2563eb;'
+      },
+      {
+        selector: '[data-st-border-style]',
+        attr: 'data-st-border-style',
+        property: 'border-style',
+        examples: ['solid', 'dashed', 'dotted', 'double', 'none'],
+        description: 'border-style',
+        boxStyle: 'border: 2px solid currentColor;'
+      },
+
+      // Flex helpers
+      {
+        selector: '[data-st-flex]',
+        attr: 'data-st-flex',
+        property: 'flex',
+        examples: ['1', '2', '0 1 auto', '1 0 100px'],
+        description: 'flex'
+      },
+      {
+        selector: '[data-st-gap]',
+        attr: 'data-st-gap',
+        property: 'gap',
+        examples: ['10px', '20px', '8px 16px', '0px'],
+        description: 'gap',
+        boxStyle: 'display: flex; flex-wrap: wrap;'
+      },
+      {
+        selector: '[data-st-flex-direction]',
+        attr: 'data-st-flex-direction',
+        property: 'flex-direction',
+        examples: ['row', 'column', 'row-reverse', 'column-reverse'],
+        description: 'flex-direction',
+        boxStyle: 'display: flex; gap: 8px;'
+      },
+      {
+        selector: '[data-st-align-items]',
+        attr: 'data-st-align-items',
+        property: 'align-items',
+        examples: ['stretch', 'center', 'flex-start', 'flex-end'],
+        description: 'align-items',
+        boxStyle: 'display: flex; height: 80px; gap: 8px;'
+      },
+      {
+        selector: '[data-st-justify-content]',
+        attr: 'data-st-justify-content',
+        property: 'justify-content',
+        examples: ['flex-start', 'center', 'flex-end', 'space-between', 'space-around'],
+        description: 'justify-content',
+        boxStyle: 'display: flex; gap: 8px;'
+      },
+      {
+        selector: '[data-st-flex-wrap]',
+        attr: 'data-st-flex-wrap',
+        property: 'flex-wrap',
+        examples: ['nowrap', 'wrap', 'wrap-reverse'],
+        description: 'flex-wrap',
+        boxStyle: 'display: flex; gap: 8px; width: 120px;'
+      },
+
+      // Typography
+      {
+        selector: '[data-st-font-size]',
+        attr: 'data-st-font-size',
+        property: 'font-size',
+        examples: ['18px', '1.5rem', '24px', 'inherit'],
+        description: 'font-size'
+      },
+      {
+        selector: '[data-st-font-weight]',
+        attr: 'data-st-font-weight',
+        property: 'font-weight',
+        examples: ['400', '600', '700', 'bold'],
+        description: 'font-weight'
+      },
+      {
+        selector: '[data-st-line-height]',
+        attr: 'data-st-line-height',
+        property: 'line-height',
+        examples: ['1.5', '30px', '2', 'normal'],
+        description: 'line-height'
+      },
+      {
+        selector: '[data-st-text-align]',
+        attr: 'data-st-text-align',
+        property: 'text-align',
+        examples: ['left', 'center', 'right', 'justify'],
+        description: 'text-align'
+      },
+      {
+        selector: '[data-st-white-space]',
+        attr: 'data-st-white-space',
+        property: 'white-space',
+        examples: ['normal', 'nowrap', 'pre', 'pre-wrap', 'pre-line'],
+        description: 'white-space'
+      },
+
+      // Visual helpers
+      {
+        selector: '[data-st-opacity]',
+        attr: 'data-st-opacity',
+        property: 'opacity',
+        examples: ['0.5', '0.8', '1', '0.2'],
+        description: 'opacity'
+      },
+      {
+        selector: '[data-st-object-fit]',
+        attr: 'data-st-object-fit',
+        property: 'object-fit',
+        examples: ['fill', 'contain', 'cover', 'scale-down'],
+        description: 'object-fit',
+        // We use an img placeholder for this
+        useImage: true
+      },
+      {
+        selector: '[data-st-color]',
+        attr: 'data-st-color',
+        property: 'color',
+        examples: ['red', '#2563eb', 'rgba(0,0,0,0.7)'],
+        description: 'color'
+      },
+      {
+        selector: '[data-st-bg-color]',
+        attr: 'data-st-bg-color',
+        property: 'background-color',
+        examples: ['#e5e7eb', 'rgba(37, 99, 235, 0.1)', 'transparent'],
+        description: 'background-color'
+      },
+    ];
+
+    // Box shadow is special - we handle it separately
+    const boxShadowTest = {
+      selector: '[data-st-box-shadow-x]',
+      attr: 'data-st-box-shadow-x',
+      property: 'box-shadow',
+      examples: ['4px', '8px', '0px', '-4px'],
+      description: 'box-shadow (X)',
+      isBoxShadow: true
+    };
+
+    function buildTestCard(test) {
+      const card = document.createElement('div');
+      card.className = 'test-card';
+
+      // Header
+      const header = document.createElement('div');
+      header.className = 'test-card-header';
+
+      const propSpan = document.createElement('span');
+      propSpan.className = 'property';
+      propSpan.textContent = test.property;
+
+      const exampleSpan = document.createElement('span');
+      exampleSpan.className = 'example';
+      exampleSpan.textContent = `attr: ${test.attr}`;
+
+      header.appendChild(propSpan);
+      header.appendChild(exampleSpan);
+
+      // Input
+      const input = document.createElement('input');
+      input.className = 'test-input';
+      input.type = 'text';
+      input.placeholder = `Enter value (e.g., ${test.examples[0]})`;
+      input.dataset.attr = test.attr;
+
+      // Quick value buttons
+      const quickContainer = document.createElement('div');
+      quickContainer.className = 'quick-values';
+
+      test.examples.forEach(val => {
+        const btn = document.createElement('button');
+        btn.textContent = val;
+        btn.addEventListener('click', () => {
+          input.value = val;
+          input.dispatchEvent(new Event('input'));
+        });
+        quickContainer.appendChild(btn);
+      });
+
+      // Box
+      const box = document.createElement('div');
+      box.className = 'test-box';
+
+      if (test.useImage) {
+        // For object-fit test
+        const img = document.createElement('img');
+        img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23e5e7eb"/%3E%3Ctext x="50" y="110" font-family="sans-serif" font-size="20" text-anchor="middle" fill="%236b7280"%3E200x200%3C/text%3E%3C/svg%3E';
+        img.alt = 'test image';
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'fill'; // default
+        box.appendChild(img);
+        // Store reference for object-fit
+        box._img = img;
+      } else {
+        const label = document.createElement('span');
+        label.className = 'label';
+        label.innerHTML = `<span>${test.attr}</span>`;
+        box.appendChild(label);
+
+        // For gap test, add some child elements
+        if (test.attr === 'data-st-gap') {
+          for (let i = 0; i < 3; i++) {
+            const child = document.createElement('div');
+            child.style.cssText = 'background: #dbeafe; padding: 8px 16px; border-radius: 4px; font-size: 12px;';
+            child.textContent = `Item ${i+1}`;
+            box.appendChild(child);
+          }
+        }
+
+        // For flex-direction, align-items, justify-content, flex-wrap tests
+        if (['data-st-flex-direction', 'data-st-align-items', 'data-st-justify-content', 'data-st-flex-wrap'].includes(test.attr)) {
+          for (let i = 0; i < 3; i++) {
+            const child = document.createElement('div');
+            child.style.cssText = 'background: #dbeafe; padding: 6px 12px; border-radius: 4px; font-size: 12px;';
+            if (test.attr === 'data-st-align-items') {
+              child.textContent = `Item ${i+1}`;
+            } else {
+              child.textContent = `Item ${i+1}`;
+            }
+            box.appendChild(child);
+          }
+        }
+
+        // For overflow test, add more content
+        if (test.attr === 'data-st-overflow') {
+          box.style.height = '60px';
+          for (let i = 0; i < 10; i++) {
+            const child = document.createElement('div');
+            child.textContent = `Line ${i+1}`;
+            box.appendChild(child);
+          }
+        }
+      }
+
+      // Apply custom box style
+      if (test.boxStyle) {
+        box.style.cssText += test.boxStyle;
+      }
+
+      // Status
+      const status = document.createElement('span');
+      status.className = 'status inactive';
+      status.textContent = '⏳';
+
+      card.appendChild(header);
+      card.appendChild(input);
+      card.appendChild(quickContainer);
+      card.appendChild(box);
+      card.appendChild(status);
+
+      // Store references
+      card._box = box;
+      card._input = input;
+      card._status = status;
+      card._test = test;
+
+      // Input handler
+      input.addEventListener('input', () => {
+        const value = input.value.trim();
+        updateTestCard(card, value);
+      });
+
+      // Initial state
+      updateTestCard(card, '');
+
+      return card;
+    }
+
+    function updateTestCard(card, value) {
+      const box = card._box;
+      const status = card._status;
+      const test = card._test;
+
+      // Remove all test attributes
+      const allAttrs = [
+        'data-st-width', 'data-st-height', 'data-st-min-width', 'data-st-min-height',
+        'data-st-max-width', 'data-st-max-height', 'data-st-overflow',
+        'data-st-margin', 'data-st-padding',
+        'data-st-margin-top', 'data-st-margin-bottom', 'data-st-margin-left', 'data-st-margin-right',
+        'data-st-padding-top', 'data-st-padding-bottom', 'data-st-padding-left', 'data-st-padding-right',
+        'data-st-border-radius', 'data-st-border', 'data-st-border-color', 'data-st-border-width', 'data-st-border-style',
+        'data-st-flex', 'data-st-gap', 'data-st-flex-direction', 'data-st-align-items',
+        'data-st-justify-content', 'data-st-flex-wrap',
+        'data-st-font-size', 'data-st-font-weight', 'data-st-line-height', 'data-st-text-align',
+        'data-st-white-space', 'data-st-opacity', 'data-st-object-fit', 'data-st-color', 'data-st-bg-color',
+        'data-st-box-shadow-x', 'data-st-box-shadow-y', 'data-st-box-shadow-blur',
+        'data-st-box-shadow-spread', 'data-st-box-shadow-type'
+      ];
+
+      allAttrs.forEach(attr => box.removeAttribute(attr));
+
+      // Apply the test attribute with value
+      if (value) {
+        box.setAttribute(test.attr, value);
+        status.className = 'status active';
+        status.textContent = '✅ Applied';
+        box.classList.add('has-value');
+      } else {
+        status.className = 'status inactive';
+        status.textContent = '⏳ Waiting';
+        box.classList.remove('has-value');
+      }
+
+      // For object-fit, also update the img
+      if (test.useImage && box._img) {
+        if (value) {
+          box._img.style.objectFit = value;
+        } else {
+          box._img.style.objectFit = 'fill';
+        }
+      }
+    }
+
+    // Build box shadow test (special case)
+    function buildBoxShadowTest() {
+      const card = document.createElement('div');
+      card.className = 'test-card';
+
+      const header = document.createElement('div');
+      header.className = 'test-card-header';
+
+      const propSpan = document.createElement('span');
+      propSpan.className = 'property';
+      propSpan.textContent = 'box-shadow';
+
+      const exampleSpan = document.createElement('span');
+      exampleSpan.className = 'example';
+      exampleSpan.textContent = 'Multiple attrs';
+
+      header.appendChild(propSpan);
+      header.appendChild(exampleSpan);
+
+      // Create inputs for each component
+      const inputs = [
+        { attr: 'data-st-box-shadow-x', placeholder: 'X offset', default: '0px' },
+        { attr: 'data-st-box-shadow-y', placeholder: 'Y offset', default: '0px' },
+        { attr: 'data-st-box-shadow-blur', placeholder: 'Blur', default: '0px' },
+        { attr: 'data-st-box-shadow-spread', placeholder: 'Spread', default: '0px' },
+        { attr: 'data-st-box-shadow-type', placeholder: 'Type (inset)', default: '' },
+      ];
+
+      const inputContainer = document.createElement('div');
+      inputContainer.style.cssText = 'display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;';
+
+      const inputRefs = [];
+
+      inputs.forEach(({ attr, placeholder, default: defaultVal }) => {
+        const input = document.createElement('input');
+        input.className = 'test-input';
+        input.type = 'text';
+        input.placeholder = placeholder;
+        input.dataset.attr = attr;
+        input.style.flex = '1';
+        input.style.minWidth = '60px';
+        inputRefs.push(input);
+        inputContainer.appendChild(input);
+      });
+
+      // Quick presets
+      const quickContainer = document.createElement('div');
+      quickContainer.className = 'quick-values';
+
+      const presets = [
+        { label: 'Small', x: '2px', y: '2px', blur: '4px', spread: '0px', type: '' },
+        { label: 'Medium', x: '4px', y: '4px', blur: '8px', spread: '0px', type: '' },
+        { label: 'Large', x: '8px', y: '8px', blur: '16px', spread: '0px', type: '' },
+        { label: 'Inset', x: '2px', y: '2px', blur: '4px', spread: '0px', type: 'inset' },
+        { label: 'None', x: '0px', y: '0px', blur: '0px', spread: '0px', type: '' },
+      ];
+
+      presets.forEach(preset => {
+        const btn = document.createElement('button');
+        btn.textContent = preset.label;
+        btn.addEventListener('click', () => {
+          inputRefs[0].value = preset.x;
+          inputRefs[1].value = preset.y;
+          inputRefs[2].value = preset.blur;
+          inputRefs[3].value = preset.spread;
+          inputRefs[4].value = preset.type;
+          inputRefs.forEach(inp => inp.dispatchEvent(new Event('input')));
+        });
+        quickContainer.appendChild(btn);
+      });
+
+      // Box
+      const box = document.createElement('div');
+      box.className = 'test-box test-box-shadow-target';
+      box.style.cssText = 'min-height: 120px; background: white; border: 1px solid #e5e7eb;';
+
+      const label = document.createElement('span');
+      label.className = 'label';
+      label.innerHTML = '<span>box-shadow</span>';
+      box.appendChild(label);
+
+      // Status
+      const status = document.createElement('span');
+      status.className = 'status inactive';
+      status.textContent = '⏳';
+
+      card.appendChild(header);
+      card.appendChild(inputContainer);
+      card.appendChild(quickContainer);
+      card.appendChild(box);
+      card.appendChild(status);
+
+      card._box = box;
+      card._inputs = inputRefs;
+      card._status = status;
+
+      // Input handler
+      const updateShadow = () => {
+        const values = inputRefs.map(inp => inp.value.trim());
+        const [x, y, blur, spread, type] = values;
+
+        // Clear all shadow attrs
+        ['data-st-box-shadow-x', 'data-st-box-shadow-y', 'data-st-box-shadow-blur',
+         'data-st-box-shadow-spread', 'data-st-box-shadow-type'].forEach(attr => {
+          box.removeAttribute(attr);
+        });
+
+        if (x || y || blur || spread || type) {
+          if (x) box.setAttribute('data-st-box-shadow-x', x);
+          if (y) box.setAttribute('data-st-box-shadow-y', y);
+          if (blur) box.setAttribute('data-st-box-shadow-blur', blur);
+          if (spread) box.setAttribute('data-st-box-shadow-spread', spread);
+          if (type) box.setAttribute('data-st-box-shadow-type', type);
+
+          status.className = 'status active';
+          status.textContent = '✅ Applied';
+          box.classList.add('has-value');
+        } else {
+          status.className = 'status inactive';
+          status.textContent = '⏳ Waiting';
+          box.classList.remove('has-value');
+        }
+      };
+
+      inputRefs.forEach(inp => {
+        inp.addEventListener('input', updateShadow);
+      });
+
+      // Initial state
+      updateShadow();
+
+      return card;
+    }
+
+    // Render all tests
+    function renderTests() {
+      const grid = document.getElementById('testGrid');
+
+      // Regular tests
+      tests.forEach(test => {
+        grid.appendChild(buildTestCard(test));
+      });
+
+      // Box shadow test (special)
+      grid.appendChild(buildBoxShadowTest());
+    }
+
+    renderTests();
+  </script>
+</body>
+</html>

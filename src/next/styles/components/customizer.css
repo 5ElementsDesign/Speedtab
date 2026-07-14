@@ -461,6 +461,7 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  line-height: 1;
 
   [data-customizer-field-label] {
     flex: 1;
@@ -729,6 +730,40 @@ form[data-submit]:invalid [data-form-save-btn] {
   padding: 10px;
   background: #222;
   border: 1px solid #333;
+}
+
+[data-settings-advanced-options] {
+  margin-top: 8px;
+
+  > summary {
+    list-style: none;
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--st-form-elements-min-height);
+    padding: var(--st-form-button-padding);
+    border: 1px solid var(--st-form-elements-border-color);
+    background: var(--st-form-elements-bg-color);
+    color: var(--st-color-text);
+    cursor: pointer;
+    user-select: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    &:hover,
+    &:focus {
+      border-color: var(--st-form-elements-border-hover);
+      background: color-mix(in srgb, var(--st-form-elements-bg-color) 86%, white 14%);
+    }
+  }
+}
+
+[data-settings-advanced-options-panel] {
+  margin-top: 8px;
+  display: grid;
+  gap: 10px;
 }
 
 [data-customizer-section][data-config-clock-widget] {

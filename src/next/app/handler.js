@@ -9,7 +9,6 @@ export function createHandler(appActions = {}) {
   const INPUT_DEBOUNCE_MS = 150
   const CHANGE_DEBOUNCE_MS = 100
   const FORM_STATE_DEBOUNCE_MS = 500
-  const HOVER_THROTTLE_MS = 5
   const RESIZE_THROTTLE_MS = 100
   const SCROLL_THROTTLE_MS = 60
 
@@ -46,8 +45,6 @@ export function createHandler(appActions = {}) {
       'submit',
       'input',
       'change',
-      'mouseover',
-      'mouseout',
     ],
     window: [
       {type: 'resize', throttle: RESIZE_THROTTLE_MS},
@@ -158,12 +155,10 @@ export function createHandler(appActions = {}) {
         const item = target?.closest?.('[data-customizer-list-item][data-sync-id]')
         if (!item?.dataset?.syncId) return
 
-        YEH.throttle(() => {
-          const syncId = item.dataset.syncId
-          if (!syncId) return
-          document.querySelector(`[data-module-card][data-sync-id="${CSS.escape(syncId)}"]`)
-            ?.setAttribute('data-customizer-focus', '')
-        }, HOVER_THROTTLE_MS, 'st:customizer:hover')()
+        const syncId = item.dataset.syncId
+        if (!syncId) return
+        document.querySelector(`[data-module-card][data-sync-id="${CSS.escape(syncId)}"]`)
+          ?.setAttribute('data-customizer-focus', '')
       },
 
       handleMouseout(event, target) {

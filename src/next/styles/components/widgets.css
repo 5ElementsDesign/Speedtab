@@ -1,40 +1,60 @@
 .st-widget-rail-inner {
-  width: min(100%, var(--st-page-grid-max-width, 1500px));
+  /**
+   * --st-page-grid-max-width-local is undefined
+   */
+  width: min(100%, var(--st-page-grid-max-width-local, var(--st-page-grid-max-width), 1500px));
+  max-width: var(--st-page-grid-max-width-local, var(--st-page-grid-max-width));
+
   margin: 0 auto;
   padding: 8px 0;
 }
 
 .st-widget-rail-center {
   display: flex;
-  justify-content: flex-start;
   padding: 0 .5rem;
-}
-
-.st-widget-rail-center[data-widget-rail-align="center"] {
-  justify-content: center;
-}
-
-.st-widget-rail-center[data-widget-rail-align="right"] {
-  justify-content: flex-end;
-}
-
-.st-widget-rail-center[data-widget-rail-align="center"] [data-widget-rail-host] {
-  justify-content: center;
-}
-
-.st-widget-rail-center[data-widget-rail-align="right"] [data-widget-rail-host] {
-  justify-content: flex-end;
 }
 
 [data-widget-rail-host] {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: flex-start;
   gap: 10px;
   width: 100%;
 }
 
-[data-widget-clock-host][data-widget-align="right"] {
-  margin-left: auto;
+[data-widget-rail-host] > :empty {
+  display: none;
+}
+
+[data-widget-rail][data-widget-rail-position="bottom"] [data-widget-rail-host] {
+  align-items: flex-end;
+}
+
+[data-widget-rail-host][data-widget-rail-align="center"] {
+  justify-content: center;
+}
+
+[data-widget-rail-host][data-widget-rail-align="right"] {
+  justify-content: flex-end;
+}
+
+[data-widget-rail-host][data-widget-rail-align="space-between"] {
+  justify-content: space-between;
+}
+
+[data-widget-rail-host][data-widget-rail-align="space-around"] {
+  justify-content: space-around;
+}
+
+[data-widget-remote-sync-host] {
+  display: flex;
+  align-items: center;
+}
+
+[data-widget-weather-host],
+[data-widget-clock-host],
+[data-widget-remote-sync-host] {
+  display: flex;
 }
 
 .st-widget-rail-placeholder {
@@ -51,6 +71,45 @@
   max-width: 220px;
 }
 
+.st-remote-sync-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  opacity: .68;
+}
+
+.st-remote-sync-indicator[aria-hidden="true"] {
+  display: none;
+}
+
+.st-remote-sync-indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 36%);
+  transition: background-color var(--yai-timeout-2) ease, opacity var(--yai-timeout-2) ease;
+}
+
+.st-remote-sync-indicator.is-active .st-remote-sync-indicator-dot {
+  opacity: 1;
+}
+
+.st-remote-sync-indicator.is-check.is-active .st-remote-sync-indicator-dot {
+  background: rgb(255 255 255 / 58%);
+}
+
+.st-remote-sync-indicator.is-push.is-active .st-remote-sync-indicator-dot {
+  background: color-mix(in srgb, var(--yai-tabs-color-success) 84%, white);
+}
+
 .st-clock-widget {
   --st-clock-widget-bg: var(--st-widget-bg);
   --st-clock-widget-border: var(--st-widget-border);
@@ -58,19 +117,39 @@
   --st-clock-widget-time-color: var(--st-widget-text);
   --st-clock-widget-date-size: 12px;
   --st-clock-widget-time-size: 20px;
+  --st-clock-widget-analog-size: 72px;
   min-width: 0;
   width: auto;
   max-width: none;
   padding: 10px 12px;
   border-color: var(--st-clock-widget-border);
   background: var(--st-clock-widget-bg);
+  text-align: left;
+  cursor: pointer;
+}
+
+.st-clock-widget[data-widget-align="left"] {
+  text-align: left;
+}
+
+.st-clock-widget[data-widget-align="right"] {
+  text-align: right;
+}
+
+.st-clock-widget:hover {
+  background: color-mix(in srgb, var(--st-clock-widget-bg) 86%, rgba(255, 255, 255, 0.30));
 }
 
 .st-clock-widget-body {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: flex-start;
   gap: 10px;
   min-width: 0;
+}
+
+.st-clock-widget[data-widget-align="right"] .st-clock-widget-body {
+  justify-content: flex-end;
 }
 
 .st-clock-widget.is-two-row .st-clock-widget-body {
@@ -85,8 +164,21 @@
 .st-clock-widget-date {
   color: var(--st-clock-widget-date-color);
   font-size: var(--st-clock-widget-date-size);
-  line-height: 1.1;
-  white-space: nowrap;
+  line-height: 1.3;
+  white-space: pre-line;
+  text-align: center;
+}
+
+.st-clock-widget-date-analog {
+  text-align: center;
+}
+
+.st-clock-widget-date-rule {
+  display: block;
+  height: 1px;
+  margin: .15rem 0;
+  background: currentColor;
+  opacity: .3;
 }
 
 .st-clock-widget-time {
@@ -96,12 +188,382 @@
   white-space: nowrap;
 }
 
+.st-clock-widget.is-analog {
+  padding: 6px 8px;
+}
+
+.st-clock-widget.is-analog .st-clock-widget-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.st-clock-widget.is-analog.is-two-row .st-clock-widget-body {
+  flex-direction: column-reverse;
+  gap: 6px;
+}
+
+.st-clock-widget-analog {
+  display: inline-flex;
+  width: var(--st-clock-widget-analog-size);
+  height: var(--st-clock-widget-analog-size);
+  flex: 0 0 auto;
+}
+
+.st-clock-widget-analog-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.st-clock-widget-analog-svg.is-smooth {
+  .st-clock-widget-analog-hand {
+    transform-origin: 50px 50px;
+  }
+
+  .st-clock-widget-analog-hand.is-hour {
+    animation: st-clock-analog-hour 43200s linear infinite;
+    animation-delay: var(--st-clock-hour-delay);
+  }
+
+  .st-clock-widget-analog-hand.is-minute {
+    animation: st-clock-analog-minute 3600s linear infinite;
+    animation-delay: var(--st-clock-minute-delay);
+  }
+
+  .st-clock-widget-analog-hand.is-second {
+    animation: st-clock-analog-second 60s linear infinite;
+    animation-delay: var(--st-clock-second-delay);
+  }
+}
+
+.st-clock-widget-analog-ring {
+  fill: color-mix(in srgb, var(--st-clock-widget-bg) 92%, rgba(255, 255, 255, 0.08));
+  stroke: var(--st-clock-widget-border);
+  stroke-width: 2;
+}
+
+.st-clock-widget-analog-marker {
+  stroke: color-mix(in srgb, var(--st-clock-widget-date-color) 78%, white);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.st-clock-widget-analog-hand {
+  stroke: var(--st-clock-widget-time-color);
+  stroke-linecap: round;
+}
+
+.st-clock-widget-analog-hand.is-hour {
+  stroke-width: 4.5;
+}
+
+.st-clock-widget-analog-hand.is-minute {
+  stroke-width: 3;
+}
+
+.st-clock-widget-analog-hand.is-second {
+  stroke: color-mix(in srgb, var(--st-clock-widget-time-color) 82%, white);
+  stroke-width: 1.5;
+}
+
+.st-clock-widget-analog-center {
+  fill: var(--st-clock-widget-time-color);
+}
+
+@keyframes st-clock-analog-hour {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes st-clock-analog-minute {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes st-clock-analog-second {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.st-clock-tools-modal {
+  display: grid;
+  gap: 16px;
+}
+
+.st-clock-tools-stopwatch {
+  display: grid;
+  gap: 12px;
+}
+
+.st-clock-tools-stopwatch-head,
+.st-clock-tools-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.st-clock-tools-stopwatch-meta {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.st-clock-tools-kicker,
+.st-clock-tools-section-title,
+.st-clock-tools-timer-status {
+  color: rgb(255 255 255 / 62%);
+}
+
+.st-clock-tools-kicker {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.st-clock-tools-stopwatch-time {
+  font-size: clamp(32px, 4vw, 46px);
+  line-height: 1;
+}
+
+.st-clock-tools-stopwatch-actions,
+.st-clock-tools-create-primary,
+.st-clock-tools-create-actions,
+.st-clock-tools-presets,
+.st-clock-tools-timer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.st-clock-tools-create {
+  display: grid;
+  gap: 12px;
+
+}
+
+.st-clock-tools-create-row {
+  display: grid;
+  gap: 12px;
+}
+
+.st-clock-tools-create-actions {
+  justify-content: space-between;
+}
+
+.st-clock-tools-duration-grid {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.st-clock-tools-duration-inputs {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+
+  [data-customizer-field-label] {
+    display: none;
+  }
+}
+
+.st-clock-tools-modal {
+  [data-customizer-field][data-customizer-field-layout="stack"] {
+    min-width: 0;
+    flex-direction: row;
+    align-items: center;
+
+    &:not(:last-of-type)::after {
+      content: ':';
+      opacity: .7;
+      margin: 0 -5px;
+    }
+    input[type="text"] {
+      min-height: 36px;
+      font-size: 18px;
+    }
+    input[type="number"] {
+      min-height: 36px;
+      max-width: 46px;
+      padding-right: 0;
+      text-align: center;
+      font-size: 18px;
+      border: 0 none;
+    }
+  }
+}
+
+.st-clock-tools-duration-summary {
+  white-space: nowrap;
+  color: rgb(255 255 255 / 85%);
+  font-size: 15px;
+}
+
+[data-stop-watch-reset],
+[data-clock-timer-reset] {
+  svg {
+    display: block;
+    color: var(--yai-tabs-color-danger);
+  }
+}
+
+.st-clock-tools-picker-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.st-clock-tools-picker-segment {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgb(255 255 255 / 70%);
+  font: inherit;
+  cursor: pointer;
+}
+
+.st-clock-tools-picker-segment.is-active {
+  color: #fff;
+}
+
+.st-clock-tools-picker-divider {
+  color: rgb(255 255 255 / 36%);
+}
+
+.st-clock-tools-picker-summary {
+  color: rgb(255 255 255 / 58%);
+  font-size: 12px;
+}
+
+.st-clock-tools-picker-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.st-clock-tools-picker-column {
+  display: grid;
+  gap: 8px;
+}
+
+.st-clock-tools-picker-column-label {
+  color: rgb(255 255 255 / 58%);
+  font-size: 12px;
+}
+
+.st-clock-tools-picker-values {
+  display: grid;
+  gap: 4px;
+  max-height: 168px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.st-clock-tools-picker-value {
+  padding: 6px 8px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  background: rgb(255 255 255 / 4%);
+  color: rgb(255 255 255 / 68%);
+  text-align: left;
+  cursor: pointer;
+}
+
+.st-clock-tools-picker-value.is-selected,
+.st-clock-tools-picker-column.is-active .st-clock-tools-picker-value.is-selected {
+  border-color: rgb(255 255 255 / 18%);
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
+}
+
+.st-clock-tools-timer-list {
+  display: grid;
+  gap: 10px;
+}
+
+.st-clock-tools-timer-row {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  background: rgb(0 0 0 / 24%);
+}
+
+.st-clock-tools-timer-row.is-expired {
+  border-color: rgb(255 255 255 / 18%);
+  background: rgb(111 26 26 / 28%);
+}
+
+.st-clock-tools-timer-main,
+.st-clock-tools-timer-copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.st-clock-tools-timer-copy {
+  min-width: 0;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.st-clock-tools-timer-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.st-clock-tools-timer-time {
+  font-size: 18px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.st-clock-tools-timer-progress {
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 8%);
+}
+
+.st-clock-tools-timer-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--yai-tabs-color-secondary) 82%, white);
+  transition: width 180ms linear;
+}
+
+.st-clock-tools-timer-row.is-expired .st-clock-tools-timer-progress span {
+  background: color-mix(in srgb, var(--yai-tabs-color-danger) 76%, white);
+}
+
+.st-clock-tools-empty {
+  margin: 0;
+  color: rgb(255 255 255 / 58%);
+}
+
 .st-weather-widget {
+  --st-weather-widget-bg: var(--st-widget-bg);
+  --st-weather-widget-border: var(--st-widget-border);
+  --st-weather-widget-location-color: var(--st-widget-text);
+  --st-weather-widget-temp-color: var(--st-widget-text);
+  --st-weather-widget-temp-size: 24px;
+  --st-weather-widget-muted-color: var(--st-widget-text-muted);
   position: relative;
   min-width: 0;
   width: 100%;
   padding: 10px 12px;
   overflow: hidden;
+  background: var(--st-weather-widget-bg);
+  border-color: var(--st-weather-widget-border);
 }
 
 .st-weather-widget.is-loading {
@@ -119,7 +581,7 @@
 
 .st-weather-widget-location {
   margin: 0;
-  color: var(--st-widget-text);
+  color: var(--st-weather-widget-location-color);
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
@@ -153,20 +615,21 @@
   flex-wrap: wrap;
   align-items: end;
   justify-content: space-between;
-  gap: 8px 18px;
+  gap: 4px 12px;
   margin-top: 8px;
 }
 
 .st-weather-widget-primary {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 8px;
   min-width: 0;
   flex-wrap: wrap;
 }
 
 .st-weather-widget-icon {
-  font-size: 22px;
+  color: var(--st-weather-widget-temp-color);
+  font-size: var(--st-weather-widget-temp-size);
   line-height: 1;
 }
 
@@ -174,8 +637,8 @@
   border: 0;
   background: transparent;
   padding: 0;
-  color: var(--st-widget-text);
-  font-size: 28px;
+  color: var(--st-weather-widget-temp-color);
+  font-size: var(--st-weather-widget-temp-size);
   line-height: 1;
   font-weight: 700;
   cursor: pointer;
@@ -268,26 +731,22 @@
   font-size: 11px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 800px) {
   [data-widget-rail-host] {
     flex-wrap: wrap;
   }
 
-  [data-widget-clock-host][data-widget-align="right"] {
-    margin-left: 0;
-  }
-
   .st-weather-forecast-row {
-    grid-template-columns: 1fr auto;
+    display: flex;
+
+    .st-weather-forecast-icon,
+    .st-weather-forecast-range {
+      margin-left: auto;
+    }
   }
 
   .st-weather-forecast-condition {
     grid-column: 1 / -1;
-  }
-
-  .st-weather-forecast-head {
-    flex-direction: column;
-    align-items: start;
   }
 
   .st-weather-forecast-legend {
@@ -298,7 +757,7 @@
 .st-weather-widget-condition {
   min-width: 0;
   max-width: 90px;
-  color: var(--st-widget-text-muted);
+  color: var(--st-weather-widget-muted-color);
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
@@ -309,7 +768,7 @@
   display: inline-flex;
   flex-wrap: wrap;
   gap: 12px;
-  color: var(--st-widget-text-muted);
+  color: var(--st-weather-widget-muted-color);
   font-size: 11px;
 }
 
@@ -317,7 +776,7 @@
   position: absolute;
   right: 10px;
   bottom: 8px;
-  color: var(--st-widget-text-muted);
+  color: var(--st-weather-widget-muted-color);
   font-size: 10px;
   line-height: 1;
   opacity: 0.7;
@@ -331,7 +790,7 @@
 
 .st-weather-widget-loading {
   margin-top: 8px;
-  color: var(--st-widget-text-muted);
+  color: var(--st-weather-widget-muted-color);
   font-size: 12px;
 }
 
@@ -350,7 +809,7 @@
 }
 
 .st-weather-widget-empty-label {
-  color: var(--st-widget-text);
+  color: var(--st-weather-widget-location-color);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -358,13 +817,62 @@
 }
 
 .st-weather-widget-empty-copy {
-  color: var(--st-widget-text-muted);
+  color: var(--st-weather-widget-muted-color);
   font-size: 12px;
+}
+
+.st-weather-widget.is-compact {
+  padding: 6px 8px;
+}
+
+.st-weather-widget.is-compact .st-weather-widget-head {
+  display: none;
+}
+
+.st-weather-widget-primary.is-compact {
+  align-items: center;
+  gap: 1px;
+  flex-wrap: nowrap;
+}
+
+.st-weather-widget .st-weather-widget-compact-copy {
+  display: none;
+}
+
+.st-weather-widget.is-compact .st-weather-widget-condition,
+.st-weather-widget.is-compact .st-weather-widget-secondary,
+.st-weather-widget.is-compact .st-weather-widget-status {
+  display: none;
+}
+
+.st-weather-widget.is-compact .st-weather-widget-compact-copy {
+  display: inline-flex;
+  border-left: 1px solid var(--st-weather-widget-muted-color);
+  margin-left: 8px;
+  padding-left: 8px;
+}
+
+.st-weather-widget-compact-copy {
+  display: inline-flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.st-weather-widget-location-compact {
+  max-width: 120px;
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+.st-weather-widget.is-compact .st-weather-widget-body {
+  gap: 6px 2px;
+  margin-top: 0;
 }
 
 @media (max-width: 900px) {
   .st-widget-rail {
-    padding: 6px 6px 0;
+    padding: 6px 0 0;
   }
 
   .st-weather-widget-body {

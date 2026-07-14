@@ -136,6 +136,7 @@
 .flex-center { justify-content: center; }
 .flex-end { justify-content: end; }
 .flex-space-around { justify-content: space-around; }
+.vertical-align-middle { vertical-align: middle; }
 
 .gap-0 { gap: var(--st-margin-0); }
 .gap-1 { gap: var(--st-margin-1); }

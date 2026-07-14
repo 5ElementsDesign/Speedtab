@@ -7,13 +7,20 @@ import {initFavicons} from '../../utils/favicon.js'
 import {t} from '../../utils/i18n.js'
 import {initFormDirtyState} from '../forms/actions.js'
 import {buildNotePayload} from '../modules/note-form.js'
-import {getNoteAccentCssValue, getNoteBorderClass, getNoteTokenClass} from '../modules/notes-shared.js'
+import {getHtmlNoteSubtype, normalizeNoteStyleToken, parseNoteMeta} from '../modules/notes-shared.js'
 import {renderLocalToolsRoot, renderQuicknoteWindow} from './render.js'
 
 const WINDOW_ROOT_ATTR = 'data-floating-windows'
 const MIN_WIDTH = 240
 const MIN_HEIGHT = 140
 const NOTE_MIN_HEIGHT = 96
+const DEFAULT_NOTE_LAYOUT = {
+  x: 40,
+  y: 72,
+  width: 420,
+  height: 320,
+  z: 221,
+}
 
 let root = null
 let appRoot = null
@@ -186,6 +193,22 @@ function getSavedNoteLayout(noteId) {
   return state.noteLayouts.find((entry) => entry.noteId === noteId) ?? null
 }
 
+function removeSavedNoteLayout(noteId) {
+  state.noteLayouts = state.noteLayouts.filter((entry) => entry.noteId !== noteId)
+}
+
+function getDefaultNoteWindowMeta(note = {}) {
+  const meta = parseNoteMeta(note?.meta_json ?? null)
+  const windowMeta = meta?.window && typeof meta.window === 'object' ? meta.window : {}
+  const width = Number(windowMeta?.width)
+  const height = Number(windowMeta?.height)
+
+  return {
+    width: Number.isFinite(width) && width >= 300 ? width : null,
+    height: Number.isFinite(height) && height >= NOTE_MIN_HEIGHT ? height : null,
+  }
+}
+
 function saveNoteLayout(windowState) {
   if (!windowState?.noteId) return
   if (windowState.transientInitialLayout === true) return
@@ -205,12 +228,36 @@ function saveNoteLayout(windowState) {
   state.noteLayouts = state.noteLayouts.map((entry, index) => (index === existingIndex ? layout : entry))
 }
 
+function hasUserAdjustedNoteLayout(windowState) {
+  return windowState?.userAdjustedLayout === true
+}
+
+function isNoteWindowInEditMode(windowId) {
+  const parsed = parseWindowId(windowId)
+  return parsed.type === 'note' && editorSessions.has(parsed.key)
+}
+
+function saveNoteLayoutPatch(windowState, patch = {}) {
+  if (!windowState?.noteId) return
+  const existing = getSavedNoteLayout(windowState.noteId)
+  saveNoteLayout({
+    noteId: windowState.noteId,
+    x: patch.x ?? existing?.x ?? DEFAULT_NOTE_LAYOUT.x,
+    y: patch.y ?? existing?.y ?? DEFAULT_NOTE_LAYOUT.y,
+    width: patch.width ?? existing?.width ?? DEFAULT_NOTE_LAYOUT.width,
+    height: patch.height ?? existing?.height ?? DEFAULT_NOTE_LAYOUT.height,
+    z: patch.z ?? existing?.z ?? DEFAULT_NOTE_LAYOUT.z,
+    transientInitialLayout: false,
+  })
+}
+
 function getRenderableNotes(notesById) {
   return state.noteWindows.map((windowState) => ({
     ...notesById.get(windowState.noteId),
     ...windowState,
     ...cryptSessions.get(windowState.noteId),
     ...editorSessions.get(windowState.noteId),
+    hasSavedLayout: !!getSavedNoteLayout(windowState.noteId),
     module_sync_id: document.querySelector(`[data-note-sync-id="${CSS.escape(notesById.get(windowState.noteId)?.sync_id ?? '')}"]`)
       ?.getAttribute?.('data-module-sync-id') ?? '',
   }))
@@ -329,6 +376,9 @@ function parseWindowId(windowId) {
 }
 
 async function render({reloadNotes = false} = {}) {
+  // CRITICAL FLOATING-WINDOW RENDER PATH:
+  // DO NOT USE THIS FOR ORDINARY NOTE UI STATE.
+  // PREFER SINGLE-WINDOW MOUNTS OR DIRECT DOM PATCHES ON HOT PATHS.
   const el = ensureRoot()
   const openNoteIds = state.noteWindows.map((windowState) => windowState.noteId)
   if (reloadNotes) {
@@ -400,10 +450,11 @@ function setEditorSession(noteId, patch = {}) {
   })
 }
 
-function buildTabberMarkup(selectedContent = '', {nested = false} = {}) {
+function buildTabberMarkup(selectedContent = '', {nested = false, theme = 'light'} = {}) {
+  const safeTheme = theme === 'dark' ? 'dark' : 'light'
   const contentA = selectedContent.trim() || 'Content A …'
   const lines = [
-    '<div data-yai-tabs="" data-theme="light" data-color-accent="secondary" data-nav="top" data-behavior="blur" data-swipe="" data-closable="false" data-auto-accessibility="false">',
+    `<div data-yai-tabs="" data-theme="${safeTheme}" data-color-accent="secondary" data-nav="top" data-behavior="blur" data-swipe="" data-closable="false" data-auto-accessibility="false">`,
     '    <nav data-controller="">',
     '        <button data-tab-action="open" data-open="1" data-default>Tab A</button>',
     '        <button data-tab-action="open" data-open="2">Tab B</button>',
@@ -426,6 +477,180 @@ function buildTabberMarkup(selectedContent = '', {nested = false} = {}) {
     '  Nested Tabs ends here',
     `-->\n`,
   ].join('\n')
+}
+
+function buildTableauMarkup(selectedContent = '', {theme = 'light'} = {}) {
+  const safeTheme = theme === 'dark' ? 'dark' : 'light'
+  const inverseTheme = safeTheme === 'dark' ? 'light' : 'dark'
+  const introContent = selectedContent.trim() || 'Speedtab'
+  return [
+    '<!-- Tabbed browser -->',
+    '<div',
+    '  data-yai-tabs',
+    '  data-swipe',
+    '  data-nav="top"',
+    `  data-theme="${safeTheme}"`,
+    '  data-color-accent="secondary"',
+    '  data-behavior="blur"',
+    '  data-closable="false"',
+    '  data-auto-accessibility="false">',
+    '  <nav data-controller>',
+    '    <button data-tab-action="open" data-open="1" data-default> Intro </button>',
+    '    <button data-tab-action="open" data-open="2"> More </button>',
+    '  </nav>',
+    '  <div data-content>',
+    '',
+    '    <!-- Tabbed browser -->',
+    '    <div data-tab="1" data-spaceless>',
+    '      <div',
+    '        data-yai-tabs',
+    '        data-swipe',
+    '        data-nav="left"',
+    '        data-color-accent="warning">',
+    '        <nav data-controller>',
+    '          <button data-tab-action="open" data-open="1" data-default> (Intro) - Speedtab </button>',
+    '          <button data-tab-action="open" data-open="2"> (Intro) - YaiTabs </button>',
+    '          <button data-tab-action="open" data-open="3"> (Intro) - Tabbed Browsing </button>',
+    '        </nav>',
+    '        <div data-content>',
+    '',
+    '          <div data-tab="1">',
+    '',
+    '            <div class="flex p-1">',
+    '              <div class="pr-3 w-100" data-swipe-ignore>',
+    `                ${introContent}`,
+    '              </div>',
+    '              <div class="extras">',
+    '                <div',
+    '                  data-yai-tabs',
+    '                  data-swipe',
+    '                  data-auto-height',
+    '                  data-nav="top"',
+    `                  data-theme="${inverseTheme}"`,
+    '                  data-color-accent="danger"',
+    '                  data-variant="danger">',
+    '                  <nav data-controller data-grow>',
+    '                    <button data-tab-action="open" data-open="1" data-default> About </button>',
+    '                    <button data-tab-action="open" data-open="2"> Manual </button>',
+    '                    <button data-tab-action="open" data-open="3"> Extras </button>',
+    '                  </nav>',
+    '                  <div data-content>',
+    '',
+    '                    <div data-tab="1">',
+    '                      About (Content)',
+    '                    </div>',
+    '',
+    '                    <div data-tab="2">',
+    '                      Manual (Content)',
+    '                    </div>',
+    '',
+    '                    <div data-tab="3">',
+    '                      Extras (Content)',
+    '                    </div>',
+    '',
+    '                  </div>',
+    '                </div>',
+    '              </div>',
+    '            </div>',
+    '',
+    '          </div>',
+    '',
+    '          <div data-tab="2">',
+    '            YaiTabs (Content)',
+    '          </div>',
+    '',
+    '          <div data-tab="3">',
+    '            Tabbed Browsing (Content)',
+    '          </div>',
+    '',
+    '        </div>',
+    '      </div>',
+    '    </div>',
+    '',
+    '    <!-- Tabbed browser -->',
+    '    <div data-tab="2" data-spaceless>',
+    '      <div',
+    '        data-yai-tabs',
+    '        data-swipe',
+    '        data-nav="bottom"',
+    '        data-color-accent="success">',
+    '        <nav data-controller>',
+    '          <button data-tab-action="open" data-open="1" data-default> (More) - How to </button>',
+    '          <button data-tab-action="open" data-open="2"> (More) - Attributes </button>',
+    '        </nav>',
+    '        <div data-content>',
+    '',
+    '          <div data-tab="1">',
+    '            How to (Content)',
+    '          </div>',
+    '',
+    '          <!-- Tabbed browser -->',
+    '          <div data-tab="2" data-spaceless>',
+    '            <div',
+    '              data-yai-tabs',
+    '              data-swipe',
+    '              data-nav="right"',
+    '              data-color-accent="danger">',
+    '              <nav data-controller>',
+    '                <button data-tab-action="open" data-open="1" data-default> (Attributes) - DOCS </button>',
+    '                <button data-tab-action="open" data-open="2"> (Attributes) - Details </button>',
+    '              </nav>',
+    '              <div data-content>',
+    '',
+    '                <div data-tab="1">',
+    '                  DOCs (content)',
+    '                </div>',
+    '',
+    '                <div data-tab="2">',
+    '                  Attributes (content)',
+    '                </div>',
+    '',
+    '              </div>',
+    '            </div>',
+    '',
+    '          </div>',
+    '        </div>',
+    '      </div>',
+    '    </div>',
+    '  </div>',
+    '</div>',
+  ].join('\n')
+}
+
+function getFloatingNoteTemplateTheme(noteId) {
+  const parsedNoteId = parseInt(String(noteId), 10)
+  if (!Number.isInteger(parsedNoteId) || parsedNoteId <= 0) return 'light'
+  const select = root?.querySelector?.(
+    `[data-note-window-id="${parsedNoteId}"] [data-note-template-theme]`,
+  )
+  const value = select instanceof HTMLSelectElement ? select.value : ''
+  return value === 'dark' ? 'dark' : 'light'
+}
+
+function insertFloatingNoteTemplate(noteId, buildInsertion) {
+  const parsedNoteId = parseInt(String(noteId), 10)
+  if (!Number.isInteger(parsedNoteId) || parsedNoteId <= 0) return
+
+  const textarea = root?.querySelector?.(
+    `[data-note-window-id="${parsedNoteId}"] textarea[name="content"][data-editor-field="content"]`
+  )
+  if (!(textarea instanceof HTMLTextAreaElement)) return
+
+  const start = textarea.selectionStart ?? textarea.value.length
+  const end = textarea.selectionEnd ?? start
+  const selectedText = textarea.value.slice(start, end)
+  const insertion = buildInsertion(selectedText, textarea.value)
+  const prefix = textarea.value.slice(0, start)
+  const suffix = textarea.value.slice(end)
+  const beforeNeedsGap = prefix.length > 0 && !prefix.endsWith('\n')
+  const afterNeedsGap = suffix.length > 0 && !suffix.startsWith('\n')
+  const nextValue = `${prefix}${beforeNeedsGap ? '\n' : ''}${insertion}${afterNeedsGap ? '\n' : ''}${suffix}`
+
+  textarea.value = nextValue
+  const nextCaret = `${prefix}${beforeNeedsGap ? '\n' : ''}${insertion}`.length
+  textarea.focus()
+  textarea.setSelectionRange(nextCaret, nextCaret)
+  syncFloatingNoteEditorField(parsedNoteId, 'content', nextValue)
 }
 
 async function hydrateNoteCodeBlocks(container) {
@@ -531,11 +756,7 @@ function setWindowState(windowId, patch = {}) {
   if (parsed.type === 'note') {
     state.noteWindows = state.noteWindows.map((entry) => (
       entry.noteId === parsed.key
-        ? (() => {
-          const nextEntry = {...entry, ...patch}
-          saveNoteLayout(nextEntry)
-          return nextEntry
-        })()
+        ? {...entry, ...patch}
         : entry
     ))
   }
@@ -583,6 +804,17 @@ function applyWindowPatch(windowId, patch = {}, {persist = true, rerender = true
   syncZTracker()
   if (rerender) void render()
   if (persist) queueSave()
+}
+
+function refreshWindowGeometry(windowId) {
+  const nextState = getWindowState(windowId)
+  const windowEl = getWindowElement(windowId)
+  if (!nextState || !(windowEl instanceof HTMLElement)) return
+  windowEl.style.left = `${nextState.x}px`
+  windowEl.style.top = `${nextState.y}px`
+  windowEl.style.width = `${nextState.width}px`
+  windowEl.style.height = `${nextState.height}px`
+  if (Number.isFinite(nextState.z)) windowEl.style.zIndex = String(nextState.z)
 }
 
 function measureNoteWindowTargetSize(windowEl, viewportMaxWidth, viewportMaxHeight) {
@@ -837,26 +1069,54 @@ function handlePointerMove(event) {
 
   if (session.type === 'move') {
     event.preventDefault()
+    if (deltaX === 0 && deltaY === 0) return
     applyWindowPatch(session.windowId, {
       x: session.originX + deltaX,
       y: session.originY + deltaY,
+      userAdjustedLayout: true,
     }, {persist: false, rerender: false})
+    session.didChange = true
     return
   }
 
   if (session.type === 'resize') {
     event.preventDefault()
+    if (deltaX === 0 && deltaY === 0) return
     applyWindowPatch(session.windowId, {
       width: session.originWidth + deltaX,
       height: session.originHeight + deltaY,
       autoHeight: false,
       autoWidth: false,
+      userAdjustedLayout: true,
     }, {persist: false, rerender: false})
+    session.didChange = true
   }
 }
 
 function handlePointerUp() {
   if (!session) return
+  if (session.didChange && !isNoteWindowInEditMode(session.windowId)) {
+    const windowState = getWindowState(session.windowId)
+    if (windowState && hasUserAdjustedNoteLayout(windowState)) {
+      if (session.type === 'move') {
+        saveNoteLayoutPatch(windowState, {
+          x: windowState.x,
+          y: windowState.y,
+          z: windowState.z,
+        })
+      }
+      if (session.type === 'resize') {
+        saveNoteLayoutPatch(windowState, {
+          width: windowState.width,
+          height: windowState.height,
+          z: windowState.z,
+        })
+      }
+    }
+  }
+  if (session.didChange && isNoteWindowInEditMode(session.windowId)) {
+    applyWindowPatch(session.windowId, {userAdjustedLayout: false}, {persist: false, rerender: false})
+  }
   queueSave()
   session = null
 }
@@ -950,6 +1210,7 @@ export function updateQuicknoteContent(value) {
 export function openFloatingNote(noteId, options = {}) {
   const parsedNoteId = parseInt(String(noteId), 10)
   if (!Number.isInteger(parsedNoteId) || parsedNoteId <= 0) return
+  const windowId = `note:${parsedNoteId}`
   const transientWidth = Number(options.initialWidth)
   const transientHeight = Number(options.initialHeight)
   const hasTransientWidth = Number.isFinite(transientWidth) && transientWidth >= 300
@@ -969,42 +1230,86 @@ export function openFloatingNote(noteId, options = {}) {
   const existing = state.noteWindows.find((entry) => entry.noteId === parsedNoteId)
   if (existing) {
     if (hasTransientWidth || hasTransientHeight) {
-      applyWindowPatch(`note:${parsedNoteId}`, {
+      applyWindowPatch(windowId, {
         ...(hasTransientWidth ? {width: transientWidth, autoWidth: false} : {}),
         ...(hasTransientHeight ? {height: transientHeight, autoHeight: false} : {}),
         transientInitialLayout: true,
-      }, {persist: false, rerender: true})
+      }, {persist: false, rerender: false})
     }
-    bringToFront(`note:${parsedNoteId}`, {persist: true, rerender: false})
+    bringToFront(windowId, {persist: true, rerender: false})
     syncOpenNotePreviewState()
     return
   }
+  if (enteringWindowIds.has(windowId)) return
 
-  const offset = isMobileNoteViewport() ? 0 : state.noteWindows.length * 20
-  const nextZ = Math.max(state.zIndexTracker + 1, 221)
   const savedLayout = getSavedNoteLayout(parsedNoteId)
-  state.zIndexTracker = nextZ
-  state.noteWindows = [
-    ...state.noteWindows,
-    {
-      noteId: parsedNoteId,
-      x: savedLayout?.x ?? (40 + offset),
-      y: savedLayout?.y ?? (72 + offset),
-      width: savedLayout?.width ?? (hasTransientWidth ? transientWidth : 420),
-      height: savedLayout?.height ?? (hasTransientHeight ? transientHeight : 320),
-      z: nextZ,
-      autoHeight: !savedLayout && !hasTransientHeight,
-      autoWidth: !savedLayout && !hasTransientWidth,
-      transientInitialLayout: !savedLayout && hasTransientWidth,
-    },
-  ]
-  enteringWindowIds.add(`note:${parsedNoteId}`)
+  enteringWindowIds.add(windowId)
   void (async () => {
     const note = await loadNoteById(parsedNoteId)
-    if (!note) return
+    if (!note) {
+      enteringWindowIds.delete(windowId)
+      return
+    }
     noteRecords.set(parsedNoteId, note)
+    const defaultMetaWindow = getDefaultNoteWindowMeta(note)
+    const offset = isMobileNoteViewport() ? 0 : state.noteWindows.length * 20
+    const nextZ = Math.max(state.zIndexTracker + 1, 221)
+    state.zIndexTracker = nextZ
+    state.noteWindows = [
+      ...state.noteWindows,
+      {
+        noteId: parsedNoteId,
+        x: savedLayout?.x ?? (40 + offset),
+        y: savedLayout?.y ?? (72 + offset),
+        width: savedLayout?.width ?? (
+          hasTransientWidth
+            ? transientWidth
+            : (defaultMetaWindow.width ?? 420)
+        ),
+        height: savedLayout?.height ?? (
+          hasTransientHeight
+            ? transientHeight
+            : (defaultMetaWindow.height ?? 320)
+        ),
+        z: nextZ,
+        autoHeight: !savedLayout && !hasTransientHeight && !defaultMetaWindow.height,
+        autoWidth: !savedLayout && !hasTransientWidth && !defaultMetaWindow.width,
+        transientInitialLayout: !savedLayout && (hasTransientWidth || hasTransientHeight || !!defaultMetaWindow.width || !!defaultMetaWindow.height),
+      },
+    ]
     await mountSingleFloatingNoteWindow(parsedNoteId)
+    queueSave()
   })()
+}
+
+export async function resetFloatingNoteWindowLayout(noteId) {
+  const parsedNoteId = parseInt(String(noteId), 10)
+  if (!Number.isInteger(parsedNoteId) || parsedNoteId <= 0) return
+  const windowState = state.noteWindows.find((entry) => entry.noteId === parsedNoteId)
+  if (!windowState) return
+
+  removeSavedNoteLayout(parsedNoteId)
+
+  const note = noteRecords.get(parsedNoteId) ?? await loadNoteById(parsedNoteId)
+  if (!note) {
+    queueSave()
+    return
+  }
+  noteRecords.set(parsedNoteId, note)
+  const defaultMetaWindow = getDefaultNoteWindowMeta(note)
+
+  applyWindowPatch(`note:${parsedNoteId}`, {
+    x: DEFAULT_NOTE_LAYOUT.x,
+    y: DEFAULT_NOTE_LAYOUT.y,
+    width: defaultMetaWindow.width ?? DEFAULT_NOTE_LAYOUT.width,
+    height: defaultMetaWindow.height ?? DEFAULT_NOTE_LAYOUT.height,
+    autoWidth: !defaultMetaWindow.width,
+    autoHeight: !defaultMetaWindow.height,
+    transientInitialLayout: false,
+    userAdjustedLayout: false,
+  }, {persist: false, rerender: false})
+  refreshWindowGeometry(`note:${parsedNoteId}`)
+  autoFitSingleNoteWindow(parsedNoteId)
   queueSave()
 }
 
@@ -1014,7 +1319,6 @@ export function closeFloatingNote(noteId) {
   const windowId = `note:${parsedNoteId}`
   if (closingWindowIds.has(windowId)) return
   const existing = state.noteWindows.find((entry) => entry.noteId === parsedNoteId)
-  if (existing) saveNoteLayout(existing)
   const windowEl = getWindowElement(windowId)
   if (!(windowEl instanceof HTMLElement)) {
     removeFloatingNoteWindowDom(parsedNoteId)
@@ -1184,7 +1488,11 @@ export function syncFloatingNoteEditorField(noteId, field, value) {
     const windowEl = root?.querySelector?.(`[data-window-id="note:${parsedNoteId}"]`)
     const noteType = windowEl?.querySelector?.('[data-note-window-body]')?.dataset?.noteType ?? ''
     if (preview instanceof HTMLElement && noteType === 'html') {
-      preview.dataset.noteHtmlSource = String(value ?? '')
+      const source = String(value ?? '')
+      const subtype = getHtmlNoteSubtype(source)
+      preview.dataset.noteHtmlSource = source
+      if (subtype) preview.setAttribute('data-note-html-subtype', subtype)
+      else preview.removeAttribute('data-note-html-subtype')
       void hydrateNoteHtmlRenders(preview)
     }
   }
@@ -1193,44 +1501,27 @@ export function syncFloatingNoteEditorField(noteId, field, value) {
     const windowRoot = root?.querySelector?.(`[data-note-window-id="${parsedNoteId}"]`)
     const colorSelect = windowRoot?.querySelector?.('[data-note-color-select]')
     if (colorSelect instanceof HTMLElement) {
-      colorSelect.setAttribute('data-note-token', String(value ?? 'primary'))
-    }
-    const header = windowRoot?.querySelector?.('[data-window-header]')
-    if (header instanceof HTMLElement) {
-      header.className = getNoteTokenClass(String(value ?? 'primary'))
+      const token = normalizeNoteStyleToken(String(value ?? 'primary'))
+      colorSelect.setAttribute('data-note-token', token)
+      colorSelect.setAttribute('data-ui-token', token)
     }
     if (windowRoot instanceof HTMLElement) {
-      windowRoot.style.setProperty('--st-note-window-accent-color', getNoteAccentCssValue(String(value ?? 'primary')))
-      windowRoot.className = `st-note-window ${getNoteBorderClass(String(value ?? 'primary'))}`
+      windowRoot.dataset.noteStyleToken = normalizeNoteStyleToken(String(value ?? 'primary'))
     }
   }
 }
 
 export function insertFloatingNoteTabber(noteId) {
-  const parsedNoteId = parseInt(String(noteId), 10)
-  if (!Number.isInteger(parsedNoteId) || parsedNoteId <= 0) return
+  const theme = getFloatingNoteTemplateTheme(noteId)
+  insertFloatingNoteTemplate(noteId, (selectedText, source) => {
+    const hasExistingTabs = source.includes('data-yai-tabs')
+    return buildTabberMarkup(selectedText, {nested: hasExistingTabs, theme})
+  })
+}
 
-  const textarea = root?.querySelector?.(
-    `[data-note-window-id="${parsedNoteId}"] textarea[name="content"][data-editor-field="content"]`
-  )
-  if (!(textarea instanceof HTMLTextAreaElement)) return
-
-  const start = textarea.selectionStart ?? textarea.value.length
-  const end = textarea.selectionEnd ?? start
-  const selectedText = textarea.value.slice(start, end)
-  const hasExistingTabs = textarea.value.includes('data-yai-tabs')
-  const insertion = buildTabberMarkup(selectedText, {nested: hasExistingTabs})
-  const prefix = textarea.value.slice(0, start)
-  const suffix = textarea.value.slice(end)
-  const beforeNeedsGap = prefix.length > 0 && !prefix.endsWith('\n')
-  const afterNeedsGap = suffix.length > 0 && !suffix.startsWith('\n')
-  const nextValue = `${prefix}${beforeNeedsGap ? '\n' : ''}${insertion}${afterNeedsGap ? '\n' : ''}${suffix}`
-
-  textarea.value = nextValue
-  const nextCaret = `${prefix}${beforeNeedsGap ? '\n' : ''}${insertion}`.length
-  textarea.focus()
-  textarea.setSelectionRange(nextCaret, nextCaret)
-  syncFloatingNoteEditorField(parsedNoteId, 'content', nextValue)
+export function insertFloatingNoteTableau(noteId) {
+  const theme = getFloatingNoteTemplateTheme(noteId)
+  insertFloatingNoteTemplate(noteId, (selectedText) => buildTableauMarkup(selectedText, {theme}))
 }
 
 export async function toggleFloatingNotePreview(noteId) {

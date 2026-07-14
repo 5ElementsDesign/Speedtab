@@ -1,7 +1,7 @@
 import {SPEEDTAB_SVG} from '../../components/icons.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
-import {getHtmlNoteSubtype, getNoteAccentCssValue, getNoteBorderClass, getNoteTokenClass, normalizeNoteStyleToken, renderNoteContentHtml} from '../modules/notes-shared.js'
+import {getHtmlNoteSubtype, normalizeNoteStyleToken, renderNoteContentHtml} from '../modules/notes-shared.js'
 
 export function renderQuicknoteWindow(state = {}) {
   return `
@@ -54,9 +54,7 @@ export function renderLocalToolsDropdownTrigger() {
 }
 
 function renderFloatingNoteWindow(note) {
-  const tokenClass = getNoteTokenClass(note.style_token)
-  const borderClass = getNoteBorderClass(note.style_token)
-  const accentColor = getNoteAccentCssValue(note.style_token)
+  const styleToken = normalizeNoteStyleToken(note.style_token)
   const title = escapeHtml((note.editMode ? note.editTitle : note.title) || note.title || t('openNotes.noteTitle'))
   const htmlSubtype = !note.editMode && note.type === 'html'
     ? getHtmlNoteSubtype(note.content ?? '')
@@ -74,10 +72,11 @@ function renderFloatingNoteWindow(note) {
       data-note-window-id="${escapeHtml(String(note.id))}"
       data-window-id="note:${escapeHtml(String(note.id))}"
       data-window-type="note"
-      class="st-note-window ${borderClass}"
-      style="top:${escapeHtml(String(note.y ?? 72))}px;left:${escapeHtml(String(note.x ?? 40))}px;width:${escapeHtml(String(note.width ?? 420))}px;height:${escapeHtml(String(note.height ?? 320))}px;z-index:${escapeHtml(String(note.z ?? 221))};--st-note-window-accent-color:${escapeHtml(accentColor)};"
+      data-note-style-token="${escapeHtml(styleToken)}"
+      class="st-note-window"
+      style="top:${escapeHtml(String(note.y ?? 72))}px;left:${escapeHtml(String(note.x ?? 40))}px;width:${escapeHtml(String(note.width ?? 420))}px;height:${escapeHtml(String(note.height ?? 320))}px;z-index:${escapeHtml(String(note.z ?? 221))};"
     >
-      <header data-window-header class="${tokenClass}">
+      <header data-window-header>
         <div data-window-title-wrap>
           <h2 data-window-title data-note-window-title>${title}</h2>
         </div>
@@ -159,6 +158,16 @@ function renderHtmlEditorToolbar(note) {
   if (note.type !== 'html') return ''
   return `
     <div class="st-note-editor-html-toolbar">
+      <select
+        name="template_theme"
+        data-note-template-theme
+        data-note-id="${escapeHtml(String(note.id ?? ''))}"
+        title="${escapeHtml(t('common.settings'))}"
+        aria-label="${escapeHtml(t('common.settings'))}"
+      >
+        <option value="light">${escapeHtml(t('noteForm.styleTokens.light'))}</option>
+        <option value="dark">${escapeHtml(t('noteForm.styleTokens.dark'))}</option>
+      </select>
       <button
         type="button"
         class="st-btn"
@@ -168,6 +177,15 @@ function renderHtmlEditorToolbar(note) {
         title="${escapeHtml(t('noteForm.insertTabberTitle'))}"
         aria-label="${escapeHtml(t('noteForm.insertTabberTitle'))}"
       >${escapeHtml(t('noteForm.insertTabber'))}</button>
+      <button
+        type="button"
+        class="st-btn"
+        data-btn="primary"
+        data-click="insertFloatingNoteTableau"
+        data-note-id="${escapeHtml(String(note.id ?? ''))}"
+        title="${escapeHtml(t('noteForm.insertTableauTitle'))}"
+        aria-label="${escapeHtml(t('noteForm.insertTableauTitle'))}"
+      >${escapeHtml(t('noteForm.insertTableau'))}</button>
     </div>
   `
 }
@@ -205,6 +223,25 @@ function renderEditorLanguageField(note) {
         <option value="xml"${note.editLanguage === 'xml' ? ' selected' : ''}>XML</option>
       </select>
     </label>
+  `
+}
+
+function renderFloatingNoteEditorOptions(note) {
+  return `
+    <details class="st-note-editor-options">
+      <summary
+        class="st-btn"
+        title="${escapeHtml(t('common.options'))}"
+        aria-label="${escapeHtml(t('common.options'))}"
+      >${SPEEDTAB_SVG.cog}</summary>
+      <div class="st-note-editor-options-panel">
+        <button
+          type="button"
+          data-click="resetFloatingNoteWindowLayout"
+          data-note-id="${escapeHtml(String(note.id ?? ''))}"
+        >${escapeHtml(t('common.reset'))}</button>
+      </div>
+    </details>
   `
 }
 
@@ -293,6 +330,11 @@ function renderFloatingNoteEditor(note) {
           </select>
         </label>
         ${renderEditorLanguageField(note)}
+        ${note.hasSavedLayout ? `
+        <div class="st-note-editor-side-actions">
+          ${renderFloatingNoteEditorOptions(note)}
+        </div>
+        ` : ''}
       </div>
       <div class="st-note-editor-panels${isHtml ? ' is-html' : ''}">
         ${isHtml ? `

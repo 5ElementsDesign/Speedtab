@@ -23,6 +23,7 @@ import {
   clearBookmarkFavicon,
   clearBookmarkPreview,
   initBookmarkFormState,
+  patchBookmarkForm,
   renderBookmarkCrudForm,
   rerenderBookmarkForm,
   resetBookmarkFormState,
@@ -41,6 +42,7 @@ import {
   getFeedFormState,
   initFeedFormState,
   lookupFeedSourceUrls,
+  patchFeedSourceCrudForm,
   renderFeedSourceCrudForm,
   resetFeedFormState,
   syncFeedFormStateFromForm,
@@ -77,6 +79,7 @@ function rerenderFeedForm(body = null) {
   const target = body || getOpenSidepanelBody()
   const state = getFeedFormState()
   if (!target || !state) return
+  if (patchFeedSourceCrudForm(target, state)) return
   target.innerHTML = renderFeedSourceCrudForm(state)
   initFormDirtyState(target, {useExistingBaseline: true})
 }
@@ -805,7 +808,9 @@ async function openNoteModal({record = null, moduleSyncId = '', parentId = '', p
 
 async function rerenderAndReopen(entityType, recordSyncId = '', moduleSyncId = '') {
   const bootstrap = await import('../app/bootstrap.js')
-  await bootstrap.renderNextRoot()
+  if (moduleSyncId) {
+    await bootstrap.refreshModuleContent(moduleSyncId)
+  }
   if (!recordSyncId) {
     closeSidepanel()
     return
@@ -942,8 +947,8 @@ export const moduleCrudActions = {
     if (!currentTab) return
     if (!confirm(t('moduleCrud.confirmDeleteTab', {title: currentTab.title || t('nav.page')}))) return
     await softDeleteModuleTab(currentTab.tabId)
-    const {renderNextRoot} = await import('../app/bootstrap.js')
-    await renderNextRoot()
+    const {refreshModuleContent} = await import('../app/bootstrap.js')
+    await refreshModuleContent(moduleSyncId)
   },
 
   async addModuleBookmark(target) {
@@ -1249,11 +1254,13 @@ export const moduleCrudActions = {
   async deleteModuleBookmark(target) {
     const bookmarkId = parseInt(target.dataset.bookmarkId ?? '', 10)
     const label = target.dataset.bookmarkTitle || ''
+    const moduleSyncId = target.dataset.moduleSyncId || ''
     if (!bookmarkId) return
     if (!confirm(t('moduleCrud.confirmDeleteBookmark', {title: label || t('app.searchKinds.bookmark')}))) return
     await softDeleteBookmark(bookmarkId)
-    const {renderNextRoot} = await import('../app/bootstrap.js')
-    await renderNextRoot()
+    if (!moduleSyncId) return
+    const {refreshModuleContent} = await import('../app/bootstrap.js')
+    await refreshModuleContent(moduleSyncId)
   },
 
   async deleteOpenNote(target) {
@@ -1267,10 +1274,7 @@ export const moduleCrudActions = {
     if (moduleSyncId) {
       const {refreshModuleContent} = await import('../app/bootstrap.js')
       await refreshModuleContent(moduleSyncId)
-      return
     }
-    const {renderNextRoot} = await import('../app/bootstrap.js')
-    await renderNextRoot()
   },
 
   async moduleCrudSave(target) {
@@ -1379,8 +1383,9 @@ export const moduleCrudActions = {
     // otherwise the click can land on underlying bookmark actions.
     await new Promise((resolve) => setTimeout(resolve, 0))
     closeSidepanel()
-    const {renderNextRoot} = await import('../app/bootstrap.js')
-    await renderNextRoot()
+    if (!context.moduleSyncId) return
+    const {refreshModuleContent} = await import('../app/bootstrap.js')
+    await refreshModuleContent(context.moduleSyncId)
   },
 
   async bookmarkFormTestUrl(target) {
@@ -1391,13 +1396,13 @@ export const moduleCrudActions = {
     }
     syncBookmarkFormStateFromForm(form)
     await testBookmarkUrl()
-    await rerenderBookmarkForm(getOpenSidepanelBody())
+    await patchBookmarkForm(getOpenSidepanelBody())
   },
 
   async bookmarkFormToggleFaviconPicker(target) {
     syncBookmarkFormStateFromForm(target.closest('[data-module-crud-form]'))
     toggleBookmarkFaviconPicker()
-    await rerenderBookmarkForm(getOpenSidepanelBody())
+    await patchBookmarkForm(getOpenSidepanelBody())
   },
 
   async bookmarkFormTriggerFaviconUpload(target) {
@@ -1410,25 +1415,25 @@ export const moduleCrudActions = {
     syncBookmarkFormStateFromForm(target.closest('[data-module-crud-form]'))
     await uploadBookmarkFavicon(file)
     target.value = ''
-    await rerenderBookmarkForm(getOpenSidepanelBody())
+    await patchBookmarkForm(getOpenSidepanelBody())
   },
 
   async bookmarkFormSelectFaviconAsset(target) {
     syncBookmarkFormStateFromForm(target.closest('[data-module-crud-form]'))
     await selectBookmarkFaviconAsset(target.dataset.assetId)
-    await rerenderBookmarkForm(getOpenSidepanelBody())
+    await patchBookmarkForm(getOpenSidepanelBody())
   },
 
   async bookmarkFormClearFavicon(target) {
     syncBookmarkFormStateFromForm(target.closest('[data-module-crud-form]'))
     await clearBookmarkFavicon()
-    await rerenderBookmarkForm(getOpenSidepanelBody())
+    await patchBookmarkForm(getOpenSidepanelBody())
   },
 
   async bookmarkFormTogglePreviewPicker(target) {
     syncBookmarkFormStateFromForm(target.closest('[data-module-crud-form]'))
     toggleBookmarkPreviewPicker()
-    await rerenderBookmarkForm(getOpenSidepanelBody())
+    await patchBookmarkForm(getOpenSidepanelBody())
   },
 
   bookmarkFormTriggerPreviewUpload(target) {
@@ -1441,25 +1446,25 @@ export const moduleCrudActions = {
     syncBookmarkFormStateFromForm(target.closest('[data-module-crud-form]'))
     await uploadBookmarkPreview(file)
     target.value = ''
-    await rerenderBookmarkForm(getOpenSidepanelBody())
+    await patchBookmarkForm(getOpenSidepanelBody())
   },
 
   async bookmarkFormSelectPreviewAsset(target) {
     syncBookmarkFormStateFromForm(target.closest('[data-module-crud-form]'))
     await selectBookmarkPreviewAsset(target.dataset.assetId)
-    await rerenderBookmarkForm(getOpenSidepanelBody())
+    await patchBookmarkForm(getOpenSidepanelBody())
   },
 
   async bookmarkFormClearPreview(target) {
     syncBookmarkFormStateFromForm(target.closest('[data-module-crud-form]'))
     clearBookmarkPreview()
-    await rerenderBookmarkForm(getOpenSidepanelBody())
+    await patchBookmarkForm(getOpenSidepanelBody())
   },
 
   async bookmarkFormApplyCrop(target) {
     syncBookmarkFormStateFromForm(target.closest('[data-module-crud-form]'))
     await applyBookmarkPreviewCrop()
-    await rerenderBookmarkForm(getOpenSidepanelBody())
+    await patchBookmarkForm(getOpenSidepanelBody())
   },
 
   async feedFormTestUrl(target) {

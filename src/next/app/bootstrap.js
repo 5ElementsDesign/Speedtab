@@ -1,5 +1,6 @@
 import defaultWallpaperUrl from '../../assets/wallpaper-y-tree.webp'
 import {getCleanupCandidates} from '../../composables/useMaintenance.ts'
+import {startRemoteAutoSync} from '../../composables/useRemoteAutoSync.ts'
 import {getWidgetSettings} from '../../composables/useWidgetSettings.ts'
 import {YaiCore, YaiTabs, YaiTabsSwipe} from '../../lib/yai/yai-local-bundle.js'
 import {assetActions} from '../actions/assets.js'
@@ -12,6 +13,7 @@ import {searchActions} from '../actions/search.js'
 import {settingsActions} from '../actions/settings.js'
 import {workspaceActions} from '../actions/workspace.js'
 import {closeAll, closeDropdown} from '../components/dropdown.js'
+import {dismissToast, initToastEvents} from '../components/toast.js'
 import {getCachedAppSettings, loadAppSettings} from '../data/app-settings.js'
 import {loadCaptureInboxCount} from '../data/capture-inbox.js'
 import {loadModuleBySyncId, loadModulesByPageId} from '../data/modules.js'
@@ -20,7 +22,7 @@ import {loadUiConfigsByEntitySyncIds} from '../data/ui-config.js'
 import {applyModuleUiConfigMap, applyShellUiConfig} from '../features/customizer/apply.js'
 import {initCustomizerListeners} from '../features/customizer/panel.js'
 import {SHELL_SYNC_ID} from '../features/customizer/render.js'
-import {initializeLocalTools, persistFloatingNoteTabState, refreshOpenNotePreviewState, refreshQuicknoteWindow} from '../features/local-tools/manager.js'
+import {initializeLocalTools, refreshOpenNotePreviewState, refreshQuicknoteWindow} from '../features/local-tools/manager.js'
 import {adaptModule} from '../features/modules/registry.js'
 import {enrichModules} from '../features/modules/service.js'
 import {renderModuleCardBody, renderPageGrid} from '../features/pages/modules/render.js'
@@ -32,6 +34,7 @@ import {initBookmarkMedia} from '../utils/bookmark-media.js'
 import {initFavicons} from '../utils/favicon.js'
 import {getLocale, initI18n, t} from '../utils/i18n.js'
 import {applyWorkspaceBackground} from '../utils/workspace-background.js'
+import {installWorkspaceDirtyTracking} from './dirty-tracker.js'
 import {dispatch} from './dispatch.js'
 import {createHandler} from './handler.js'
 
@@ -109,6 +112,16 @@ function updateInboxBadge(count = 0) {
   })())
 }
 
+export function syncCaptureInboxChrome(count = 0) {
+  updateInboxTitle(count)
+  updateInboxBadge(count)
+}
+
+export async function refreshCaptureInboxChrome() {
+  const count = await loadCaptureInboxCount()
+  syncCaptureInboxChrome(count)
+}
+
 function bindRuntimeInboxListener() {
   if (runtimeInboxListenerBound) return
   if (!chrome?.runtime?.onMessage) return
@@ -123,6 +136,16 @@ function bindRuntimeInboxListener() {
 
     if (message?.type === 'QUICKNOTE_UPDATED') {
       void refreshQuicknoteWindow()
+      return
+    }
+
+    if (message?.type === 'REMOTE_AUTO_SYNC_ACTIVITY') {
+      document.dispatchEvent(new CustomEvent('speedtab:remote-sync-activity', {
+        detail: {
+          kind: message.kind === 'push' ? 'push' : 'check',
+          phase: message.phase === 'start' ? 'start' : 'end',
+        },
+      }))
     }
   })
   runtimeInboxListenerBound = true
@@ -182,6 +205,30 @@ function hydrateModuleBodies(pageContent, modules = []) {
   })
 }
 
+function syncActivePageGridMaxWidthToken(source = null) {
+  const appRoot = document.querySelector('[data-app]')
+  if (!(appRoot instanceof HTMLElement)) return
+
+  const sourceRoot = source instanceof HTMLElement
+    ? source
+    : document.querySelector('[data-app-tab-panel].active [data-app-tab-content], [data-app-tab-content]')
+
+  const pageGrid = sourceRoot instanceof HTMLElement
+    ? sourceRoot.querySelector('[data-page-grid]')
+    : null
+
+  const localMaxWidth = pageGrid instanceof HTMLElement
+    ? pageGrid.style.getPropertyValue('--st-page-grid-max-width-local').trim()
+    : ''
+
+  if (localMaxWidth) {
+    appRoot.style.setProperty('--st-page-grid-max-width-local', localMaxWidth)
+    return
+  }
+
+  appRoot.style.removeProperty('--st-page-grid-max-width-local')
+}
+
 // Composition point — spread in domain action files as features are built
 const appActions = {
   ...captureActions,
@@ -193,6 +240,9 @@ const appActions = {
   ...localToolsActions,
   ...searchActions,
   ...workspaceActions,
+  dismissToast(target) {
+    dismissToast(target)
+  },
   navigateToPage(target) {
     const slug = target.dataset.pageSlug
     if (!slug) return
@@ -205,6 +255,7 @@ export function initializeNextTabs(mount, pages) {
   const pageMap = new Map(pages.map((page) => [page.slug, page]))
 
   initCustomizerListeners()
+  initToastEvents()
 
   const setListenerType = YaiDevice.hasTouch
     ? ['touchstart', 'touchmove', 'touchend']
@@ -271,7 +322,10 @@ export function initializeNextTabs(mount, pages) {
           btn.toggleAttribute('data-overflow-active', btn.dataset.pageSlug === activeSlug)
         })
 
+        syncActivePageGridMaxWidthToken(content?.querySelector?.('[data-app-tab-content]') ?? null)
+
         hydrateOpenedPagePanel(target, content, container, pageMap, context).then(() => {
+          syncActivePageGridMaxWidthToken(content?.querySelector?.('[data-app-tab-content]') ?? null)
           dispatch('page-hydrated', {content})
         })
       }],
@@ -350,6 +404,10 @@ async function hydrateOpenedPagePanel(target, content, container, pageMap, conte
     } else {
       hydrateModuleBodies(pageContent, enrichedModules)
     }
+
+    if (context?.initializeAllContainers) {
+      context.initializeAllContainers(pageContent)
+    }
   }
 
   if (context?._initializeNestedDefaults) {
@@ -389,10 +447,14 @@ function routeAction(target, action, event) {
 
 
 export async function renderNextRoot() {
+  // CRITICAL RENDER PATH:
+  // DO NOT CALL THIS FOR STATE-ONLY UPDATES.
+  // THIS REBUILDS THE FULL SHELL AND WILL WIPE LIVE DOM STATE.
   const mount = document.querySelector('#app')
   if (!mount) throw new Error('Missing #app mount')
 
   destroyExistingTabs(mount)
+  installWorkspaceDirtyTracking()
   await initI18n()
   bindRuntimeInboxListener()
 
@@ -480,10 +542,14 @@ export async function renderNextRoot() {
     await applyWorkspaceBackground(appRoot)
   }
 
+  const initialActivePageContent = mount.querySelector(`[data-app-tab-content][data-page-slug="${CSS.escape(activePage?.slug || '')}"]`)
+  syncActivePageGridMaxWidthToken(initialActivePageContent)
+
   if (renderPages.length && activePage) {
     initializeSearch()
     await initializeLocalTools(mount.querySelector('[data-app]'))
     initializeWidgetRail(widgetSettings)
+    startRemoteAutoSync()
     const tabs = initializeNextTabs(mount, renderPages)
     return tabs
   } else {
@@ -508,11 +574,15 @@ export async function renderNextRoot() {
     `
     await initializeLocalTools(null)
     initializeWidgetRail(widgetSettings)
+    startRemoteAutoSync()
     return null
   }
 }
 
 export async function refreshModuleContent(syncId) {
+  // CRITICAL MODULE RENDER PATH:
+  // USE ONLY WHEN THE MODULE STRUCTURE ITSELF CHANGED.
+  // FOR BADGES, BUTTON STATE, TITLES, HIGHLIGHTS, OR SIMPLE TOGGLES, PATCH IN PLACE.
   const card = document.querySelector(`[data-module-card][data-sync-id="${CSS.escape(syncId)}"]`)
   if (!card) return
 
@@ -535,6 +605,13 @@ export async function refreshModuleContent(syncId) {
     refreshedTabsEl?.setAttribute('data-last-active', lastActive)
   }
 
+  const appRoot = document.querySelector('#app')
+  const tabsInstance = appRoot?.__nextTabsInstance
+  if (tabsInstance?.initializeAllContainers) {
+    tabsInstance.initializeAllContainers(bodyEl)
+    tabsInstance._updateAriaStates?.(refreshedTabsEl ?? bodyEl)
+  }
+
   const uiConfigMap = await loadUiConfigsByEntitySyncIds('module', [enriched])
   applyModuleUiConfigMap(card, uiConfigMap)
 
@@ -545,6 +622,68 @@ export async function refreshModuleContent(syncId) {
     }
   }
 
+  refreshOpenNotePreviewState()
+}
+
+export async function refreshPageContent(pageReference = {}) {
+  // CRITICAL PAGE RENDER PATH:
+  // USE ONLY WHEN PAGE-LOCAL STRUCTURE CHANGED (MODULE ADD/REMOVE/REORDER).
+  // DO NOT ROUTE ORDINARY INTERACTION STATE THROUGH THIS.
+  const pageId = Number(pageReference?.pageId) || null
+  const pageSyncId = pageReference?.pageSyncId?.trim?.() || ''
+  const pageSlug = pageReference?.pageSlug?.trim?.() || ''
+
+  const pages = await loadPages()
+  const page = pages.find((entry) => (
+    (pageId && entry.id === pageId)
+    || (pageSyncId && entry.sync_id === pageSyncId)
+    || (pageSlug && entry.slug === pageSlug)
+  ))
+  if (!page?.id || !page?.slug) return
+
+  const pageContent = document.querySelector(`[data-app-tab-content][data-page-slug="${CSS.escape(page.slug)}"]`)
+  if (!(pageContent instanceof HTMLElement)) return
+
+  const lastActiveByModuleSyncId = new Map()
+  pageContent.querySelectorAll('[data-module-card][data-sync-id]').forEach((card) => {
+    if (!(card instanceof HTMLElement)) return
+    const moduleSyncId = card.dataset.syncId || ''
+    const lastActive = card.querySelector('[data-yai-tabs]')?.dataset?.lastActive || ''
+    if (moduleSyncId && lastActive) {
+      lastActiveByModuleSyncId.set(moduleSyncId, lastActive)
+    }
+  })
+
+  const modules = await loadModulesByPageId(page.id)
+  const enrichedModules = await enrichModules(modules)
+  pageContent.innerHTML = renderPageGrid(page, enrichedModules, {hydrateBodies: true})
+  pageContent.setAttribute('data-page-hydrated', '')
+
+  pageContent.querySelectorAll('[data-module-card][data-sync-id]').forEach((card) => {
+    if (!(card instanceof HTMLElement)) return
+    const moduleSyncId = card.dataset.syncId || ''
+    const lastActive = lastActiveByModuleSyncId.get(moduleSyncId)
+    if (!lastActive) return
+    const tabsRoot = card.querySelector('[data-yai-tabs]')
+    if (tabsRoot instanceof HTMLElement) {
+      tabsRoot.setAttribute('data-last-active', lastActive)
+    }
+  })
+
+  const appRoot = document.querySelector('#app')
+  const tabsInstance = appRoot?.__nextTabsInstance
+  if (tabsInstance?.initializeAllContainers) {
+    tabsInstance.initializeAllContainers(pageContent)
+  }
+  tabsInstance?._initializeNestedDefaults?.(pageContent)
+  tabsInstance?._activateDefaultTabs?.(pageContent)
+  tabsInstance?._updateAriaStates?.(pageContent)
+
+  const uiConfigMap = await loadUiConfigsByEntitySyncIds('module', enrichedModules)
+  applyModuleUiConfigMap(pageContent, uiConfigMap)
+  initFavicons(pageContent)
+  hydrateVisibleFeedCollections(pageContent)
+  syncActivePageGridMaxWidthToken(pageContent)
   refreshOpenNotePreviewState()
 }
 

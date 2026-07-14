@@ -30,6 +30,8 @@ export interface CleanupOptions {
   removeUnusedAssets?: boolean
 }
 
+const LOCAL_TOOLS_STATE_KEY = 'local_tools_state'
+
 function emptyReport(): CleanupReport {
   return {
     removedModules: 0,
@@ -197,6 +199,38 @@ export async function deletePageTree(
         await database.modules.where('page_id').equals(pageId).delete()
       }
       await database.pages.delete(pageId)
+    },
+  )
+}
+
+export async function clearAuthoredWorkspace(
+  database: SpeedtabDB = defaultDb,
+): Promise<void> {
+  await database.transaction(
+    'rw',
+    [
+      database.pages,
+      database.modules,
+      database.collections,
+      database.tabs,
+      database.notes,
+      database.feed_sources,
+      database.feed_items,
+      database.saved_feed_items,
+      database.next_ui_config,
+      database.app_settings,
+    ],
+    async () => {
+      await database.feed_items.clear()
+      await database.saved_feed_items.clear()
+      await database.feed_sources.clear()
+      await database.tabs.clear()
+      await database.notes.clear()
+      await database.collections.clear()
+      await database.modules.clear()
+      await database.pages.clear()
+      await database.next_ui_config.clear()
+      await database.app_settings.delete(LOCAL_TOOLS_STATE_KEY)
     },
   )
 }

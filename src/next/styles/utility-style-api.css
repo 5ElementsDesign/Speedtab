@@ -1,0 +1,227 @@
+/* Safe attribute-driven styling API for notes and other trusted HTML surfaces.
+   Chrome-only attr(type(...)) is intentional here. `!important` is also
+   intentional so these opt-in attributes reliably win against app defaults. */
+
+/* Layout, sizing, overflow */
+[data-st-width] {
+  --st-w: attr(data-st-width type(<length>), auto);
+  width: var(--st-w) !important;
+}
+
+[data-st-height] {
+  --st-h: attr(data-st-height type(<length>), auto);
+  height: var(--st-h) !important;
+}
+
+[data-st-min-width] {
+  --st-min-w: attr(data-st-min-width type(<length>), none);
+  min-width: var(--st-min-w) !important;
+}
+
+[data-st-min-height] {
+  --st-min-h: attr(data-st-min-height type(<length>), none);
+  min-height: var(--st-min-h) !important;
+}
+
+[data-st-max-width] {
+  --st-max-w: attr(data-st-max-width type(<length>), none);
+  max-width: var(--st-max-w) !important;
+}
+
+[data-st-max-height] {
+  --st-max-h: attr(data-st-max-height type(<length>), none);
+  max-height: var(--st-max-h) !important;
+}
+
+[data-st-overflow] {
+  --st-ov: attr(data-st-overflow, visible);
+  overflow: var(--st-ov) !important;
+}
+
+/* Box model */
+[data-st-margin] {
+  --st-m: attr(data-st-margin type(<length>), 0px);
+  margin: var(--st-m) !important;
+}
+
+[data-st-padding] {
+  --st-p: attr(data-st-padding type(<length>), 0px);
+  padding: var(--st-p) !important;
+}
+
+[data-st-margin-top] {
+  --st-mt: attr(data-st-margin-top type(<length>), 0px);
+  margin-top: var(--st-mt) !important;
+}
+
+[data-st-margin-bottom] {
+  --st-mb: attr(data-st-margin-bottom type(<length>), 0px);
+  margin-bottom: var(--st-mb) !important;
+}
+
+[data-st-margin-left] {
+  --st-ml: attr(data-st-margin-left type(<length>), 0px);
+  margin-left: var(--st-ml) !important;
+}
+
+[data-st-margin-right] {
+  --st-mr: attr(data-st-margin-right type(<length>), 0px);
+  margin-right: var(--st-mr) !important;
+}
+
+[data-st-padding-top] {
+  --st-pt: attr(data-st-padding-top type(<length>), 0px);
+  padding-top: var(--st-pt) !important;
+}
+
+[data-st-padding-bottom] {
+  --st-pb: attr(data-st-padding-bottom type(<length>), 0px);
+  padding-bottom: var(--st-pb) !important;
+}
+
+[data-st-padding-left] {
+  --st-pl: attr(data-st-padding-left type(<length>), 0px);
+  padding-left: var(--st-pl) !important;
+}
+
+[data-st-padding-right] {
+  --st-pr: attr(data-st-padding-right type(<length>), 0px);
+  padding-right: var(--st-pr) !important;
+}
+
+[data-st-border-radius] {
+  --st-br: attr(data-st-border-radius type(<length>), 0px);
+  border-radius: var(--st-br) !important;
+}
+
+[data-st-border] {
+  --st-bd: attr(data-st-border, none);
+  border: var(--st-bd) !important;
+}
+
+[data-st-border-color] {
+  --st-bdc: attr(data-st-border-color type(<color>), currentColor);
+  border-color: var(--st-bdc) !important;
+}
+
+[data-st-border-width] {
+  --st-bdw: attr(data-st-border-width type(<length>), 0px);
+  border-width: var(--st-bdw) !important;
+}
+
+[data-st-border-style] {
+  --st-bds: attr(data-st-border-style, solid);
+  border-style: var(--st-bds) !important;
+}
+
+/* Flex helpers */
+[data-st-flex] {
+  --st-fx: attr(data-st-flex type(<number>), 1);
+  flex: var(--st-fx) !important;
+}
+
+[data-st-gap] {
+  --st-g: attr(data-st-gap type(<length>), 0px);
+  gap: var(--st-g) !important;
+}
+
+[data-st-flex-direction] {
+  --st-fd: attr(data-st-flex-direction, row);
+  flex-direction: var(--st-fd) !important;
+}
+
+[data-st-align-items] {
+  --st-ai: attr(data-st-align-items, stretch);
+  align-items: var(--st-ai) !important;
+}
+
+[data-st-justify-content] {
+  --st-jc: attr(data-st-justify-content, flex-start);
+  justify-content: var(--st-jc) !important;
+}
+
+[data-st-flex-wrap] {
+  --st-fw-wrap: attr(data-st-flex-wrap, nowrap);
+  flex-wrap: var(--st-fw-wrap) !important;
+}
+
+/* Typography */
+[data-st-font-size] {
+  --st-fs: attr(data-st-font-size type(<length>), inherit);
+  font-size: var(--st-fs) !important;
+}
+
+[data-st-font-weight] {
+  --st-fw: attr(data-st-font-weight type(<number>), 400);
+  font-weight: var(--st-fw) !important;
+}
+
+[data-st-line-height] {
+  --st-lh: attr(data-st-line-height, normal);
+  line-height: var(--st-lh) !important;
+}
+
+[data-st-text-align] {
+  --st-ta: attr(data-st-text-align, left);
+  text-align: var(--st-ta) !important;
+}
+
+[data-st-white-space] {
+  --st-ws: attr(data-st-white-space, normal);
+  white-space: var(--st-ws) !important;
+}
+
+/* Visual helpers */
+[data-st-opacity] {
+  --st-op: attr(data-st-opacity type(<number>), 1);
+  opacity: var(--st-op) !important;
+}
+
+[data-st-object-fit] {
+  --st-of: attr(data-st-object-fit, fill);
+  object-fit: var(--st-of) !important;
+}
+
+[data-st-color] {
+  --st-c: attr(data-st-color type(<color>), inherit);
+  color: var(--st-c) !important;
+}
+
+[data-st-bg-color] {
+  --st-bg: attr(data-st-bg-color type(<color>), transparent);
+  background-color: var(--st-bg) !important;
+}
+
+[data-st-box-shadow-x],
+[data-st-box-shadow-y],
+[data-st-box-shadow-blur],
+[data-st-box-shadow-spread],
+[data-st-box-shadow-type] {
+  box-shadow:
+    var(--st-bs-type, )
+    var(--st-bs-x, 0px)
+    var(--st-bs-y, 0px)
+    var(--st-bs-blur, 0px)
+    var(--st-bs-spread, 0px)
+    currentColor !important;
+}
+
+[data-st-box-shadow-x] {
+  --st-bs-x: attr(data-st-box-shadow-x type(<length>), 0px);
+}
+
+[data-st-box-shadow-y] {
+  --st-bs-y: attr(data-st-box-shadow-y type(<length>), 0px);
+}
+
+[data-st-box-shadow-blur] {
+  --st-bs-blur: attr(data-st-box-shadow-blur type(<length>), 0px);
+}
+
+[data-st-box-shadow-spread] {
+  --st-bs-spread: attr(data-st-box-shadow-spread type(<length>), 0px);
+}
+
+[data-st-box-shadow-type] {
+  --st-bs-type: attr(data-st-box-shadow-type, );
+}

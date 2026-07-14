@@ -1,5 +1,6 @@
 import {decryptNote, encryptNote, parseCryptPayload, serialiseCryptPayload} from '../../../composables/useCrypt.ts'
 import {sanitizeHtml} from '../../../composables/useSanitize.ts'
+import {readActiveFieldState, replaceNode, restoreActiveFieldState} from '../../utils/dom-patch.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 import {initFormDirtyState, renderFormActions} from '../forms/actions.js'
@@ -273,8 +274,13 @@ export function renderNoteCrudForm(state = noteFormState) {
 }
 
 export function afterNoteFormRender(root) {
+  return afterNoteFormRenderWithOptions(root)
+}
+
+function afterNoteFormRenderWithOptions(root, {autoFocus = true} = {}) {
   const form = root?.querySelector?.('[data-note-form]')
   if (!(form instanceof HTMLFormElement)) return
+  if (!autoFocus) return
   const preferredFocus = form.querySelector('[name="title"]')
     || form.querySelector('[name="decrypt_passphrase"]')
     || form.querySelector('[name="content"]')
@@ -283,9 +289,21 @@ export function afterNoteFormRender(root) {
 
 export function rerenderNoteForm(root) {
   if (!root || !noteFormState) return
-  root.innerHTML = renderNoteCrudForm(noteFormState)
-  afterNoteFormRender(root)
+  const currentForm = root.matches?.('[data-note-form]') ? root : root.querySelector?.('[data-note-form]')
+  const activeState = readActiveFieldState()
+
+  if (currentForm instanceof HTMLFormElement) {
+    replaceNode(currentForm, renderNoteCrudForm(noteFormState))
+  } else {
+    root.innerHTML = renderNoteCrudForm(noteFormState)
+  }
+
+  afterNoteFormRenderWithOptions(root, {autoFocus: false})
   initFormDirtyState(root, {useExistingBaseline: true})
+  const form = root.matches?.('[data-note-form]') ? root : root.querySelector?.('[data-note-form]')
+  if (form instanceof HTMLElement) {
+    restoreActiveFieldState(form, activeState)
+  }
 }
 
 export function setNoteFormType(type) {

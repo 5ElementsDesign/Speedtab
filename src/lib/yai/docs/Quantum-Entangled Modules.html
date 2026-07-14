@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantum-Entangled Modules Demo | YpsilonEventHandler</title>
+<meta name="description" content="Event-driven modular architecture with independent communicating modules">
+<style>
+    body {
+        margin: 20px auto;
+        padding: 0 20px;
+        max-width: 840px;
+        background: #f5f5f5;
+        font-family: Ubuntu, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    h1 {
+        font-size: 1.3rem;
+    }
+    h2, h3 {
+        font-size: 1.1rem;
+    }
+    h1, h2, h3, p {
+        margin-top: 0;
+    }
+    p {
+        line-height: 1.5;
+    }
+    header, main, section {
+        margin: 20px 0;
+        padding: 20px;
+        background: #fff;
+        box-shadow: 0 2px 9px 0px #ad9c9c;
+    }
+    footer {
+        margin: 30px 0;
+        padding: 20px;
+        text-align: center;
+    }
+    pre span {
+        color: #999;
+    }
+    pre.auto-height {
+        min-height: unset;
+        line-height: 1.6;
+        font-size: 15px;
+        background: #f3f3f3;
+    }
+    #user-panel, #data-controls {
+        border: 2px solid #ddd;
+        padding: 25px;
+        margin: 10px 0;
+        border-radius: 5px;
+        cursor: pointer;
+        user-select: none;
+    }
+    #user-panel { border-color: #4CAF50; }
+    #data-controls { border-color: #2196F3; }
+    #output {
+        margin-top: 20px;
+        border: 1px solid #ccc;
+        padding: 10px;
+        border-radius: 5px;
+    }
+    #log {
+        height: 200px;
+        overflow-y: auto;
+        background: #f9f9f9;
+        padding: 10px;
+        font-family: monospace;
+        font-size: 14px;
+    }
+    #log div { margin: 2px 0; }
+
+    /* Navigation Styles - Bootstrap-inspired */
+    .nav-container {
+        padding: 12px;
+        box-shadow: 0 0 10px #6b7894;
+        background: #f7f7f7;
+        margin: 20px 0;
+        border-radius: 12px;
+    }
+    nav.main-nav div {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+    }
+    nav.main-nav a {
+        margin: 0;
+        padding: 8px 12px;
+        flex: 1 17%;
+        white-space: nowrap;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-align: center;
+        transition: all 0.2s ease;
+    }
+    nav.main-nav.compact a {
+        flex: 1 14%;
+    }
+    pre {
+        background: #f5f5f5;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        min-height: 60px;
+        overflow: auto;
+        white-space: pre-wrap;
+        font-family: monospace;
+        font-size: 12px;
+    }
+    pre:not(.auto-height) {
+        max-height: 140px;
+    }
+    code {
+        font-weight: bold;
+        color: #514747;
+        background: #e3e6f0;
+        padding: 3px 6px;
+        display: inline-block;
+        line-height: 1;
+    }
+    /* Bootstrap-style Button Colors */
+    .btn-primary { background: #0d6efd; color: white; }
+    .btn-primary:hover { background: #0b5ed7; }
+
+    .btn-secondary { background: #6c757d; color: white; }
+    .btn-secondary:hover { background: #5c636a; }
+
+    .btn-success { background: #198754; color: white; }
+    .btn-success:hover { background: #157347; }
+
+    .btn-danger { background: #dc3545; color: white; }
+    .btn-danger:hover { background: #bb2d3b; }
+
+    .btn-warning { background: #fd7e14; color: white; }
+    .btn-warning:hover { background: #e85d04; }
+
+    .btn-info { background: #0dcaf0; color: #000; }
+    .btn-info:hover { background: #31d2f2; }
+
+    .btn-dark { background: #212529; color: white; }
+    .btn-dark:hover { background: #1c1f23; }
+
+    .btn-purple { background: #6f42c1; color: white; }
+    .btn-purple:hover { background: #5a32a3; }
+
+    .btn-indigo { background: #6610f2; color: white; }
+    .btn-indigo:hover { background: #520dc2; }
+
+    .btn-teal { background: #20c997; color: white; }
+    .btn-teal:hover { background: #1aa179; }
+
+    /* Current/Disabled page state */
+    .btn-disabled {
+        background: #e9ecef !important;
+        color: #6c757d !important;
+        cursor: not-allowed !important;
+        pointer-events: none;
+    }
+
+    .mirror-emoji {
+        display: inline-block;
+        transform: scaleX(-1);
+    }
+
+    .flip-emoji {
+        display: inline-block;
+        transform: scaleY(-1);
+    }
+
+    /* Responsive Navigation */
+    @media (max-width: 768px) {
+        nav.main-nav div {
+            flex-direction: column;
+        }
+
+        nav.main-nav a {
+            flex: 1 100%;
+            margin: 2px 0;
+        }
+    }
+</style>
+</head>
+<body>
+<!--
+    ## 🌌 **Pattern: Quantum-Entangled Modules**
+-->
+<header>
+    <h1><a href="https://eypsilon.github.io/YpsilonEventHandler-Examples/example/public/index.html" title="Back to index" style="text-decoration: none;">«</a>
+        🌌 Quantum-Entangled Modules Demo</h1>
+    <p><b>Decouple your UI and data management. Communicate via events for true modularity—no direct references, no import spaghetti.</b></p>
+    <p><b>Use When:</b> You want to build modular apps where data and UI are developed independently, or when building micro-frontend architectures.</p>
+    <p>Independent modules that communicate through event dispatch without coupling.</p>
+    <p>Event-driven architecture in minutes and zero configuration.</p>
+    <p><small><b>Note:</b> Runs directly on <code>file://</code> protocol like all YpsilonEventHandler examples - just download and open in browser! (Requires internet for CDN library access)</small></p>
+</header>
+
+<main class="main">
+    <div id="user-panel">
+        User Interface Module
+    </div>
+
+    <div id="data-controls">
+        Data Manager Module
+    </div>
+
+    <div id="output">
+        <h3>Event Log:</h3>
+        <div id="log"><div>🚀 Quantum-Entangled Modules initialized! Click the marked sections to see cross-module communication.</div><div>📊 Data received UI action: {"userId":"user-123","timestamp":1783667898206}</div><div>🖼️ UI received data change: {"timestamp":1783667898822,"source":"data-manager"}</div></div>
+    </div>
+</main>
+
+<script type="module">
+import {YEH} from 'https://cdn.jsdelivr.net/npm/@yaijs/core@1.1.2/yeh/yeh.min.js';
+
+// Simple logger for demo
+function log(message) {
+    const logDiv = document.getElementById('log');
+    logDiv.innerHTML += '<div>' + message + '</div>';
+    logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+// Module A: User Interface
+class UserInterface extends YEH {
+    constructor() {
+        super({
+            '#user-panel': ['click'],
+            'document': [{ type: 'data.update', handler: 'onDataChange' }]
+        });
+    }
+
+    handleClick(event, target, containerElement) {
+        // broadcast to other modules
+        this.dispatch('ui.action', {
+            userId: containerElement?.dataset?.userId || 'user-123',
+            timestamp: Date.now(),
+        });
+    }
+
+    onDataChange(event) {
+        log('🖼️ UI received data change: ' + JSON.stringify(event.detail));
+    }
+}
+
+// Module B: Data Manager
+class DataManager extends YEH {
+    constructor() {
+        super({
+            '#data-controls': ['click'],
+            'document': [{ type: 'ui.action', handler: 'onUIAction' }]
+        });
+    }
+
+    handleClick(event, target, containerElement) {
+        // Boadcast to other modules
+        this.dispatch('data.update', {
+            timestamp: Date.now(),
+            source: 'data-manager'
+        });
+    }
+
+    onUIAction(event) {
+        log('📊 Data received UI action: ' + JSON.stringify(event.detail));
+    }
+}
+
+// Initialize both modules - they communicate automatically!
+const ui = new UserInterface();
+const data = new DataManager();
+
+log('🚀 Quantum-Entangled Modules initialized! Click the marked sections to see cross-module communication.');
+</script>
+
+<!--
+    About
+-->
+<section class="extras">
+    <h3>What has this to do with YEH?</h3>
+    <p>In this example, we use <code>YEH</code> as Subscriber System to subscribe and dispatch Events.</p>
+    <p><code>YEH</code> provides 2 ways to subscribe:</p>
+    <pre class="auto-height"><span>// Subcribe immediately via document selector in the constructor</span>
+constructor() {
+    super({
+        document: [
+            { type: 'worker-result', handler: 'displayResult' },
+        ]
+    });
+}
+
+<span>// Or add the listener on the fly. It will listen immediately after adding</span>
+this.addEvent('document', { type: 'worker-result', handler: 'displayResult' });</pre>
+</section>
+
+</body>
+</html>

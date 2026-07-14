@@ -177,7 +177,12 @@ export function applyShellUiConfig(effectiveConfig) {
 export function applyModuleUiConfigMap(root, configMap) {
   if (!root || !configMap?.size) return
 
-  const moduleRoots = root.querySelectorAll('[data-module-card][data-sync-id]')
+  const moduleRoots = []
+  if (root.matches?.('[data-module-card][data-sync-id]')) {
+    moduleRoots.push(root)
+  }
+  moduleRoots.push(...root.querySelectorAll('[data-module-card][data-sync-id]'))
+
   moduleRoots.forEach((moduleRoot) => {
     const config = configMap.get(moduleRoot.dataset.syncId)
     if (!config) return

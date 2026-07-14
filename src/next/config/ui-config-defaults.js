@@ -46,7 +46,7 @@ export const UI_CONFIG_DEFAULTS = {
       behavior: {
         'module-tabs-color-accent': 'secondary',
         'module-tabs-variant': null,
-        'module-tabs-behavior': null,
+        'module-tabs-behavior': 'zoom',
         'module-tabs-swipe-enabled': true,
         'module-tabs-grow': false,
         'module-tabs-align': null,
@@ -63,7 +63,7 @@ export const UI_CONFIG_DEFAULTS = {
       behavior: {
         'module-tabs-color-accent': 'secondary',
         'module-tabs-variant': null,
-        'module-tabs-behavior': null,
+        'module-tabs-behavior': 'zoom',
         'module-tabs-swipe-enabled': true,
         'module-tabs-grow': false,
         'module-tabs-align': null,

@@ -2,7 +2,7 @@ import {SPEEDTAB_SVG} from '../next/components/icons.js'
 import {YEH} from '../lib/yai/yeh.js'
 import {t, initI18n} from '../next/utils/i18n.js'
 import {applyWorkspaceBackground} from '../next/utils/workspace-background.js'
-import '../next/styles/next.css'
+import '../next/styles/foundation.css'
 import {buildSorterState, loadModuleContentsForSorter, moveCollectionContent, moveModule, moveModuleTab, movePage, softDeleteCollectionContent, softDeleteModuleTabCascade, updateCollectionContentTitle, updateModuleColumnSpan, updateModuleTabTitle, updateModuleTitle} from './data.js'
 import {initSorterDnd} from './dnd.js'
 import {renderSorterApp} from './render.js'
@@ -36,6 +36,35 @@ function getMount() {
 
 function getSorterEventRoot() {
   return document.querySelector('#app')
+}
+
+function patchSorterRegions(mount, html, regionNames = null) {
+  const template = document.createElement('template')
+  template.innerHTML = html.trim()
+
+  const nextApp = template.content.querySelector('[data-sorter-app]')
+  const currentApp = mount.querySelector('[data-sorter-app]')
+  if (!(nextApp instanceof HTMLElement) || !(currentApp instanceof HTMLElement)) {
+    mount.innerHTML = html
+    return
+  }
+
+  const nextRegions = new Map(
+    Array.from(nextApp.querySelectorAll('[data-sorter-region]')).map((node) => [node.getAttribute('data-sorter-region'), node]),
+  )
+
+  const allowedRegions = Array.isArray(regionNames) && regionNames.length
+    ? new Set(regionNames)
+    : null
+
+  const currentRegions = Array.from(currentApp.querySelectorAll('[data-sorter-region]'))
+  for (const currentRegion of currentRegions) {
+    const regionName = currentRegion.getAttribute('data-sorter-region')
+    if (allowedRegions && (!regionName || !allowedRegions.has(regionName))) continue
+    const nextRegion = nextRegions.get(regionName)
+    if (!regionName || !nextRegion) continue
+    currentRegion.replaceWith(nextRegion.cloneNode(true))
+  }
 }
 
 function findModule(moduleSyncId) {
@@ -113,12 +142,29 @@ async function refreshContentSortContents(moduleType = state.contentSort.moduleT
   setContentSortContents(state, contentsByTabSyncId)
 }
 
-function render() {
+function render(regions = ['status', 'pages']) {
   const mount = getMount()
   if (!mount) return
   const scrollTop = document.scrollingElement?.scrollTop ?? 0
-  mount.innerHTML = renderSorterApp(state)
+  const html = renderSorterApp(state)
+  if (mount.querySelector('[data-sorter-app]')) {
+    patchSorterRegions(mount, html, regions)
+  } else {
+    mount.innerHTML = html
+  }
   document.scrollingElement?.scrollTo({top: scrollTop})
+}
+
+function renderStatus() {
+  render(['status'])
+}
+
+function renderPages() {
+  render(['pages'])
+}
+
+function renderStatusAndPages() {
+  render(['status', 'pages'])
 }
 
 async function applyPageBackground() {
@@ -165,8 +211,8 @@ async function boot() {
   await initI18n()
   await refreshState()
   setSorterStatus(state, t('sorter.ready'), 'idle')
-  render()
   await applyPageBackground()
+  renderStatusAndPages()
 
   const root = getSorterEventRoot()
   if (!root) return
@@ -179,7 +225,7 @@ async function boot() {
       if (!page || targetIndex < 0) return
 
       setSorterStatus(state, t('sorter.saving'), 'idle')
-      render()
+      renderStatus()
 
       try {
         await movePage(page.id, targetIndex)
@@ -196,7 +242,7 @@ async function boot() {
         setSorterStatus(state, error instanceof Error ? error.message : t('sorter.saveFailed'), 'error')
       } finally {
         clearDragState(state)
-        render()
+        renderStatusAndPages()
       }
     },
     onDropModule: async ({moduleSyncId, targetPageSyncId, targetIndex, targetSlotId, targetSlotKind}) => {
@@ -207,7 +253,7 @@ async function boot() {
       const spanSnapshot = createModuleSpanSnapshot(state.pages)
 
       setSorterStatus(state, t('sorter.saving'), 'idle')
-      render()
+      renderStatus()
 
       try {
         await moveModule(module.id, targetPage.id, targetIndex)
@@ -226,7 +272,7 @@ async function boot() {
         setSorterStatus(state, error instanceof Error ? error.message : t('sorter.saveFailed'), 'error')
       } finally {
         clearDragState(state)
-        render()
+        renderStatusAndPages()
       }
     },
     onDropTab: async ({tabSyncId, targetModuleId, targetIndex}) => {
@@ -235,7 +281,7 @@ async function boot() {
       const spanSnapshot = createModuleSpanSnapshot(state.pages)
 
       setSorterStatus(state, t('sorter.saving'), 'idle')
-      render()
+      renderStatus()
 
       try {
         await moveModuleTab(found.tab.id, targetModuleId, targetIndex)
@@ -248,7 +294,7 @@ async function boot() {
         setSorterStatus(state, error instanceof Error ? error.message : t('sorter.saveFailed'), 'error')
       } finally {
         clearDragState(state)
-        render()
+        renderStatusAndPages()
       }
     },
     onDropContent: async ({contentId, contentType, targetTabId, targetIndex}) => {
@@ -256,7 +302,7 @@ async function boot() {
       const spanSnapshot = createModuleSpanSnapshot(state.pages)
 
       setSorterStatus(state, t('sorter.saving'), 'idle')
-      render()
+      renderStatus()
 
       try {
         await moveCollectionContent(contentType, contentId, targetTabId, targetIndex)
@@ -271,7 +317,7 @@ async function boot() {
         setSorterStatus(state, error instanceof Error ? error.message : t('sorter.saveFailed'), 'error')
       } finally {
         clearDragState(state)
-        render()
+        renderStatusAndPages()
       }
     },
   })
@@ -303,21 +349,21 @@ async function boot() {
           if (!sameTypeActive) {
             toggleTabSort(state, moduleType, moduleSyncId)
             setExpandedModules(moduleSyncId ? [moduleSyncId] : [])
-            render()
+            renderPages()
             return
           }
 
           if (sameModuleActive && state.expandedModules.size <= 1 && moduleSyncId && state.expandedModules.has(moduleSyncId)) {
             clearTabSort(state)
             setExpandedModules([])
-            render()
+            renderPages()
             return
           }
 
           toggleExpandedModule(state, moduleSyncId)
           state.tabSort.sourceModuleSyncId = moduleSyncId
           if (!state.expandedModules.size) clearTabSort(state)
-          render()
+          renderPages()
           return
         }
 
@@ -349,14 +395,14 @@ async function boot() {
             state.contentSort.moduleType
               ? refreshContentSortContents(state.contentSort.moduleType)
               : refreshContentSortContents(null)
-          ).then(() => render())
+          ).then(() => renderPages())
           return
         }
 
         if (clickable.dataset.click === 'sorterResetPageSlots') {
           clearPageOrphanSlots(state, clickable.dataset.pageSyncId)
           setSorterStatus(state, t('sorter.slotsReset'), 'success')
-          render()
+          renderStatusAndPages()
           return
         }
 
@@ -376,13 +422,13 @@ async function boot() {
             parentId: parseInt(clickable.dataset.sorterParentId ?? '', 10) || null,
             title: clickable.dataset.sorterTitle || '',
           })
-          render()
+          renderPages()
           return
         }
 
         if (clickable.dataset.click === 'sorterCancelItemEditor') {
           closeSorterEditor(state)
-          render()
+          renderPages()
           return
         }
 
@@ -390,7 +436,8 @@ async function boot() {
           const {kind, targetId, moduleType, title} = state.editor
           if (!kind || !targetId) return
           setSorterStatus(state, t('sorter.saving'), 'idle')
-          render()
+          renderStatus()
+          let saved = false
           try {
             if (kind === 'tab') {
               await updateModuleTabTitle(targetId, title)
@@ -403,10 +450,15 @@ async function boot() {
               await refreshContentSortContents()
             }
             setSorterStatus(state, t('sorter.saved'), 'success')
+            saved = true
           } catch (error) {
             setSorterStatus(state, error instanceof Error ? error.message : t('sorter.saveFailed'), 'error')
           }
-          render()
+          if (saved) {
+            renderStatusAndPages()
+          } else {
+            renderStatus()
+          }
           return
         }
 
@@ -424,7 +476,8 @@ async function boot() {
           if (!confirm(confirmMessage)) return
 
           setSorterStatus(state, t('sorter.saving'), 'idle')
-          render()
+          renderStatus()
+          let deleted = false
           try {
             if (kind === 'tab') {
               await softDeleteModuleTabCascade(targetId, moduleType)
@@ -437,10 +490,15 @@ async function boot() {
               await refreshContentSortContents()
             }
             setSorterStatus(state, t('sorter.itemDeleted'), 'success')
+            deleted = true
           } catch (error) {
             setSorterStatus(state, error instanceof Error ? error.message : t('sorter.saveFailed'), 'error')
           }
-          render()
+          if (deleted) {
+            renderStatusAndPages()
+          } else {
+            renderStatus()
+          }
           return
         }
       },
@@ -460,7 +518,8 @@ async function boot() {
         if (!kind || !targetId) return
 
         setSorterStatus(state, t('sorter.saving'), 'idle')
-        render()
+        renderStatus()
+        let saved = false
 
         try {
           if (kind === 'tab') {
@@ -474,11 +533,16 @@ async function boot() {
             await refreshContentSortContents()
           }
           setSorterStatus(state, t('sorter.saved'), 'success')
+          saved = true
         } catch (error) {
           setSorterStatus(state, error instanceof Error ? error.message : t('sorter.saveFailed'), 'error')
         }
 
-        render()
+        if (saved) {
+          renderStatusAndPages()
+        } else {
+          renderStatus()
+        }
       },
 
       async handleChange(event, target) {
@@ -486,16 +550,17 @@ async function boot() {
           const moduleId = parseInt(target.dataset.moduleId ?? '', 10)
           if (!moduleId) return
           setSorterStatus(state, t('sorter.saving'), 'idle')
-          render()
+          renderStatus()
           try {
             await updateModuleTitle(moduleId, target.value)
             const module = findModule(target.dataset.moduleSyncId)
             if (module) module.title = String(target.value ?? '').trim() || t('sorter.untitled')
             setSorterStatus(state, t('sorter.saved'), 'success')
+            renderStatus()
           } catch (error) {
             setSorterStatus(state, error instanceof Error ? error.message : t('sorter.saveFailed'), 'error')
+            renderStatus()
           }
-          render()
           return
         }
 
@@ -507,7 +572,7 @@ async function boot() {
           const nextSpan = parseInt(target.value ?? '', 10)
           module.columnSpan = Math.max(1, Math.min(12, nextSpan || module.columnSpan))
           setSorterStatus(state, t('sorter.saving'), 'idle')
-          render()
+          renderStatus()
           try {
             await updateModuleColumnSpan(module, nextSpan)
             setSorterStatus(state, t('sorter.saved'), 'success')
@@ -515,7 +580,7 @@ async function boot() {
             await refreshState()
             setSorterStatus(state, error instanceof Error ? error.message : t('sorter.saveFailed'), 'error')
           }
-          render()
+          renderStatusAndPages()
         }
       },
     },

@@ -1,3 +1,6 @@
+import '../styles/foundation.css'
+import '../styles/next.css'
+
 const bootstrapPromise = import('./bootstrap.js')
 
 bootstrapPromise

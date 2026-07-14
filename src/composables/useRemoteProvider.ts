@@ -1,6 +1,8 @@
 import { getLocalSettings } from '@/composables/useLocalSettings'
+import { createGoogleDriveProvider } from '@/composables/useGoogleDriveProvider'
 import { createWebDavProvider } from '@/composables/useWebDavProvider'
 import type {
+  RemoteArchiveEntry,
   RemoteExportMetadata,
   RemoteLocalSettings,
   RemoteProviderConnectionStatus,
@@ -28,17 +30,26 @@ export interface RemoteExportProvider {
   testConnection(options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<RemoteProviderConnectionStatus>>
   downloadMeta(options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<RemoteExportMetadata>>
   downloadExport(options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<Blob>>
+  downloadAssets(options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<Blob>>
+  downloadArchiveExport(workspaceChecksum: string, options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<Blob>>
+  listArchives(options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<RemoteArchiveEntry[]>>
+  deleteArchive(workspaceChecksum: string, options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<true>>
+  deleteLiveExport?(options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<true>>
+  wipeRemoteData?(options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<true>>
   uploadExport(exportBlob: Blob, options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<RemoteProviderUploadReceipt>>
+  uploadAssets(assetsBlob: Blob, options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<RemoteProviderUploadReceipt>>
   archiveExists(workspaceChecksum: string, options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<boolean>>
-  uploadArchive(workspaceChecksum: string, exportBlob: Blob, options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<RemoteProviderUploadReceipt>>
+  uploadArchive(workspaceChecksum: string, exportBlob: Blob, assetsBlob: Blob, options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<RemoteProviderUploadReceipt>>
   uploadMeta(meta: RemoteExportMetadata, options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<RemoteProviderUploadReceipt>>
   verify(options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<RemoteProviderVerifyResult>>
+  disconnect?(options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<true>>
 }
 
 export type RemoteProviderFactory = (settings: RemoteLocalSettings) => RemoteExportProvider
 
 const remoteProviderFactories = new Map<RemoteProviderType, RemoteProviderFactory>()
 remoteProviderFactories.set('webdav', createWebDavProvider)
+remoteProviderFactories.set('gdrive', createGoogleDriveProvider)
 
 function makeProviderError(
   code: RemoteProviderError['code'],
@@ -72,11 +83,19 @@ function makeFailureProvider(
     testConnection: () => fail<RemoteProviderConnectionStatus>(),
     downloadMeta: () => fail<RemoteExportMetadata>(),
     downloadExport: () => fail<Blob>(),
+    downloadAssets: () => fail<Blob>(),
+    downloadArchiveExport: () => fail<Blob>(),
+    listArchives: () => fail<RemoteArchiveEntry[]>(),
+    deleteArchive: () => fail<true>(),
+    deleteLiveExport: () => fail<true>(),
+    wipeRemoteData: () => fail<true>(),
     uploadExport: () => fail<RemoteProviderUploadReceipt>(),
+    uploadAssets: () => fail<RemoteProviderUploadReceipt>(),
     archiveExists: () => fail<boolean>(),
     uploadArchive: () => fail<RemoteProviderUploadReceipt>(),
     uploadMeta: () => fail<RemoteProviderUploadReceipt>(),
     verify: () => fail<RemoteProviderVerifyResult>(),
+    disconnect: () => fail<true>(),
   }
 }
 
@@ -95,6 +114,8 @@ export function isRemoteProviderConfigured(settings: RemoteLocalSettings): boole
         settings.remote_secret,
         settings.remote_path,
       ].every(hasValue)
+    case 'gdrive':
+      return true
   }
 }
 

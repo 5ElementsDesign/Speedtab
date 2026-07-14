@@ -10,10 +10,7 @@ const closeCallbacks = []
  * Admin configuration for DEV
  */
 const stInternals = {
-  // The HTML cache should be configurable
-  // And we need a fitting name, i don't like neuther
   renderEachPageNew: false,
-
   historyMode: 'push',
 }
 

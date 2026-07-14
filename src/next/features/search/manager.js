@@ -2,6 +2,7 @@ import {db, isActiveRecord} from '../../../db/db.ts'
 import {on} from '../../app/dispatch.js'
 import {renderSearchChrome, renderSearchPanel} from './render.js'
 import {t} from '../../utils/i18n.js'
+import {patchHost} from '../../utils/dom-patch.js'
 
 const SEARCH_RESULT_LIMIT = 80
 const SEARCH_HIGHLIGHT_MS = 4200
@@ -26,20 +27,17 @@ function getKindLabels() {
   }
 }
 
-function replaceNode(selector, markup) {
-  const node = document.querySelector(selector)
-  if (!(node instanceof HTMLElement)) return null
-  node.outerHTML = markup
-  const attrName = selector.replace(/^[^[]*\[|\].*$/g, '')
-  return document.querySelector(selector) ?? document.querySelector(`[${attrName}]`)
+function patchHostBySelector(selector, markup) {
+  const host = document.querySelector(selector)
+  return patchHost(host, markup)
 }
 
 function renderSearchChromeUi() {
-  replaceNode('[data-speedtab-search]', renderSearchChrome(state))
+  patchHostBySelector('[data-speedtab-search]', renderSearchChrome(state))
 }
 
 function renderSearchPanelUi() {
-  replaceNode('[data-search-panel]', renderSearchPanel({
+  patchHostBySelector('[data-search-panel]', renderSearchPanel({
     ...state,
     kindLabels: getKindLabels(),
   }))

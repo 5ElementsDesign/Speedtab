@@ -9,6 +9,7 @@
   --st-ie-accent: #00d2ff;
   --st-ie-success: #6ee7b7;
   --st-ie-danger: #ff9e9e;
+  scrollbar-gutter: stable;
 }
 
 * {
@@ -22,15 +23,18 @@ body {
 
 #app {
   min-height: 100vh;
+  background-attachment: fixed !important;
 }
 
 body {
   margin: 0;
   color: var(--st-ie-text);
+  font-size: .95rem;
   font-family: Ubuntu, "Segoe UI", sans-serif;
   background:
-    radial-gradient(circle at top, rgba(0, 210, 255, 0.1), transparent 28%),
-    linear-gradient(180deg, #090b0d, #0d1116 40%, #0b0e12);
+    radial-gradient(circle at top, rgba(0, 210, 255, 0.08), transparent 28%),
+    linear-gradient(rgba(9, 11, 13, 0.34), rgba(11, 14, 18, 0.42)),
+    url('../assets/wallpaper-y-tree.webp') center/cover no-repeat fixed;
 }
 
 button,
@@ -114,10 +118,28 @@ select option {
 
 [data-ie-status],
 [data-ie-transfer] {
+  position: relative;
   margin-bottom: 14px;
   padding: 12px 14px;
   border: 1px solid var(--st-ie-border);
   background: rgba(15, 15, 15, 0.5);
+}
+
+[data-ie-dismiss] {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0 none;
+  background: transparent;
+  color: currentColor;
+  font-size: 22px;
+  opacity: .7;
 }
 
 [data-ie-transfer] {
@@ -165,6 +187,16 @@ select option {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
+[data-ie-panel-footer] {
+  margin: 14px -14px 0;
+  padding: 12px 14px 0;
+  border-top: 1px solid var(--st-ie-border);
+}
+
+[data-ie-panel-footer] [data-ie-copy] {
+  margin-bottom: 14px;
+}
+
 [data-ie-panel-head] {
   display: flex;
   align-items: flex-start;
@@ -198,6 +230,37 @@ select option {
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
   margin-bottom: 14px;
+}
+
+[data-ie-package-list] {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+[data-ie-package-row] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--st-ie-border);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+[data-ie-package-main] {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+[data-ie-package-main] strong {
+  font-size: 14px;
+}
+
+[data-ie-package-meta] {
+  color: var(--st-ie-muted);
+  font-size: 13px;
 }
 
 [data-ie-deep-groups] {
@@ -248,10 +311,10 @@ select option {
   display: inline-flex;
   align-items: center;
   min-height: 100%;
-}
 
-[data-ie-deep-row-check] input {
-  margin: 0;
+  input {
+    margin: 0;
+  }
 }
 
 [data-ie-deep-row-visual] {
@@ -263,12 +326,12 @@ select option {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-}
 
-[data-ie-deep-row-visual] img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
 }
 
 [data-ie-deep-row-main] {
@@ -323,22 +386,77 @@ select option {
   display: flex;
   align-items: center;
   gap: 10px;
+
+  span {
+    min-width: 124px;
+    color: var(--st-ie-muted);
+    font-size: 13px;
+  }
+  input,
+  select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  input[type="checkbox"] {
+    flex: 0 0 auto;
+    max-width: 2rem;
+  }
+  input[type="number"] {
+    max-width: 120px;
+  }
+  [data-ie-copy] {
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
 }
 
-[data-ie-field] span {
-  min-width: 124px;
+[data-ie-help] {
+  min-width: 20px;
+  min-height: 20px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--st-ie-border);
+  background: rgba(255, 255, 255, 0.035);
   color: var(--st-ie-muted);
-  font-size: 13px;
-}
-
-[data-ie-field] input,
-[data-ie-field] select {
-  flex: 1 1 auto;
-  min-width: 0;
+  font-size: 12px;
+  line-height: 1;
+  border-radius: 999px;
+  opacity: .85;
 }
 
 [data-ie-field-full] {
   grid-column: 1 / -1;
+}
+
+[data-ie-inline-fields] {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+[data-ie-inline-fields] [data-ie-field] {
+  flex: 0 0 auto;
+}
+
+[data-ie-inline-fields-flat] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+[data-ie-inline-fields-flat] select {
+  flex: 1 1 180px;
+  min-width: 0;
 }
 
 [data-ie-block] {
@@ -346,26 +464,25 @@ select option {
   padding: 12px;
   border: 1px solid var(--st-ie-border);
   background: rgba(255, 255, 255, 0.03);
-}
 
-[data-ie-block] p {
-  margin: 0 0 6px;
-}
-
-[data-ie-block] p:last-child {
-  margin-bottom: 0;
+  p {
+    margin: 0 0 6px;
+  }
+  p:last-child {
+    margin-bottom: 0;
+  }
 }
 
 [data-ie-warnings] {
   display: grid;
   gap: 8px;
-}
 
-[data-ie-warnings] p {
-  padding: 10px 12px;
-  color: #ffd8a8;
-  border: 1px solid rgba(255, 188, 86, 0.22);
-  background: rgba(191, 111, 0, 0.14);
+  p {
+    padding: 10px 12px;
+    color: #ffd8a8;
+    border: 1px solid rgba(255, 188, 86, 0.22);
+    background: rgba(191, 111, 0, 0.14);
+  }
 }
 
 @media (max-width: 920px) {

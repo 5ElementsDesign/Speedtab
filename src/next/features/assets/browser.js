@@ -2,6 +2,7 @@ import {db, makeUpdatedAtPatch} from '../../../db/db.ts'
 import {markExportDirty} from '../../../composables/useExportState.ts'
 import {closeModal, openModal} from '../../components/modal.js'
 import {loadAssetObjectUrl} from '../../data/assets.js'
+import {createFragment, patchHost} from '../../utils/dom-patch.js'
 import {escapeHtml} from '../../utils/html.js'
 import {getLocale, t} from '../../utils/i18n.js'
 import {fixFaviconAssetBackground, getFaviconHostnameCandidatesForUrl, parseFaviconMeta, refreshStaleFavicons} from '../../utils/favicon.js'
@@ -352,6 +353,17 @@ function getOpenAssetBrowserPanel() {
   return document.querySelector('[data-modal][data-modal-open] [data-modal-body]')
 }
 
+function createAssetBrowserFragment(data) {
+  return createFragment(renderAssetBrowserContent(data))
+}
+
+function patchAssetBrowserDom(data) {
+  const panel = getOpenAssetBrowserPanel()
+  const current = panel?.querySelector?.('[data-asset-browser]')
+  if (!(panel instanceof HTMLElement) || !(current instanceof HTMLElement)) return false
+  return patchHost(current, renderAssetBrowserContent(data)) instanceof HTMLElement
+}
+
 async function refreshAssetBrowserDom({full = false} = {}) {
   const data = await loadAssetBrowserData()
   state.data = data
@@ -362,8 +374,7 @@ async function refreshAssetBrowserDom({full = false} = {}) {
 
   const panel = getOpenAssetBrowserPanel()
   if (!panel || full) return false
-  panel.innerHTML = renderAssetBrowserContent(data)
-  return true
+  return patchAssetBrowserDom(data)
 }
 
 export async function renderAssetBrowserModal() {

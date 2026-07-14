@@ -2,6 +2,10 @@ import {SPEEDTAB_SVG} from '../next/components/icons.js'
 import {escapeHtml} from '../next/utils/html.js'
 import {t} from '../next/utils/i18n.js'
 
+function region(name, content) {
+  return `<div data-sorter-region="${escapeHtml(name)}">${content}</div>`
+}
+
 function renderModuleSpanOptions(selectedValue) {
   let options = ''
   for (let index = 1; index <= 12; index += 1) {
@@ -393,11 +397,13 @@ export function renderSorterApp(state) {
         </div>
       </header>
 
-      <p data-sorter-status data-tone="${escapeHtml(state.status.tone || 'idle')}">${escapeHtml(state.status.text || t('sorter.ready'))}</p>
+      ${region('status', `<p data-sorter-status data-tone="${escapeHtml(state.status.tone || 'idle')}">${escapeHtml(state.status.text || t('sorter.ready'))}</p>`)}
 
+      ${region('pages', `
       <main data-sorter-pages>
         ${state.pages.map((page) => renderPageSection(page, state.expandedModules, state.collapsedPages, state.orphanSlotsByPage.get(page.syncId) ?? [], state.tabSort, state.contentSort, state.editor)).join('')}
       </main>
+      `)}
     </div>
   `
 }
