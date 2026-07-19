@@ -49,10 +49,73 @@
   --st-bookmark-image-surface-favicon-height: 36px;
   --st-inline-add-border-color: color-mix(in srgb, var(--yai-tabs-color-text-muted) 24%, transparent);
   --st-inline-add-border-color-hover: color-mix(in srgb, #00d2ff 70%, rgba(255, 255, 255, 0.2));
-  --st-inline-add-background-color: color-mix(in srgb, #0f1012 18%, transparent);
+  --st-inline-add-background-color: color-mix(in srgb, #bec1ca 18%, transparent);
   --st-inline-add-text-color: var(--yai-tabs-color-text-muted);
   --st-inline-add-text-color-hover: var(--yai-tabs-color-text);
   --st-inline-add-icon-opacity: 0.68;
+}
+
+html.light {
+  /* --- 1. Sidebar & Navigations-Struktur --- */
+  /* Weiches, transluzentes Slate-Hintergrund-Panel */
+  --st-feed-sidebar-bg: rgba(241, 245, 249, 0.85);
+  /* Slate 100 */
+
+  /* --- 2. Toolbar (Die Steuerungs-Zentrale) --- */
+  --st-feed-toolbar-bg: rgba(255, 255, 255, 0.8);
+  --st-feed-toolbar-text: #0f172a;
+  /* Slate 900 */
+  --st-feed-toolbar-muted: #64748b;
+  /* Slate 500 */
+
+  /* Subtile, kontrastreiche Badges ohne aggressive Farbblöcke */
+  --st-feed-toolbar-badge-bg: #e2e8f0;
+  /* Slate 200 */
+  --st-feed-toolbar-badge-text: #334155;
+  /* Slate 700 */
+
+  /* --- 3. Feed Item Card (Listen-Eintrag) --- */
+  /* Cleane, weiße Flächen für perfekte Lesbarkeit der Headlines */
+  --st-feed-item-bg: rgba(255, 255, 255, 0.95);
+  --st-feed-item-bg-hover: rgba(248, 250, 252, 0.98);
+  /* Slate 50 */
+  --st-feed-item-bg-active: rgba(226, 232, 240, 0.4);
+  /* Sanftes Einklicken */
+
+  --st-feed-item-text: #1e293b;
+  /* Slate 800 */
+  --st-feed-item-text-muted: #475569;
+  /* Slate 600 */
+  --st-feed-item-text-dim: #94a3b8;
+  /* Slate 400 */
+  --st-feed-item-divider: rgba(226, 232, 240, 0.8);
+  /* Slate 200 */
+
+  /* --- 4. Feed Item Expanded Body (Lese-Modus) --- */
+  /* Maximaler Kontrast für die Augen beim eigentlichen Artikellesen */
+  --st-feed-item-body-bg: #ffffff;
+  --st-feed-item-body-copy: #1e293b;
+  /* Dunkles Slate gegen schnelles Ermüden */
+
+  /* --- 5. Interaktive Elemente & Buttons --- */
+  /* Sanfte, graue Buttons statt schwarzer Klötze */
+  --st-feed-item-button-bg: rgba(241, 245, 249, 0.95);
+  /* Slate 100 */
+  --st-feed-item-button-bg-hover: rgba(226, 232, 240, 1);
+  /* Slate 200 */
+  --st-feed-item-button-text: #334155;
+  /* Slate 700 */
+  --st-feed-item-button-border: rgba(203, 213, 225, 0.5);
+  /* Slate 300 */
+
+  /* Signal-Blau für den primären "Öffnen"-CTA */
+  --st-feed-item-open-bg: #2563eb;
+  /* Royal Blue */
+  --st-feed-item-open-bg-hover: #1d4ed8;
+
+  /* --- 6. Favicon-Wrapper in der Liste --- */
+  --st-feed-item-list-favicon-bg: rgba(241, 245, 249, 0.8);
+  --st-feed-item-list-favicon-bg-active: #ffffff;
 }
 
 /**
@@ -60,6 +123,11 @@
  * Variables live in next.css ( --st-modal-* )
  */
 [data-modal] {
+  --yai-tabs-color-text: var(--st-modal-title-color);
+  --yai-tabs-color-text-muted: color-mix(in srgb, var(--st-modal-title-color) 68%, transparent);
+  --st-color-text: var(--st-modal-title-color);
+  --st-color-text-muted: color-mix(in srgb, var(--st-modal-title-color) 68%, transparent);
+  --st-widget-text: var(--st-modal-title-color);
   position: fixed;
   inset: 0;
   z-index: 100;
@@ -73,7 +141,7 @@
     position: fixed;
     inset: 0;
     background-color: var(--st-modal-backdrop-color);
-    animation: st-backdrop-in 0.2s ease-out forwards;
+    animation: st-surface-in 0.2s ease-out forwards;
   }
 
   [data-modal-panel] {
@@ -86,7 +154,7 @@
     background-color: var(--st-modal-background-color);
     border: 1px solid var(--st-modal-border-color);
     box-shadow: 0 1px 5px 1px #25252569;
-    animation: st-modal-in 0.22s cubic-bezier(0, 0, 0.2, 1) forwards;
+    animation: st-surface-in 0.22s cubic-bezier(0, 0, 0.2, 1) forwards;
   }
 
   [data-modal-header] {
@@ -113,8 +181,7 @@
     line-height: 1;
     color: var(--st-modal-close-color);
 
-    &:focus,
-    &:hover {
+    &:is(:focus, :hover) {
       color: var(--st-modal-close-color-hover);
     }
   }
@@ -129,6 +196,11 @@
     padding: var(--st-modal-body-padding);
     overflow-y: auto;
     box-shadow: 0px 4px 8px #171515;
+  }
+
+  label,
+  [data-clock-stopwatch-time] {
+    color: var(--st-modal-title-color);
   }
 }
 
@@ -162,7 +234,6 @@
   &[data-window-entering] {
     animation: st-floating-window-in var(--yai-timeout-2) cubic-bezier(0.3, 0, 0.6, 1) both;
   }
-
   &[data-window-closing] {
     pointer-events: none;
     animation: st-floating-window-out 0.18s ease both;
@@ -202,24 +273,24 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-  }
 
-  [data-window-actions] button {
-    min-height: 24px;
-    padding: 4px 8px;
-    font-size: var(--st-content-control-font-size);
-    line-height: 1;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: rgba(255, 255, 255, 0.7);
-    background: transparent;
-    border: 0 none;
-  }
+    button {
+      min-height: 24px;
+      padding: 4px 8px;
+      font-size: var(--st-content-control-font-size);
+      line-height: 1;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(255, 255, 255, 0.7);
+      background: transparent;
+      border: 0 none;
 
-  [data-window-actions] button:hover,
-  [data-window-actions] button:focus {
-    color: rgba(255, 255, 255, 1);
-    background: rgba(255, 255, 255, 0.05);
+      &:hover,
+      &:focus {
+        color: rgba(255, 255, 255, 1);
+        background: rgba(255, 255, 255, 0.05);
+      }
+    }
   }
 
   textarea[data-window-field] {
@@ -234,10 +305,10 @@
     font-size: var(--st-content-font-size);
     line-height: var(--st-content-line-height);
     outline: none;
-  }
 
-  textarea[data-window-field]::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
   }
 
   [data-window-resize-handle] {
@@ -254,12 +325,12 @@
     justify-content: flex-end;
     padding: 0 2px 2px 0;
     cursor: nwse-resize;
-  }
 
-  [data-window-resize-handle] svg {
-    width: 28px;
-    height: 28px;
-    fill: #ffffff77;
+    svg {
+      width: 28px;
+      height: 28px;
+      fill: #ffffff;
+    }
   }
 }
 
@@ -359,7 +430,6 @@
   font-size: var(--st-content-control-font-size);
 }
 
-.st-toast-close:hover,
-.st-toast-close:focus {
+.st-toast-close:is(:hover, :focus) {
   color: #fff;
 }

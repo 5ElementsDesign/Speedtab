@@ -85,6 +85,41 @@ interface FetchUrlContentResponse {
   error?: string
 }
 
+const URL_CONTENT_PREVIEW_LIMIT = 256 * 1024
+
+async function readHtmlPreview(response: Response, maxBytes = URL_CONTENT_PREVIEW_LIMIT): Promise<string> {
+  if (!response.body) return response.text()
+
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let html = ''
+  let totalBytes = 0
+
+  try {
+    while (true) {
+      const {done, value} = await reader.read()
+      if (done) break
+      if (!value) continue
+
+      totalBytes += value.byteLength
+      html += decoder.decode(value, {stream: true})
+
+      if (html.toLowerCase().includes('</head>')) break
+      if (totalBytes >= maxBytes) break
+    }
+
+    html += decoder.decode()
+  } finally {
+    try {
+      await reader.cancel()
+    } catch {
+      // Ignore cancel errors.
+    }
+  }
+
+  return html
+}
+
 type IncomingMessage =
   | FetchFeedMessage
   | FetchUrlMetaMessage
@@ -618,7 +653,7 @@ async function handleFetchUrlMeta(url: string): Promise<FetchUrlMetaResponse> {
       return { ok: true, title: null, description: null, finalUrl }
     }
 
-    const html = await response.text()
+    const html = await readHtmlPreview(response)
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
     const title = titleMatch?.[1]
       ?.replace(/\s+/g, ' ')
@@ -653,7 +688,9 @@ async function handleFetchUrlContent(url: string): Promise<FetchUrlContentRespon
     }
 
     const contentType = response.headers.get('content-type') ?? ''
-    const html = await response.text()
+    const html = contentType.includes('text/html')
+      ? await readHtmlPreview(response)
+      : await response.text()
 
     return {
       ok: true,

@@ -241,7 +241,8 @@ function buildClockState() {
     millisecond: Date.now() % 1000,
     showSeconds: (clock.time_format ?? '').includes('{second}'),
     background: clock.background || '',
-    border: clock.border || '',
+    shadow: clock.shadow || clock.border || '',
+    dialColor: clock.dial_color || '',
     dateColor: clock.date_color || '',
     timeColor: clock.time_color || '',
     dateFontSize: clock.date_font_size,
@@ -251,6 +252,7 @@ function buildClockState() {
 
 function buildState() {
   const weatherEnabled = widgetSettings?.weather?.enabled === true
+  const locationLabel = widgetSettings?.weather?.display_label?.trim() || weatherData?.location_label || t('weather.title')
   const meta = weatherData ? getWeatherCodeMeta(weatherData.condition_code, weatherData.is_day) : null
   const configured = isConfigured()
   let statusLabel = t('weather.title')
@@ -284,12 +286,13 @@ function buildState() {
     error,
     compactMode: widgetSettings?.weather?.compact_mode === true,
     background: widgetSettings?.weather?.background || '',
-    border: widgetSettings?.weather?.border || '',
+    shadow: widgetSettings?.weather?.shadow || widgetSettings?.weather?.border || '',
     locationColor: widgetSettings?.weather?.location_color || '',
     temperatureColor: widgetSettings?.weather?.temperature_color || '',
     temperatureFontSize: widgetSettings?.weather?.temperature_font_size,
     mutedColor: widgetSettings?.weather?.muted_color || '',
     weatherData,
+    locationLabel,
     conditionLabel: meta ? t(meta.labelKey) : t('weather.conditions.unavailableLabel'),
     conditionIcon: getWeatherIcon(meta?.icon),
     lastUpdatedLabel: formatTime(fetchedAt),
@@ -328,7 +331,7 @@ function renderWeatherHost() {
   if (nextStyle) current.setAttribute('style', nextStyle)
   else current.removeAttribute('style')
 
-  const locationLabel = String(state.weatherData?.location_label || t('weather.title'))
+  const locationLabel = String(state.locationLabel || t('weather.title'))
   const [compactLine1Raw, ...compactRest] = locationLabel.split(',')
   const compactLine1 = compactLine1Raw?.trim() || locationLabel
   const compactLine2 = compactRest.join(',').trim()
@@ -403,7 +406,8 @@ function renderClockHost() {
 
   const nextStyleParts = []
   if (state.background) nextStyleParts.push(`--st-clock-widget-bg:${state.background}`)
-  if (state.border) nextStyleParts.push(`--st-clock-widget-border:${state.border}`)
+  if (state.shadow) nextStyleParts.push(`--st-clock-widget-shadow:${state.shadow}`)
+  if (state.dialColor) nextStyleParts.push(`--st-clock-widget-dial-color:${state.dialColor}`)
   if (state.dateColor) nextStyleParts.push(`--st-clock-widget-date-color:${state.dateColor}`)
   if (state.timeColor) nextStyleParts.push(`--st-clock-widget-time-color:${state.timeColor}`)
   if (state.dateFontSize) nextStyleParts.push(`--st-clock-widget-date-size:${state.dateFontSize}px`)
@@ -1310,7 +1314,7 @@ export async function deleteClockTimer(target) {
 
 export function openWeatherForecastModal() {
   openModal({
-    title: weatherData?.location_label || t('weather.title'),
+    title: widgetSettings?.weather?.display_label?.trim() || weatherData?.location_label || t('weather.title'),
     content: renderWeatherForecastModal(buildState()),
     headerActions: `<button type="button" class="st-btn" data-btn="ghost" data-click="openWeatherWidgetSettings">${escapeHtml(t('clock.configure'))}</button>`,
     panelClass: 'st-weather-forecast-modal-shell',

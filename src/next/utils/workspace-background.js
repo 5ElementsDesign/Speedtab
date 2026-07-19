@@ -1,33 +1,68 @@
 import defaultWallpaperUrl from '../../assets/wallpaper-y-tree.webp'
-import {loadAppSettings} from '../data/app-settings.js'
+import {getCachedAppSettings, loadAppSettings} from '../data/app-settings.js'
 import {loadAssetObjectUrl} from '../data/assets.js'
 
-export async function loadWorkspaceBackgroundStyle() {
-  const appSettings = await loadAppSettings()
+const DEFAULT_BACKGROUND = `url('${defaultWallpaperUrl}') center/cover no-repeat fixed`
 
-  if (appSettings.background_asset_id) {
-    const objUrl = await loadAssetObjectUrl(appSettings.background_asset_id)
+function shouldRemoveBackground(appSettings = getCachedAppSettings()) {
+  return appSettings?.background_properties === 'none' && !appSettings?.background_asset_id
+}
+
+export function hasBgSet(appSettings = getCachedAppSettings()) {
+  return !shouldRemoveBackground(appSettings)
+}
+
+export async function getBgSet(appSettings = null) {
+  const settings = appSettings ?? await loadAppSettings()
+
+  if (shouldRemoveBackground(settings)) {
+    return 'none'
+  }
+
+  if (settings.background_asset_id) {
+    const objUrl = await loadAssetObjectUrl(settings.background_asset_id)
     if (objUrl) return `url('${objUrl}') center/cover no-repeat`
   }
 
-  if (appSettings.background_properties) {
-    return appSettings.background_properties
+  if (settings.background_properties) {
+    return settings.background_properties
   }
 
-  return `url('${defaultWallpaperUrl}') center/cover no-repeat`
+  return DEFAULT_BACKGROUND
 }
 
-export async function applyWorkspaceBackground(target) {
-  const root = target instanceof HTMLElement ? target : null
-  const background = await loadWorkspaceBackgroundStyle()
+export async function loadWorkspaceBackgroundStyle() {
+  return getBgSet()
+}
 
-  document.documentElement.style.background = background
-  document.body.style.background = background
-  document.body.style.backgroundAttachment = 'fixed'
+export function addBgSet(background) {
+  if (!background || background === 'none') {
+    document.body.style.setProperty('--st-workspace-background', 'none')
+    return
+  }
+
+  document.body.style.setProperty('--st-workspace-background', background)
+}
+
+export function removeBgSet() {
+  document.body.style.setProperty('--st-workspace-background', 'none')
+}
+
+export async function applyWorkspaceBackground(target, appSettings = null) {
+  const root = target instanceof HTMLElement ? target : null
+  const background = await getBgSet(appSettings)
+
+  document.documentElement.style.background = ''
+  document.documentElement.style.backgroundAttachment = ''
+  if (background === 'none') {
+    removeBgSet()
+  } else {
+    addBgSet(background)
+  }
 
   if (root) {
-    root.style.background = background
-    root.style.backgroundAttachment = 'fixed'
+    root.style.background = ''
+    root.style.backgroundAttachment = ''
   }
 
   return background

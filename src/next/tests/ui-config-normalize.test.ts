@@ -16,7 +16,7 @@ describe('getUiConfigDefaults', () => {
     const defaults = getUiConfigDefaults(TYPE, SUBTYPE)
     expect(defaults.behavior['module-tabs-color-accent']).toBe('secondary')
     expect(defaults.behavior['module-tabs-behavior']).toBe('zoom')
-    expect(defaults.layout['module-column-span']).toBe(12)
+    expect(defaults.layout['module-column-span']).toBe(6)
   })
 
   it('returns empty sections for unknown entity type', () => {
@@ -66,9 +66,9 @@ describe('normalizeUiConfig', () => {
 
   it('retains valid layout integers', () => {
     const result = normalizeUiConfig(TYPE, SUBTYPE, {
-      layout: { 'module-column-span': 6 },
+      layout: { 'module-column-span': 5 },
     })
-    expect(result.layout['module-column-span']).toBe(6)
+    expect(result.layout['module-column-span']).toBe(5)
   })
 
   it('rejects layout integers out of allowed range', () => {
@@ -101,7 +101,7 @@ describe('getEffectiveUiConfig', () => {
     expect(effective.version).toBe(UI_CONFIG_VERSION)
     expect(effective.behavior['module-tabs-behavior']).toBe('zoom')      // default
     expect(effective.behavior['module-tabs-color-accent']).toBe('secondary') // default
-    expect(effective.layout['module-column-span']).toBe(12)              // default
+    expect(effective.layout['module-column-span']).toBe(6)               // default
   })
 
   it('overrides defaults with non-default stored values', () => {

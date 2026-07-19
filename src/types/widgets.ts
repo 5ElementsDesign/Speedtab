@@ -21,7 +21,7 @@ export interface WeatherWidgetConfig {
   display_label: string | null
   compact_mode: boolean
   background: string | null
-  border: string | null
+  shadow: string | null
   location_color: string | null
   temperature_color: string | null
   temperature_font_size: number | null
@@ -38,7 +38,8 @@ export interface ClockWidgetConfig {
   date_format: string
   time_format: string
   background: string | null
-  border: string | null
+  shadow: string | null
+  dial_color: string | null
   date_color: string | null
   time_color: string | null
   date_font_size: number | null
@@ -49,6 +50,7 @@ export interface WidgetSettings {
   rail_enabled: boolean
   rail_position: WidgetRailPosition
   rail_align: WidgetRailAlign
+  rail_ignore_max_width: boolean
   remote_sync_indicator: boolean
   weather: WeatherWidgetConfig
   clock: ClockWidgetConfig
@@ -79,39 +81,48 @@ export interface WeatherWidgetData {
   updated_at: number
 }
 
+export const DEFAULT_CLOCK_DATE_FORMAT = '{dayName} [hr] {day}. {monthShort} {yearShort}'
+export const DEFAULT_CLOCK_TIME_FORMAT = '{hour}:{minute}:{second}'
+
+export const DEFAULT_CLOCK_WIDGET_SETTINGS: ClockWidgetConfig = {
+  enabled: true,
+  align: 'left',
+  display: 'analog',
+  smooth_motion: true,
+  two_row: false,
+  date_format: DEFAULT_CLOCK_DATE_FORMAT,
+  time_format: DEFAULT_CLOCK_TIME_FORMAT,
+  background: null,
+  shadow: null,
+  dial_color: null,
+  date_color: null,
+  time_color: null,
+  date_font_size: 14,
+  time_font_size: 20,
+}
+
+export const DEFAULT_WEATHER_WIDGET_SETTINGS: WeatherWidgetConfig = {
+  enabled: true,
+  provider: 'open_meteo',
+  units: 'metric',
+  refresh_interval_minutes: 120,
+  display_label: null,
+  compact_mode: false,
+  background: null,
+  shadow: null,
+  location_color: null,
+  temperature_color: null,
+  temperature_font_size: 24,
+  muted_color: null,
+  location: null,
+}
+
 export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
   rail_enabled: true,
   rail_position: 'bottom',
-  rail_align: 'left',
+  rail_align: 'space-between',
+  rail_ignore_max_width: false,
   remote_sync_indicator: false,
-  weather: {
-    enabled: false,
-    provider: 'open_meteo',
-    units: 'metric',
-    refresh_interval_minutes: 30,
-    display_label: null,
-    compact_mode: false,
-    background: '#00000030',
-    border: '#3b383847',
-    location_color: '#b6b9bc',
-    temperature_color: '#d9dde2',
-    temperature_font_size: 24,
-    muted_color: '#b6b9bc',
-    location: null,
-  },
-  clock: {
-    enabled: true,
-    align: 'right',
-    display: 'analog',
-    smooth_motion: true,
-    two_row: false,
-    date_format: '{dayName} [hr] {day}. {monthShort} {yearShort}',
-    time_format: '{hour}:{minute}:{second}',
-    background: '#00000030',
-    border: '#3b383847',
-    date_color: '#b6b9bc',
-    time_color: '#d9dde2',
-    date_font_size: 14,
-    time_font_size: 20,
-  },
+  weather: DEFAULT_WEATHER_WIDGET_SETTINGS,
+  clock: DEFAULT_CLOCK_WIDGET_SETTINGS,
 }

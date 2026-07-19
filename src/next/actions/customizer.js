@@ -1,5 +1,6 @@
 import {closeSidepanel, getSidepanelState} from '../components/sidepanel.js'
-import {saveAppSetting} from '../data/app-settings.js'
+import {SPEEDTAB_SVG} from '../components/icons.js'
+import {getCachedAppSettings, saveAppSetting} from '../data/app-settings.js'
 import {getUiConfigSpec} from '../config/ui-config-spec.js'
 import {loadModuleBySyncId, saveModuleData, softDeleteModule} from '../data/modules.js'
 import {deleteUiConfig, upsertUiConfig} from '../data/ui-config.js'
@@ -8,7 +9,9 @@ import {contrastRatio, getGroupForKey, GROUP_PAIR_KEYS} from '../features/custom
 import {INLINE_COLOR_FIELD_PAIRS, INLINE_COLOR_FIELD_SECONDARIES, SHELL_SYNC_ID, updateContrastBadgeDOM} from '../features/customizer/render.js'
 import {initCustomizerListeners, openCustomizerAppearancePanel, openCustomizerFormPanel, openCustomizerListPanel, refreshCustomizerListIfOpen} from '../features/customizer/panel.js'
 import {getVisibleBookmarkMediaScope, initBookmarkMedia} from '../utils/bookmark-media.js'
+import {applyDocumentTheme, normalizeDocumentTheme} from '../utils/document-theme.js'
 import {t} from '../utils/i18n.js'
+import {applyWorkspaceBackground, removeBgSet} from '../utils/workspace-background.js'
 import {YEH} from '../../lib/yai/yeh.js'
 
 export {initCustomizerListeners} from '../features/customizer/panel.js'
@@ -26,6 +29,16 @@ const CUSTOMIZER_GROUP_KEYS = {
   ],
   moduleSurface: ['--st-ws-module-background-color', '--st-ws-module-shadow-color'],
   bookmarkSurface: ['--st-module-bookmark-preview-background-color', '--st-module-bookmark-preview-text-color'],
+}
+
+function renderShellWallpaperToggleContent(isBackgroundRemoved) {
+  const label = isBackgroundRemoved
+    ? t('customizer.removeBackgroundShort')
+    : t('customizer.speedtabBackgroundShort')
+  return {
+    label,
+    html: `${SPEEDTAB_SVG.image} ${label}`,
+  }
 }
 
 // ─── Core persist ────────────────────────────────────────────────────────────
@@ -76,7 +89,9 @@ function previewCssVariable(target, name, value, spec) {
     if (name === '--st-grid-col-span') {
       target.style.removeProperty('--st-grid-col-track')
       target.style.removeProperty('grid-column')
+      target.style.removeProperty('--st-grid-col-basis')
       target.style.removeProperty('flex')
+      target.style.removeProperty('max-width')
     }
     return
   }
@@ -87,7 +102,9 @@ function previewCssVariable(target, name, value, spec) {
   if (name === '--st-grid-col-span') {
     target.style.setProperty('--st-grid-col-track', `span ${nextValue} / span ${nextValue}`)
     target.style.setProperty('grid-column', `span ${nextValue} / span ${nextValue}`)
-    target.style.setProperty('flex', `0 0 ${Math.max(8.333333, (Number(nextValue) / 12) * 100)}%`)
+    target.style.removeProperty('--st-grid-col-basis')
+    target.style.removeProperty('flex')
+    target.style.removeProperty('max-width')
   }
 }
 
@@ -241,6 +258,43 @@ export const customizerActions = {
     await openCustomizerFormPanel(SHELL_SYNC_ID, 'app')
   },
 
+  async setShellThemePreset(target) {
+    const nextTheme = normalizeDocumentTheme(
+      target?.dataset?.themeValue || getCachedAppSettings().ui_theme || 'dark',
+    )
+    await saveAppSetting('ui_theme', nextTheme)
+    applyDocumentTheme(nextTheme)
+
+    const wrap = target?.closest?.('[data-customizer-inline-actions]')
+    wrap?.querySelectorAll?.('[data-click="setShellThemePreset"]').forEach((button) => {
+      if (!(button instanceof HTMLElement)) return
+      button.setAttribute('aria-pressed', button.dataset.themeValue === nextTheme ? 'true' : 'false')
+    })
+  },
+
+  async toggleShellWallpaper() {
+    const settings = getCachedAppSettings()
+    const isBackgroundRemoved = settings.background_properties === 'none' && !settings.background_asset_id
+
+    if (isBackgroundRemoved) {
+      await saveAppSetting('background_properties', null)
+      await saveAppSetting('background_asset_id', null)
+      await applyWorkspaceBackground()
+    } else {
+      await saveAppSetting('background_properties', 'none')
+      await saveAppSetting('background_asset_id', null)
+      removeBgSet()
+    }
+
+    const button = document.querySelector('[data-customizer-inline-actions] [data-click="toggleShellWallpaper"]')
+    if (button instanceof HTMLElement) {
+      const nextContent = renderShellWallpaperToggleContent(isBackgroundRemoved)
+      button.innerHTML = nextContent.html
+      button.setAttribute('title', nextContent.label)
+      button.setAttribute('aria-label', nextContent.label)
+    }
+  },
+
   async openCustomizerFor(target) {
     const syncId = target.dataset.syncId
     const moduleType = target.dataset.moduleType
@@ -331,6 +385,8 @@ export const customizerActions = {
     })
 
     if (isShell) {
+      await saveAppSetting('ui_theme', 'dark')
+      applyDocumentTheme('dark')
       await saveAppSetting('background_properties', null)
       await saveAppSetting('background_asset_id', null)
       const shellRoot = document.querySelector('[data-app]')

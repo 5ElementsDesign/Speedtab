@@ -28,12 +28,7 @@
   }
 }
 
-@keyframes st-backdrop-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes st-modal-in {
+@keyframes st-surface-in {
   from { opacity: 0; }
   to   { opacity: 1; }
 }

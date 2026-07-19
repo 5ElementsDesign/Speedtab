@@ -31,7 +31,7 @@ function renderOrphanRow(kind, row, parentLabel = '') {
 function renderOrphanGroup(title, kind, rows = [], parentLabelBuilder = null) {
   if (!rows.length) return ''
   return `
-    <section data-orphan-group>
+    <section data-orphan-group data-swipe-ignore>
       <header data-orphan-group-header>
         <h2 data-orphan-group-title>${escapeHtml(title)}</h2>
         <span data-orphan-group-count>${escapeHtml(String(rows.length))}</span>

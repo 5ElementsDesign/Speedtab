@@ -782,14 +782,12 @@ export function renderFeedCollection(collection, moduleSyncId, moduleConfig = {}
 
 export function renderFeedsModule(tabs = [], actionsHtml = '', moduleId = null, moduleSyncId = '', viewModel = {}) {
   const actions = actionsHtml ? `<div data-module-actions data-swipe-ignore>${actionsHtml}</div>` : ''
-  const cardActions = actionsHtml ? `<div data-module-card-actions-host data-swipe-ignore>${actionsHtml}</div>` : ''
   const moduleConfig = parseFeedModuleConfig(viewModel.configJson)
 
   if (!tabs.length) {
     return `
       <div data-module-empty-state-wrap>
         ${actions}
-        ${cardActions}
         <div data-swipe-ignore><p class="st-module-empty-state">${escapeHtml(t('feeds.noFeedsInModule'))}</p></div>
       </div>
     `
@@ -830,7 +828,6 @@ export function renderFeedsModule(tabs = [], actionsHtml = '', moduleId = null, 
         ${actions}
         <div data-content>${panels}</div>
       </div>
-      ${cardActions}
     </div>
   `
 }

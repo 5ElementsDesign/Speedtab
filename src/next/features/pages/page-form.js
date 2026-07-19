@@ -1,3 +1,4 @@
+import {SPEEDTAB_SVG} from '../../components/icons.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 import {renderFormActions} from '../forms/actions.js'
@@ -48,13 +49,13 @@ export function renderPageForm(page, options = {}) {
       data-page-slug="${escapeHtml(page?.slug ?? '')}"
     >
       ${customizerSection({
-        title: t('pageForm.sections.identity'),
+        title: '',
         section: 'identity',
         children: `
           ${customizerField({
             type: 'text',
             label: t('moduleForm.title'),
-            control: `<input type="text" name="page-title" value="${escapeHtml(title)}" autocomplete="off" required>`,
+            control: `<input type="text" name="page-title" value="${escapeHtml(title)}" placeholder="${escapeHtml(t('app.newPageTitle'))}" autocomplete="off" required>`,
           })}
 
           <div data-customizer-field>
@@ -116,6 +117,13 @@ export function renderPageForm(page, options = {}) {
 }
 
 export function renderModuleCreateForm(page) {
+  const defaultSpan = 6
+  const spanOptions = Array.from({length: 12}, (_, index) => {
+    const value = index + 1
+    return `<option value="${value}"${value === defaultSpan ? ' selected' : ''}>${value}</option>`
+  }).join('')
+  const firstTabValue = escapeHtml(t('moduleCard.newTabTitle'))
+
   return `
     <form
       data-page-module-form
@@ -124,7 +132,7 @@ export function renderModuleCreateForm(page) {
       data-page-sync-id="${escapeHtml(page?.sync_id ?? '')}"
     >
       ${customizerSection({
-        title: t('pageForm.sections.identity'),
+        title: '',
         section: 'identity',
         children: `
           ${customizerField({
@@ -145,11 +153,47 @@ export function renderModuleCreateForm(page) {
               <input
                 type="text"
                 name="module-title"
-                value="${escapeHtml(t('app.newModule'))}"
-                placeholder="${escapeHtml(t('moduleForm.titlePlaceholder'))}"
+                value=""
+                placeholder="${escapeHtml(t('app.newModule'))}"
                 autocomplete="off"
                 required
               >
+            `,
+          })}
+
+          ${customizerField({
+            type: 'text',
+            label: t('moduleForm.firstTabTitle'),
+            control: `
+              <div data-page-module-tabs-inputs>
+                <div data-page-module-tab-row>
+                  <input
+                    type="text"
+                    name="module-first-tab-title"
+                    value=""
+                    placeholder="${firstTabValue}"
+                    autocomplete="off"
+                    required
+                  >
+                  <button
+                    type="button"
+                    class="st-btn"
+                    data-click="addModuleCreateTabInput"
+                    data-page-module-add-tab
+                    title="${escapeHtml(t('moduleCard.addTab'))}"
+                    aria-label="${escapeHtml(t('moduleCard.addTab'))}"
+                  >${SPEEDTAB_SVG.plus}</button>
+                </div>
+              </div>
+            `,
+          })}
+
+          ${customizerField({
+            label: t('customizer.fields.moduleColumnSpan'),
+            control: `
+              <select name="module-column-span" required>
+                ${spanOptions}
+              </select>
             `,
           })}
         `,

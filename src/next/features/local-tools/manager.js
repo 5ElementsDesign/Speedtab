@@ -1484,6 +1484,13 @@ export function syncFloatingNoteEditorField(noteId, field, value) {
   }
 
   if (field === 'content') {
+    const counter = root?.querySelector?.(
+      `[data-note-window-id="${parsedNoteId}"] .st-note-editor-char-count`
+    )
+    if (counter instanceof HTMLElement) {
+      counter.textContent = String(String(value ?? '').length)
+    }
+
     const preview = root?.querySelector?.(`[data-note-window-id="${parsedNoteId}"] [data-note-editor-preview]`)
     const windowEl = root?.querySelector?.(`[data-window-id="note:${parsedNoteId}"]`)
     const noteType = windowEl?.querySelector?.('[data-note-window-body]')?.dataset?.noteType ?? ''

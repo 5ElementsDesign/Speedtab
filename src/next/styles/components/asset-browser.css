@@ -85,12 +85,21 @@
     overflow: hidden;
     transition: background-color var(--st-timeout-2) ease, border-color var(--st-timeout-2) ease;
 
-    &[data-selected],
-    &:hover,
-    &:focus {
+    &:is([data-selected], :hover, :focus) {
       background: rgb(255 255 255 / 8%);
       border-color: rgb(255 255 255 / 22%);
     }
+  }
+
+  :is([data-asset-browser-preview], [data-asset-browser-details-preview]).is-favicon {
+    background:
+      linear-gradient(45deg, rgb(255 255 255 / 8%) 25%, transparent 25%, transparent 50%, rgb(255 255 255 / 8%) 50%, rgb(255 255 255 / 8%) 75%, transparent 75%, transparent),
+      #d7d7d7;
+    background-size: 12px 12px;
+  }
+
+  :is([data-asset-browser-preview], [data-asset-browser-details-preview]) img.is-favicon {
+    object-fit: contain;
   }
 
   [data-asset-browser-preview] {
@@ -112,10 +121,6 @@
       width: 48px;
       height: 48px;
       min-height: 48px;
-      background:
-        linear-gradient(45deg, rgb(255 255 255 / 8%) 25%, transparent 25%, transparent 50%, rgb(255 255 255 / 8%) 50%, rgb(255 255 255 / 8%) 75%, transparent 75%, transparent),
-        #d7d7d7;
-      background-size: 12px 12px;
     }
 
     img {
@@ -137,13 +142,12 @@
     img.is-favicon {
       max-width: 32px;
       max-height: 32px;
-      object-fit: contain;
     }
   }
 
   [data-asset-browser-size] {
     position: absolute;
-    right: 4px;
+    inset-inline-end: 4px;
     bottom: 4px;
     padding: 2px 4px;
     font-size: 10px;
@@ -178,10 +182,6 @@
 
     &.is-favicon {
       min-height: 84px;
-      background:
-        linear-gradient(45deg, rgb(255 255 255 / 8%) 25%, transparent 25%, transparent 50%, rgb(255 255 255 / 8%) 50%, rgb(255 255 255 / 8%) 75%, transparent 75%, transparent),
-        #d7d7d7;
-      background-size: 12px 12px;
     }
 
     img.is-preview,
@@ -194,7 +194,6 @@
     img.is-favicon {
       max-width: 48px;
       max-height: 48px;
-      object-fit: contain;
     }
   }
 
@@ -208,13 +207,6 @@
     display: grid;
     gap: 2px;
 
-    span {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--yai-tabs-color-text-muted);
-    }
-
     strong {
       font-size: 12px;
       color: var(--yai-tabs-color-text);
@@ -226,6 +218,7 @@
     gap: 4px;
   }
 
+  [data-asset-browser-fact] span,
   [data-asset-browser-block-title] {
     font-size: 10px;
     text-transform: uppercase;

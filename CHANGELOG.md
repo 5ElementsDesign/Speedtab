@@ -2,6 +2,31 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.4.4]
+
+### Added
+- Added a real pending-count marker for Quicknote context-menu captures, so repeated `Append to Quicknote` actions now accumulate visibly in the header instead of behaving like a one-shot flag.
+- Added stronger empty-state theme controls with direct dark, light, and Speedtab-background toggles for first-run workspace setup.
+- Added live widget-rail width bypass support, allowing the rail to ignore the shared page max-width boundary when configured.
+- UI polish
+
+### Changed
+- Refined workspace background bootstrapping so theme and background selection are applied earlier and more predictably across the main dashboard and auxiliary pages.
+- Refined weather-widget defaults, including slightly darker default text colors, lighter visual weight for location text, and better consistency with the rest of the rail styling.
+- Refined standalone utility pages (`sorter.html` and `import-export.html`) so shared base styles, theme behavior, and light-mode readability stay aligned with the main app shell.
+
+### Fixed
+- Fixed background flicker and startup instability by simplifying the workspace-background load path and removing late wallpaper flashes during extension initialization.
+- Fixed cascading cleanup behavior for page, module-tab, and orphan maintenance flows so deletions no longer leave broken descendants or undeletable orphaned rows behind.
+- Fixed orphan-maintenance actions such as `Delete all Shown`, plus related orphan-page follow-up behavior, so cleanup tools react reliably without leaving stale UI state behind.
+- Fixed favicon resolution regressions by restoring the proven hostname/subdomain lookup path, including safer handling for local installs and previously working Google subdomains.
+- Fixed module empty-state presentation after deleting the final tab so empty modules no longer collapse into partially transparent, broken-looking shells.
+- Fixed light-mode contrast regressions in `sorter.html`, `import-export.html`, widget surfaces, and related header/reload actions.
+- Fixed Speedtab background toggles so adding or removing the wallpaper updates live instead of waiting for a page reload.
+- Fixed weather-widget color defaults and supporting theme tokens so default rail colors no longer render as harsh pure white.
+- Fixed Quicknote marker behavior so repeated context-menu appends now increase the visible pending value instead of stopping after the first notification.
+
+
 ## [1.4.3]
 
 ### Added

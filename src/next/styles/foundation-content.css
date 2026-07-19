@@ -26,7 +26,7 @@ hr {
 
 ul, ol {
   margin: var(--st-list-margin);
-  padding-left: var(--st-list-padding-left);
+  padding-inline-start: var(--st-list-padding-left);
   line-height: var(--st-list-line-height);
 }
 
@@ -125,11 +125,6 @@ a {
 
 a:hover {
   text-decoration: underline;
-}
-
-a:focus-visible {
-  outline: 2px solid var(--st-color-focus);
-  outline-offset: 2px;
 }
 
 blockquote {

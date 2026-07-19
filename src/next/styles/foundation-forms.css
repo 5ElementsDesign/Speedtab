@@ -30,50 +30,53 @@ button,
   white-space: nowrap;
   background: var(--st-form-elements-bg-color);
   color: var(--st-color-text);
-  transition: background var(--st-form-transition);
-
-  &:focus-visible {
-    outline: 2px solid var(--st-color-focus);
-    outline-offset: 2px;
-  }
+  transition: var(--st-interactive-transition, background var(--st-form-transition));
 }
 
-input[type="text"],
-input[type="email"],
-input[type="url"],
-input[type="password"],
-input[type="search"],
-input[type="number"],
-input[type="tel"],
+input:is(
+  [type="text"],
+  [type="email"],
+  [type="url"],
+  [type="password"],
+  [type="search"],
+  [type="number"],
+  [type="tel"]
+),
 select,
 textarea {
   background-color: var(--st-form-elements-bg-color);
   border: 1px solid var(--st-form-elements-border-color);
   color: var(--st-color-text);
-  transition: border-color var(--st-form-transition),
-              box-shadow var(--st-form-transition);
+  transition: var(
+    --st-interactive-transition,
+    border-color var(--st-form-transition), box-shadow var(--st-form-transition)
+  );
   width: 100%;
 }
 
-input[type="text"]:hover:not(:disabled):not(:focus),
-input[type="email"]:hover:not(:disabled):not(:focus),
-input[type="url"]:hover:not(:disabled):not(:focus),
-input[type="password"]:hover:not(:disabled):not(:focus),
-input[type="search"]:hover:not(:disabled):not(:focus),
-input[type="number"]:hover:not(:disabled):not(:focus),
-input[type="tel"]:hover:not(:disabled):not(:focus),
+input:is(
+  [type="text"],
+  [type="email"],
+  [type="url"],
+  [type="password"],
+  [type="search"],
+  [type="number"],
+  [type="tel"]
+):hover:not(:disabled):not(:focus),
 select:hover:not(:disabled):not(:focus),
 textarea:hover:not(:disabled):not(:focus) {
   border-color: var(--st-form-elements-border-hover);
 }
 
-input[type="text"]:focus,
-input[type="email"]:focus,
-input[type="url"]:focus,
-input[type="password"]:focus,
-input[type="search"]:focus,
-input[type="number"]:focus,
-input[type="tel"]:focus,
+input:is(
+  [type="text"],
+  [type="email"],
+  [type="url"],
+  [type="password"],
+  [type="search"],
+  [type="number"],
+  [type="tel"]
+):focus,
 select:focus,
 textarea:focus {
   outline: none;
@@ -81,13 +84,15 @@ textarea:focus {
   box-shadow: 0 0 0 3px var(--st-color-focus-ring);
 }
 
-input[type="text"],
-input[type="email"],
-input[type="url"],
-input[type="password"],
-input[type="search"],
-input[type="number"],
-input[type="tel"],
+input:is(
+  [type="text"],
+  [type="email"],
+  [type="url"],
+  [type="password"],
+  [type="search"],
+  [type="number"],
+  [type="tel"]
+),
 select,
 button,
 .button {
@@ -187,17 +192,11 @@ select option {
 }
 
 select {
-  padding-right: var(--st-form-select-padding-right);
+  padding-inline-end: var(--st-form-select-padding-right);
   background-image: var(--st-select-arrow);
   background-repeat: no-repeat;
   background-position: right 8px center;
   appearance: var(--st-select-appearance);
-}
-
-select:focus {
-  outline: none;
-  border-color: var(--st-color-focus);
-  box-shadow: 0 0 0 3px var(--st-color-focus-ring);
 }
 
 select[multiple] {
@@ -206,8 +205,7 @@ select[multiple] {
   min-height: 80px;
 }
 
-input[type="checkbox"],
-input[type="radio"] {
+input:is([type="checkbox"], [type="radio"]) {
   width: var(--st-checkbox-size);
   height: var(--st-checkbox-size);
   padding: 0;
@@ -218,14 +216,7 @@ input[type="radio"] {
   border: 1px solid var(--st-form-elements-border-color);
 }
 
-input[type="checkbox"]:focus-visible,
-input[type="radio"]:focus-visible {
-  outline: 2px solid var(--st-color-focus);
-  outline-offset: 2px;
-}
-
-input[type="checkbox"]:checked,
-input[type="radio"]:checked {
+input:is([type="checkbox"], [type="radio"]):checked {
   border-color: var(--st-color-focus);
 }
 
@@ -235,11 +226,6 @@ input[type="range"] {
   background: transparent;
   border: none;
   accent-color: var(--st-color-focus);
-}
-
-input[type="range"]:focus-visible {
-  outline: 2px solid var(--st-color-focus);
-  outline-offset: 2px;
 }
 
 input[type="file"] {
@@ -253,7 +239,7 @@ input[type="file"]::file-selector-button {
   border: 1px solid var(--st-form-elements-border-color);
   padding: 6px 12px;
   cursor: pointer;
-  margin-right: 10px;
+  margin-inline-end: 10px;
   color: var(--st-color-text);
 }
 

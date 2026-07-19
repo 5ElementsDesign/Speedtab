@@ -1,33 +1,20 @@
+@import "./base.css";
 @import "./newtab-components.css";
 
-html.dark {
-  background-color: #111111;
-  background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.04) 1px, transparent 0);
-  background-size: 24px 24px;
-  color-scheme: dark;
+
+:where(button, select, .st-trigger-tab) {
+  --st-interactive-transition:
+    var(--st-motion-colors-fast, 0.15s ease),
+    var(--st-motion-fade, 0.2s ease);
+  transition: var(--st-interactive-transition);
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font: 1rem/1.5 var(--st-font-family);
-  color: var(--yai-tabs-color-text);
-}
-
-button,
-select {
-  transition: var(--st-motion-colors-fast), var(--st-motion-fade);
-}
-
-[data-prefers-reduced-motion],
-[data-prefers-reduced-motion] *,
-[data-prefers-reduced-motion] *::before,
-[data-prefers-reduced-motion] *::after {
-  /* The only time, where `!important` is allowed */
+:where(
+  [data-prefers-reduced-motion],
+  [data-prefers-reduced-motion] *,
+  [data-prefers-reduced-motion] *::before,
+  [data-prefers-reduced-motion] *::after
+) {
   --yai-transition-short: 1ms !important;
   --st-timeout-auto-reset: 1ms !important;
   --yai-timeout-s: 1ms !important;
@@ -38,13 +25,15 @@ select {
   animation-delay: -1ms !important;
   animation-duration: 1ms !important;
   scroll-behavior: auto !important;
+
+  :where(*) .yai-loading::after {
+    animation-iteration-count: infinite !important;
+    animation-duration: var(--yai-tabs-loader-speed, 0.8s) !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    /* The only time, where `!important` is allowed */
+  :where(*, *::before, *::after) {
     --yai-transition-short: 1ms !important;
     --st-timeout-auto-reset: 1ms !important;
     --yai-timeout-s: 1ms !important;
@@ -55,6 +44,10 @@ select {
     animation-delay: -1ms !important;
     animation-duration: 1ms !important;
     scroll-behavior: auto !important;
+  }
+  :where(*) .yai-loading::after {
+    animation-iteration-count: infinite !important;
+    animation-duration: var(--yai-tabs-loader-speed, 0.8s) !important;
   }
 }
 

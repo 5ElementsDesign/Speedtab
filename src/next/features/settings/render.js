@@ -1,4 +1,5 @@
 import {SPEEDTAB_SVG} from '../../components/icons.js'
+import {DEFAULT_CLOCK_DATE_FORMAT, DEFAULT_WIDGET_SETTINGS} from '../../../types/widgets.ts'
 import {customizerSection, section as renderSection} from '../../ui/primitives.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
@@ -53,11 +54,17 @@ function renderWidgetAdvancedOptions(children) {
   `
 }
 
+function formatWeatherLocationLabel(location = null) {
+  if (!location) return ''
+  return location.country ? `${location.name}, ${location.country}` : location.name
+}
+
 export function renderWeatherLocationSearchState(location = null, weatherState = {}) {
   const results = weatherState.results ?? []
   const status = weatherState.status ?? 'idle'
   const query = weatherState.query ?? ''
   const error = weatherState.error ?? ''
+  const displayLabel = weatherState.displayLabel ?? ''
 
   return `
     <div data-weather-location-search-state>
@@ -75,7 +82,19 @@ export function renderWeatherLocationSearchState(location = null, weatherState =
         <div data-configuration-ww-current-location>
           <div data-settings-current-location>
             <strong>${escapeHtml(t('settings.currentLocation'))}</strong>
-            <span>${escapeHtml(location.country ? `${location.name}, ${location.country}` : location.name)}</span>
+            <input
+              id="weather_current_location"
+              type="text"
+              name="weather_current_location"
+              value="${escapeHtml(displayLabel || formatWeatherLocationLabel(location))}"
+              spellcheck="false"
+              autocomplete="off"
+              data-settings-current-location-input
+              data-change="changeWidgetSetting"
+              data-widget-path="weather.display_label"
+              data-value-type="string"
+              aria-label="${escapeHtml(t('settings.currentLocation'))}"
+            />
           </div>
           <button type="button" class="st-btn" data-click="clearWeatherLocation">${escapeHtml(t('settings.clear'))}</button>
         </div>
@@ -132,11 +151,14 @@ export function renderBgAssetThumbs(assets) {
 
 function renderRailSettingsSection(widgetSettings = {}) {
   const railEnabled = widgetSettings?.rail_enabled === true
-  const railPosition = widgetSettings?.rail_position === 'bottom' ? 'bottom' : 'top'
+  const railPosition = widgetSettings?.rail_position === 'top' || widgetSettings?.rail_position === 'bottom'
+    ? widgetSettings.rail_position
+    : DEFAULT_WIDGET_SETTINGS.rail_position
   const railAlignOptions = new Set(['left', 'center', 'right', 'space-between', 'space-around'])
   const railAlign = railAlignOptions.has(widgetSettings?.rail_align)
     ? widgetSettings.rail_align
-    : 'left'
+    : DEFAULT_WIDGET_SETTINGS.rail_align
+  const railIgnoreMaxWidth = widgetSettings?.rail_ignore_max_width === true
   return customizerSection({title: t('settings.rail'), children: `
     <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
       <span data-customizer-field-label>${t('settings.enableRail')}</span>
@@ -181,12 +203,24 @@ function renderRailSettingsSection(widgetSettings = {}) {
           <option value="space-around"${railAlign === 'space-around' ? ' selected' : ''}>${escapeHtml(t('settings.spaceAround'))}</option>
         </select>
       </div>
+
+      <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
+        <span data-customizer-field-label>${t('settings.railIgnoreMaxWidth')}</span>
+        <input
+          type="checkbox"
+          name="widget_rail_ignore_max_width"
+          data-change="changeWidgetSetting"
+          data-widget-path="rail_ignore_max_width"
+          data-value-type="boolean"
+          ${railIgnoreMaxWidth ? 'checked' : ''}
+        />
+      </label>
     ` : ''}
   `})
 }
 
 function renderWeatherSettingsSection(widgetSettings = {}, weatherState = {}) {
-  const weather = widgetSettings?.weather ?? {}
+  const weather = widgetSettings?.weather ?? DEFAULT_WIDGET_SETTINGS.weather
   const weatherEnabled = weather.enabled === true
   const location = weather.location ?? null
 
@@ -207,7 +241,7 @@ function renderWeatherSettingsSection(widgetSettings = {}, weatherState = {}) {
       ${weatherEnabled ? `
         <div data-customizer-field data-customizer-field-layout="stack" data-customizer-gap="sm">
           <span data-customizer-field-label>${escapeHtml(t('settings.weatherLocation'))}</span>
-          ${renderWeatherLocationSearchState(location, weatherState)}
+          ${renderWeatherLocationSearchState(location, {...weatherState, displayLabel: weather.display_label})}
         </div>
         ${renderWidgetAdvancedOptions(`
           <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
@@ -236,20 +270,6 @@ function renderWeatherSettingsSection(widgetSettings = {}, weatherState = {}) {
           </div>
 
           <div data-customizer-field>
-            <span data-customizer-field-label>${t('settings.displayLabel')}</span>
-            <input
-              id="weather_display_label"
-              name="weather_display_label"
-              type="text"
-              value="${escapeHtml(weather.display_label ?? '')}"
-              placeholder="${escapeHtml(t('settings.displayLabelPlaceholder'))}"
-              data-change="changeWidgetSetting"
-              data-widget-path="weather.display_label"
-              data-value-type="string"
-            />
-          </div>
-
-          <div data-customizer-field>
             <span data-customizer-field-label>${t('settings.refreshInterval')}</span>
             <select
               id="weather_refresh_interval"
@@ -275,9 +295,9 @@ function renderWeatherSettingsSection(widgetSettings = {}, weatherState = {}) {
           </div>
 
           <div data-customizer-field data-customizer-field-type="color">
-            <span data-customizer-field-label>${escapeHtml(t('settings.widgetBorder'))}</span>
+            <span data-customizer-field-label>${escapeHtml(t('settings.widgetShadow'))}</span>
             <div data-color-pair-row>
-              ${renderSettingsColorInput('weather_border', weather.border, 'weather.border')}
+              ${renderSettingsColorInput('weather_shadow', weather.shadow, 'weather.shadow')}
             </div>
           </div>
 
@@ -323,9 +343,8 @@ function renderWeatherSettingsSection(widgetSettings = {}, weatherState = {}) {
 }
 
 function renderClockSettingsSection(widgetSettings = {}) {
-  const clock = widgetSettings?.clock ?? {}
+  const clock = widgetSettings?.clock ?? DEFAULT_WIDGET_SETTINGS.clock
   const clockEnabled = clock.enabled === true
-  const defaultDateFormat = '{dayName} [hr] {day}. {monthShort} {yearShort}'
   const patternTokens = ['{dayShort}', '{dayName}', '{day}', '{monthShort}', '{monthName}', '{month}', '{yearShort}', '{year}', '{hour}', '{minute}', '{second}', '[br]', '[hr]']
 
   return `
@@ -403,8 +422,8 @@ function renderClockSettingsSection(widgetSettings = {}) {
                 type="button"
                 class="st-btn"
                 data-click="restoreClockPattern"
-                data-restore-pattern="${escapeHtml(defaultDateFormat)}"
-                ${clock.date_format === defaultDateFormat ? 'disabled' : ''}
+                data-restore-pattern="${escapeHtml(DEFAULT_CLOCK_DATE_FORMAT)}"
+                ${clock.date_format === DEFAULT_CLOCK_DATE_FORMAT ? 'disabled' : ''}
               >${escapeHtml(t('common.restore'))}</button>
             </div>
           </div>
@@ -432,9 +451,16 @@ function renderClockSettingsSection(widgetSettings = {}) {
           </div>
 
           <div data-customizer-field data-customizer-field-type="color">
-            <span data-customizer-field-label>${escapeHtml(t('settings.widgetBorder'))}</span>
+            <span data-customizer-field-label>${escapeHtml(t('settings.widgetShadow'))}</span>
             <div data-color-pair-row>
-              ${renderSettingsColorInput('clock_border', clock.border, 'clock.border')}
+              ${renderSettingsColorInput('clock_shadow', clock.shadow, 'clock.shadow')}
+            </div>
+          </div>
+
+          <div data-customizer-field data-customizer-field-type="color">
+            <span data-customizer-field-label>${escapeHtml(t('settings.dialColor'))}</span>
+            <div data-color-pair-row>
+              ${renderSettingsColorInput('clock_dial_color', clock.dial_color, 'clock.dial_color')}
             </div>
           </div>
 
@@ -705,6 +731,7 @@ export function renderWidgetSettingsPanel(widgetSettings = {}, weatherState = {}
   const railAlign = railAlignOptions.has(widgetSettings?.rail_align)
     ? widgetSettings.rail_align
     : 'left'
+  const railIgnoreMaxWidth = widgetSettings?.rail_ignore_max_width === true
 
   return `
     <div data-settings-form data-customizer-form>
@@ -739,6 +766,18 @@ export function renderWidgetSettingsPanel(widgetSettings = {}, weatherState = {}
               <option value="space-around"${railAlign === 'space-around' ? ' selected' : ''}>${escapeHtml(t('settings.spaceAround'))}</option>
             </select>
           </div>
+
+          <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
+            <span data-customizer-field-label>${t('settings.railIgnoreMaxWidth')}</span>
+            <input
+              type="checkbox"
+              name="widget_rail_ignore_max_width"
+              data-change="changeWidgetSetting"
+              data-widget-path="rail_ignore_max_width"
+              data-value-type="boolean"
+              ${railIgnoreMaxWidth ? 'checked' : ''}
+            />
+          </label>
 
           <div data-customizer-divider aria-hidden="true"></div>
         </div>

@@ -29,7 +29,9 @@ function applyCssVariable(target, name, value, spec) {
     if (name === '--st-grid-col-span') {
       target.style.removeProperty('--st-grid-col-track')
       target.style.removeProperty('grid-column')
+      target.style.removeProperty('--st-grid-col-basis')
       target.style.removeProperty('flex')
+      target.style.removeProperty('max-width')
     }
     return
   }
@@ -42,7 +44,9 @@ function applyCssVariable(target, name, value, spec) {
   if (name === '--st-grid-col-span') {
     target.style.setProperty('--st-grid-col-track', `span ${nextValue} / span ${nextValue}`)
     target.style.setProperty('grid-column', `span ${nextValue} / span ${nextValue}`)
-    target.style.setProperty('flex', `0 0 ${Math.max(8.333333, (Number(nextValue) / 12) * 100)}%`)
+    target.style.removeProperty('--st-grid-col-basis')
+    target.style.removeProperty('flex')
+    target.style.removeProperty('max-width')
   }
 }
 

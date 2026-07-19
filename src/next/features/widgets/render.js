@@ -33,9 +33,12 @@ export function renderWidgetRailShell(settings = {}) {
   const hasRemoteSyncIndicator = settings?.remote_sync_indicator === true
   if (!settings?.rail_enabled || (!hasWeather && !hasClock && !hasRemoteSyncIndicator)) return ''
   const railPosition = settings?.rail_position === 'bottom' ? 'bottom' : 'top'
+  const innerStyle = settings?.rail_ignore_max_width === true
+    ? ` style="--st-page-grid-max-width: unset; width: 100%; max-width: none;"`
+    : ''
   return `
     <section class="st-widget-rail" data-widget-rail data-widget-rail-position="${escapeHtml(railPosition)}" data-swipe-ignore aria-label="${escapeHtml(t('widgetRail.aria'))}">
-      <div class="st-widget-rail-inner">
+      <div class="st-widget-rail-inner"${innerStyle}>
         <div class="st-widget-rail-center">
           <div data-widget-rail-host data-widget-rail-align="${escapeHtml(settings.rail_align || 'left')}">
             <div data-widget-weather-host></div>
@@ -81,13 +84,14 @@ export function renderWeatherWidget(state = {}) {
     refreshing = false,
     error = '',
     weatherData = null,
+    locationLabel = '',
     conditionLabel = '',
     conditionIcon = '☁',
     lastUpdatedLabel = '',
     statusLabel = '',
     compactMode = false,
     background = '',
-    border = '',
+    shadow = '',
     locationColor = '',
     temperatureColor = '',
     temperatureFontSize = null,
@@ -99,9 +103,9 @@ export function renderWeatherWidget(state = {}) {
   const weatherStyle = buildWeatherInlineStyle(state)
   const weatherStyleAttr = weatherStyle ? ` style="${escapeHtml(weatherStyle)}"` : ''
 
-  const locationLabel = String(weatherData?.location_label || t('weather.title'))
-  const [compactLine1Raw, ...compactRest] = locationLabel.split(',')
-  const compactLine1 = compactLine1Raw?.trim() || locationLabel
+  const resolvedLocationLabel = String(locationLabel || weatherData?.location_label || t('weather.title'))
+  const [compactLine1Raw, ...compactRest] = resolvedLocationLabel.split(',')
+  const compactLine1 = compactLine1Raw?.trim() || resolvedLocationLabel
   const compactLine2 = compactRest.join(',').trim()
 
   if (!configured) {
@@ -123,7 +127,7 @@ export function renderWeatherWidget(state = {}) {
     >
       <div class="st-weather-widget-head">
         <div class="min-w-0">
-          <h2 class="st-weather-widget-location truncate" data-weather-location>${escapeHtml(weatherData?.location_label || t('weather.title'))}</h2>
+          <h2 class="st-weather-widget-location truncate" data-weather-location>${escapeHtml(resolvedLocationLabel)}</h2>
         </div>
         <button
           type="button"
@@ -178,7 +182,7 @@ export function renderWeatherWidget(state = {}) {
 export function buildWeatherInlineStyle(state = {}) {
   const {
     background = '',
-    border = '',
+    shadow = '',
     locationColor = '',
     temperatureColor = '',
     temperatureFontSize = null,
@@ -187,7 +191,7 @@ export function buildWeatherInlineStyle(state = {}) {
 
   return [
     background ? `--st-weather-widget-bg:${background}` : '',
-    border ? `--st-weather-widget-border:${border}` : '',
+    shadow ? `--st-weather-widget-shadow:${shadow}` : '',
     locationColor ? `--st-weather-widget-location-color:${locationColor}` : '',
     temperatureColor ? `--st-weather-widget-temp-color:${temperatureColor}` : '',
     temperatureFontSize ? `--st-weather-widget-temp-size:${temperatureFontSize}px` : '',
@@ -198,7 +202,8 @@ export function buildWeatherInlineStyle(state = {}) {
 function buildClockInlineStyle(state = {}) {
   const declarations = []
   if (state.background) declarations.push(`--st-clock-widget-bg:${state.background}`)
-  if (state.border) declarations.push(`--st-clock-widget-border:${state.border}`)
+  if (state.shadow) declarations.push(`--st-clock-widget-shadow:${state.shadow}`)
+  if (state.dialColor) declarations.push(`--st-clock-widget-dial-color:${state.dialColor}`)
   if (state.dateColor) declarations.push(`--st-clock-widget-date-color:${state.dateColor}`)
   if (state.timeColor) declarations.push(`--st-clock-widget-time-color:${state.timeColor}`)
   if (state.dateFontSize) declarations.push(`--st-clock-widget-date-size:${state.dateFontSize}px`)

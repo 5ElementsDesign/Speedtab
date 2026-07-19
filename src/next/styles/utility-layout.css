@@ -44,26 +44,12 @@
   white-space: nowrap;
 }
 
-.line-clamp-1 {
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
+.line-clamp-1 { -webkit-line-clamp: 1; line-clamp: 1; }
+.line-clamp-2 { -webkit-line-clamp: 2; line-clamp: 2; }
+.line-clamp-3 { -webkit-line-clamp: 3; line-clamp: 3; }
 
-.line-clamp-2 {
+:is(.line-clamp-1, .line-clamp-2, .line-clamp-3) {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -72,19 +58,12 @@
 .font-normal { font-weight: var(--st-font-weight-normal); }
 .font-medium { font-weight: var(--st-font-weight-medium); }
 
-.font-bold {
-  font-weight: inherit;
-  text-shadow: var(--st-font-weight-bold);
-}
+.font-bold { text-shadow: var(--st-font-weight-bold); }
+.font-bolder { text-shadow: var(--st-font-weight-bolder); }
+.font-boldest { text-shadow: var(--st-font-weight-boldest); }
 
-.font-bolder {
+:is(.font-bold, .font-bolder, .font-boldest) {
   font-weight: inherit;
-  text-shadow: var(--st-font-weight-bolder);
-}
-
-.font-boldest {
-  font-weight: inherit;
-  text-shadow: var(--st-font-weight-boldest);
 }
 
 .tracking-tight { letter-spacing: -0.025em; }

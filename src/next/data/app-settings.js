@@ -2,6 +2,7 @@ import { db } from '../../db/db.ts'
 
 export const APP_SETTING_DEFAULTS = {
   ui_language:                null,
+  ui_theme:                   'dark',
   bookmarks_open_in_new_tab: true,
   background_properties:     null,
   background_asset_id:       null,
@@ -33,6 +34,7 @@ export async function loadAppSettings() {
 
 export async function saveAppSetting(key, value) {
   await db.app_settings.put({key, value_json: JSON.stringify(value), updated_at: Date.now()})
+  _cachedSettings = {..._cachedSettings, [key]: value}
 }
 
 export async function loadBgArchive() {

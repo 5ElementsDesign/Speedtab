@@ -1,6 +1,12 @@
 import {db, makeUpdatedAtPatch} from '../../db/db.ts'
 import {sha256hex} from '../data/assets.js'
 
+// CRITICAL PATH:
+// This resolver is intentionally simple because more "advanced" variants
+// reintroduced subdomain/favicon regressions.
+// Before changing this file, read:
+// src/lib/yai/docs/SPEEDTAB.CRITICAL-PATHS.md
+
 const EXCLUDED_HOSTS = new Set(['example.com', 'example.net', 'example.org', 'feeds.feedburner.com', 'localhost'])
 const FAVICON_TTL_MS            = 90 * 24 * 60 * 60 * 1000
 const FAVICON_RETRY_COOLDOWN_MS =  5 * 60 * 1000

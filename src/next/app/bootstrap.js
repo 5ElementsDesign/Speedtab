@@ -1,4 +1,3 @@
-import defaultWallpaperUrl from '../../assets/wallpaper-y-tree.webp'
 import {getCleanupCandidates} from '../../composables/useMaintenance.ts'
 import {startRemoteAutoSync} from '../../composables/useRemoteAutoSync.ts'
 import {getWidgetSettings} from '../../composables/useWidgetSettings.ts'
@@ -13,6 +12,7 @@ import {searchActions} from '../actions/search.js'
 import {settingsActions} from '../actions/settings.js'
 import {workspaceActions} from '../actions/workspace.js'
 import {closeAll, closeDropdown} from '../components/dropdown.js'
+import {SPEEDTAB_SVG} from '../components/icons.js'
 import {dismissToast, initToastEvents} from '../components/toast.js'
 import {getCachedAppSettings, loadAppSettings} from '../data/app-settings.js'
 import {loadCaptureInboxCount} from '../data/capture-inbox.js'
@@ -26,11 +26,13 @@ import {initializeLocalTools, refreshOpenNotePreviewState, refreshQuicknoteWindo
 import {adaptModule} from '../features/modules/registry.js'
 import {enrichModules} from '../features/modules/service.js'
 import {renderModuleCardBody, renderPageGrid} from '../features/pages/modules/render.js'
+import {renderOrphansPage} from '../features/pages/orphans/render.js'
 import {renderRootShell} from '../features/pages/render.js'
 import {initializeSearch} from '../features/search/manager.js'
 import {initializeWidgetRail} from '../features/widgets/manager.js'
 import {renderWidgetRailShell} from '../features/widgets/render.js'
 import {initBookmarkMedia} from '../utils/bookmark-media.js'
+import {loadAndApplyDocumentTheme} from '../utils/document-theme.js'
 import {initFavicons} from '../utils/favicon.js'
 import {getLocale, initI18n, t} from '../utils/i18n.js'
 import {applyWorkspaceBackground} from '../utils/workspace-background.js'
@@ -40,6 +42,9 @@ import {createHandler} from './handler.js'
 
 const ORPHANS_PAGE_SLUG = 'orphans-detected'
 let runtimeInboxListenerBound = false
+let quicknoteChromeListenerBound = false
+let currentInboxCount = 0
+let quicknotePendingCount = 0
 
 function renderExampleWorkspaceLocaleSelect() {
   const locale = getLocale()
@@ -63,11 +68,119 @@ function renderExampleWorkspaceLocaleSelect() {
   `
 }
 
-function updateInboxTitle(count = 0) {
+function renderEmptyStateThemeSelect(appSettings = null) {
+  const uiTheme = appSettings?.ui_theme === 'light' ? 'light' : 'dark'
+  const isBackgroundActive = appSettings?.background_properties !== 'none'
+  const backgroundLabel = isBackgroundActive
+    ? t('customizer.removeBackgroundShort')
+    : t('customizer.speedtabBackgroundShort')
+
+  return `
+    <div class="st-app-empty-card st-app-empty-theme-card">
+      <div class="st-app-empty-theme-actions">
+        <button
+          type="button"
+          class="st-btn"
+          data-btn="ghost"
+          data-click="toggleEmptyStateBackground"
+          aria-pressed="${isBackgroundActive ? 'true' : 'false'}"
+          title="${backgroundLabel}"
+          aria-label="${backgroundLabel}"
+        >${SPEEDTAB_SVG.image} ${backgroundLabel}</button>
+        <button
+          type="button"
+          class="st-btn"
+          data-btn="dark"
+          data-click="setEmptyStateThemePreset"
+          data-theme-value="dark"
+          aria-pressed="${uiTheme === 'dark' ? 'true' : 'false'}"
+        >${SPEEDTAB_SVG.moon} ${t('customizer.options.dark')}</button>
+        <button
+          type="button"
+          class="st-btn"
+          data-btn="light"
+          data-click="setEmptyStateThemePreset"
+          data-theme-value="light"
+          aria-pressed="${uiTheme === 'light' ? 'true' : 'false'}"
+        >${SPEEDTAB_SVG.sun} ${t('customizer.options.light')}</button>
+      </div>
+    </div>
+  `
+}
+
+function buildChromeTitle() {
   const appTitle = t('app.title')
-  document.title = count > 0
-    ? `INBOX [${count}] - ${appTitle}`
+  const baseTitle = currentInboxCount > 0
+    ? `INBOX [${currentInboxCount}] - ${appTitle}`
     : appTitle
+
+  return quicknotePendingCount > 0
+    ? `${t('scratchpad.title')} [${quicknotePendingCount}] • ${baseTitle}`
+    : baseTitle
+}
+
+function syncChromeTitle() {
+  document.title = buildChromeTitle()
+}
+
+function createQuicknoteMarkerButton() {
+  const wrapper = document.createElement('div')
+  wrapper.innerHTML = `
+    <button
+      type="button"
+      class="st-app-header-quicknote-marker st-btn"
+      data-click="clearQuicknoteTitleMarker"
+      title="${t('scratchpad.clearMarker')}"
+      aria-label="${t('scratchpad.clearMarker')}"
+    >QN <span data-app-header-quicknote-count>${quicknotePendingCount}</span></button>
+  `
+  return wrapper.firstElementChild
+}
+
+function syncQuicknoteMarkerButton() {
+  const actions = document.querySelector('[data-app-header-actions]')
+  const existing = document.querySelector('.st-app-header-quicknote-marker')
+  if (quicknotePendingCount <= 0) {
+    existing?.remove?.()
+    return
+  }
+
+  if (!(actions instanceof HTMLElement)) return
+  if (existing instanceof HTMLElement) {
+    const countEl = existing.querySelector('[data-app-header-quicknote-count]')
+    if (countEl) countEl.textContent = String(quicknotePendingCount)
+    return
+  }
+
+  const markerButton = createQuicknoteMarkerButton()
+  if (!(markerButton instanceof HTMLElement)) return
+
+  const inboxButton = actions.querySelector('.st-app-header-inbox')
+  if (inboxButton instanceof HTMLElement) {
+    inboxButton.insertAdjacentElement('afterend', markerButton)
+    return
+  }
+
+  actions.prepend(markerButton)
+}
+
+function setQuicknotePendingCount(nextValue) {
+  quicknotePendingCount = Math.max(0, Number(nextValue) || 0)
+  syncChromeTitle()
+  syncQuicknoteMarkerButton()
+}
+
+function incrementQuicknotePendingCount(step = 1) {
+  setQuicknotePendingCount(quicknotePendingCount + Math.max(1, Number(step) || 1))
+}
+
+export function clearQuicknoteChromeMarker() {
+  setQuicknotePendingCount(0)
+}
+
+function updateInboxTitle(count = 0) {
+  currentInboxCount = Math.max(0, Number(count) || 0)
+  syncChromeTitle()
 }
 
 function updateInboxBadge(count = 0) {
@@ -77,6 +190,7 @@ function updateInboxBadge(count = 0) {
 
   if (count <= 0) {
     existing?.remove?.()
+    syncQuicknoteMarkerButton()
     return
   }
 
@@ -110,6 +224,7 @@ function updateInboxBadge(count = 0) {
     `
     return wrapper.firstElementChild
   })())
+  syncQuicknoteMarkerButton()
 }
 
 export function syncCaptureInboxChrome(count = 0) {
@@ -135,6 +250,7 @@ function bindRuntimeInboxListener() {
     }
 
     if (message?.type === 'QUICKNOTE_UPDATED') {
+      incrementQuicknotePendingCount()
       void refreshQuicknoteWindow()
       return
     }
@@ -149,6 +265,14 @@ function bindRuntimeInboxListener() {
     }
   })
   runtimeInboxListenerBound = true
+}
+
+function bindQuicknoteChromeListener() {
+  if (quicknoteChromeListenerBound) return
+  document.addEventListener('speedtab:clear-quicknote-marker', () => {
+    clearQuicknoteChromeMarker()
+  })
+  quicknoteChromeListenerBound = true
 }
 
 function hydrateModuleTabBookmarks(content, container = null, context = null) {
@@ -390,6 +514,12 @@ async function hydrateOpenedPagePanel(target, content, container, pageMap, conte
   const hasHydratedMarkup = htmlCache && pageContent.hasAttribute('data-page-hydrated')
 
   const page = pageMap.get(target.dataset.open)
+  if (page?.virtualType === 'orphans') {
+    const orphanCandidates = await getCleanupCandidates()
+    pageContent.innerHTML = renderOrphansPage(orphanCandidates)
+    pageContent.setAttribute('data-page-hydrated', '')
+    return
+  }
   if (!page?.id) return
 
   let enrichedModules = null
@@ -455,13 +585,19 @@ export async function renderNextRoot() {
 
   destroyExistingTabs(mount)
   installWorkspaceDirtyTracking()
+  await loadAndApplyDocumentTheme()
   await initI18n()
   bindRuntimeInboxListener()
+  bindQuicknoteChromeListener()
 
-  const [pages, widgetSettings, captureInboxCount] = await Promise.all([
+  const appSettingsPromise = loadAppSettings()
+  await applyWorkspaceBackground(mount, await appSettingsPromise)
+
+  const [pages, widgetSettings, captureInboxCount, appSettings] = await Promise.all([
     loadPages(),
     getWidgetSettings(),
     loadCaptureInboxCount(),
+    appSettingsPromise,
   ])
   const canLoadExampleWorkspace = pages.length === 0
     ? await (async () => {
@@ -522,6 +658,7 @@ export async function renderNextRoot() {
     widgetRail: renderWidgetRailShell(widgetSettings),
     widgetRailPosition: widgetSettings.rail_position,
   })
+  syncQuicknoteMarkerButton()
 
   if (activePage?.slug) {
     const activePageContent = mount.querySelector(`[data-app-tab-content][data-page-slug="${CSS.escape(activePage.slug)}"]`)
@@ -529,18 +666,14 @@ export async function renderNextRoot() {
   }
 
   const allModules = [...pageModulesBySlug.values()].flat()
-  const [, shellConfigMap, appSettings] = await Promise.all([
+  const [, shellConfigMap] = await Promise.all([
     applyPageModuleUiConfig(mount, allModules),
     loadUiConfigsByEntitySyncIds('shell', [{sync_id: SHELL_SYNC_ID, type: 'app'}]),
-    loadAppSettings(),
   ])
   const shellConfig = shellConfigMap?.get(SHELL_SYNC_ID)
   if (shellConfig) applyShellUiConfig(shellConfig)
 
   const appRoot = mount.querySelector('[data-app]')
-  if (appRoot) {
-    await applyWorkspaceBackground(appRoot)
-  }
 
   const initialActivePageContent = mount.querySelector(`[data-app-tab-content][data-page-slug="${CSS.escape(activePage?.slug || '')}"]`)
   syncActivePageGridMaxWidthToken(initialActivePageContent)
@@ -554,7 +687,8 @@ export async function renderNextRoot() {
     return tabs
   } else {
     mount.innerHTML = `
-      <div class="st-app-empty" style="background:url('${defaultWallpaperUrl}') center/cover no-repeat;">
+      <div class="st-app-empty">
+        ${renderEmptyStateThemeSelect(appSettings)}
         <div class="st-app-empty-card">
           <h1><span>${t('app.title')}</span></h1>
           <p>${t('app.noPagesTitle')}</p>

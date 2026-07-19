@@ -84,6 +84,7 @@ function renderBookmarkTile(bookmark, moduleSyncId = '', config = {}) {
           tabindex="-1"
           data-click="deleteModuleBookmark"
           data-bookmark-id="${escapeHtml(String(bookmark.id ?? ''))}"
+          data-module-sync-id="${escapeHtml(moduleSyncId)}"
           data-bookmark-title="${title}"
           aria-label="${escapeHtml(t('common.delete'))}"
           title="${escapeHtml(t('common.delete'))}"
@@ -130,15 +131,11 @@ export function renderTabsModule(tabs = [], actionsHtml = '', moduleId = null, m
   const actions = actionsHtml
     ? `<div data-module-actions data-swipe-ignore>${actionsHtml}</div>`
     : ''
-  const cardActions = actionsHtml
-    ? `<div data-module-card-actions-host data-swipe-ignore>${actionsHtml}</div>`
-    : ''
 
   if (!tabs.length) {
     return `
       <div data-module-empty-state-wrap>
         ${actions}
-        ${cardActions}
         <div data-swipe-ignore><p class="st-module-empty-state m-0">${t('modules.empty.tabs')}</p></div>
       </div>
     `
@@ -180,7 +177,6 @@ export function renderTabsModule(tabs = [], actionsHtml = '', moduleId = null, m
         ${actions}
         <div data-content>${panels}</div>
       </div>
-      ${cardActions}
     </div>
   `
 }

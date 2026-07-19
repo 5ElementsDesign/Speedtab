@@ -1,3 +1,5 @@
+@import "../next/styles/base.css";
+
 :root {
   --st-ie-bg: #0d1014;
   --st-ie-surface: rgba(17, 22, 27, 0.92);
@@ -12,10 +14,6 @@
   scrollbar-gutter: stable;
 }
 
-* {
-  box-sizing: border-box;
-}
-
 html,
 body {
   min-height: 100%;
@@ -23,18 +21,12 @@ body {
 
 #app {
   min-height: 100vh;
-  background-attachment: fixed !important;
 }
 
 body {
-  margin: 0;
   color: var(--st-ie-text);
-  font-size: .95rem;
+  font-size: 1rem;
   font-family: Ubuntu, "Segoe UI", sans-serif;
-  background:
-    radial-gradient(circle at top, rgba(0, 210, 255, 0.08), transparent 28%),
-    linear-gradient(rgba(9, 11, 13, 0.34), rgba(11, 14, 18, 0.42)),
-    url('../assets/wallpaper-y-tree.webp') center/cover no-repeat fixed;
 }
 
 button,
@@ -482,6 +474,23 @@ select option {
     color: #ffd8a8;
     border: 1px solid rgba(255, 188, 86, 0.22);
     background: rgba(191, 111, 0, 0.14);
+  }
+}
+
+html.light {
+  [data-ie-eyebrow] {
+    color: #2563eb;
+  }
+
+  [data-ie-title],
+  [data-ie-link]:not([data-btn]) {
+    color: #1e293b;
+  }
+
+  button[data-click="reloadImportExport"][data-ie-link] {
+    color: #1e293b;
+    border-color: rgba(15, 23, 42, 0.12);
+    background: rgba(255, 255, 255, 0.74);
   }
 }
 

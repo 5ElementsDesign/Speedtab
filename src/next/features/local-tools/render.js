@@ -249,6 +249,7 @@ function renderFloatingNoteEditor(note) {
   const formId = `note-editor-${note.id}`
   const isHtml = note.type === 'html'
   const isCryptLocked = note.type === 'crypt' && typeof note.unlockedContent !== 'string'
+  const charCount = String(note.editContent ?? '').length
   const contentLabel = note.type === 'links'
     ? `${t('noteForm.contentLabels.urls')} ${t('noteForm.contentLabels.onePerLine')}`
     : note.type === 'html'
@@ -305,7 +306,12 @@ function renderFloatingNoteEditor(note) {
       class="st-note-editor-form${isHtml ? ' is-html' : ''}${note.previewMode ? ' is-preview' : ''}"
     >
       <div class="st-note-editor-fields">
-        <label data-customizer-field data-customizer-field-type="text" data-note-editor-field>
+        <label data-customizer-field
+          data-customizer-field-type="text"
+          data-st-width="100%"
+          data-st-max-width="280px"
+          data-st-display="block"
+          data-note-editor-field>
           <span data-customizer-field-label>${escapeHtml(t('noteForm.title'))}</span>
           <input
             type="text"
@@ -355,7 +361,10 @@ function renderFloatingNoteEditor(note) {
         <section class="st-note-editor-input-panel">
           <div class="st-note-editor-panel-head">
             <div class="st-note-editor-panel-tools st-note-editor-panel-tools-spread">
-              <span class="st-note-editor-type-badge">${escapeHtml(t(`noteForm.types.${note.type}`))}</span>
+              <div class="st-note-editor-panel-meta">
+                <span class="st-note-editor-type-badge">${escapeHtml(t(`noteForm.types.${note.type}`))}</span>
+                <span class="st-note-editor-char-count">${escapeHtml(String(charCount))}</span>
+              </div>
               ${renderHtmlEditorToolbar(note)}
             </div>
           </div>

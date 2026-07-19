@@ -147,6 +147,8 @@ async function loadShellBgData() {
   }))
   return {
     background_properties: settings.background_properties ?? '',
+    background_asset_id: settings.background_asset_id ?? null,
+    ui_theme: settings.ui_theme ?? 'dark',
     bgArchive,
     bgAssets,
   }
@@ -188,6 +190,8 @@ function resolveShellAppearanceField(key, fieldSpec, shellRoot, docRoot) {
       || resolveElementPropertyColor('[data-app-header-nav] [data-open]', 'color'),
     '--st-ws-shell-nav-active-background-color': () => resolveElementPropertyColor('[data-app-header-nav] [data-open].active', 'backgroundColor'),
     '--st-ws-shell-nav-active-text-color': () => resolveElementPropertyColor('[data-app-header-nav] [data-open].active', 'color'),
+    '--st-ws-module-background-color': () => resolveElementPropertyColor('[data-module-tabs-shell] > [data-yai-tabs]', 'backgroundColor')
+      || resolveElementPropertyColor('[data-module-card]', 'backgroundColor'),
     '--st-module-bookmark-preview-background-color': () => resolveElementPropertyColor('[data-bookmark-tile] .st-trigger-tab-title', 'backgroundColor')
       || resolveElementPropertyColor('[data-bookmark-tile] .st-trigger-tab', 'backgroundColor'),
     '--st-module-bookmark-preview-text-color': () => resolveElementPropertyColor('[data-bookmark-tile] .st-trigger-tab-title', 'color')

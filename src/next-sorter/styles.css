@@ -1,3 +1,5 @@
+@import "../next/styles/base.css";
+
 :root {
   --st-sorter-background: #0f1011;
   --st-sorter-surface: #151617;
@@ -8,10 +10,7 @@
   --st-sorter-muted: #a1a8af;
   --st-sorter-accent: #00d1b2;
   --st-sorter-danger: #c53636;
-}
-
-* {
-  box-sizing: border-box;
+  scrollbar-gutter: stable;
 }
 
 html,
@@ -21,7 +20,6 @@ body {
 
 #app {
   min-height: 100vh;
-  background-attachment: fixed !important;
 }
 
 [hidden] {
@@ -29,13 +27,8 @@ body {
 }
 
 body {
-  margin: 0;
-  font-size: .95rem;
+  font-size: 1rem;
   font-family: ui-sans-serif, system-ui, sans-serif;
-  background:
-    radial-gradient(circle at top, rgba(0, 210, 255, 0.07), transparent 30%),
-    linear-gradient(rgba(14, 15, 16, 0.34), rgba(11, 12, 14, 0.42)),
-    url('../assets/wallpaper-y-tree.webp') center/cover no-repeat fixed;
   color: var(--st-sorter-text);
 }
 
@@ -692,6 +685,18 @@ select {
 [data-sorter-orphan-label] {
   color: var(--st-sorter-muted);
   font-size: 13px;
+}
+
+html.light {
+  [data-sorter-eyebrow] {
+    color: #2563eb;
+  }
+
+  [data-sorter-app-title],
+  [data-sorter-page-title],
+  [data-sorter-link]:not([data-btn]) {
+    color: #1e293b;
+  }
 }
 
 @media (max-width: 900px) {

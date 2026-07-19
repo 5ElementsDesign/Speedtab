@@ -1,4 +1,5 @@
 import {getUiConfigSpec} from '../../config/ui-config-spec.js'
+import {SPEEDTAB_SVG} from '../../components/icons.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 import {renderBackgroundSettingsSection} from '../settings/render.js'
@@ -657,17 +658,53 @@ function renderModuleIdentitySection(moduleTitle = '') {
   `
 }
 
-function renderAppearanceLauncherSection() {
+function renderAppearanceLauncherSection(bgData = null) {
+  const uiTheme = bgData?.ui_theme ?? 'dark'
+  const isDark = uiTheme !== 'light'
+  const isBackgroundRemoved = bgData?.background_properties === 'none' && !bgData?.background_asset_id
+  const backgroundToggleLabel = isBackgroundRemoved
+    ? t('customizer.speedtabBackgroundShort')
+    : t('customizer.removeBackgroundShort')
+
   return `
     <div data-customizer-section data-section="appearance-launcher">
       <p data-customizer-section-title>${escapeHtml(t('common.appearance'))}</p>
-      <button
-        type="button"
-        class="st-btn"
-        data-btn="secondary"
-        data-click="openCustomizerAppearance"
-        data-customizer-nav-button
-      >${escapeHtml(t('common.appearance'))}</button>
+      <div data-customizer-inline-actions>
+        <div>
+          <button
+            type="button"
+            class="st-btn"
+            data-btn="dark"
+            data-click="setShellThemePreset"
+            data-theme-value="dark"
+            aria-pressed="${isDark ? 'true' : 'false'}"
+          >${SPEEDTAB_SVG.moon} ${escapeHtml(t('customizer.options.dark'))}</button>
+          <button
+            type="button"
+            class="st-btn"
+            data-btn="light"
+            data-click="setShellThemePreset"
+            data-theme-value="light"
+            aria-pressed="${isDark ? 'false' : 'true'}"
+          >${SPEEDTAB_SVG.sun} ${escapeHtml(t('customizer.options.light'))}</button>
+          <button
+            type="button"
+            class="st-btn"
+            data-btn="primary"
+            data-click="openCustomizerAppearance"
+            data-customizer-nav-button
+          >🖥️ ${escapeHtml(t('common.appearance'))}</button>
+          <button
+            type="button"
+            class="st-btn"
+            data-btn="danger"
+            data-outline
+            data-click="toggleShellWallpaper"
+            title="${escapeHtml(backgroundToggleLabel)}"
+            aria-label="${escapeHtml(backgroundToggleLabel)}"
+          >❌ ${escapeHtml(backgroundToggleLabel)}</button>
+        </div>
+      </div>
     </div>
   `
 }
@@ -698,7 +735,7 @@ export function renderCustomizerForm(entityType, moduleType, config = {}, bgData
     sections.push(renderSection('layout', spec.layout, config.layout))
   }
   if (entityType === 'shell' && Object.keys(spec.appearance).length) {
-    sections.push(renderAppearanceLauncherSection())
+    sections.push(renderAppearanceLauncherSection(bgData))
     if (bgData) {
       sections.push(renderBackgroundSettingsSection(bgData))
     }

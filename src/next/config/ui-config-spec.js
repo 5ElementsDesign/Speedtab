@@ -333,7 +333,7 @@ export const UI_CONFIG_SPEC = {
           min: 1,
           max: 12,
           validate: isIntegerInRange(1, 12),
-          defaultValue: 12,
+          defaultValue: 6,
           target: 'grid-col',
           applyAs: {
             type: 'css-variable',
@@ -425,7 +425,7 @@ export const UI_CONFIG_SPEC = {
           min: 1,
           max: 12,
           validate: isIntegerInRange(1, 12),
-          defaultValue: 12,
+          defaultValue: 6,
           target: 'grid-col',
           applyAs: {
             type: 'css-variable',
@@ -495,7 +495,7 @@ export const UI_CONFIG_SPEC = {
           min: 1,
           max: 12,
           validate: isIntegerInRange(1, 12),
-          defaultValue: 12,
+          defaultValue: 6,
           target: 'grid-col',
           applyAs: {
             type: 'css-variable',

@@ -25,6 +25,7 @@ Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/a
 - Optional bookmark titles below full-size tiles
 - Notes with text, code, links, HTML, and encrypted content
 - Interactive nested tabbed notes authored directly inside HTML notes
+- `TABBY-TABS` example note showcasing onboarding-as-content with live nested tabs, swipe, and click behavior on the same delegated runtime
 - RSS/Atom feed reader with source navigation, read state, archiving, and optional auto-refresh
 - Widget rail with weather, digital or analog clock, and remote-sync indicator support
 - Module quick settings directly inside module dropdowns
@@ -117,6 +118,14 @@ Speedtab does not currently export feed cache responses. Feed items fetched from
 - floating note windows with persisted open state, size, and position
 - nested interactive YaiTabs inside HTML notes
 - safe `data-st-*` utility attributes for trusted HTML-note styling
+- example-workspace flagship note `TABBY-TABS.html` demonstrates deeply nested interactive notes running on the same event-delegated system as the rest of Speedtab
+
+### Interactive Notes
+
+- HTML notes are not limited to formatted content; they can host live nested tab interfaces, helper panels, and swipe-enabled onboarding surfaces
+- `TABBY-TABS.html` in the example workspace is the reference implementation for this model
+- The same delegated runtime powers page tabs, module tabs, and nested note tabs without per-component listener growth
+- Complex note interaction stays local-first and real-DOM driven instead of depending on framework re-render cycles
 
 ### Feeds
 
@@ -271,6 +280,7 @@ manifest.json      Extension manifest
 - Event handling is delegation-first: shared listeners route actions across nested UI without per-component lifecycle registration
 - Data is modeled around `Page -> Module -> Collection -> Item`
 - YaiTabs powers the main page shell, module tabs, and even deeply nested tab structures inside HTML notes
+- The `TABBY-TABS` example note is the clearest single demonstration of that architecture working as a live authored note, not as a hardcoded app surface
 - Feed fetching, remote sync, Google Drive OAuth-backed sync checks, and context-menu capture are delegated to the background service worker
 - Feed cache is local and rebuildable; archived feed items are portable user data
 - Bookmark images are stored as binary blobs in IndexedDB

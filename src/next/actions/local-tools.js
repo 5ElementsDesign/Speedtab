@@ -35,6 +35,10 @@ export const localToolsActions = {
     updateQuicknoteContent(target?.value ?? '')
   },
 
+  clearQuicknoteTitleMarker() {
+    document.dispatchEvent(new CustomEvent('speedtab:clear-quicknote-marker'))
+  },
+
   openFloatingNote(target) {
     openFloatingNote(target?.dataset?.noteId)
   },

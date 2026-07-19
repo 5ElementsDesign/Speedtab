@@ -37,7 +37,7 @@ function renderNoteAddTile(moduleSyncId = '') {
     <div data-note-tile data-note-add-tile>
       <button
         type="button"
-        class="st-trigger-note st-btn"
+        class="st-trigger-note-proxy st-btn"
         data-click="addModuleNote"
         data-swipe-allow
         data-sync-id="${escapeHtml(moduleSyncId)}"
@@ -69,15 +69,11 @@ export function renderNotesModule(tabs = [], actionsHtml = '', moduleId = null, 
   const actions = actionsHtml
     ? `<div data-module-actions data-swipe-ignore>${actionsHtml}</div>`
     : ''
-  const cardActions = actionsHtml
-    ? `<div data-module-card-actions-host data-swipe-ignore>${actionsHtml}</div>`
-    : ''
 
   if (!tabs.length) {
     return `
       <div data-module-empty-state-wrap>
         ${actions}
-        ${cardActions}
         <div data-swipe-ignore><p class="st-module-empty-state m-0">${escapeHtml(t('modules.empty.notes'))}</p></div>
       </div>
     `
@@ -113,7 +109,6 @@ export function renderNotesModule(tabs = [], actionsHtml = '', moduleId = null, 
         ${actions}
         <div data-content>${panels}</div>
       </div>
-      ${cardActions}
     </div>
   `
 }

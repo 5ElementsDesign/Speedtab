@@ -12,6 +12,7 @@ import {upsertUiConfig} from '../data/ui-config.js'
 import {applyModuleUiConfig} from '../features/customizer/apply.js'
 import {initFormDirtyState, renderSidepanelDeleteFooter, updateFormDirtyState} from '../features/forms/actions.js'
 import {closeFloatingNote, openFloatingNote, startFloatingNoteEdit} from '../features/local-tools/manager.js'
+import {softDeleteModuleTabCascade} from '../../next-sorter/data.js'
 import {
   afterBookmarkFormRender,
   applyBookmarkPreviewCrop,
@@ -946,7 +947,9 @@ export const moduleCrudActions = {
     const currentTab = getCurrentModuleTabContext(moduleSyncId)
     if (!currentTab) return
     if (!confirm(t('moduleCrud.confirmDeleteTab', {title: currentTab.title || t('nav.page')}))) return
-    await softDeleteModuleTab(currentTab.tabId)
+    const moduleCard = document.querySelector(`[data-module-card][data-sync-id="${CSS.escape(moduleSyncId || '')}"]`)
+    const moduleType = moduleCard?.getAttribute('data-module-type') || ''
+    await softDeleteModuleTabCascade(currentTab.tabId, moduleType)
     const {refreshModuleContent} = await import('../app/bootstrap.js')
     await refreshModuleContent(moduleSyncId)
   },
@@ -1305,6 +1308,7 @@ export const moduleCrudActions = {
           description: payload.description,
           favicon_asset_id: payload.favicon_asset_id,
           preview_asset_id: payload.preview_asset_id,
+          meta_json: payload.meta_json,
         })
         : await createBookmark(context.parentId, payload)
 
@@ -1366,7 +1370,8 @@ export const moduleCrudActions = {
     if (context.entityType === 'tab') {
       const label = context.form.querySelector('[name="title"]')?.value?.trim() || ''
       if (!confirm(t('moduleCrud.confirmDeleteTab', {title: label || t('moduleCrud.tab')}))) return
-      await softDeleteModuleTab(context.recordId)
+      const moduleType = document.querySelector(`[data-module-card][data-sync-id="${CSS.escape(context.moduleSyncId || '')}"]`)?.getAttribute('data-module-type') || ''
+      await softDeleteModuleTabCascade(context.recordId, moduleType)
     } else if (context.entityType === 'bookmark') {
       const label = context.form.querySelector('[name="title"]')?.value?.trim() || ''
       if (!confirm(t('moduleCrud.confirmDeleteBookmark', {title: label || t('moduleCrud.bookmark')}))) return
@@ -1396,7 +1401,7 @@ export const moduleCrudActions = {
     }
     syncBookmarkFormStateFromForm(form)
     await testBookmarkUrl()
-    await patchBookmarkForm(getOpenSidepanelBody())
+    await patchBookmarkForm(getOpenSidepanelBody(), {includeAssetLibrary: false})
   },
 
   async bookmarkFormToggleFaviconPicker(target) {

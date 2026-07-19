@@ -1,9 +1,11 @@
 import {closeModal, openModal} from '../components/modal.js'
 import {closeSidepanel, openSidepanel} from '../components/sidepanel.js'
 import {db} from '../../db/db.ts'
-import {cleanupOrphans, deleteCollectionTree, deleteModuleTree} from '../../composables/useMaintenance.ts'
+import {cleanupOrphans, deleteCollectionTree, deleteModuleTree, deletePageTree} from '../../composables/useMaintenance.ts'
 import {createModuleData} from '../data/modules.js'
-import {createPageData, loadPageBySyncId, savePageData, softDeletePage} from '../data/pages.js'
+import {createPageData, loadPageBySyncId, savePageData} from '../data/pages.js'
+import {createModuleTab} from '../data/tabs.js'
+import {upsertUiConfig} from '../data/ui-config.js'
 import {renderSidepanelDeleteFooter} from '../features/forms/actions.js'
 import {initFormDirtyState} from '../features/forms/actions.js'
 import {renderModuleCreateForm, renderPageForm} from '../features/pages/page-form.js'
@@ -13,6 +15,7 @@ import {t} from '../utils/i18n.js'
 import {radioActive} from '../utils/radio-active.js'
 
 const DEFAULT_PAGE_GRID_MAX_WIDTH = 1500
+const MODULE_CREATE_MAX_TABS = 10
 
 function getActivePageSyncId() {
   const activeBtn = document.querySelector('[data-controller] [data-tab-action="open"][aria-selected="true"]')
@@ -167,6 +170,39 @@ export const pageActions = {
     const page = await loadPageBySyncId(pageSyncId)
     if (!page?.id) return
     openCreateModuleModal(page)
+  },
+
+  addModuleCreateTabInput(target) {
+    const form = target.closest?.('[data-page-module-form]')
+    if (!(form instanceof HTMLFormElement)) return
+
+    const inputsHost = form.querySelector('[data-page-module-tabs-inputs]')
+    if (!(inputsHost instanceof HTMLElement)) return
+
+    const existingRows = inputsHost.querySelectorAll('[data-page-module-tab-row]')
+    if (existingRows.length >= MODULE_CREATE_MAX_TABS) {
+      target.setAttribute('disabled', '')
+      return
+    }
+
+    const row = document.createElement('div')
+    row.setAttribute('data-page-module-tab-row', '')
+    row.innerHTML = `
+      <input
+        type="text"
+        name="module-first-tab-title"
+        value=""
+        autocomplete="off"
+      >
+    `
+    inputsHost.append(row)
+
+    if (existingRows.length + 1 >= MODULE_CREATE_MAX_TABS) {
+      target.setAttribute('disabled', '')
+    }
+
+    const input = row.querySelector('input')
+    input?.focus?.()
   },
 
   openSorter() {
@@ -324,14 +360,45 @@ export const pageActions = {
     const type = form.querySelector('[name="module-type"]')?.value || 'tabs'
     const rawTitle = form.querySelector('[name="module-title"]')?.value?.trim()
     const title = rawTitle || t(`moduleForm.types.${type}`)
+    const tabTitles = Array.from(form.querySelectorAll('[name="module-first-tab-title"]'))
+      .map((input) => input instanceof HTMLInputElement ? input.value.trim() : '')
+      .filter(Boolean)
+      .slice(0, MODULE_CREATE_MAX_TABS)
+    const firstTabTitle = tabTitles[0] || t('moduleCard.newTabTitle')
+    const rawColumnSpan = parseInt(form.querySelector('[name="module-column-span"]')?.value ?? '', 10)
+    const columnSpan = Math.max(1, Math.min(12, Number.isInteger(rawColumnSpan) ? rawColumnSpan : 6))
 
     const module = await createModuleData(pageId, {
       type,
       title,
-      defaultTabTitle: t('moduleCard.newTabTitle'),
+      defaultTabTitle: firstTabTitle,
       createDefaultTab: true,
+      config_json: JSON.stringify({
+        layout: {
+          'module-column-span': columnSpan,
+        },
+      }),
     })
     if (!module?.sync_id) return
+
+    if (columnSpan !== 6) {
+      await upsertUiConfig({
+        entityType: 'module',
+        entitySubtype: type,
+        entitySyncId: module.sync_id,
+        patch: {
+          layout: {
+            'module-column-span': columnSpan,
+          },
+        },
+      })
+    }
+
+    if (module.id && tabTitles.length > 1) {
+      for (const extraTitle of tabTitles.slice(1)) {
+        await createModuleTab(module.id, {title: extraTitle})
+      }
+    }
 
     closeModal()
     const {refreshPageContent} = await import('../app/bootstrap.js')
@@ -345,7 +412,7 @@ export const pageActions = {
     const pageId = parseInt(target.dataset.pageId)
     if (!pageId) return
     if (!confirm(t('app.confirms.deletePage'))) return
-    await softDeletePage(pageId)
+    await deletePageTree(pageId)
     closeSidepanel()
 
     const pageSlug = target.dataset.pageSlug

@@ -2,6 +2,7 @@ import defaultWallpaperUrl from '../../assets/wallpaper-y-tree.webp'
 import {searchOpenMeteoLocations} from '../../composables/useOpenMeteoWeather.ts'
 import {getWidgetSettings, saveWidgetSettings} from '../../composables/useWidgetSettings.ts'
 import {YEH} from '../../lib/yai/yeh.js'
+import {DEFAULT_CLOCK_DATE_FORMAT, DEFAULT_CLOCK_TIME_FORMAT, DEFAULT_CLOCK_WIDGET_SETTINGS} from '../../types/widgets.ts'
 import {closeModal} from '../components/modal.js'
 import {openSidepanel} from '../components/sidepanel.js'
 import {
@@ -41,8 +42,6 @@ const weatherSearchState = {
 }
 
 let weatherSearchController = null
-const DEFAULT_CLOCK_DATE_FORMAT = '{dayName} [hr] {day}. {monthShort} {yearShort}'
-const DEFAULT_CLOCK_TIME_FORMAT = '{hour}:{minute}:{second}'
 let liveWidgetSettings = null
 
 function sanitizeBg(raw) {
@@ -60,8 +59,12 @@ function isValidBg(value) {
 }
 
 function applyBg(value) {
-  const app = document.querySelector('[data-app]')
-  if (app) app.style.background = value || ''
+  if (value) {
+    document.body.style.setProperty('--st-workspace-background', value)
+    return
+  }
+
+  document.body.style.removeProperty('--st-workspace-background')
 }
 
 function toBgColorValue(raw) {
@@ -131,7 +134,10 @@ function patchWeatherLocationSearchState() {
   const host = body.querySelector('[data-weather-location-search-state]')
   if (!(host instanceof HTMLElement)) return false
   const location = liveWidgetSettings?.weather?.location ?? null
-  return replaceNode(host, renderWeatherLocationSearchState(location, weatherSearchState)) instanceof HTMLElement
+  return replaceNode(host, renderWeatherLocationSearchState(location, {
+    ...weatherSearchState,
+    displayLabel: liveWidgetSettings?.weather?.display_label ?? '',
+  })) instanceof HTMLElement
 }
 
 function getSettingsPanelKind() {
@@ -274,6 +280,22 @@ function applyWidgetRailAlignment(settings) {
   }
 }
 
+function applyWidgetRailMaxWidthSetting(settings) {
+  const railInner = document.querySelector('.st-widget-rail-inner')
+  if (!(railInner instanceof HTMLElement)) return
+
+  if (settings?.rail_ignore_max_width === true) {
+    railInner.style.setProperty('--st-page-grid-max-width', 'unset')
+    railInner.style.width = '100%'
+    railInner.style.maxWidth = 'none'
+    return
+  }
+
+  railInner.style.removeProperty('--st-page-grid-max-width')
+  railInner.style.removeProperty('width')
+  railInner.style.removeProperty('max-width')
+}
+
 function setWidgetSetting(target, settings) {
   const path = target.dataset.widgetPath
   if (!path) return settings
@@ -383,6 +405,7 @@ export const settingsActions = {
     }
 
     applyWidgetRailAlignment(nextSettings)
+    applyWidgetRailMaxWidthSetting(nextSettings)
     patchWidgetRailSettings(nextSettings, widgetPath)
 
     if (target.name === 'clock_date_format') {
@@ -413,24 +436,11 @@ export const settingsActions = {
   async resetClockWidgetSettings() {
     const widgetSettings = await getWidgetSettings()
     const nextSettings = structuredClone(widgetSettings)
-    nextSettings.clock = {
-      ...nextSettings.clock,
-      align: 'right',
-      display: 'digital',
-      smooth_motion: true,
-      two_row: false,
-      date_format: DEFAULT_CLOCK_DATE_FORMAT,
-      time_format: '{hour}:{minute}:{second}',
-      background: '#00000030',
-      border: '#3b383847',
-      date_color: '#b6b9bc',
-      time_color: '#d9dde2',
-      date_font_size: 14,
-      time_font_size: 18,
-    }
+    nextSettings.clock = structuredClone(DEFAULT_CLOCK_WIDGET_SETTINGS)
     await saveWidgetSettings(nextSettings)
     liveWidgetSettings = nextSettings
     applyWidgetRailAlignment(nextSettings)
+    applyWidgetRailMaxWidthSetting(nextSettings)
     patchWidgetRailSettings(nextSettings)
     await rerenderSettingsBodyPreserveState()
   },
@@ -450,6 +460,7 @@ export const settingsActions = {
     await saveWidgetSettings(nextSettings)
     liveWidgetSettings = nextSettings
     applyWidgetRailAlignment(nextSettings)
+    applyWidgetRailMaxWidthSetting(nextSettings)
     patchWidgetRailSettings(nextSettings, widgetPath)
 
     const colorInput = target.closest('[data-color-item]')?.querySelector('input[data-coloris]')
@@ -660,7 +671,7 @@ export const settingsActions = {
 
   clearBgProperty() {
     syncBgInputs('')
-    applyBg(`url('${defaultWallpaperUrl}') center/cover no-repeat`)
+    applyBg('')
     saveAppSetting('background_properties', null)
     saveAppSetting('background_asset_id', null)
   },

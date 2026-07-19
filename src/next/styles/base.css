@@ -1,0 +1,30 @@
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+  &.dark {
+    background-color: #151515;
+    background-image: radial-gradient(circle at 1px 1px, rgb(196 192 192 / 7%) 1px, #0000001c 0);
+    background-size: 24px 24px;
+    color-scheme: dark;
+  }
+  &.light {
+    background-color: #eef2f7;
+    background-image: radial-gradient(circle at 1px 1px, #90929566 1px, #ffffff1c 0);
+    background-size: 24px 24px;
+    color-scheme: light;
+  }
+}
+
+body {
+  font: 1rem/1.5 var(--st-font-family);
+  color: var(--yai-tabs-color-text);
+  background: var(--st-workspace-background, transparent);
+}
+
+.active.dragging [data-app-tab-content] {
+  overflow: hidden;
+}

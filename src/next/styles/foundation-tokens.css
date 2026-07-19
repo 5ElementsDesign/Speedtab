@@ -2,7 +2,8 @@
   /* Closed tab state */
   --yai-tabs-closed-text: "Speedtab";
   --yai-tabs-closed-align: center;
-  --yai-tabs-closed-timeout: .5s;
+  --yai-tabs-closed-timeout: .4s;
+  --yai-tabs-content-min-height: 60px;
 
   /* Layout & spacing , including fallback for: h2, h3, h4, h5, h6, p, pre, ul, ol */
   --yai-tabs-padding-1: .75rem;
@@ -24,11 +25,16 @@
   --yai-tabs-button-line-height: 1cap;
 
   /* Navigation-specific shadows */
-  --yai-tabs-shadow-nav-top: 0 2px 5px 0;
+  --yai-tabs-shadow-nav-top: 0 0 5px 0;
   --yai-tabs-shadow-nav-bottom: 0 -1px 5px 1px;
   --yai-tabs-shadow-nav-left: 2px 1px 6px 2px;
   --yai-tabs-shadow-nav-right: -2px 1px 5px 2px;
-  --yai-tabs-nav-button-transition: all var(--yai-timeout-2) ease-in-out;
+  --yai-tabs-nav-button-transition:
+    background-color var(--yai-timeout-2) ease-in-out,
+    box-shadow var(--yai-timeout-2) ease-in-out,
+    color var(--yai-timeout-2) ease-in-out,
+    opacity var(--yai-timeout-2) ease-in-out,
+    text-shadow var(--yai-timeout-2) ease-in-out;
 
   /* Timeouts */
   --yai-timeout-1: 0.2s;
@@ -55,7 +61,6 @@
   /* Core */
   --yai-tabs-color-text:                  #eef1f4;
   --yai-tabs-color-text-muted:            #c3c6c9;
-  --yai-tabs-color-background:            #0c1528;
   --yai-tabs-color-background:            var(--st-ws-module-background-color, linear-gradient(180deg, #090b0d, #0d1116 40%, #0b0e12));
   --yai-tabs-color-surface:               #1c1c1d;
   --yai-tabs-color-surface-alt:           #252526;
@@ -65,9 +70,9 @@
   /* Brand / semantic palette */
   --yai-tabs-color-primary:               #1570d2;
   --yai-tabs-color-primary-contrast:      #ffffff;
-  --yai-tabs-color-secondary:             #00d1b2;
+  --yai-tabs-color-secondary:             rgb(5 255 218);
   --yai-tabs-color-secondary-contrast:    #191717;
-  --yai-tabs-color-accent:                #00d1b2;
+  --yai-tabs-color-accent:                #53ffc4;
   --yai-tabs-color-accent-contrast:       #151414;
   --yai-tabs-color-success:               #43d164;
   --yai-tabs-color-success-contrast:      #141212;
@@ -82,7 +87,7 @@
   --yai-tabs-shadow-accent:               rgba(2, 255, 178, 0.5);
 
   /* Interactive */
-  --yai-tabs-color-focus:                 #00d1b2;
+  --yai-tabs-color-focus:                 #53ffc4;
   --yai-tabs-color-focus-ring:            rgba(2, 255, 178, 0.3);
   --yai-loader-color:                     var(--yai-tabs-color-accent);
 
@@ -93,7 +98,7 @@
   --yai-tabs-shadow-medium:               0 4px 8px 1px var(--yai-tabs-shadow-medium-color);
 
   /* Nav component defaults — overridden by [data-app] in next.css */
-  --yai-tabs-nav-background:              #1e293b;
+  --yai-tabs-nav-background:              #212222;
   --yai-tabs-nav-button-color:            var(--yai-tabs-color-text-muted);
   --yai-tabs-nav-button-background:       transparent;
   --yai-tabs-nav-button-hover-color:      var(--yai-tabs-color-text);
@@ -118,7 +123,7 @@
   --st-font-family: -apple-system, BlinkMacSystemFont, "Ubuntu", "Segoe UI", "Roboto", "Oxygen", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", "Helvetica", Arial, sans-serif;
   --st-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --st-content-font-size: 14px;
-  --st-content-line-height: 1.6;
+  --st-content-line-height: 1.5;
   --st-content-title-font-size: 14px;
   --st-content-muted-font-size: 14px;
   --st-content-control-font-size: 14px;
@@ -183,11 +188,16 @@
   --st-modal-close-color: rgba(175, 175, 175, 1);
   --st-modal-close-color-hover: rgba(250, 250, 250, 1);
 
-  --st-widget-border: rgba(255, 255, 255, 0.10);
-  --st-widget-bg: rgba(10, 10, 10, 0.60);
+  --st-widget-shadow: rgb(0 0 0 / 0.22);
+  --st-widget-bg: rgba(0, 0, 0, 0.188);
   --st-widget-backdrop-blur: 14px;
   --st-widget-text: var(--yai-tabs-color-text);
   --st-widget-text-muted: var(--yai-tabs-color-text-muted);
+  --st-weather-widget-theme-bg: var(--st-widget-bg);
+  --st-weather-widget-theme-shadow: var(--st-widget-shadow);
+  --st-weather-widget-theme-location-color: #d4d1d1;
+  --st-weather-widget-theme-temp-color: #d4d1d1;
+  --st-weather-widget-theme-muted-color: var(--st-widget-text-muted);
   --st-widget-button-bg: rgba(255, 255, 255, 0.06);
   --st-widget-button-bg-hover: rgba(255, 255, 255, 0.12);
   --st-widget-button-text: var(--yai-tabs-color-text);
@@ -205,7 +215,7 @@
 
   --st-page-grid-max-width: 1500px;
   --st-page-grid-padding: 1rem .5rem;
-  --st-page-grid-row-gap: 10rem;
+  --st-page-grid-row-gap: 20px;
   --st-page-grid-col-gap: 20px;
   --st-module-content-gap: 4px;
   --st-app-header-height: 44px;
@@ -323,6 +333,140 @@
   --st-small-opacity: 0.85;
 }
 
+/*
+  Light preset
+*/
+html.light {
+  /* --- 1. Base Workspace Elevation --- */
+  --st-ws-shell-header-background-color: rgba(255, 255, 255, 0.75);
+  --st-ws-shell-header-text-color: #a6a9ae;
+  /* Slate 900 */
+
+  /* Perfekt austarierte, semitransparente Nav-Pills für das helle Dashboard */
+  --st-ws-shell-nav-background-color: rgba(148, 163, 184, 0.08);
+  /* Slate 400 mit geringer Opazität */
+  --st-ws-shell-nav-text-color: #475569;
+  /* Slate 600 */
+  --st-ws-shell-nav-hover-background-color: rgba(255, 255, 255, 0.95);
+  --st-ws-shell-nav-active-background-color: #ffffff;
+  --st-ws-shell-nav-active-text-color: #0f172a;
+  /* Slate 900 */
+
+  /* Ein edles, weiches Slate-Grau als Fundament - eliminiert das dreckige Grau-Feeling */
+  --st-ws-module-background-color: #eeeeeed9;
+  /* Slate 100 */
+  --st-ws-module-text-color: #1e293b;
+  /* Slate 800 */
+
+  /* Weiche, blaustichige Umgebungs-Schatten statt harten grauen Flecken */
+  --st-ws-module-shadow-color: rgb(35 34 34 / 30%);
+
+  /* --- 2. Element Surfaces --- */
+  /* Bookmarks bekommen mehr Leuchtkraft und heben sich edel ab */
+  --st-module-bookmark-preview-background-color: #ffffff;
+  --st-module-bookmark-preview-hover-background-color: #ffffff;
+  --st-module-bookmark-preview-text-color: #334155;
+  /* Slate 700 */
+
+  --st-widget-bg: #ffffff;
+  --st-widget-text: #292f3a;
+  --st-widget-text-muted: #64748b;
+  --st-widget-shadow: rgb(15 15 15 / 20%);
+
+  --st-clock-widget-theme-bg: var(--st-widget-bg);
+  --st-clock-widget-theme-shadow: var(--st-widget-shadow);
+  --st-clock-widget-theme-dial-color: #94a3b8;
+  --st-clock-widget-theme-date-color: var(--st-widget-text-muted);
+  --st-clock-widget-theme-time-color: #38414dd4;
+
+  --st-weather-widget-theme-bg: var(--st-widget-bg);
+  --st-weather-widget-theme-shadow: var(--st-widget-shadow);
+  --st-weather-widget-theme-location-color: #38414dd4;
+  --st-weather-widget-theme-temp-color: #38414dd4;
+  --st-weather-widget-theme-muted-color: var(--st-widget-text-muted);
+
+  /* Notes: Weiche, matte Oberflächen */
+  --st-notes-preview-content-bg: #ffffff;
+  --st-notes-preview-content-color: var(--st-widget-text);
+  --st-notes-open-content-bg: #ffffff;
+  --st-notes-open-content-color: var(--st-widget-text);
+  --st-notes-open-link-color: #2e6aec;
+  /* Ein lebendiges, hoch-kontrastreiches Blau (Slate-Link-Blue) */
+
+  /* --- 3. YaiTabs Core Overrides (Light) --- */
+  --yai-tabs-color-text: #2c3440;
+  --yai-tabs-color-text-muted: #afb3ba;
+  /* Slate 500 */
+
+  /* Matte Verläufe für die Tab-Container, um die Schachtelung plastisch zu trennen */
+  --yai-tabs-color-background: linear-gradient(180deg, #f8fafc, #f1f5f9 60%, #e2e8f0);
+  --yai-tabs-color-surface: #ffffff;
+  --yai-tabs-color-surface-alt: #f1f5f9;
+
+  /* Inaktive Tabs verblassen weich in den Hintergrund */
+  --yai-tabs-content-inactive-background: rgba(248, 250, 252, 0.85);
+  --yai-tabs-content-inactive-color-muted: #64748b;
+
+  /* Strahlender, feiner Akzent-Schatten */
+  --yai-tabs-shadow-accent: rgba(37, 99, 235, 0.14);
+
+  --yai-tabs-color-focus: #2563eb;
+  --yai-tabs-color-focus-ring: rgba(37, 99, 235, 0.15);
+
+  /* Komplett neu definierte Schatten-Tiefen für plastische Abgrenzung */
+  --yai-tabs-shadow-subtle-color: rgba(15, 23, 42, 0.04);
+  --yai-tabs-shadow-medium-color: rgba(15, 23, 42, 0.08);
+
+  /* --- 4. Brand & Semantic Palette (Optimierte Lesbarkeit auf hellen Flächen) --- */
+  --yai-tabs-color-primary: #2563eb;
+  /* --yai-tabs-color-secondary: #0f766e; */
+  --yai-tabs-color-accent: #3b82f6;
+  --yai-tabs-color-danger: #dc2626;
+
+  --st-color-text: #e5e5e5;
+  --st-dropdown-trigger-button-color: #858688;
+  --st-dropdown-trigger-button-background-color: rgb(255 255 255 / 0.72);
+  --st-dropdown-trigger-button-color-active: #0f172a;
+  --st-dropdown-trigger-button-background-color-active: rgb(255 255 255 / 0.94);
+  --st-tabs-trigger-tab-border-color: rgba(25, 25, 25, 0.1);
+
+  --yai-tabs-shadow-nav-top: 0 1px 6px 1px;
+  /* --yai-tabs-shadow-nav-bottom: 0 0 0 0; */
+  /* --yai-tabs-shadow-nav-left: 0 0 0 0; */
+  /* --yai-tabs-shadow-nav-right: 0 0 0 0; */
+
+  [data-color-accent="primary"] { --yai-tabs-shadow-accent: rgba(49, 96, 199, .4); }
+  [data-color-accent="secondary"] { --yai-tabs-shadow-accent: rgba(76, 185, 190, 0.516); }
+  [data-color-accent="success"] { --yai-tabs-shadow-accent: rgba(24, 195, 138, 0.46); }
+  [data-color-accent="warning"] { --yai-tabs-shadow-accent: rgba(245, 159, 11, 0.6); }
+  [data-color-accent="danger"] { --yai-tabs-shadow-accent: rgba(239, 68, 68, 0.6); }
+  [data-color-accent="dark"] {
+    --yai-tabs-shadow-accent: rgba(161, 158, 160, 0.45);
+  }
+  [data-color-accent="light"] {
+    --yai-tabs-shadow-accent: rgba(181, 207, 230, 0.649);
+    > [data-controller] {
+      --yai-tabs-nav-button-active-color: var(--yai-tabs-color-light-contrast);
+      --yai-tabs-nav-button-active-background: var(--yai-tabs-color-light);
+    }
+  }
+
+  .st-trigger-tab {
+    border: 1px solid rgba(25, 25, 25, 0.1);
+  }
+  .st-weather-widget-refresh {
+    background: var(--yai-tabs-color-light);
+    color: var(--yai-tabs-color-light-contrast);
+  }
+  [data-module-card] {
+    select, select option {
+      background-color: var(--st-color-light);
+      border: 1px solid var(--st-feed-item-button-border);
+      color: var(--st-feed-item-button-text);
+    }
+  }
+}
+
 [data-app] {
   --yai-tabs-nav-background: var(--st-ws-shell-header-background-color, rgba(0, 0, 0, 0.40));
   --yai-tabs-nav-button-color: var(--st-ws-shell-nav-text-color, var(--yai-tabs-color-text-muted));
@@ -333,9 +477,6 @@
   --yai-tabs-nav-button-hover-background: var(--st-ws-shell-nav-hover-background-color, rgba(44, 42, 42, 0.75));
   --yai-tabs-nav-border-bottom: rgba(255, 255, 255, 0.07);
   --yai-tabs-nav-box-shadow: rgba(255, 255, 255, 0.07);
-
-  background: var(--yai-tabs-color-background);
-  color: var(--yai-tabs-color-text);
 }
 
 /*
@@ -351,29 +492,33 @@
 
   [data-theme="default"],
   [data-theme="light"] {
-    /* 1. Wrapper */
+    /* --- 1. Window Canvas & Frame --- */
     --st-note-tabs-bg: #ffffff;
-    --st-note-tabs-color: #252525;
-    /* 2. Border color */
-    --st-border-color: #d9d2d2aa;
-    /* 3. Tab component Header & Footer */
-    --st-note-tabs-main-header-bg: #f3f3f3d4;
-    --st-note-tabs-main-footer-bg: #f3f3f3d4;
-    /* 4. Navigation */
-    --st-note-tabs-header-bg: #dfdfdf5c;
-    /* 5. Navigation Buttons */
-    --st-note-tabs-nav-button-bg: #e8e5e599;
-    --st-note-tabs-nav-button-hover-bg: #dddadaf8;
+    --st-note-tabs-color: #1e293b;
+    /* Slate 800 */
+    /* Feinere, weniger aufdringliche Trennlinie (Slate 200 mit Transluzenz) */
+    --st-border-color: rgba(226, 232, 240, 0.8);
+    /* Matte, weich strukturierte Header-Flächen */
+    --st-note-tabs-main-header-bg: rgba(248, 250, 252, 0.9);
+    --st-note-tabs-main-footer-bg: rgba(248, 250, 252, 0.9);
+    /* --- 2. Window Navigation UI --- */
+    --st-note-tabs-header-bg: rgba(241, 245, 249, 0.6);
+    /* Pill-Style Buttons in den Notes */
+    --st-note-tabs-nav-button-bg: rgba(148, 163, 184, 0.08);
+    --st-note-tabs-nav-button-hover-bg: rgba(148, 163, 184, 0.14);
     --st-note-tabs-nav-button-active-bg: #ffffff;
-    /* 6. Navigation Buttons Contrasts */
-    --st-note-tabs-nav-button-color: #333;
-    --st-note-tabs-nav-button-hover-color: #111;
-    --st-note-window-content-background-color: #dcdcdc;
-    --st-note-window-content-text-color: #262626;
-    --st-note-window-accent-color: #262626a2;
-    --st-notes-open-link-color: rgb(13, 92, 220);
+    --st-note-tabs-nav-button-color: #475569;
+    /* Slate 600 */
+    --st-note-tabs-nav-button-hover-color: #0f172a;
+    /* Slate 900 */
+    /* --- 3. Internal Content Area of Floating Windows --- */
+    --st-note-window-content-background-color: #f8fafc;
+    /* Sehr edles, fast weißes Slate */
+    --st-note-window-content-text-color: #334155;
+    --st-note-window-accent-color: #64748b;
+    /* Slate 500 für Icons/Muted Texts */
+    --st-notes-open-link-color: #2563eb;
   }
-
   [data-theme="dark"] {
     --st-note-tabs-bg: #1e1e1e;
     --st-note-tabs-color: #f5f5f5;
@@ -393,7 +538,6 @@
     --st-notes-open-link-color: rgba(87, 151, 255, 1);
   }
 }
-
 
 @media (min-width: 900px) {
   :root {

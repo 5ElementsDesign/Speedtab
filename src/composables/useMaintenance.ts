@@ -241,110 +241,57 @@ export async function cleanupOrphans(
 ): Promise<CleanupReport> {
   const report = emptyReport()
   const removeUnusedAssets = options.removeUnusedAssets === true
+  const candidates = await getCleanupCandidates(database)
 
-  await database.transaction(
-    'rw',
-    [
-      database.pages, database.modules, database.collections, database.tabs,
-      database.notes, database.feed_sources, database.feed_items, database.saved_feed_items, database.assets, database.app_settings,
-    ],
-    async () => {
-      const pageIds = new Set((await database.pages.toCollection().primaryKeys()) as number[])
+  for (const module of candidates.modules) {
+    if (module.id == null) continue
+    await deleteModuleTree(module.id, database)
+  }
+  report.removedModules = candidates.modules.length
 
-      const orphanModuleIds = (await database.modules.toArray())
-        .filter(module => !pageIds.has(module.page_id))
-        .map(module => module.id!)
-      if (orphanModuleIds.length) {
-        await database.modules.bulkDelete(orphanModuleIds)
-        report.removedModules = orphanModuleIds.length
-      }
+  for (const collection of candidates.collections) {
+    if (collection.id == null) continue
+    await deleteCollectionTree(collection.id, database)
+  }
+  report.removedCollections = candidates.collections.length
 
-      const moduleIds = new Set((await database.modules.toCollection().primaryKeys()) as number[])
+  const freshCandidates = await getCleanupCandidates(database)
 
-      const orphanCollectionIds = (await database.collections.toArray())
-        .filter(collection => !moduleIds.has(collection.module_id))
-        .map(collection => collection.id!)
-      if (orphanCollectionIds.length) {
-        await database.collections.bulkDelete(orphanCollectionIds)
-        report.removedCollections = orphanCollectionIds.length
-      }
+  if (freshCandidates.tabs.length) {
+    await database.tabs.bulkDelete(freshCandidates.tabs.map((row) => row.id!).filter(Boolean))
+    report.removedTabs = freshCandidates.tabs.length
+  }
 
-      const collectionIds = new Set((await database.collections.toCollection().primaryKeys()) as number[])
+  if (freshCandidates.notes.length) {
+    await database.notes.bulkDelete(freshCandidates.notes.map((row) => row.id!).filter(Boolean))
+    report.removedNotes = freshCandidates.notes.length
+  }
 
-      const orphanTabIds = (await database.tabs.toArray())
-        .filter(tab => !collectionIds.has(tab.collection_id))
-        .map(tab => tab.id!)
-      if (orphanTabIds.length) {
-        await database.tabs.bulkDelete(orphanTabIds)
-        report.removedTabs = orphanTabIds.length
-      }
+  if (freshCandidates.feedSources.length) {
+    for (const source of freshCandidates.feedSources) {
+      if (source.id == null) continue
+      await database.feed_items.where('feed_source_id').equals(source.id).delete()
+      await database.feed_sources.delete(source.id)
+    }
+    report.removedFeedSources = freshCandidates.feedSources.length
+  }
 
-      const orphanNoteIds = (await database.notes.toArray())
-        .filter(note => !collectionIds.has(note.collection_id))
-        .map(note => note.id!)
-      if (orphanNoteIds.length) {
-        await database.notes.bulkDelete(orphanNoteIds)
-        report.removedNotes = orphanNoteIds.length
-      }
+  const finalCandidates = await getCleanupCandidates(database)
 
-      const orphanSourceIds = (await database.feed_sources.toArray())
-        .filter(source => !collectionIds.has(source.collection_id))
-        .map(source => source.id!)
-      if (orphanSourceIds.length) {
-        await database.feed_sources.bulkDelete(orphanSourceIds)
-        report.removedFeedSources = orphanSourceIds.length
-      }
+  if (finalCandidates.feedItems.length) {
+    await database.feed_items.bulkDelete(finalCandidates.feedItems.map((row) => row.id!).filter(Boolean))
+    report.removedFeedItems = finalCandidates.feedItems.length
+  }
 
-      const sourceIds = new Set((await database.feed_sources.toCollection().primaryKeys()) as number[])
+  if (finalCandidates.savedFeedItems.length) {
+    await database.saved_feed_items.bulkDelete(finalCandidates.savedFeedItems.map((row) => row.id!).filter(Boolean))
+    report.removedSavedFeedItems = finalCandidates.savedFeedItems.length
+  }
 
-      const orphanFeedItemIds = (await database.feed_items.toArray())
-        .filter(item => !sourceIds.has(item.feed_source_id))
-        .map(item => item.id!)
-      if (orphanFeedItemIds.length) {
-        await database.feed_items.bulkDelete(orphanFeedItemIds)
-        report.removedFeedItems = orphanFeedItemIds.length
-      }
-
-      const orphanSavedFeedItemIds = (await database.saved_feed_items.toArray())
-        .filter(item => !collectionIds.has(item.collection_id))
-        .map(item => item.id!)
-      if (orphanSavedFeedItemIds.length) {
-        await database.saved_feed_items.bulkDelete(orphanSavedFeedItemIds)
-        report.removedSavedFeedItems = orphanSavedFeedItemIds.length
-      }
-
-      const currentTabs = await database.tabs.toArray()
-      const currentNotes = await database.notes.toArray()
-      const currentFeedSources = await database.feed_sources.toArray()
-      const currentFeedItems = await database.feed_items.toArray()
-      const currentAssets = await database.assets.toArray()
-      const referencedAssetIds = collectReferencedFaviconAssetIds(currentAssets, currentTabs, currentNotes, currentFeedSources, currentFeedItems)
-      for (const note of await database.notes.toArray()) {
-        if (note.type !== 'html') continue
-        for (const assetId of extractNoteImageAssetIds(note.content)) {
-          referencedAssetIds.add(assetId)
-        }
-      }
-      for (const page of await database.pages.toArray()) {
-        const pageBackgroundAssetId = getPageBackgroundAssetId(page.config_json)
-        if (pageBackgroundAssetId != null) referencedAssetIds.add(pageBackgroundAssetId)
-      }
-      for (const setting of await database.app_settings.toArray()) {
-        const appBackgroundAssetId = getAppBackgroundAssetId(setting.key, setting.value_json)
-        if (appBackgroundAssetId != null) referencedAssetIds.add(appBackgroundAssetId)
-      }
-
-      if (removeUnusedAssets) {
-        const orphanAssetIds = currentAssets
-          .filter(asset => asset.id != null && !referencedAssetIds.has(asset.id))
-          .map(asset => asset.id!)
-        if (orphanAssetIds.length) {
-          await database.assets.bulkDelete(orphanAssetIds)
-          report.removedAssets = orphanAssetIds.length
-        }
-      }
-    },
-  )
+  if (removeUnusedAssets && finalCandidates.unusedAssets.length) {
+    await database.assets.bulkDelete(finalCandidates.unusedAssets.map((asset) => asset.id!).filter(Boolean))
+    report.removedAssets = finalCandidates.unusedAssets.length
+  }
 
   return report
 }

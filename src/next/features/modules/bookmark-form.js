@@ -240,32 +240,32 @@ function renderPreviewSelection(state) {
     `
   }
 
-  const groups = [
+  const assetGroups = [
     {kind: 'preview', label: t('tabForm.assetGroups.preview')},
     {kind: 'background', label: t('tabForm.assetGroups.background')},
     {kind: 'note_image', label: t('tabForm.assetGroups.noteImage')},
   ]
 
   const picker = state.isPreviewPickerOpen
-    ? `<div data-bookmark-form-picker>${groups.map((group) => {
-        const items = state.reusableAssets.filter((asset) => asset.kind === group.kind)
-        if (!items.length) return ''
-        return `
-          <section data-bookmark-form-picker-section>
-            <h4 data-bookmark-form-picker-title>${escapeHtml(group.label)}</h4>
-            <div data-bookmark-form-preview-grid>
-              ${items.map((asset) => `
-                <button type="button" data-click="bookmarkFormSelectPreviewAsset" data-asset-id="${escapeHtml(String(asset.id))}" data-bookmark-preview-tile>
-                  <img src="${escapeHtml(asset.objectUrl)}" alt="${escapeHtml(group.label)}">
-                </button>
-              `).join('')}
-            </div>
-          </section>
-        `
-      }).join('')}
-      <section data-bookmark-form-picker-section data-bookmark-form-picker-actions>
-        <button type="button" data-click="bookmarkFormTogglePreviewPicker" data-bookmark-form-picker-btn>${escapeHtml(t('common.close'))}</button>
-      </section></div>`
+    ? `<div data-bookmark-form-picker>${assetGroups.map((group) => {
+      const items = state.reusableAssets.filter((asset) => asset.kind === group.kind)
+      if (!items.length) return ''
+      return `
+        <section data-bookmark-form-picker-section>
+          <h4 data-bookmark-form-picker-title>${escapeHtml(group.label)}</h4>
+          <div data-bookmark-form-preview-grid>
+            ${items.map((asset) => `
+              <button type="button" data-click="bookmarkFormSelectPreviewAsset" data-asset-id="${escapeHtml(String(asset.id))}" data-bookmark-preview-tile>
+                <img src="${escapeHtml(asset.objectUrl)}" alt="${escapeHtml(group.label)}">
+              </button>
+            `).join('')}
+          </div>
+        </section>
+      `
+    }).join('')}
+    <section data-bookmark-form-picker-section data-bookmark-form-picker-actions>
+      <button type="button" data-click="bookmarkFormTogglePreviewPicker" data-bookmark-form-picker-btn>${escapeHtml(t('common.close'))}</button>
+    </section></div>`
     : ''
 
   return `
@@ -381,6 +381,10 @@ export async function afterBookmarkFormRender(body) {
   await afterBookmarkFormRenderWithOptions(body)
 }
 
+function getOpenBookmarkFormBody() {
+  return document.querySelector('[data-sidepanel][data-sidepanel-open] [data-module-crud-form][data-entity-type="bookmark"]')?.closest?.('[data-sidepanel-body]') ?? null
+}
+
 async function afterBookmarkFormRenderWithOptions(body, {autoFocus = true} = {}) {
   if (!bookmarkFormState || !body) return
   initFavicons(body)
@@ -406,10 +410,12 @@ async function afterBookmarkFormRenderWithOptions(body, {autoFocus = true} = {})
   })
 }
 
-export async function rerenderBookmarkForm(body) {
+export async function rerenderBookmarkForm(body, options = {}) {
   if (!bookmarkFormState || !body) return
   await hydrateSelectedUrls(bookmarkFormState)
-  await hydrateAssetLibrary(bookmarkFormState)
+  if (options.includeAssetLibrary !== false) {
+    await hydrateAssetLibrary(bookmarkFormState)
+  }
   const currentForm = body.matches?.('[data-module-crud-form]') ? body : body.querySelector?.('[data-module-crud-form]')
   const activeState = readActiveFieldState()
 
@@ -427,14 +433,16 @@ export async function rerenderBookmarkForm(body) {
   }
 }
 
-export async function patchBookmarkForm(body) {
+export async function patchBookmarkForm(body, options = {}) {
   if (!bookmarkFormState || !body) return
   await hydrateSelectedUrls(bookmarkFormState)
-  await hydrateAssetLibrary(bookmarkFormState)
+  if (options.includeAssetLibrary !== false) {
+    await hydrateAssetLibrary(bookmarkFormState)
+  }
 
   const form = body.matches?.('[data-module-crud-form]') ? body : body.querySelector?.('[data-module-crud-form]')
   if (!(form instanceof HTMLFormElement)) {
-    await rerenderBookmarkForm(body)
+    await rerenderBookmarkForm(body, options)
     return
   }
 
@@ -482,6 +490,26 @@ export async function patchBookmarkForm(body) {
   restoreActiveFieldState(form, activeState)
 }
 
+async function patchBookmarkFaviconField(body) {
+  if (!bookmarkFormState || !body) return
+  await hydrateSelectedUrls(bookmarkFormState)
+  const form = body.matches?.('[data-module-crud-form]') ? body : body.querySelector?.('[data-module-crud-form]')
+  if (!(form instanceof HTMLFormElement)) return
+
+  const faviconToken = form.querySelector('[name="favicon-state-token"]')
+  if (faviconToken instanceof HTMLInputElement) {
+    faviconToken.value = buildBookmarkFaviconStateToken(bookmarkFormState)
+  }
+
+  const faviconWrap = form.querySelector('[data-bookmark-form-favicon-wrap]')
+  if (faviconWrap instanceof HTMLElement) {
+    patchHost(faviconWrap, renderFaviconField(bookmarkFormState))
+    initFavicons(faviconWrap)
+  }
+
+  initFormDirtyState(body, {useExistingBaseline: true})
+}
+
 async function fetchUrlMetaDirect(url) {
   const response = await fetch(url, {redirect: 'follow'})
   if (!response.ok) return {ok: false, error: `HTTP ${response.status}: ${response.statusText}`}
@@ -519,21 +547,9 @@ export async function testBookmarkUrl() {
   state.isTesting = true
   try {
     const backgroundResponse = await chrome.runtime.sendMessage({type: 'FETCH_URL_META', url: normalizedUrl})
-    let response = backgroundResponse && typeof backgroundResponse.ok === 'boolean'
+    const response = backgroundResponse && typeof backgroundResponse.ok === 'boolean'
       ? backgroundResponse
       : await fetchUrlMetaDirect(normalizedUrl)
-
-    if (response.ok && (!response.title || !response.description)) {
-      const fallbackResponse = await fetchUrlMetaDirect(normalizedUrl)
-      if (fallbackResponse.ok) {
-        response = {
-          ...response,
-          title: response.title || fallbackResponse.title || null,
-          description: response.description || fallbackResponse.description || null,
-          finalUrl: response.finalUrl || fallbackResponse.finalUrl || normalizedUrl,
-        }
-      }
-    }
 
     if (!response.ok) throw new Error(response.error || t('tabForm.statuses.failedToReach'))
 
@@ -544,11 +560,21 @@ export async function testBookmarkUrl() {
     if (!state.description.trim() && response.description) {
       state.description = response.description
     }
-    state.selectedFaviconAssetId = await ensureFaviconAssetIdForUrl(normalizedUrl)
     state.hasUnlockedFaviconPicker = true
     state.testSuccess = true
     state.lastTestedUrl = normalizedUrl
-    await hydrateSelectedUrls(state)
+    const pendingUrl = normalizedUrl
+    void (async () => {
+      try {
+        const faviconAssetId = await ensureFaviconAssetIdForUrl(pendingUrl)
+        if (!bookmarkFormState || bookmarkFormState.url !== pendingUrl) return
+        bookmarkFormState.selectedFaviconAssetId = faviconAssetId
+        const body = getOpenBookmarkFormBody()
+        if (body) await patchBookmarkFaviconField(body)
+      } catch {
+        // Keep the successful URL-test state even when favicon resolution fails.
+      }
+    })()
   } catch (error) {
     state.testError = error instanceof Error ? error.message : t('tabForm.statuses.failedToTest')
   } finally {

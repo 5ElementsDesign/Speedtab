@@ -36,13 +36,6 @@
   color: #fff;
 }
 
-[data-capture-kind] {
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  opacity: 0.6;
-}
-
 [data-capture-title] {
   display: block;
   width: 100%;
@@ -65,6 +58,7 @@
   background: rgba(0, 0, 0, 0.18);
 }
 
+[data-capture-kind],
 [data-capture-preview-label] {
   font-size: 10px;
   letter-spacing: 0.14em;

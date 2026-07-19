@@ -124,8 +124,9 @@ const exampleWorkspaceDefinition = [
   data-auto-accessibility="false"
   data-closable="false">
   <header data-tabs-header>
-    <div data-header-content class="p-3">
-      <p class="m-0 last-p">Jede Tab-Komponente kann ihren eigenen Header haben. Immer oben sichtbar.</p>
+    <div data-header-content>
+      <h1 data-st-margin="0" data-st-padding="10px" data-st-font-size="16px" data-st-font-weight="500">
+        Jede Tab-Komponente kann ihren eigenen Header haben. Immer oben sichtbar.</h1>
     </div>
   </header>
   <nav data-controller>
@@ -267,11 +268,6 @@ const exampleWorkspaceDefinition = [
       </div>
     </div>
   </div>
-  <footer data-tabs-footer>
-    <div data-footer-content class="p-3">
-      <p class="m-0 last-p">Jede Tab-Komponente kann ihren eigenen Footer haben. Immer unten sichtbar.</p>
-    </div>
-  </footer>
 </div>
     `,
   },

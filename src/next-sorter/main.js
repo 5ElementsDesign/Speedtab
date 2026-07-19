@@ -1,8 +1,10 @@
-import {SPEEDTAB_SVG} from '../next/components/icons.js'
 import {YEH} from '../lib/yai/yeh.js'
-import {t, initI18n} from '../next/utils/i18n.js'
-import {applyWorkspaceBackground} from '../next/utils/workspace-background.js'
+import {SPEEDTAB_SVG} from '../next/components/icons.js'
 import '../next/styles/foundation.css'
+import {escapeHtml} from '../next/utils/html.js'
+import {loadAndApplyDocumentTheme} from '../next/utils/document-theme.js'
+import {initI18n, t} from '../next/utils/i18n.js'
+import {applyWorkspaceBackground} from '../next/utils/workspace-background.js'
 import {buildSorterState, loadModuleContentsForSorter, moveCollectionContent, moveModule, moveModuleTab, movePage, softDeleteCollectionContent, softDeleteModuleTabCascade, updateCollectionContentTitle, updateModuleColumnSpan, updateModuleTabTitle, updateModuleTitle} from './data.js'
 import {initSorterDnd} from './dnd.js'
 import {renderSorterApp} from './render.js'
@@ -10,16 +12,16 @@ import {
   appendOrphanSlot,
   clearContentSort,
   clearDragState,
-  clearTabSort,
   clearPageOrphanSlots,
+  clearTabSort,
   closeSorterEditor,
   createSorterState,
   isContentSortActive,
   isTabSortActive,
   openSorterEditor,
   removeOrphanSlot,
-  setSorterPages,
   setContentSortContents,
+  setSorterPages,
   setSorterStatus,
   toggleCollapsedPage,
   toggleContentSort,
@@ -208,6 +210,7 @@ async function refreshState() {
 }
 
 async function boot() {
+  await loadAndApplyDocumentTheme()
   await initI18n()
   await refreshState()
   setSorterStatus(state, t('sorter.ready'), 'idle')
@@ -590,6 +593,7 @@ async function boot() {
 boot().catch((error) => {
   const mount = getMount()
   if (!mount) return
+  const errorMessage = error instanceof Error ? error.message : error
   mount.innerHTML = `
     <div data-sorter-app>
       <header data-sorter-app-header>
@@ -598,7 +602,7 @@ boot().catch((error) => {
           <h1 data-sorter-app-title>Sorter</h1>
         </div>
       </header>
-      <p data-sorter-status data-tone="error">${String(error instanceof Error ? error.message : error)}</p>
+      <p data-sorter-status data-tone="error">${escapeHtml(String(errorMessage))}</p>
     </div>
   `
 })

@@ -112,6 +112,24 @@ export function createHandler(appActions = {}) {
       },
 
       handleKeydown(event) {
+        if (
+          !event.defaultPrevented
+          && !event.altKey
+          && !event.shiftKey
+          && !event.isComposing
+          && (event.ctrlKey || event.metaKey)
+          && event.key.toLowerCase() === 's'
+        ) {
+          const form = event.target instanceof HTMLElement
+            ? event.target.closest('form[data-submit]')
+            : null
+          if (form instanceof HTMLFormElement) {
+            event.preventDefault()
+            form.requestSubmit()
+            return
+          }
+        }
+
         if (event.key === 'Escape') {
           if (isDropdownOpen()) closeAll()
           if (isModalOpen()) closeModal()

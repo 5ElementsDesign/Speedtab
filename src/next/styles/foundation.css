@@ -5,3 +5,14 @@
 @import "./utility-layout.css";
 @import "./utility-style-api.css";
 @import "./utility-motion.css";
+
+:where(
+  a,
+  button,
+  [data-btn],
+  input:is([type="checkbox"], [type="radio"], [type="range"])
+):focus-visible,
+[data-focus-ring] {
+  outline: 2px solid var(--st-color-focus);
+  outline-offset: 2px;
+}

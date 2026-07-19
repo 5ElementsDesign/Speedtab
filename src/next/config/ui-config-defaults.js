@@ -54,7 +54,7 @@ export const UI_CONFIG_DEFAULTS = {
         'module-tabs-show-add-tile': true,
       },
       layout: {
-        'module-column-span': 12,
+        'module-column-span': 6,
         'module-min-height-px': null,
       },
       appearance: {},
@@ -71,7 +71,7 @@ export const UI_CONFIG_DEFAULTS = {
         'module-tabs-show-add-tile': true,
       },
       layout: {
-        'module-column-span': 12,
+        'module-column-span': 6,
         'module-min-height-px': null,
       },
       appearance: {},
@@ -85,7 +85,7 @@ export const UI_CONFIG_DEFAULTS = {
         'module-hide-header': false,
       },
       layout: {
-        'module-column-span': 12,
+        'module-column-span': 6,
         'module-min-height-px': null,
       },
       appearance: {},
