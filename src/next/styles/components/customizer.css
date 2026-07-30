@@ -650,6 +650,23 @@ form[data-submit]:invalid [data-form-save-btn] {
   }
 }
 
+[data-settings-footer] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.feedback-link {
+  display: inline-block;
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+  color: var(--st-link-color);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 [data-settings-inline-row] {
   display: flex;
   align-items: center;

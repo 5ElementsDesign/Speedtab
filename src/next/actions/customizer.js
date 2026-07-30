@@ -1,5 +1,4 @@
 import {closeSidepanel, getSidepanelState} from '../components/sidepanel.js'
-import {SPEEDTAB_SVG} from '../components/icons.js'
 import {getCachedAppSettings, saveAppSetting} from '../data/app-settings.js'
 import {getUiConfigSpec} from '../config/ui-config-spec.js'
 import {loadModuleBySyncId, saveModuleData, softDeleteModule} from '../data/modules.js'
@@ -37,7 +36,7 @@ function renderShellWallpaperToggleContent(isBackgroundRemoved) {
     : t('customizer.speedtabBackgroundShort')
   return {
     label,
-    html: `${SPEEDTAB_SVG.image} ${label}`,
+    html: `<i data-icon="image" aria-hidden="true"></i> ${label}`,
   }
 }
 

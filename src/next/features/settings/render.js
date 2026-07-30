@@ -1,8 +1,43 @@
-import {SPEEDTAB_SVG} from '../../components/icons.js'
 import {DEFAULT_CLOCK_DATE_FORMAT, DEFAULT_WIDGET_SETTINGS} from '../../../types/widgets.ts'
 import {customizerSection, section as renderSection} from '../../ui/primitives.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
+
+function getExtensionVersion() {
+  try {
+    return globalThis.chrome?.runtime?.getManifest?.().version ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export function renderSettingsFooter() {
+  const version = getExtensionVersion()
+  const feedbackHref = `mailto:5.smart.mailbot@gmail.com?subject=Speedtab%20Feedback%20v${encodeURIComponent(version)}&body=Hi!%20I%20have%20some%20feedback%20about%20Speedtab:%0A%0A`
+  return `
+    <div data-settings-footer>
+      <span>v${escapeHtml(version)}</span>
+      <button type="button" data-click="openFeedbackModal" class="feedback-link">Feedback &amp; Bugs</button>
+    </div>
+  `
+}
+
+export function renderFeedbackModal() {
+  const version = getExtensionVersion()
+  const subject = encodeURIComponent(`Speedtab Feedback v${version}`)
+  const body = encodeURIComponent('Hi! I have some feedback about Speedtab:\n\n')
+  return `
+    <p>${escapeHtml(t('settings.feedbackVersion', {version}))}</p>
+    <hr>
+    <p>${escapeHtml(t('settings.feedbackPrompt'))}</p>
+    <p>${escapeHtml(t('settings.feedbackFeaturePrompt'))}</p>
+    <hr>
+    <ul class="m-0">
+      <li><a href="mailto:5.smart.mailbot@gmail.com?subject=${subject}&amp;body=${body}" class="feedback-link">${escapeHtml(t('settings.feedbackEmail'))}</a></li>
+      <li><a href="https://github.com/5ElementsDesign/Speedtab/issues" target="_blank" rel="noopener noreferrer" class="feedback-link">${escapeHtml(t('settings.feedbackGithub'))}</a></li>
+    </ul>
+  `
+}
 
 function section(title, children) {
   return renderSection({title, children})
@@ -143,7 +178,7 @@ export function renderBgAssetThumbs(assets) {
           data-asset-id="${escapeHtml(String(asset.id))}"
           aria-label="${escapeHtml(t('common.delete'))}"
           data-bg-remove-btn
-        >${SPEEDTAB_SVG.x}</button>
+        ><i data-icon="x" aria-hidden="true"></i></button>
       </div>
     `
   }).join('')
@@ -564,7 +599,7 @@ export function renderBgArchiveSwatches(items) {
           aria-label="${escapeHtml(t('common.delete'))}"
           data-bg-remove-btn
           data-variant="archive"
-        >${SPEEDTAB_SVG.x}</button>
+        ><i data-icon="x" aria-hidden="true"></i></button>
     </div>
   `).join('')
 }

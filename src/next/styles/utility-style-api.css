@@ -260,9 +260,14 @@
   --st-c: attr(data-st-color type(<color>), inherit);
   color: var(--st-c) !important;
 }
+
+[data-st-bg] {
+  --st-bg: attr(data-st-bg type(<color>), transparent);
+  background: var(--st-bg) !important;
+}
 [data-st-bg-color] {
-  --st-bg: attr(data-st-bg-color type(<color>), transparent);
-  background-color: var(--st-bg) !important;
+  --st-bg-color: attr(data-st-bg-color type(<color>), transparent);
+  background-color: var(--st-bg-color) !important;
 }
 [data-st-bg-image] {
   background-image: attr(data-st-bg-image, none) !important;
@@ -320,9 +325,13 @@
 }
 [data-st-box-shadow-spread] {
   --st-bs-spread: attr(data-st-box-shadow-spread type(<length>), 0px);
-
   box-shadow:
-      var(--st-bs-type, outset) var(--st-bs-x, 0px) var(--st-bs-y, 0px) var(--st-bs-blur, 0px) var(--st-bs-spread, 0px) currentColor !important;
+      var(--st-bs-type, outset)
+      var(--st-bs-x, 0px)
+      var(--st-bs-y, 0px)
+      var(--st-bs-blur, 0px)
+      var(--st-bs-spread, 0px)
+      currentColor !important;
 }
 [data-st-box-shadow-type] {
   --st-bs-type: attr(data-st-box-shadow-type, outset);
@@ -365,3 +374,13 @@
 [data-st-display="block"] { display: block !important; }
 [data-st-display="inline-block"] { display: block !important; }
 [data-st-display="table"] { display: table !important; }
+
+@media (max-width: 900px) {
+  [data-st-grid],
+  [data-st-grid-template-columns] {
+    grid-template-columns: 1fr !important;
+  }
+  [data-st-display-flex-safe] {
+    flex-direction: column !important;
+  }
+}

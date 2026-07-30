@@ -70,7 +70,8 @@ export function createHandler(appActions = {}) {
           const originTrigger = target?.closest?.('[data-dropdown-panel]')
             ? getOpenDropdownTrigger()
             : null
-          if (isDropdownOpen()) closeAll()
+          const keepDropdownOpen = clickable.closest?.('[data-quick-setting-key]')
+          if (isDropdownOpen() && !keepDropdownOpen) closeAll()
           event.__dropdownTrigger = originTrigger
           const fn = appActions[action]
           if (typeof fn === 'function') fn(clickable, event)
@@ -83,7 +84,7 @@ export function createHandler(appActions = {}) {
           return
         }
 
-        if (isDropdownOpen() && !target.closest?.('[data-dropdown]')) closeAll()
+        if (isDropdownOpen() && !target.closest?.('[data-dropdown], [data-dropdown-panel]')) closeAll()
         if (isModalOpen() && target.closest?.('[data-modal-backdrop], [data-modal-close]')) closeModal()
         if (isSidepanelOpen() && target.closest?.('[data-sidepanel-close]')) closeSidepanel()
         if (isSearchOpen()) handleOutsideSearchClick(target)

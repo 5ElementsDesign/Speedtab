@@ -7,6 +7,7 @@ import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 import {extractDescription} from '../../utils/page-meta.js'
 import {initFormDirtyState, renderFormActions} from '../forms/actions.js'
+import {initColorPicker, wrapColorPicker} from '../../utils/color-picker.js'
 
 let bookmarkFormState = null
 let cropperInstance = null
@@ -70,6 +71,8 @@ function buildInitialState({record = null, moduleSyncId = '', parentId = '', par
     title: record?.title ?? '',
     url: record?.url ?? '',
     description: record?.description ?? '',
+    color: record?.color ?? '',
+    backgroundColor: record?.background_color ?? '',
     selectedFaviconAssetId: record?.favicon_asset_id ?? null,
     selectedPreviewAssetId: record?.preview_asset_id ?? null,
     selectedFaviconAssetUrl: null,
@@ -130,6 +133,50 @@ export function syncBookmarkFormStateFromForm(form) {
   bookmarkFormState.title = form.querySelector('[name="title"]')?.value ?? ''
   bookmarkFormState.url = form.querySelector('[name="url"]')?.value ?? ''
   bookmarkFormState.description = form.querySelector('[name="description"]')?.value ?? ''
+  bookmarkFormState.color = form.querySelector('[name="color"]')?.value ?? ''
+  bookmarkFormState.backgroundColor = form.querySelector('[name="background_color"]')?.value ?? ''
+}
+
+
+
+export async function fillBookmarkColorsFromFavicon() {
+  const state = bookmarkFormState
+  if (!state?.selectedFaviconAssetUrl || state.color || state.backgroundColor) return
+  const image = new Image()
+  image.src = state.selectedFaviconAssetUrl
+  await image.decode().catch(() => {})
+  if (!image.naturalWidth) return
+  const canvas = document.createElement('canvas')
+  canvas.width = 12
+  canvas.height = 12
+  const context = canvas.getContext('2d', {willReadFrequently: true})
+  if (!context) return
+  try {
+    context.drawImage(image, 0, 0, 12, 12)
+    const pixels = context.getImageData(0, 0, 12, 12).data
+    let red = 0; let green = 0; let blue = 0; let count = 0
+    for (let i = 0; i < pixels.length; i += 4) {
+      if (pixels[i + 3] < 32) continue
+      red += pixels[i]; green += pixels[i + 1]; blue += pixels[i + 2]; count++
+    }
+    if (!count) return
+    const r = Math.round(red / count).toString(16).padStart(2, '0')
+    const g = Math.round(green / count).toString(16).padStart(2, '0')
+    const b = Math.round(blue / count).toString(16).padStart(2, '0')
+    state.backgroundColor = `#${r}${g}${b}`
+    state.color = ((0.299 * red + 0.587 * green + 0.114 * blue) / count) > 150 ? '#111827' : '#ffffff'
+  } catch {
+    // Some image sources cannot be sampled by canvas.
+  }
+}
+
+export async function detectBookmarkColors() {
+  const state = bookmarkFormState
+  if (!state?.selectedFaviconAssetId && state?.url) {
+    state.selectedFaviconAssetId = await ensureFaviconAssetIdForUrl(state.url)
+  }
+  await hydrateSelectedUrls(state)
+  await fillBookmarkColorsFromFavicon()
 }
 
 function renderFaviconPreview(state) {
@@ -355,6 +402,36 @@ export function renderBookmarkCrudForm(state) {
 
       ${customizerDivider()}
 
+      <div data-customizer-section data-section="colors">
+        <div data-bookmark-color-header>
+          <p data-customizer-section-title>Tile Colors</p>
+          <button type="button" data-click="bookmarkDetectColors" data-btn="ghost">Detect</button>
+        </div>
+        <div data-bookmark-color-fields>
+          <div data-customizer-field data-customizer-field-type="color">
+            <span data-customizer-field-label>Text color</span>
+            <div data-color-pair-row>
+              <div data-color-item>
+                <input type="text" name="color" value="${escapeHtml(state.color)}" data-coloris data-input-immediate="bookmarkColorChange">
+                <button type="button" data-click="bookmarkClearColor" data-color-field="color" title="Reset" aria-label="Reset">&times;</button>
+              </div>
+            </div>
+          </div>
+          <div data-customizer-field data-customizer-field-type="color">
+            <span data-customizer-field-label>Background color</span>
+            <div data-color-pair-row>
+              <div data-color-item>
+                <input type="text" name="background_color" value="${escapeHtml(state.backgroundColor)}" data-coloris data-input-immediate="bookmarkColorChange">
+                <button type="button" data-click="bookmarkClearColor" data-color-field="background_color" title="Reset" aria-label="Reset">&times;</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      ${customizerDivider()}
+
       ${customizerSection({
         title: t('tabForm.previewImage'),
         section: 'preview',
@@ -388,6 +465,8 @@ function getOpenBookmarkFormBody() {
 async function afterBookmarkFormRenderWithOptions(body, {autoFocus = true} = {}) {
   if (!bookmarkFormState || !body) return
   initFavicons(body)
+  await initColorPicker()
+  wrapColorPicker(body)
   if (autoFocus && !bookmarkFormState.record) {
     const urlInput = body.querySelector('input[name="url"]')
     if (urlInput instanceof HTMLInputElement) {
@@ -462,6 +541,20 @@ export async function patchBookmarkForm(body, options = {}) {
   if (descriptionInputEl instanceof HTMLTextAreaElement && descriptionInputEl !== document.activeElement) {
     descriptionInputEl.value = bookmarkFormState.description
   }
+
+  const colorInputEl = form.querySelector('[name="color"]')
+  if (colorInputEl instanceof HTMLInputElement && colorInputEl !== document.activeElement) {
+    colorInputEl.value = bookmarkFormState.color
+    colorInputEl.closest('.clr-field')?.style.setProperty('color', bookmarkFormState.color)
+  }
+
+  const backgroundColorInputEl = form.querySelector('[name="background_color"]')
+  if (backgroundColorInputEl instanceof HTMLInputElement && backgroundColorInputEl !== document.activeElement) {
+    backgroundColorInputEl.value = bookmarkFormState.backgroundColor
+    backgroundColorInputEl.closest('.clr-field')?.style.setProperty('color', bookmarkFormState.backgroundColor)
+  }
+
+
 
   const previewToken = form.querySelector('[name="preview-state-token"]')
   if (previewToken instanceof HTMLInputElement) {
@@ -563,18 +656,20 @@ export async function testBookmarkUrl() {
     state.hasUnlockedFaviconPicker = true
     state.testSuccess = true
     state.lastTestedUrl = normalizedUrl
-    const pendingUrl = normalizedUrl
-    void (async () => {
-      try {
-        const faviconAssetId = await ensureFaviconAssetIdForUrl(pendingUrl)
-        if (!bookmarkFormState || bookmarkFormState.url !== pendingUrl) return
+    try {
+      const faviconAssetId = await ensureFaviconAssetIdForUrl(normalizedUrl)
+      if (bookmarkFormState && bookmarkFormState.url === normalizedUrl) {
         bookmarkFormState.selectedFaviconAssetId = faviconAssetId
         const body = getOpenBookmarkFormBody()
-        if (body) await patchBookmarkFaviconField(body)
-      } catch {
-        // Keep the successful URL-test state even when favicon resolution fails.
+        if (body) {
+          await patchBookmarkFaviconField(body)
+          await fillBookmarkColorsFromFavicon()
+          await patchBookmarkForm(body, {includeAssetLibrary: false})
+        }
       }
-    })()
+    } catch {
+      // Keep the successful URL-test state even when favicon resolution fails.
+    }
   } catch (error) {
     state.testError = error instanceof Error ? error.message : t('tabForm.statuses.failedToTest')
   } finally {
@@ -725,6 +820,8 @@ export async function buildBookmarkSavePayload(form) {
     title: displayTitle,
     url: state.url.trim(),
     description: state.description.trim() || null,
+    color: state.color.trim() || null,
+    background_color: state.backgroundColor.trim() || null,
     favicon_asset_id: faviconAssetId,
     preview_asset_id: previewAssetId,
   }

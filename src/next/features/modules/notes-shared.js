@@ -79,9 +79,10 @@ function stripTags(value = '') {
 
 function getCryptPayloadPreview(content = '') {
   try {
-    return parseCryptPayload(content).ciphertext ?? content
+    const payload = parseCryptPayload(content).ciphertext ?? content
+    return payload.length > 160 ? `${payload.slice(0, 160)}…` : payload
   } catch {
-    return content
+    return content.length > 160 ? `${content.slice(0, 160)}…` : content
   }
 }
 

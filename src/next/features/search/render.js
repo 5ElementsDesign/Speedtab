@@ -1,13 +1,8 @@
-import {SPEEDTAB_SVG} from '../../components/icons.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 
 function renderSearchIcon() {
-  return `
-    <svg data-svg-search aria-hidden="true" width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-      <path fill-rule="evenodd" d="M8.5 3a5.5 5.5 0 0 1 4.33 8.89l3.64 3.64a1 1 0 0 1-1.41 1.41l-3.64-3.64A5.5 5.5 0 1 1 8.5 3zm0 2a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z" clip-rule="evenodd"></path>
-    </svg>
-  `
+  return '<i data-icon="search" aria-hidden="true"></i>'
 }
 
 export function renderSearchChrome(state = {}) {
@@ -36,7 +31,7 @@ export function renderSearchChrome(state = {}) {
             data-search-dismiss
             title="${escapeHtml(t('common.close'))}"
             aria-label="${escapeHtml(t('common.close'))}"
-          >${SPEEDTAB_SVG.sidepanelClose}</button>
+          ><i data-icon="x" aria-hidden="true"></i></button>
         </div>
       ` : `
         <button

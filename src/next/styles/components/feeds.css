@@ -128,6 +128,7 @@
   }
   .st-module-feed-item-byline {
     color: var(--st-feed-item-body-copy);
+    font-size: 85%;
   }
   .st-module-feed-item-actions {
     padding-top: 15px;
@@ -135,6 +136,17 @@
     display: flex;
     align-items: center;
     gap: 4px;
+
+    .st-module-feed-item-action {
+      background-color: var(--st-feed-item-button-bg);
+      border: 1px solid var(--st-feed-item-button-border);
+      color: var(--st-feed-item-button-text);
+
+      &:hover,
+      &:focus-visible {
+        background-color: var(--st-feed-item-button-bg-hover);
+      }
+    }
   }
   .st-module-feed-item-open {
     background: var(--st-feed-item-open-bg);
@@ -465,6 +477,7 @@
   font-size: 0.8rem;
   border-radius: 4px;
   cursor: pointer;
+  line-height: 1cap;
 }
 
 .st-module-feed-toolbar-button:hover:not(:disabled) {
@@ -506,6 +519,10 @@
   &[data-expanded="true"] {
     .st-module-feed-item-icon {
         background: var(--st-feed-item-list-favicon-bg-active);
+    }
+
+    .st-module-feed-item-header {
+      background: var(--st-feed-item-open-header-bg);
     }
   }
   /* Read/Unread State Indicators via attributes */

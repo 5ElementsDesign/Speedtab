@@ -63,7 +63,7 @@ Some render entry points are deliberately marked with ALL-CAPS warnings in code.
 | `actions/` | Domain action maps — the functions behind `data-click="actionName"` |
 | `data/` | DB queries + hash/URL helpers, one file per record type (e.g. `pages.js`) |
 | `features/<name>/` | Render functions for a feature area (e.g. `features/pages/render.js`) |
-| `components/` | Reusable UI primitives that are *both* markup builders and behavior (e.g. `dropdown.js`, `modal.js`, `icons.js`) |
+| `components/` | Reusable UI primitives that are *both* markup builders and behavior (e.g. `dropdown.js`, `modal.js`) |
 | `utils/` | Small, pure, cross-cutting helpers with no DOM/app knowledge (`html.js`, `i18n.js`) |
 | `styles/` | `next.css` (tokens + resets + layout) and `components.css` (component rules), wired by `@import` |
 
@@ -140,7 +140,7 @@ is the reference:
 
   ```js
   buildDropdown({
-    trigger: SPEEDTAB_SVG.cog,
+    trigger: '<i data-icon="cog" aria-hidden="true"></i>',
     ariaLabel: 'Settings',
     triggerClass: 'st-app-header-action',
     items: [
@@ -181,8 +181,8 @@ there's nothing to embed in a page's static render output. Instead:
 - Call it from an action: `actions/settings.js`'s `openSettings` calls
   `openModal({title: 'App settings', content: '...'})`.
 
-Icons follow the same "centralize, don't inline" rule — see `components/icons.js`
-(`SPEEDTAB_SVG.cog`, `.chevron`). Add new icons there, not inline in a render file.
+Icons follow the same "centralize, don't inline" rule — see `styles/components/icons.css`
+(`data-icon="cog"`, `data-icon="chevron"`). Add new icons in `styles/components/icons.css`, not inline in a render file.
 
 ## Routing
 

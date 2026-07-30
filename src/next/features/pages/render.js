@@ -1,5 +1,4 @@
 import {buildDropdown} from '../../components/dropdown.js'
-import {SPEEDTAB_SVG} from '../../components/icons.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 import {renderLocalToolsDropdownTrigger} from '../local-tools/render.js'
@@ -71,7 +70,7 @@ function renderOverflowDropdown(overflowPages, activePage) {
     },
   }))
   return buildDropdown({
-    trigger: `${escapeHtml(t('nav.more'))} ${SPEEDTAB_SVG.chevron}`,
+    trigger: `${escapeHtml(t('nav.more'))} <i data-icon="chevron" aria-hidden="true"></i>`,
     ariaLabel: t('nav.morePages'),
     align: 'left',
     items,
@@ -140,7 +139,7 @@ export function renderRootShell({
         ${renderCaptureInboxButton(captureInboxCount)}
         ${renderSearchChrome()}
         ${buildDropdown({
-          trigger: `${escapeHtml(t('nav.pages'))} ${SPEEDTAB_SVG.chevron}`,
+    trigger: `${escapeHtml(t('nav.pages'))} <i data-icon="chevron" aria-hidden="true"></i>`,
           ariaLabel: t('nav.pageActions'),
           triggerClass: 'st-app-header-action',
           items: [
@@ -151,7 +150,7 @@ export function renderRootShell({
           ],
         })}
         ${buildDropdown({
-          trigger: SPEEDTAB_SVG.cog,
+    trigger: '<i data-icon="cog" aria-hidden="true"></i>',
           ariaLabel: t('common.settings'),
           triggerClass: 'st-app-header-action',
           items: [

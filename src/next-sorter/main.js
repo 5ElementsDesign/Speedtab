@@ -1,6 +1,6 @@
 import {YEH} from '../lib/yai/yeh.js'
-import {SPEEDTAB_SVG} from '../next/components/icons.js'
 import '../next/styles/foundation.css'
+import '../next/styles/components/icons.css'
 import {escapeHtml} from '../next/utils/html.js'
 import {loadAndApplyDocumentTheme} from '../next/utils/document-theme.js'
 import {initI18n, t} from '../next/utils/i18n.js'
@@ -201,7 +201,7 @@ function applyPageCollapseDom(pageSyncId) {
     button.setAttribute('aria-expanded', collapsed ? 'false' : 'true')
     button.title = collapsed ? t('sorter.showPageContent') : t('sorter.hidePageContent')
     button.replaceChildren(document.createTextNode(`${collapsed ? t('sorter.showContent') : t('sorter.hideContent')} `))
-    button.insertAdjacentHTML('beforeend', SPEEDTAB_SVG.chevron)
+    button.insertAdjacentHTML('beforeend', '<i data-icon="chevron" aria-hidden="true"></i>')
   }
 }
 

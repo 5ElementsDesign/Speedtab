@@ -1,4 +1,3 @@
-import {SPEEDTAB_SVG} from '../../components/icons.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 import {renderFormActions} from '../forms/actions.js'
@@ -182,7 +181,7 @@ export function renderModuleCreateForm(page) {
                     data-page-module-add-tab
                     title="${escapeHtml(t('moduleCard.addTab'))}"
                     aria-label="${escapeHtml(t('moduleCard.addTab'))}"
-                  >${SPEEDTAB_SVG.plus}</button>
+                  ><i data-icon="plus" aria-hidden="true"></i></button>
                 </div>
               </div>
             `,

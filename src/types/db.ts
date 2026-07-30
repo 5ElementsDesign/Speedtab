@@ -55,6 +55,8 @@ export interface Tab extends SyncMetadata {
   title:             string
   url:               string
   description:       string | null
+  color:            string | null
+  background_color: string | null
   favicon_asset_id:  number | null
   preview_asset_id:  number | null
   sort_order:        number

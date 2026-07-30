@@ -1,4 +1,3 @@
-import {SPEEDTAB_SVG} from '../components/icons.js'
 import {on} from '../app/dispatch.js'
 import {escapeHtml} from '../utils/html.js'
 import {t} from '../utils/i18n.js'
@@ -60,7 +59,7 @@ export function showToast({
       data-toast-id="${escapeHtml(id)}"
       title="${escapeHtml(t('common.close'))}"
       aria-label="${escapeHtml(t('common.close'))}"
-    >${SPEEDTAB_SVG.sidepanelClose}</button>
+    ><i data-icon="x" aria-hidden="true"></i></button>
   `
   host.appendChild(el)
 

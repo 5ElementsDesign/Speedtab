@@ -1,5 +1,4 @@
 import {getUiConfigSpec} from '../../config/ui-config-spec.js'
-import {SPEEDTAB_SVG} from '../../components/icons.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 import {renderBackgroundSettingsSection} from '../settings/render.js'
@@ -31,6 +30,7 @@ const FIELD_LABELS = {
   'shell-module-gap-px': 'customizer.fields.shellModuleGap',
   'shell-module-content-gap-px': 'customizer.fields.shellModuleContentGap',
   'module-column-span': 'customizer.fields.moduleColumnSpan',
+  'module-content-gap-px': 'customizer.fields.moduleContentGap',
   'module-min-height-px': 'customizer.fields.moduleMinHeight',
   '--st-ws-shell-header-background-color': 'customizer.fields.shellHeaderBackground',
   '--st-ws-shell-nav-background-color': 'customizer.fields.shellNavBackground',
@@ -678,7 +678,7 @@ function renderAppearanceLauncherSection(bgData = null) {
             data-click="setShellThemePreset"
             data-theme-value="dark"
             aria-pressed="${isDark ? 'true' : 'false'}"
-          >${SPEEDTAB_SVG.moon} ${escapeHtml(t('customizer.options.dark'))}</button>
+          ><i data-icon="moon" aria-hidden="true"></i> ${escapeHtml(t('customizer.options.dark'))}</button>
           <button
             type="button"
             class="st-btn"
@@ -686,7 +686,7 @@ function renderAppearanceLauncherSection(bgData = null) {
             data-click="setShellThemePreset"
             data-theme-value="light"
             aria-pressed="${isDark ? 'false' : 'true'}"
-          >${SPEEDTAB_SVG.sun} ${escapeHtml(t('customizer.options.light'))}</button>
+          ><i data-icon="sun" aria-hidden="true"></i> ${escapeHtml(t('customizer.options.light'))}</button>
           <button
             type="button"
             class="st-btn"

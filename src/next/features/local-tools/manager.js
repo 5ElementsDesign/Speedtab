@@ -773,10 +773,10 @@ function clampWindowState(windowState) {
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
   const maxWidth = parsed.type === 'note'
-    ? Math.max(MIN_WIDTH, viewportWidth - 80)
+    ? Math.max(MIN_WIDTH, viewportWidth)
     : Math.max(MIN_WIDTH, viewportWidth - 16)
   const maxHeight = parsed.type === 'note'
-    ? Math.max(minHeight, viewportHeight - 20)
+    ? Math.max(minHeight, viewportHeight)
     : Math.max(minHeight, viewportHeight - 16)
   const width = Math.max(MIN_WIDTH, Math.min(windowState.width, maxWidth))
   const height = Math.max(minHeight, Math.min(windowState.height, maxHeight))
@@ -1252,6 +1252,7 @@ export function openFloatingNote(noteId, options = {}) {
     }
     noteRecords.set(parsedNoteId, note)
     const defaultMetaWindow = getDefaultNoteWindowMeta(note)
+    const defaultWidth = note.type === 'crypt' ? 550 : 420
     const offset = isMobileNoteViewport() ? 0 : state.noteWindows.length * 20
     const nextZ = Math.max(state.zIndexTracker + 1, 221)
     state.zIndexTracker = nextZ
@@ -1264,7 +1265,7 @@ export function openFloatingNote(noteId, options = {}) {
         width: savedLayout?.width ?? (
           hasTransientWidth
             ? transientWidth
-            : (defaultMetaWindow.width ?? 420)
+            : (defaultMetaWindow.width ?? defaultWidth)
         ),
         height: savedLayout?.height ?? (
           hasTransientHeight
@@ -1273,7 +1274,7 @@ export function openFloatingNote(noteId, options = {}) {
         ),
         z: nextZ,
         autoHeight: !savedLayout && !hasTransientHeight && !defaultMetaWindow.height,
-        autoWidth: !savedLayout && !hasTransientWidth && !defaultMetaWindow.width,
+        autoWidth: note.type !== 'crypt' && !savedLayout && !hasTransientWidth && !defaultMetaWindow.width,
         transientInitialLayout: !savedLayout && (hasTransientWidth || hasTransientHeight || !!defaultMetaWindow.width || !!defaultMetaWindow.height),
       },
     ]
@@ -1312,6 +1313,7 @@ export async function resetFloatingNoteWindowLayout(noteId) {
   autoFitSingleNoteWindow(parsedNoteId)
   queueSave()
 }
+
 
 export function closeFloatingNote(noteId) {
   const parsedNoteId = parseInt(String(noteId), 10)

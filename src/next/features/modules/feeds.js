@@ -1,5 +1,4 @@
 import {sanitizeHtml} from '../../../composables/useSanitize.ts'
-import {SPEEDTAB_SVG} from '../../components/icons.js'
 import {getCachedAppSettings} from '../../data/app-settings.js'
 import {initFavicons} from '../../utils/favicon.js'
 import {escapeHtml} from '../../utils/html.js'
@@ -272,7 +271,7 @@ export function renderFeedFocusControls(moduleSyncId, collectionId, state) {
           data-feed-collection-id="${escapeHtml(String(collectionId))}"
           title="${escapeHtml(t('feeds.focusClose'))}"
           aria-label="${escapeHtml(t('feeds.focusClose'))}"
-        >${SPEEDTAB_SVG.sidepanelClose}</button>
+        ><i data-icon="x" aria-hidden="true"></i></button>
       ` : ''}
     </div>
   `
@@ -760,7 +759,7 @@ export function renderFeedCollection(collection, moduleSyncId, moduleConfig = {}
                     class="st-module-feed-source-edit"
                     aria-label="${escapeHtml(t('feeds.editSourceAria', {title: source.title}))}"
                     title="${escapeHtml(t('feeds.editSource'))}"
-                  >${SPEEDTAB_SVG.pencil}</button>
+                  ><i data-icon="pencil" aria-hidden="true"></i></button>
                 </div>
               `
             }).join('') : `<div class="st-module-feed-empty"><p class="st-module-feed-empty-text">${escapeHtml(t('feeds.noFeedsInModule'))}</p></div>`}

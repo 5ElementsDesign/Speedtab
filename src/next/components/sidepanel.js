@@ -1,4 +1,3 @@
-import {SPEEDTAB_SVG} from '../components/icons.js'
 import {escapeHtml} from '../utils/html.js'
 import {t} from '../utils/i18n.js'
 
@@ -22,23 +21,23 @@ function runCloseCallbacks(reason = 'close') {
   closeCallbacks.splice(0).forEach((fn) => fn(reason))
 }
 
-function buildSidepanel({title = '', meta = '', showBack = false, backAction = '', footer = ''} = {}) {
+function buildSidepanel({title = '', meta = '', showBack = false, backAction = '', footer = '', footerClass = ''} = {}) {
   const disabled = !showBack
   const backActionAttr = !disabled && backAction ? ` data-click="${escapeHtml(backAction)}"` : ''
   return `
     <div data-sidepanel-panel role="complementary" aria-label="${escapeHtml(title)}">
       <header data-sidepanel-header>
         <div class="inline-flex flex-align-center gap-0">
-          <button ${disabled ? 'disabled ' : ''}class="fix-top-1${disabled ? ' opacity-25' : ''}" type="button"${backActionAttr} data-sidepanel-back aria-label="${escapeHtml(t('common.back'))}">
-            ${SPEEDTAB_SVG.arrow}
+          <button ${disabled ? 'disabled ' : ''}class="fix-top-2${disabled ? ' opacity-25' : ''}" type="button"${backActionAttr} data-sidepanel-back aria-label="${escapeHtml(t('common.back'))}">
+            <i data-icon="arrow" aria-hidden="true" class="rotate-top-to-left"></i>
           </button>
           <h2 class="my-0" data-sidepanel-title>${escapeHtml(title)}</h2>
           ${meta ? `<span data-sidepanel-meta>${escapeHtml(meta)}</span>` : ''}
         </div>
-        <button type="button" data-sidepanel-close aria-label="${escapeHtml(t('common.close'))}">${SPEEDTAB_SVG.sidepanelClose}</button>
+        <button type="button" data-sidepanel-close aria-label="${escapeHtml(t('common.close'))}"><i data-icon="x" aria-hidden="true"></i></button>
       </header>
       <div data-sidepanel-body></div>
-      ${footer ? `<footer data-sidepanel-footer>${footer}</footer>` : ''}
+      ${footer ? `<footer data-sidepanel-footer${footerClass ? ` class="${escapeHtml(footerClass)}"` : ''}>${footer}</footer>` : ''}
     </div>
   `
 }
@@ -52,11 +51,11 @@ function ensureRoot() {
   return root
 }
 
-export function openSidepanel({title = '', meta = '', syncId = '', moduleType = '', panelKind = '', panelSize = '', showBack = false, backAction = '', footer = ''} = {}) {
+export function openSidepanel({title = '', meta = '', syncId = '', moduleType = '', panelKind = '', panelSize = '', showBack = false, backAction = '', footer = '', footerClass = ''} = {}) {
   const el = ensureRoot()
   // If already open, fire cleanup for the previous panel state (e.g. switching form → list)
   if (el.hasAttribute(OPEN)) runCloseCallbacks('replace')
-  el.innerHTML = buildSidepanel({title, meta, showBack, backAction, footer})
+  el.innerHTML = buildSidepanel({title, meta, showBack, backAction, footer, footerClass})
   el.dataset.syncId = syncId
   el.dataset.moduleType = moduleType
   el.dataset.panelKind = panelKind

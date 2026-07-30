@@ -12,7 +12,6 @@ import {searchActions} from '../actions/search.js'
 import {settingsActions} from '../actions/settings.js'
 import {workspaceActions} from '../actions/workspace.js'
 import {closeAll, closeDropdown} from '../components/dropdown.js'
-import {SPEEDTAB_SVG} from '../components/icons.js'
 import {dismissToast, initToastEvents} from '../components/toast.js'
 import {getCachedAppSettings, loadAppSettings} from '../data/app-settings.js'
 import {loadCaptureInboxCount} from '../data/capture-inbox.js'
@@ -23,6 +22,7 @@ import {applyModuleUiConfigMap, applyShellUiConfig} from '../features/customizer
 import {initCustomizerListeners} from '../features/customizer/panel.js'
 import {SHELL_SYNC_ID} from '../features/customizer/render.js'
 import {initializeLocalTools, refreshOpenNotePreviewState, refreshQuicknoteWindow} from '../features/local-tools/manager.js'
+import {installFlyingConfig, openFlyingConfig} from '../features/flying-config/index.js'
 import {adaptModule} from '../features/modules/registry.js'
 import {enrichModules} from '../features/modules/service.js'
 import {renderModuleCardBody, renderPageGrid} from '../features/pages/modules/render.js'
@@ -86,7 +86,7 @@ function renderEmptyStateThemeSelect(appSettings = null) {
           aria-pressed="${isBackgroundActive ? 'true' : 'false'}"
           title="${backgroundLabel}"
           aria-label="${backgroundLabel}"
-        >${SPEEDTAB_SVG.image} ${backgroundLabel}</button>
+        ><i data-icon="image" aria-hidden="true"></i> ${backgroundLabel}</button>
         <button
           type="button"
           class="st-btn"
@@ -94,7 +94,7 @@ function renderEmptyStateThemeSelect(appSettings = null) {
           data-click="setEmptyStateThemePreset"
           data-theme-value="dark"
           aria-pressed="${uiTheme === 'dark' ? 'true' : 'false'}"
-        >${SPEEDTAB_SVG.moon} ${t('customizer.options.dark')}</button>
+        ><i data-icon="moon" aria-hidden="true"></i> ${t('customizer.options.dark')}</button>
         <button
           type="button"
           class="st-btn"
@@ -102,7 +102,7 @@ function renderEmptyStateThemeSelect(appSettings = null) {
           data-click="setEmptyStateThemePreset"
           data-theme-value="light"
           aria-pressed="${uiTheme === 'light' ? 'true' : 'false'}"
-        >${SPEEDTAB_SVG.sun} ${t('customizer.options.light')}</button>
+        ><i data-icon="sun" aria-hidden="true"></i> ${t('customizer.options.light')}</button>
       </div>
     </div>
   `
@@ -414,6 +414,8 @@ export function initializeNextTabs(mount, pages) {
       eventClick: [({target, action, event}) => {
         if (!action) return
         routeAction(target, action, event)
+        const button = target?.closest?.('button')
+        if (button?.closest?.('[data-window-actions]') && button.type !== 'submit') button.blur()
       }],
       eventInput: [({target, action, event}) => {
         const nextAction = target?.dataset?.inputImmediate || action
@@ -456,6 +458,8 @@ export function initializeNextTabs(mount, pages) {
     },
   })
 
+  mount.__flyingConfigCleanup = installFlyingConfig(tabs, ({target}) => openFlyingConfig(target))
+
   const swype = new YaiTabsSwipe({
     axis: YaiDevice.hasTouch ? 'horizontal' : 'auto',
     ignoreClosestSelector: 'nav[data-controller], [data-app-footer], [data-dropdown], [data-window-actions], textarea, input, select',
@@ -492,6 +496,8 @@ export function initializeNextTabs(mount, pages) {
 
 function destroyExistingTabs(mount) {
   const existing = mount.__nextTabsInstance
+  mount.__flyingConfigCleanup?.()
+  mount.__flyingConfigCleanup = null
   mount.__nextSwipeInstance?.destroy?.()
   mount.__nextSwipeInstance = null
   if (existing?.events?.destroy) {

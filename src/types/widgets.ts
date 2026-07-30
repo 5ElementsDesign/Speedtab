@@ -81,7 +81,7 @@ export interface WeatherWidgetData {
   updated_at: number
 }
 
-export const DEFAULT_CLOCK_DATE_FORMAT = '{dayName} [hr] {day}. {monthShort} {yearShort}'
+export const DEFAULT_CLOCK_DATE_FORMAT = '{dayName} [hr] {day}. {monthShort}'
 export const DEFAULT_CLOCK_TIME_FORMAT = '{hour}:{minute}:{second}'
 
 export const DEFAULT_CLOCK_WIDGET_SETTINGS: ClockWidgetConfig = {

@@ -26,6 +26,8 @@ export default defineConfig({
     // Target modern Chromium so native CSS nesting can stay intact in output
     // instead of being expanded for older browser compatibility.
     cssTarget: 'chrome120',
+    // Chrome extensions reject these cross-world modulepreload hints; dynamic imports still work without them.
+    modulePreload: false,
     // Emit human-readable names in development for easier debugging.
     rollupOptions: {
       input: {

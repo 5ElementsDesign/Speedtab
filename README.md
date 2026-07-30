@@ -11,6 +11,8 @@ Everything runs in the browser. There is no backend, no account, and no required
 
 Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff)
 
+![Speedtab Banner](screenshots/st-banner.1400x560.png)
+
 ## Highlights
 
 - Local-first architecture with IndexedDB via Dexie
@@ -36,8 +38,6 @@ Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/a
 - UI translations for English, German, Turkish, and Hindi
 
 ## Screenshots
-
-![Speedtab Banner](screenshots/st-banner.1400x560.png)
 
 ### Speedtab - Speed Dial 4.0
 
@@ -294,39 +294,3 @@ Related links:
 - YaiJS Repo: https://github.com/yaijs/yai
 - YEH: https://yaijs.github.io/yai/docs/yeh/
 
-## Chrome Web Store Draft Copy
-
-### Short Description
-
-Local-first new tab dashboard with bookmarks, feeds, notes, and encrypted notes.
-
-### Long Description
-
-Speedtab replaces the default browser new tab page with a dense, fast, local-first dashboard.
-
-Build pages for different contexts, split them into modules, and organize content into tabs. Combine visual bookmarks, RSS/Atom feeds, quick notes, code snippets, link lists, HTML notes, encrypted private notes, theming, and a focused feed reader in one place.
-
-Speedtab is built around speed, structure, and ownership over your data:
-
-- no required account
-- no backend service
-- no cloud dependency
-- local data storage in the browser
-- export/import for portability
-
-Feed requests are handled by the extension itself, bookmark assets are stored locally, encrypted notes are protected client-side, and feed modules can optionally auto-refresh while you actively use Speedtab.
-
-Portable export/import is built around stable record identities, so Speedtab workspaces can move between browser profiles without turning into duplicated data dumps.
-
-If you want a customizable new tab workspace instead of a generic start page, Speedtab is built for that job.
-
-### Suggested Store Tags
-
-- new tab
-- start page
-- dashboard
-- bookmarks
-- rss reader
-- notes
-- productivity
-- local-first

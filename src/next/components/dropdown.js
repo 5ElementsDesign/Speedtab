@@ -1,10 +1,9 @@
-import {SPEEDTAB_SVG} from './icons.js'
 import {buildAttributes, escapeHtml} from '../utils/html.js'
 
 const OPEN = 'data-dropdown-open'
 
 function buildMenuItem(item) {
-  const {label, action, href, attributes, submenu} = item
+  const {label, action, href, attributes, submenu, icon} = item
   if (item.content) return item.content
   const attrs = buildAttributes(attributes)
   if (Array.isArray(submenu) && submenu.length) {
@@ -19,7 +18,7 @@ function buildMenuItem(item) {
         >
           <span data-dropdown-submenu-label>${escapeHtml(label)}</span>
           <span data-dropdown-submenu-value></span>
-          <span data-dropdown-submenu-chevron>${SPEEDTAB_SVG.chevron}</span>
+          <i data-dropdown-submenu-chevron data-icon="chevron" aria-hidden="true"></i>
         </button>
         <div data-dropdown-submenu-panel>
           <menu role="menu">
@@ -40,7 +39,7 @@ function buildMenuItem(item) {
   if (href) {
     return `<a role="menuitem" href="${escapeHtml(href)}"${attrs}>${escapeHtml(label)}</a>`
   }
-  return `<button type="button" role="menuitem" data-click="${escapeHtml(action)}"${attrs}>${escapeHtml(label)}</button>`
+  return `<button type="button" role="menuitem" data-click="${escapeHtml(action)}"${attrs}>${icon ? `<i data-icon="${escapeHtml(icon)}" aria-hidden="true"></i>` : ''}${escapeHtml(label)}</button>`
 }
 
 // items: [{ label, action, href, divider, attributes }] — `divider` draws a separator above the item,
@@ -86,6 +85,14 @@ function readQuickSettingValue(moduleRoot, key) {
     return tabsRoot?.hasAttribute('data-bookmarks-quicklinks') === true
   }
 
+  if (key === 'module-tabs-grow') {
+    return moduleRoot.querySelector('[data-controller]')?.hasAttribute('data-grow') === true
+  }
+
+  if (key === 'module-tabs-show-title-below') {
+    return tabsRoot?.hasAttribute('data-bookmarks-show-title-below') === true
+  }
+
   if (key === 'module-tabs-force-favicon') {
     return tabsRoot?.hasAttribute('data-bookmarks-force-favicon') === true
   }
@@ -128,6 +135,10 @@ function syncQuickSettingState(root, panel) {
     item.toggleAttribute('data-quick-setting-active', currentValue === true)
   })
 
+}
+
+export function syncOpenQuickSettingState() {
+  if (_openRoot && _openPanel) syncQuickSettingState(_openRoot, _openPanel)
 }
 
 export function getOpenDropdownTrigger() {

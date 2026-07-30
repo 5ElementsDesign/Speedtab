@@ -12,6 +12,22 @@ const VARIANTS = new Set(VARIANT_VALUES)
 const ALIGNS = new Set(ALIGN_VALUES)
 const LINK_BEHAVIORS = new Set(LINK_BEHAVIOR_VALUES)
 
+const MODULE_CONTENT_GAP_FIELD = {
+  'module-content-gap-px': {
+    valueType: 'integer',
+    min: 0,
+    max: 64,
+    validate: isIntegerInRange(0, 64),
+    defaultValue: null,
+    target: 'module-root',
+    applyAs: {
+      type: 'css-variable',
+      name: '--st-module-content-gap',
+      serialize: (value) => `${value}px`,
+    },
+  },
+}
+
 function isIntegerInRange(min, max) {
   return (value) => Number.isInteger(value) && value >= min && value <= max
 }
@@ -354,6 +370,7 @@ export const UI_CONFIG_SPEC = {
             serialize: (value) => `${value}px`,
           },
         },
+        ...MODULE_CONTENT_GAP_FIELD,
       },
     },
     notes: {
@@ -446,6 +463,7 @@ export const UI_CONFIG_SPEC = {
             serialize: (value) => `${value}px`,
           },
         },
+        ...MODULE_CONTENT_GAP_FIELD,
       },
     },
     feeds: {
@@ -516,6 +534,7 @@ export const UI_CONFIG_SPEC = {
             serialize: (value) => `${value}px`,
           },
         },
+        ...MODULE_CONTENT_GAP_FIELD,
       },
     },
   },

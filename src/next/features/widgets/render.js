@@ -1,4 +1,3 @@
-import {SPEEDTAB_SVG} from '../../components/icons.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 import {createCurrentClockDraft} from './utils.js'
@@ -379,7 +378,7 @@ export function renderClockToolsModal(state = {}) {
                 ? `<button type="button" class="st-btn" data-btn="warning" data-click="pauseClockStopwatch">${escapeHtml(t('clock.pause'))}</button>`
                 : `<button type="button" class="st-btn" data-btn="primary" data-click="${stopwatch.hasElapsed ? 'resumeClockStopwatch' : 'startClockStopwatch'}">${escapeHtml(stopwatch.hasElapsed ? t('clock.resume') : t('clock.start'))}</button>`
               }
-              <button type="button" class="st-btn" data-btn="ghost" data-stop-watch-reset data-click="resetClockStopwatch" title="${escapeHtml(t('clock.reset'))}" aria-label="${escapeHtml(t('clock.reset'))}" ${stopwatch.running ? 'disabled' : ''}>${SPEEDTAB_SVG.x}</button>
+              <button type="button" class="st-btn" data-btn="ghost" data-stop-watch-reset data-click="resetClockStopwatch" title="${escapeHtml(t('clock.reset'))}" aria-label="${escapeHtml(t('clock.reset'))}" ${stopwatch.running ? 'disabled' : ''}><i data-icon="x" aria-hidden="true"></i></button>
             </div>
           </div>
           <strong class="st-clock-tools-stopwatch-time" data-clock-stopwatch-time>${escapeHtml(stopwatch.displayElapsed || '00:00.0')}</strong>
@@ -418,7 +417,7 @@ export function renderClockToolsModal(state = {}) {
           <div class="st-clock-tools-create-actions">
             <div class="st-clock-tools-create-primary">
               <button type="button" class="st-btn" data-btn="primary" data-click="createClockTimer" data-clock-timer-create-btn>${escapeHtml(t('clock.createTimer'))}</button>
-              <button type="button" class="st-btn" data-btn="ghost" data-clock-timer-reset data-click="resetClockTimerDraft" title="${escapeHtml(t('clock.reset'))}" aria-label="${escapeHtml(t('clock.reset'))}">${SPEEDTAB_SVG.x}</button>
+              <button type="button" class="st-btn" data-btn="ghost" data-clock-timer-reset data-click="resetClockTimerDraft" title="${escapeHtml(t('clock.reset'))}" aria-label="${escapeHtml(t('clock.reset'))}"><i data-icon="x" aria-hidden="true"></i></button>
             </div>
             <div class="st-clock-tools-presets">
               <button type="button" class="st-btn" data-btn="ghost" data-click="createClockPresetTimer" data-preset-minutes="5">5m</button>

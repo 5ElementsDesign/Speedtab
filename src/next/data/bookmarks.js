@@ -24,6 +24,8 @@ export async function createBookmark(tabId, payload) {
     title: payload.title,
     url: payload.url,
     description: payload.description ?? null,
+    color: payload.color ?? null,
+    background_color: payload.background_color ?? null,
     favicon_asset_id: payload.favicon_asset_id ?? null,
     preview_asset_id: payload.preview_asset_id ?? null,
     meta_json: payload.meta_json ?? null,

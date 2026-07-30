@@ -2,20 +2,35 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.5.0]
+
+### Added
+- Added per-module Content Gap controls under Customize → Layout, inheriting the App Shell default when unset.
+- Added bookmark tile color controls and favicon-based color detection, scoped to Big Tiles mode.
+- Added the Flying Config foundation for editing nested HTML-note tab content.
+
+### Fixed
+- Fixed bookmark color state synchronization, Coloris resets, and light-theme contrast across notes, Flying Config, and feed actions.
+
 ## [1.4.4]
 
 ### Added
+- Added nullable per-bookmark text and background colors, with Coloris controls and favicon-based color detection for visual bookmarks.
+- Added a dedicated color-detection action in the visual-bookmark editor and support for transparent color values.
 - Added a real pending-count marker for Quicknote context-menu captures, so repeated `Append to Quicknote` actions now accumulate visibly in the header instead of behaving like a one-shot flag.
 - Added stronger empty-state theme controls with direct dark, light, and Speedtab-background toggles for first-run workspace setup.
 - Added live widget-rail width bypass support, allowing the rail to ignore the shared page max-width boundary when configured.
 - UI polish
 
 ### Changed
+- Updated visual-bookmark tile sizing and color application for the “Show title below thumbnail” layout while keeping title strips neutral.
 - Refined workspace background bootstrapping so theme and background selection are applied earlier and more predictably across the main dashboard and auxiliary pages.
 - Refined weather-widget defaults, including slightly darker default text colors, lighter visual weight for location text, and better consistency with the rest of the rail styling.
 - Refined standalone utility pages (`sorter.html` and `import-export.html`) so shared base styles, theme behavior, and light-mode readability stay aligned with the main app shell.
 
 ### Fixed
+- Fixed bookmark color state synchronization across sidebar actions, Coloris resets, favicon testing, and bookmark saves.
+- Fixed light-theme contrast for note-window actions, Flying Config controls, editor fields, and feed-item actions.
 - Fixed background flicker and startup instability by simplifying the workspace-background load path and removing late wallpaper flashes during extension initialization.
 - Fixed cascading cleanup behavior for page, module-tab, and orphan maintenance flows so deletions no longer leave broken descendants or undeletable orphaned rows behind.
 - Fixed orphan-maintenance actions such as `Delete all Shown`, plus related orphan-page follow-up behavior, so cleanup tools react reliably without leaving stale UI state behind.

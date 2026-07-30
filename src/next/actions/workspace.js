@@ -1,4 +1,3 @@
-import {SPEEDTAB_SVG} from '../components/icons.js'
 import {getCachedAppSettings, saveAppSetting} from '../data/app-settings.js'
 import {applyDocumentTheme, normalizeDocumentTheme} from '../utils/document-theme.js'
 import {getLocale, t} from '../utils/i18n.js'
@@ -14,7 +13,7 @@ function renderBackgroundToggleButtonLabel() {
     : t('customizer.speedtabBackgroundShort')
   return {
     label,
-    html: `${SPEEDTAB_SVG.image} ${label}`,
+    html: `<i data-icon="image" aria-hidden="true"></i> ${label}`,
   }
 }
 

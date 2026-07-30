@@ -66,6 +66,9 @@ export function installSanitizeHooks(): void {
       node.setAttribute('rel',    'noopener noreferrer')
     }
   })
+  DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
+    if (data.attrName === 'data-flying-config-active') data.keepAttr = false
+  })
   hookInstalled = true
 }
 

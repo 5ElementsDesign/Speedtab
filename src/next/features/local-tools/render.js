@@ -1,4 +1,3 @@
-import {SPEEDTAB_SVG} from '../../components/icons.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 import {getHtmlNoteSubtype, normalizeNoteStyleToken, renderNoteContentHtml} from '../modules/notes-shared.js'
@@ -32,7 +31,7 @@ export function renderQuicknoteWindow(state = {}) {
         spellcheck="false"
       >${escapeHtml(state.content ?? '')}</textarea>
       <button type="button" data-window-resize-handle aria-label="${escapeHtml(t('common.settings'))}">
-        ${SPEEDTAB_SVG.resizeGrip}
+        <i data-icon="resize-grip" aria-hidden="true"></i>
       </button>
     </section>
   `
@@ -89,7 +88,7 @@ function renderFloatingNoteWindow(note) {
         ${htmlSubtype ? `data-note-html-subtype="${escapeHtml(htmlSubtype)}"` : ''}
       >${contentHtml}</div>
       <button type="button" data-window-resize-handle aria-label="${escapeHtml(t('noteViewer.resizeAria'))}">
-        ${SPEEDTAB_SVG.resizeGrip}
+        <i data-icon="resize-grip" aria-hidden="true"></i>
       </button>
     </article>
   `
@@ -97,23 +96,31 @@ function renderFloatingNoteWindow(note) {
 
 function renderFloatingNoteViewActions(note, title) {
   return `
+    ${renderFlyingConfigButton(note)}
     <button
       type="button"
-      data-click="editFloatingNote"
-      data-note-id="${escapeHtml(String(note.id ?? ''))}"
-    >${escapeHtml(t('noteViewer.edit'))}</button>
-    <button
-      type="button"
+      class="st-btn"
+      data-btn="danger"
       data-click="deleteOpenNote"
       data-note-id="${escapeHtml(String(note.id ?? ''))}"
       data-note-title="${title}"
-    >${escapeHtml(t('noteViewer.delete'))}</button>
+      title="${escapeHtml(t('noteViewer.delete'))}"
+    ><i data-icon="trash" aria-hidden="true"></i></button>
     <button
       type="button"
+      class="st-btn"
+      data-click="editFloatingNote"
+      data-note-id="${escapeHtml(String(note.id ?? ''))}"
+      title="${escapeHtml(t('noteViewer.edit'))}"
+    ><i data-icon="pencil" aria-hidden="true"></i></button>
+    <button
+      type="button"
+      class="st-btn"
       data-click="closeFloatingNote"
       data-note-id="${escapeHtml(String(note.id ?? ''))}"
       aria-label="${escapeHtml(t('noteViewer.closeAria'))}"
-    >${escapeHtml(t('noteViewer.close'))}</button>
+      title="${escapeHtml(t('noteViewer.close'))}"
+    ><i data-icon="x" aria-hidden="true"></i></button>
   `
 }
 
@@ -124,33 +131,59 @@ function renderFloatingNoteEditorActions(note) {
     ? `
       <button
         type="button"
+        class="st-btn"
+        data-btn="ghost"
         data-click="toggleFloatingNotePreview"
         data-note-id="${escapeHtml(String(note.id ?? ''))}"
+        title="${escapeHtml(note.previewMode ? t('noteViewer.edit') : t('noteViewer.preview'))}"
       >${escapeHtml(note.previewMode ? t('noteViewer.edit') : t('noteViewer.preview'))}</button>
-    `
-    : ''
+    ` : ''
 
   return `
+    ${renderFlyingConfigButton(note)}
     ${isCryptLocked ? '' : previewButton}
-    <button
-      type="button"
-      data-click="cancelFloatingNoteEdit"
-      data-note-id="${escapeHtml(String(note.id ?? ''))}"
-    >${escapeHtml(t('common.cancel'))}</button>
     ${isCryptLocked ? '' : `
       <button
         type="submit"
+        class="st-btn"
         form="${escapeHtml(formId)}"
         data-btn="danger"
         data-form-save-btn
-      >${escapeHtml(t('noteForm.saveChanges'))}</button>
+        title="${escapeHtml(t('common.save'))}"
+      >${escapeHtml(t('common.save'))}</button>
     `}
     <button
       type="button"
+      class="st-btn"
+      data-btn="warning"
+      data-click="cancelFloatingNoteEdit"
+      data-note-id="${escapeHtml(String(note.id ?? ''))}"
+      title="${escapeHtml(t('common.cancel'))}"
+    ><i data-icon="blocked" aria-hidden="true"></i></button>
+    <button
+      type="button"
+      class="st-btn"
+      data-btn="ghost"
       data-click="closeFloatingNote"
       data-note-id="${escapeHtml(String(note.id ?? ''))}"
       aria-label="${escapeHtml(t('noteViewer.closeAria'))}"
-    >${escapeHtml(t('noteViewer.close'))}</button>
+      title="${escapeHtml(t('noteViewer.close'))}"
+    ><i data-icon="x" aria-hidden="true"></i></button>
+  `
+}
+
+function renderFlyingConfigButton(note) {
+  if (note.type !== 'html') return ''
+  return `
+    <button
+      type="button"
+      class="st-btn"
+      data-click="openFlyingConfig"
+      data-flying-config-trigger
+      data-note-id="${escapeHtml(String(note.id ?? ''))}"
+      title="Flying Config"
+      aria-label="Flying Config"
+    ><i data-icon="tools" aria-hidden="true"></i></button>
   `
 }
 
@@ -233,7 +266,7 @@ function renderFloatingNoteEditorOptions(note) {
         class="st-btn"
         title="${escapeHtml(t('common.options'))}"
         aria-label="${escapeHtml(t('common.options'))}"
-      >${SPEEDTAB_SVG.cog}</summary>
+      ><i data-icon="cog" aria-hidden="true"></i></summary>
       <div class="st-note-editor-options-panel">
         <button
           type="button"

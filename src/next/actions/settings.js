@@ -3,7 +3,7 @@ import {searchOpenMeteoLocations} from '../../composables/useOpenMeteoWeather.ts
 import {getWidgetSettings, saveWidgetSettings} from '../../composables/useWidgetSettings.ts'
 import {YEH} from '../../lib/yai/yeh.js'
 import {DEFAULT_CLOCK_DATE_FORMAT, DEFAULT_CLOCK_TIME_FORMAT, DEFAULT_CLOCK_WIDGET_SETTINGS} from '../../types/widgets.ts'
-import {closeModal} from '../components/modal.js'
+import {closeModal, openModal} from '../components/modal.js'
 import {openSidepanel} from '../components/sidepanel.js'
 import {
   archiveBgItem,
@@ -13,7 +13,7 @@ import {
   saveAppSetting,
 } from '../data/app-settings.js'
 import {deleteBgAsset, loadAssetObjectUrl, loadBgAssets, normalizeImageBlob, storeOrGetAsset} from '../data/assets.js'
-import {renderBgArchiveSwatches, renderBgAssetThumbs, renderSettingsPanel, renderWeatherLocationSearchState, renderWidgetSettingsPanel} from '../features/settings/render.js'
+import {renderBgArchiveSwatches, renderBgAssetThumbs, renderFeedbackModal, renderSettingsFooter, renderSettingsPanel, renderWeatherLocationSearchState, renderWidgetSettingsPanel} from '../features/settings/render.js'
 import {
   createClockPresetTimer,
   createClockTimer,
@@ -325,7 +325,7 @@ function setWidgetSetting(target, settings) {
 export const settingsActions = {
   async openSettings() {
     liveWidgetSettings = null
-    const panel = openSidepanel({title: t('common.settings'), panelKind: 'settings'})
+    const panel = openSidepanel({title: t('common.settings'), panelKind: 'settings', footer: renderSettingsFooter(), footerClass: 'p-1'})
     patchInner(panel.querySelector('[data-sidepanel-body]'), '')
     await renderSettingsBody()
   },
@@ -749,6 +749,13 @@ export const settingsActions = {
     openModal({
       title: t('settings.aboutTitle'),
       content: `<p>${t('settings.aboutCopy')}</p>`,
+    })
+  },
+
+  openFeedbackModal() {
+    openModal({
+      title: t('settings.feedbackTitle'),
+      content: renderFeedbackModal(),
     })
   },
 }

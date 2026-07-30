@@ -1,5 +1,4 @@
 import {buildAttributes, escapeHtml} from '../utils/html.js'
-import {SPEEDTAB_SVG} from '../components/icons.js'
 import {t} from '../utils/i18n.js'
 
 const OPEN = 'data-modal-open'
@@ -20,7 +19,7 @@ export function buildModal({title = '', content = '', panelClass = '', panelStyl
         <h2 data-modal-title>${escapeHtml(title)}</h2>
         <div data-modal-header-actions>
           ${headerActions}
-          <button type="button" data-modal-close aria-label="${escapeHtml(t('common.close'))}">${SPEEDTAB_SVG.sidepanelClose}</button>
+          <button type="button" data-modal-close aria-label="${escapeHtml(t('common.close'))}"><i data-icon="x" aria-hidden="true"></i></button>
         </div>
       </header>
       <div data-modal-body>${content}</div>

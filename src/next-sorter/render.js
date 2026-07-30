@@ -1,4 +1,3 @@
-import {SPEEDTAB_SVG} from '../next/components/icons.js'
 import {escapeHtml} from '../next/utils/html.js'
 import {t} from '../next/utils/i18n.js'
 
@@ -52,7 +51,7 @@ function renderContentRows(module, tab, contentItems = [], contentSortActive = f
                 data-module-type="${escapeHtml(module.type)}"
                 title="${escapeHtml(t('sorter.dragContent'))}"
                 aria-label="${escapeHtml(t('sorter.dragContent'))}"
-              >${SPEEDTAB_SVG.dashboard}</button>
+              ><i data-icon="dashboard" aria-hidden="true"></i></button>
               <span data-sorter-content-title>${escapeHtml(item.title || t('sorter.untitledContent'))}</span>
               <span data-sorter-content-subtitle>${escapeHtml(item.subtitle || '')}</span>
               <div data-sorter-row-actions>
@@ -66,7 +65,7 @@ function renderContentRows(module, tab, contentItems = [], contentSortActive = f
                   data-sorter-title="${escapeHtml(item.title || '')}"
                   title="${escapeHtml(t('sorter.editItem'))}"
                   aria-label="${escapeHtml(t('sorter.editItem'))}"
-                >${SPEEDTAB_SVG.pencil}</button>
+                ><i data-icon="pencil" aria-hidden="true"></i></button>
                 <button
                   type="button"
                   data-click="sorterDeleteItem"
@@ -77,7 +76,7 @@ function renderContentRows(module, tab, contentItems = [], contentSortActive = f
                   data-sorter-title="${escapeHtml(item.title || '')}"
                   title="${escapeHtml(t('sorter.deleteItem'))}"
                   aria-label="${escapeHtml(t('sorter.deleteItem'))}"
-                >${SPEEDTAB_SVG.x}</button>
+                ><i data-icon="x" aria-hidden="true"></i></button>
               </div>
               ${editor?.kind === 'content' && editor?.targetId === item.id ? `
                 <div data-sorter-inline-editor>
@@ -142,7 +141,7 @@ function renderTabRows(module, tabs = [], options = {}) {
                 data-module-type="${escapeHtml(module.type)}"
                 title="${escapeHtml(t('sorter.dragTab'))}"
                 aria-label="${escapeHtml(t('sorter.dragTab'))}"
-              >${SPEEDTAB_SVG.dashboard}</button>
+              ><i data-icon="dashboard" aria-hidden="true"></i></button>
               <span data-sorter-tab-title>${escapeHtml(tab.title || t('moduleCard.newTabTitle'))}</span>
               <div data-sorter-row-actions>
                 <button
@@ -155,7 +154,7 @@ function renderTabRows(module, tabs = [], options = {}) {
                   data-sorter-title="${escapeHtml(tab.title || '')}"
                   title="${escapeHtml(t('sorter.editItem'))}"
                   aria-label="${escapeHtml(t('sorter.editItem'))}"
-                >${SPEEDTAB_SVG.pencil}</button>
+                ><i data-icon="pencil" aria-hidden="true"></i></button>
                 <button
                   type="button"
                   data-click="sorterDeleteItem"
@@ -166,7 +165,7 @@ function renderTabRows(module, tabs = [], options = {}) {
                   data-sorter-title="${escapeHtml(tab.title || '')}"
                   title="${escapeHtml(t('sorter.deleteItem'))}"
                   aria-label="${escapeHtml(t('sorter.deleteItem'))}"
-                >${SPEEDTAB_SVG.x}</button>
+                ><i data-icon="x" aria-hidden="true"></i></button>
               </div>
               ${editor?.kind === 'tab' && editor?.targetId === tab.id ? `
                 <div data-sorter-inline-editor>
@@ -234,7 +233,7 @@ function renderModuleCard(module, options = {}) {
           data-module-sync-id="${escapeHtml(module.syncId)}"
           title="${escapeHtml(t('sorter.dragModule'))}"
           aria-label="${escapeHtml(t('sorter.dragModule'))}"
-        >${SPEEDTAB_SVG.dashboard}</button>
+        ><i data-icon="dashboard" aria-hidden="true"></i></button>
         <input
           type="text"
           name="module-title"
@@ -270,7 +269,7 @@ function renderModuleCard(module, options = {}) {
             data-sorter-toggle-tabs
             ${contentSortActive && !contentSortEnabled ? 'disabled' : ''}
             aria-expanded="${expanded ? 'true' : 'false'}"
-          >${escapeHtml(tabCountLabel)} ${SPEEDTAB_SVG.chevron}</button>
+          >${escapeHtml(tabCountLabel)} <i data-icon="chevron" aria-hidden="true"></i></button>
           <button
             type="button"
             data-click="sorterToggleContents"
@@ -279,7 +278,7 @@ function renderModuleCard(module, options = {}) {
             data-sorter-toggle-contents
             ${tabSortActive && !tabSortEnabled ? 'disabled' : ''}
             aria-expanded="${expanded ? 'true' : 'false'}"
-          >${escapeHtml(t('sorter.contents'))} ${SPEEDTAB_SVG.chevron}</button>
+          >${escapeHtml(t('sorter.contents'))} <i data-icon="chevron" aria-hidden="true"></i></button>
         </div>
       </div>
 
@@ -355,7 +354,7 @@ function renderPageSection(page, expandedModules, collapsedPages, orphanSlots = 
               data-page-sync-id="${escapeHtml(page.syncId)}"
               title="${escapeHtml(t('sorter.dragPage'))}"
               aria-label="${escapeHtml(t('sorter.dragPage'))}"
-            >${SPEEDTAB_SVG.dashboard}</button>
+            ><i data-icon="dashboard" aria-hidden="true"></i></button>
             <h2 data-sorter-page-title>${escapeHtml(page.title)}</h2>
           </div>
           <p data-sorter-page-meta>${escapeHtml(page.modules.length === 1 ? t('sorter.modulesCountOne') : t('sorter.modulesCount', {count: page.modules.length}))}</p>
@@ -368,7 +367,7 @@ function renderPageSection(page, expandedModules, collapsedPages, orphanSlots = 
             data-sorter-toggle-page-content
             aria-expanded="${collapsed ? 'false' : 'true'}"
             title="${escapeHtml(collapsed ? t('sorter.showPageContent') : t('sorter.hidePageContent'))}"
-          >${escapeHtml(collapsed ? t('sorter.showContent') : t('sorter.hideContent'))} ${SPEEDTAB_SVG.chevron}</button>
+            >${escapeHtml(collapsed ? t('sorter.showContent') : t('sorter.hideContent'))} <i data-icon="chevron" aria-hidden="true"></i></button>
           ${hasOrphans ? `<button type="button" data-click="sorterResetPageSlots" data-page-sync-id="${escapeHtml(page.syncId)}" data-sorter-reset-slots>${escapeHtml(t('sorter.resetSlots'))}</button>` : ''}
           <span data-sorter-page-badge>${escapeHtml(page.navGroup)}</span>
         </div>

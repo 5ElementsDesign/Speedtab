@@ -1,8 +1,8 @@
 import {useFeed} from '../../composables/useFeed.ts'
 import {db} from '../../db/db.ts'
-import {SPEEDTAB_SVG} from '../components/icons.js'
 import {closeModal, openModal} from '../components/modal.js'
 import {closeSidepanel, onSidepanelClose, openSidepanel} from '../components/sidepanel.js'
+import {syncOpenQuickSettingState} from '../components/dropdown.js'
 import {createBookmark, loadBookmarkBySyncId, saveBookmarkData, softDeleteBookmark} from '../data/bookmarks.js'
 import {clearFeedItemsBySourceIds, createFeedSourceData, createSavedFeedItemData, loadFeedItemById, loadFeedItemsBySourceIds, loadFeedSourceById, loadFeedSourceBySyncId, loadFeedSourcesByCollectionId, loadSavedFeedItemsByCollectionId, saveFeedSourceData, softDeleteFeedSource, softDeleteSavedFeedItem} from '../data/feeds.js'
 import {loadModuleBySyncId} from '../data/modules.js'
@@ -23,6 +23,7 @@ import {
   buildBookmarkSavePayload,
   clearBookmarkFavicon,
   clearBookmarkPreview,
+  detectBookmarkColors,
   initBookmarkFormState,
   patchBookmarkForm,
   renderBookmarkCrudForm,
@@ -187,7 +188,7 @@ function renderArchivedFeedItemsModal(collectionId, items = []) {
                   data-feed-collection-id="${escapeHtml(String(collectionId))}"
                   title="${escapeHtml(t('common.delete'))}"
                   aria-label="${escapeHtml(t('common.delete'))}"
-                >${SPEEDTAB_SVG.x}</button>
+                ><i data-icon="x" aria-hidden="true"></i></button>
               </div>
             </article>
           `
@@ -220,8 +221,10 @@ function getQuickModuleSettingValue(moduleRoot, key) {
   const tabsRoot = moduleRoot.querySelector('[data-yai-tabs]')
   const gridCol = moduleRoot.closest('[data-grid-col]')
 
+  if (key === 'module-tabs-grow') return tabsRoot?.querySelector('[data-controller]')?.hasAttribute('data-grow') === true
   if (key === 'module-tabs-quicklinks') return tabsRoot?.hasAttribute('data-bookmarks-quicklinks') === true
   if (key === 'module-tabs-force-favicon') return tabsRoot?.hasAttribute('data-bookmarks-force-favicon') === true
+  if (key === 'module-tabs-show-title-below') return tabsRoot?.hasAttribute('data-bookmarks-show-title-below') === true
   if (key === 'module-tabs-show-add-tile') return tabsRoot?.hasAttribute('data-bookmarks-inline-add-tile') === true
   if (key === 'module-hide-header') return moduleRoot.hasAttribute('data-hide-header')
   if (key === 'module-column-span') {
@@ -250,6 +253,7 @@ async function persistModuleQuickConfig(moduleSyncId, moduleType, patch) {
       const mediaScope = getVisibleBookmarkMediaScope(moduleRoot.querySelector('[data-yai-tabs]') ?? moduleRoot)
       if (mediaScope) initBookmarkMedia(mediaScope)
     }
+    syncOpenQuickSettingState()
   }
 
   return effectiveConfig
@@ -1306,6 +1310,8 @@ export const moduleCrudActions = {
           title: payload.title,
           url: payload.url,
           description: payload.description,
+          color: payload.color,
+          background_color: payload.background_color,
           favicon_asset_id: payload.favicon_asset_id,
           preview_asset_id: payload.preview_asset_id,
           meta_json: payload.meta_json,
@@ -1464,6 +1470,37 @@ export const moduleCrudActions = {
     syncBookmarkFormStateFromForm(target.closest('[data-module-crud-form]'))
     clearBookmarkPreview()
     await patchBookmarkForm(getOpenSidepanelBody())
+  },
+
+  bookmarkClearColor(target) {
+    const field = target.dataset.colorField
+    if (!field) return
+    const input = target.closest('[data-color-item]')?.querySelector(`input[name="${CSS.escape(field)}"]`)
+    if (input instanceof HTMLInputElement) {
+      input.value = ''
+      input.closest('.clr-field')?.style.setProperty('color', '')
+    }
+    const form = target.closest('[data-module-crud-form]')
+    if (form) {
+      syncBookmarkFormStateFromForm(form)
+      updateFormDirtyState(form)
+    }
+  },
+
+  bookmarkColorChange(target) {
+    const form = target.closest('[data-module-crud-form]')
+    if (form) {
+      syncBookmarkFormStateFromForm(form)
+      updateFormDirtyState(form)
+    }
+  },
+
+  async bookmarkDetectColors(target) {
+    const form = target.closest('[data-module-crud-form]')
+    if (!form) return
+    syncBookmarkFormStateFromForm(form)
+    await detectBookmarkColors()
+    await patchBookmarkForm(getOpenSidepanelBody(), {includeAssetLibrary: false})
   },
 
   async bookmarkFormApplyCrop(target) {

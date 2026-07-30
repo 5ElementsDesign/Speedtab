@@ -1,30 +1,29 @@
 import {buildDropdown} from '../../components/dropdown.js'
-import {SPEEDTAB_SVG} from '../../components/icons.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
-import {renderFeedsModule} from './feeds.js'
 import {renderNotesModule} from '../pages/modules/notes/render.js'
 import {renderTabsModule} from '../pages/modules/tabs/render.js'
+import {renderFeedsModule} from './feeds.js'
 
 const MODULE_ACTION_ITEMS = {
   tabs: [
     {labelKey: 'modules.actions.addTab', action: 'addModuleTab'},
     {labelKey: 'modules.actions.editTab', action: 'editCurrentModuleTab'},
-    {labelKey: 'modules.actions.addBookmark', action: 'addModuleBookmark', dividerTop: true},
+    {labelKey: 'modules.actions.addBookmark', action: 'addModuleBookmark', dividerTop: true, icon: 'plus'},
     {labelKey: 'common.customize', action: 'openCustomizer', dividerTop: true},
     {labelKey: 'modules.actions.quickSettings', submenu: 'moduleQuickSettings', dividerTop: true},
   ],
   notes: [
     {labelKey: 'modules.actions.addTab', action: 'addModuleTab'},
     {labelKey: 'modules.actions.editTab', action: 'editCurrentModuleTab'},
-    {labelKey: 'modules.actions.addNote', action: 'addModuleNote', dividerTop: true},
+    {labelKey: 'modules.actions.addNote', action: 'addModuleNote', dividerTop: true, icon: 'plus'},
     {labelKey: 'common.customize', action: 'openCustomizer', dividerTop: true},
     {labelKey: 'modules.actions.quickSettings', submenu: 'moduleQuickSettings', dividerTop: true},
   ],
   feeds: [
     {labelKey: 'modules.actions.addTab', action: 'addModuleTab'},
     {labelKey: 'modules.actions.editTab', action: 'editCurrentModuleTab'},
-    {labelKey: 'modules.actions.addSource', action: 'addModuleFeed', dividerTop: true},
+    {labelKey: 'modules.actions.addSource', action: 'addModuleFeed', dividerTop: true, icon: 'plus'},
     {labelKey: 'feeds.archivedFeedItemsTitle', action: 'openArchivedFeedItems'},
     {labelKey: 'feeds.clearLoaded', action: 'clearModuleFeedItems', dividerTop: true},
     {labelKey: 'common.customize', action: 'openCustomizer', dividerTop: true},
@@ -49,7 +48,7 @@ function renderQuickSettingsColumnGrid(sharedAttributes) {
 
   return `
     <div data-quick-setting-columns>
-      <span data-quick-setting-columns-label>${escapeHtml(t('customizer.fields.moduleColumnSpan'))}</span>
+      <span data-quick-setting-columns-label class="text-center">${escapeHtml(t('customizer.fields.moduleColumnSpan'))}</span>
       <div data-quick-setting-columns-grid>
         ${columnButtons}
       </div>
@@ -66,6 +65,24 @@ function buildModuleQuickSettings(viewModel) {
 
   const items = []
 
+  items.push({
+    label: t('customizer.fields.moduleHideHeader'),
+    action: 'toggleQuickModuleSetting',
+    attributes: {
+      ...sharedAttributes,
+      'data-quick-setting-key': 'module-hide-header',
+    },
+  })
+
+  items.push({
+    label: t('customizer.fields.moduleTabsGrow'),
+    action: 'toggleQuickModuleSetting',
+    attributes: {
+      ...sharedAttributes,
+      'data-quick-setting-key': 'module-tabs-grow',
+    },
+  })
+
   if (viewModel.type === 'tabs') {
     items.push(
       {
@@ -77,11 +94,11 @@ function buildModuleQuickSettings(viewModel) {
         },
       },
       {
-        label: t('moduleForm.forceFavicon'),
+        label: t('moduleForm.showTitleBelow'),
         action: 'toggleQuickModuleSetting',
         attributes: {
           ...sharedAttributes,
-          'data-quick-setting-key': 'module-tabs-force-favicon',
+          'data-quick-setting-key': 'module-tabs-show-title-below',
         },
       },
     )
@@ -100,14 +117,6 @@ function buildModuleQuickSettings(viewModel) {
 
   items.push(
     {
-      label: t('customizer.fields.moduleHideHeader'),
-      action: 'toggleQuickModuleSetting',
-      attributes: {
-        ...sharedAttributes,
-        'data-quick-setting-key': 'module-hide-header',
-      },
-    },
-    {
       dividerTop: true,
       content: renderQuickSettingsColumnGrid(sharedAttributes),
     },
@@ -119,12 +128,13 @@ function buildModuleQuickSettings(viewModel) {
 function buildModuleActions(viewModel) {
   if (!viewModel.syncId) return ''
   return buildDropdown({
-    trigger: SPEEDTAB_SVG.plus,
+    trigger: '<i data-icon="plus" aria-hidden="true"></i>',
     ariaLabel: t('modules.actions.aria'),
     items: (MODULE_ACTION_ITEMS[viewModel.type] ?? [{labelKey: 'common.customize', action: 'openCustomizer'}]).map((item) => {
       const base = {
         label: item.label ?? t(item.labelKey),
         action: item.action,
+        icon: item.icon,
         href: item.href,
         dividerTop: item.dividerTop,
         dividerBottom: item.dividerBottom,

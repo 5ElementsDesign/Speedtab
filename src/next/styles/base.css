@@ -5,16 +5,15 @@
 }
 
 html {
+  background-size: 24px 24px;
   &.dark {
     background-color: #151515;
     background-image: radial-gradient(circle at 1px 1px, rgb(196 192 192 / 7%) 1px, #0000001c 0);
-    background-size: 24px 24px;
     color-scheme: dark;
   }
   &.light {
     background-color: #eef2f7;
     background-image: radial-gradient(circle at 1px 1px, #90929566 1px, #ffffff1c 0);
-    background-size: 24px 24px;
     color-scheme: light;
   }
 }

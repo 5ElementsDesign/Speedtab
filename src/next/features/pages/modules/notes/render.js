@@ -1,7 +1,7 @@
-import {SPEEDTAB_SVG} from '../../../../components/icons.js'
 import {escapeHtml} from '../../../../utils/html.js'
 import {t} from '../../../../utils/i18n.js'
 import {getNotePreviewText, getNoteTokenClass} from '../../../modules/notes-shared.js'
+import {renderModuleTabs} from '../tabs/render.js'
 
 function renderNoteTile(note, moduleSyncId = '') {
   const title = escapeHtml(note.title || t('openNotes.noteTitle'))
@@ -44,7 +44,7 @@ function renderNoteAddTile(moduleSyncId = '') {
         data-note-inline-add
         title="${escapeHtml(t('modules.actions.addNote'))}"
         aria-label="${escapeHtml(t('modules.actions.addNote'))}"
-      >${SPEEDTAB_SVG.plus}</button>
+      ><i data-icon="plus" aria-hidden="true"></i></button>
     </div>
   `
 }
@@ -66,49 +66,9 @@ export function renderNotesGrid(notes = [], moduleSyncId = '', config = {}) {
 }
 
 export function renderNotesModule(tabs = [], actionsHtml = '', moduleId = null, moduleSyncId = '', config = {}) {
-  const actions = actionsHtml
-    ? `<div data-module-actions data-swipe-ignore>${actionsHtml}</div>`
-    : ''
-
-  if (!tabs.length) {
-    return `
-      <div data-module-empty-state-wrap>
-        ${actions}
-        <div data-swipe-ignore><p class="st-module-empty-state m-0">${escapeHtml(t('modules.empty.notes'))}</p></div>
-      </div>
-    `
-  }
-
-  const refPathName = moduleId != null ? `m${moduleId}` : null
-  let currentModulePage = refPathName ? new URLSearchParams(location.hash.slice(1)).get(refPathName) : null
-  currentModulePage = currentModulePage ? currentModulePage.replace('tab-', '') : null
-
-  const navBtns = tabs.map((tab, idx) => `
-    <button
-      data-tab-action="open"
-      ${currentModulePage == tab.id ? 'data-inview-default' : ''}
-      ${!currentModulePage && idx === 0 ? 'data-inview-default data-default' : ''}
-      data-open="tab-${tab.id}"
-      data-tab-id="${escapeHtml(String(tab.id ?? ''))}"
-      data-tab-sync-id="${escapeHtml(tab.sync_id ?? '')}"
-    >${escapeHtml(tab.title)}</button>
-  `).join('')
-
-  const panels = tabs.map((tab) => `
-    <div data-tab="tab-${tab.id}" data-tab-id="${escapeHtml(String(tab.id ?? ''))}" data-tab-sync-id="${escapeHtml(tab.sync_id ?? '')}">
-      ${renderNotesGrid(tab.notes ?? [], moduleSyncId, config)}
-    </div>
-  `).join('')
-
-  const refPath = moduleId != null ? ` data-ref-path="${refPathName}"` : ''
-
-  return `
-    <div data-module-tabs-shell>
-      <div data-yai-tabs data-swipe data-behavior="fade"${refPath}>
-        <nav data-controller>${navBtns}</nav>
-        ${actions}
-        <div data-content>${panels}</div>
-      </div>
-    </div>
-  `
+  return renderModuleTabs(
+    tabs,
+    (tab) => renderNotesGrid(tab.notes ?? [], moduleSyncId, config),
+    {actionsHtml, moduleId, emptyLabel: t('modules.empty.notes')},
+  )
 }

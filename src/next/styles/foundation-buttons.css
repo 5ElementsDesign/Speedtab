@@ -22,12 +22,6 @@
   white-space: nowrap;
 }
 
-[data-btn="funky"] {
-  background: var(--st-color-funky);
-  color: var(--st-color-funky-contrast);
-  border-color: var(--st-color-funky);
-}
-
 [data-btn="primary"],
 [data-ui-btn="primary"] {
   background: var(--st-color-primary);
@@ -95,14 +89,14 @@
 
 [data-btn="dark"],
 [data-ui-btn="dark"] {
-  background: var(--st-color-dark);
-  color: var(--st-color-dark-contrast);
-  border-color: var(--st-color-dark);
+  background: var(--st-color-dark-contrast);
+  color: var(--st-color-dark);
+  border-color: var(--st-color-dark-contrast);
 
   &[data-outline] {
-    background: var(--st-color-dark-contrast);
-    color: var(--st-color-dark);
-    border-color: var(--st-color-dark-contrast);
+    background: var(--st-color-dark);
+    color: var(--st-color-dark-contrast);
+    border-color: var(--st-color-dark);
   }
 }
 
@@ -110,7 +104,7 @@
 [data-ui-btn="light"] {
   background: var(--st-color-light);
   color: var(--st-color-light-contrast);
-  border-color: var(--st-color-light);
+  border-color: color-mix(in srgb, var(--st-color-light), black 25%);
 
   &[data-outline] {
     background: var(--st-color-light-contrast);
@@ -204,7 +198,7 @@
 [data-btn="light"],
 [data-ui-btn="light"] {
   &:hover:not(:disabled) {
-    filter: brightness(0.94);
+    filter: brightness(0.84);
   }
 }
 

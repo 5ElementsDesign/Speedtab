@@ -19,6 +19,8 @@
 
 .turn-down { opacity: 1; }
 
+.rotate-top-to-left { transform: rotate(270deg); }
+
 .position-relative { position: relative; }
 .pe-none { pointer-events: none; }
 .cursor-pointer { cursor: pointer; }
@@ -269,6 +271,7 @@
 .mt-5 { margin-top: var(--st-margin-5); }
 .mb-5 { margin-bottom: var(--st-margin-5); }
 .ml-5 { margin-left: var(--st-margin-5); }
+.ml-auto { margin-left: auto; }
 .mr-5 { margin-right: var(--st-margin-5); }
 .mx-5 { margin-left: var(--st-margin-5); margin-right: var(--st-margin-5); }
 .my-5 { margin-top: var(--st-margin-5); margin-bottom: var(--st-margin-5); }
