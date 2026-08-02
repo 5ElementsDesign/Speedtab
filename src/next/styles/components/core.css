@@ -54,6 +54,9 @@
   --st-inline-add-text-color: var(--yai-tabs-color-text-muted);
   --st-inline-add-text-color-hover: var(--yai-tabs-color-text);
   --st-inline-add-icon-opacity: 0.68;
+
+  --st-flying-config-contrast-color: var(--st-color-dark);
+  --st-flying-config-active-bg: var(--st-color-success);
 }
 
 html.light {
@@ -236,15 +239,16 @@ html.light {
       line-height: 1;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      /* color: rgba(255, 255, 255, 0.7);
-      background: transparent;
-      border: 0 none; */
 
-/*       &:hover,
+      /* color: rgba(255, 255, 255, 0.7);
+      background: transparent; */
+      /* border: 0 none;  */
+
+      &:hover,
       &:focus {
         color: rgba(255, 255, 255, 1);
         background: rgba(255, 255, 255, 0.05);
-      } */
+      }
     }
   }
 

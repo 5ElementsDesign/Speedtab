@@ -97,6 +97,9 @@ code {
   padding: var(--st-code-padding);
   background: var(--st-html-layer-bg-color);
   border-radius: var(--st-code-border-radius);
+  color: var(--yai-tabs-color-accent);
+  line-height: 1.4;
+  display: inline-block;
 }
 
 pre code {
@@ -125,6 +128,10 @@ a {
 
 a:hover {
   text-decoration: underline;
+}
+
+[data-module-presentation="speed-dial"] .st-bookmark-media[data-media-kind="preview"] {
+  padding: var(--st-speed-dial-image-padding, 0px);
 }
 
 blockquote {

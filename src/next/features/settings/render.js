@@ -159,7 +159,11 @@ export function renderWeatherLocationSearchState(location = null, weatherState =
   `
 }
 
-export function renderBgAssetThumbs(assets) {
+export function renderBgAssetThumbs(assets, options = {}) {
+  const {
+    selectAction = 'loadBgAsset',
+    deleteAction = 'deleteBgAsset',
+  } = options
   if (!assets.length) return ''
   return assets.map((asset) => {
     const objUrl = asset._objectUrl ?? ''
@@ -167,18 +171,18 @@ export function renderBgAssetThumbs(assets) {
       <div data-bg-asset-card>
         <button
           type="button"
-          data-click="loadBgAsset"
+          data-click="${escapeHtml(selectAction)}"
           data-asset-id="${escapeHtml(String(asset.id))}"
           data-bg-asset-thumb
           style="--st-bg-thumb:url('${escapeHtml(objUrl)}');"
         ></button>
-        <button
+        ${deleteAction ? `<button
           type="button"
-          data-click="deleteBgAsset"
+          data-click="${escapeHtml(deleteAction)}"
           data-asset-id="${escapeHtml(String(asset.id))}"
           aria-label="${escapeHtml(t('common.delete'))}"
           data-bg-remove-btn
-        ><i data-icon="x" aria-hidden="true"></i></button>
+        ><i data-icon="x" aria-hidden="true"></i></button>` : ''}
       </div>
     `
   }).join('')
@@ -576,14 +580,18 @@ function renderWidgetEntrySection(widgetSettings = {}) {
   `)
 }
 
-export function renderBgArchiveSwatches(items) {
+export function renderBgArchiveSwatches(items, options = {}) {
+  const {
+    selectAction = 'loadBgArchiveItem',
+    deleteAction = 'deleteBgArchiveItem',
+  } = options
   if (!items.length) return ''
   return items.map((item) => `
     <div data-bg-archive-card>
       <button
         type="button"
         class="st-btn"
-        data-click="loadBgArchiveItem"
+        data-click="${escapeHtml(selectAction)}"
         data-bg-value="${escapeHtml(item.value)}"
         title="${escapeHtml(item.name)}"
         data-bg-archive-swatch
@@ -591,15 +599,15 @@ export function renderBgArchiveSwatches(items) {
       >
         <span data-bg-archive-label>${escapeHtml(item.name)}</span>
       </button>
-        <button
+        ${deleteAction ? `<button
           type="button"
           class="st-btn"
-          data-click="deleteBgArchiveItem"
+          data-click="${escapeHtml(deleteAction)}"
           data-archive-id="${escapeHtml(String(item.id))}"
           aria-label="${escapeHtml(t('common.delete'))}"
           data-bg-remove-btn
           data-variant="archive"
-        ><i data-icon="x" aria-hidden="true"></i></button>
+        ><i data-icon="x" aria-hidden="true"></i></button>` : ''}
     </div>
   `).join('')
 }
@@ -608,6 +616,7 @@ export function renderBackgroundSettingsSection(bgData = {}, options = {}) {
   const {
     title = t('customizer.sections.background'),
     textInputAction = 'previewBgProperty',
+    changeAction = 'changeAppSetting',
     textInputSettingKey = 'background_properties',
     textInputName = 'previewBgPropertyInput',
     textInputPlaceholder = t('customizer.backgroundPlaceholder'),
@@ -617,6 +626,11 @@ export function renderBackgroundSettingsSection(bgData = {}, options = {}) {
     triggerUploadAction = 'triggerWallpaperUpload',
     uploadInputName = 'uploadBgWallpaperInput',
     uploadInputId = 'st-wallpaper-upload',
+    archiveSelectAction = 'loadBgArchiveItem',
+    archiveDeleteAction = 'deleteBgArchiveItem',
+    assetSelectAction = 'loadBgAsset',
+    assetDeleteAction = 'deleteBgAsset',
+    formStateIgnore = false,
   } = options
 
   const {background_properties = '', bgArchive = [], bgAssets = []} = bgData
@@ -630,9 +644,10 @@ export function renderBackgroundSettingsSection(bgData = {}, options = {}) {
           name="${escapeHtml(`${textInputName}Color`)}"
           data-coloris
           data-input-immediate="${escapeHtml(textInputAction)}"
-          data-change="changeAppSetting"
+          data-change="${escapeHtml(changeAction)}"
           data-setting-key="${escapeHtml(textInputSettingKey)}"
           data-bg-color-input
+          ${formStateIgnore ? 'data-form-state-ignore' : ''}
           value="${escapeHtml(backgroundColorValue)}"
         >
         <button
@@ -648,9 +663,10 @@ export function renderBackgroundSettingsSection(bgData = {}, options = {}) {
         name="${escapeHtml(textInputName)}"
         class="w-100"
         data-input="${escapeHtml(textInputAction)}"
-        data-change="changeAppSetting"
+        data-change="${escapeHtml(changeAction)}"
         data-setting-key="${escapeHtml(textInputSettingKey)}"
         data-bg-property-input
+        ${formStateIgnore ? 'data-form-state-ignore' : ''}
         value="${escapeHtml(background_properties)}"
         placeholder="${escapeHtml(textInputPlaceholder)}"
       />
@@ -658,17 +674,23 @@ export function renderBackgroundSettingsSection(bgData = {}, options = {}) {
       <button type="button" data-btn="warning" data-click="${escapeHtml(clearAction)}" data-customizer-compact-btn>${t('settings.clear')}</button>
     </div>
     ${bgArchive.length
-      ? `<div data-bg-archive-list>${renderBgArchiveSwatches(bgArchive)}</div>`
+      ? `<div data-bg-archive-list>${renderBgArchiveSwatches(bgArchive, {
+        selectAction: archiveSelectAction,
+        deleteAction: archiveDeleteAction,
+      })}</div>`
       : '<div data-bg-archive-list></div>'}
     <div data-customizer-field data-customizer-field-layout="stack" data-customizer-gap="md">
       <label data-customizer-upload-row>
         <span data-customizer-field-label>${t('customizer.uploadWallpaper')}</span>
-        <input type="file" name="${escapeHtml(uploadInputName)}" accept="image/*" data-change="${escapeHtml(uploadAction)}" hidden id="${escapeHtml(uploadInputId)}">
+        <input type="file" name="${escapeHtml(uploadInputName)}" accept="image/*" data-change="${escapeHtml(uploadAction)}" ${formStateIgnore ? 'data-form-state-ignore ' : ''}hidden id="${escapeHtml(uploadInputId)}">
         <button type="button" data-click="${escapeHtml(triggerUploadAction)}" data-customizer-compact-btn>${t('customizer.chooseImage')}</button>
       </label>
     </div>
     ${bgAssets.length
-      ? `<div data-bg-asset-list>${renderBgAssetThumbs(bgAssets)}</div>`
+      ? `<div data-bg-asset-list>${renderBgAssetThumbs(bgAssets, {
+        selectAction: assetSelectAction,
+        deleteAction: assetDeleteAction,
+      })}</div>`
       : '<div data-bg-asset-list></div>'}
   `)
 }
@@ -678,6 +700,7 @@ export function renderSettingsPanel(settings, widgetSettings = {}) {
     ui_language,
     bookmarks_open_in_new_tab,
     feed_search_url_template,
+    remember_last_page,
     html_cache,
   } = settings
 
@@ -705,6 +728,21 @@ export function renderSettingsPanel(settings, widgetSettings = {}) {
       `)}
 
       ${section(t('settings.sections.performance'), `
+        <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
+          <span data-customizer-field-label>${t('settings.rememberLastPage')}</span>
+          <input type="checkbox"
+            name="remember_last_pageInput"
+            data-change="changeAppSetting"
+            data-setting-key="remember_last_page"
+            data-value-type="boolean"
+            ${remember_last_page ? 'checked' : ''}
+          />
+        </label>
+        <p data-settings-hint>
+          ${t('settings.rememberLastPageHelp')}
+        </p>
+        <div data-customizer-divider aria-hidden="true"></div>
+
         <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
           <span data-customizer-field-label>${t('settings.htmlCache')}</span>
           <input type="checkbox"

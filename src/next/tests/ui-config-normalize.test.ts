@@ -25,6 +25,15 @@ describe('getUiConfigDefaults', () => {
     expect(defaults.layout).toEqual({})
     expect(defaults.appearance).toEqual({})
   })
+
+  it('returns focused Speed Dial defaults without a column-span option', () => {
+    const defaults = getUiConfigDefaults('module', 'speed-dial')
+    expect(defaults.layout['speed-dial-tile-height-px']).toBe(140)
+    expect(defaults.layout['speed-dial-content-align']).toBe('start')
+    expect(defaults.layout['module-content-gap-px']).toBe(10)
+    expect(defaults.layout['speed-dial-fill-height']).toBe(false)
+    expect(defaults.layout['module-column-span']).toBeUndefined()
+  })
 })
 
 describe('normalizeUiConfig', () => {
@@ -92,6 +101,26 @@ describe('normalizeUiConfig', () => {
     })
     expect(result.behavior['shell-behavior']).toBe('slide-up')
     expect(result.layout['shell-max-width']).toBe(1200)
+  })
+
+  it('accepts Speed Dial tile heights only within 100–300px', () => {
+    expect(normalizeUiConfig('module', 'speed-dial', {
+      layout: {'speed-dial-tile-height-px': 220},
+    }).layout['speed-dial-tile-height-px']).toBe(220)
+
+    expect(normalizeUiConfig('module', 'speed-dial', {
+      layout: {'speed-dial-tile-height-px': 301},
+    }).layout['speed-dial-tile-height-px']).toBeUndefined()
+  })
+
+  it('accepts only start, center, and end for Speed Dial content alignment', () => {
+    expect(normalizeUiConfig('module', 'speed-dial', {
+      layout: {'speed-dial-content-align': 'center'},
+    }).layout['speed-dial-content-align']).toBe('center')
+
+    expect(normalizeUiConfig('module', 'speed-dial', {
+      layout: {'speed-dial-content-align': 'bottom'},
+    }).layout['speed-dial-content-align']).toBeUndefined()
   })
 })
 

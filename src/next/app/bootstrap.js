@@ -7,13 +7,13 @@ import {captureActions} from '../actions/capture.js'
 import {customizerActions} from '../actions/customizer.js'
 import {localToolsActions} from '../actions/local-tools.js'
 import {ensureFeedCollectionLoaded, moduleCrudActions} from '../actions/module-crud.js'
-import {pageActions} from '../actions/pages.js'
+import {pageActions, syncOpenPageEditorActiveHint} from '../actions/pages.js'
 import {searchActions} from '../actions/search.js'
 import {settingsActions} from '../actions/settings.js'
 import {workspaceActions} from '../actions/workspace.js'
 import {closeAll, closeDropdown} from '../components/dropdown.js'
 import {dismissToast, initToastEvents} from '../components/toast.js'
-import {getCachedAppSettings, loadAppSettings} from '../data/app-settings.js'
+import {getCachedAppSettings, loadAppSettings, saveAppSetting} from '../data/app-settings.js'
 import {loadCaptureInboxCount} from '../data/capture-inbox.js'
 import {loadModuleBySyncId, loadModulesByPageId} from '../data/modules.js'
 import {getHashPageSlug, loadPages, resolveActivePage} from '../data/pages.js'
@@ -35,7 +35,8 @@ import {initBookmarkMedia} from '../utils/bookmark-media.js'
 import {loadAndApplyDocumentTheme} from '../utils/document-theme.js'
 import {initFavicons} from '../utils/favicon.js'
 import {getLocale, initI18n, t} from '../utils/i18n.js'
-import {applyWorkspaceBackground} from '../utils/workspace-background.js'
+import {activateFirstModuleTab} from '../utils/module-tabs.js'
+import {applyPageWorkspaceBackground} from '../utils/workspace-background.js'
 import {installWorkspaceDirtyTracking} from './dirty-tracker.js'
 import {dispatch} from './dispatch.js'
 import {createHandler} from './handler.js'
@@ -431,8 +432,12 @@ export function initializeNextTabs(mount, pages) {
         event?.preventDefault?.()
         routeAction(target, action, event)
       }],
-      tabSwitching: [() => {
+      tabSwitching: [({target, container, action}) => {
         if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+        if (action !== 'switching' || container?.dataset?.refPath !== 'pages') return
+        const page = pageMap.get(target?.dataset?.open)
+        syncOpenPageEditorActiveHint(page?.sync_id ?? '')
+        void applyPageWorkspaceBackground(page?.sync_id ?? '', getCachedAppSettings())
       }],
       tabReady: [({target, content, container, id, refPath, context}) => {
         content?.removeAttribute('inert')
@@ -444,6 +449,9 @@ export function initializeNextTabs(mount, pages) {
 
         // Keep overflow dropdown in sync with the active page
         const activeSlug = target.dataset.open
+        if (getCachedAppSettings().remember_last_page === true && activeSlug) {
+          saveAppSetting('last_page_slug', activeSlug)
+        }
         document.querySelectorAll('[data-page-slug]').forEach((btn) => {
           btn.toggleAttribute('data-overflow-active', btn.dataset.pageSlug === activeSlug)
         })
@@ -597,7 +605,6 @@ export async function renderNextRoot() {
   bindQuicknoteChromeListener()
 
   const appSettingsPromise = loadAppSettings()
-  await applyWorkspaceBackground(mount, await appSettingsPromise)
 
   const [pages, widgetSettings, captureInboxCount, appSettings] = await Promise.all([
     loadPages(),
@@ -634,9 +641,11 @@ export async function renderNextRoot() {
   }] : []
   const renderPages = [...virtualPages, ...pages]
   const activeSlug = getHashPageSlug()
+    || (appSettings.remember_last_page === true ? appSettings.last_page_slug : null)
   const activePage = activeSlug === ORPHANS_PAGE_SLUG
     ? virtualPages[0] ?? resolveActivePage(pages, activeSlug)
     : resolveActivePage(renderPages, activeSlug)
+  await applyPageWorkspaceBackground(activePage?.sync_id ?? '', appSettings, {immediate: true})
   const hydratedPageSlugs = new Set()
   if (activePage?.slug) hydratedPageSlugs.add(activePage.slug)
   const pageModulesBySlug = new Map()
@@ -719,7 +728,7 @@ export async function renderNextRoot() {
   }
 }
 
-export async function refreshModuleContent(syncId) {
+export async function refreshModuleContent(syncId, {fallbackToFirstTab = false} = {}) {
   // CRITICAL MODULE RENDER PATH:
   // USE ONLY WHEN THE MODULE STRUCTURE ITSELF CHANGED.
   // FOR BADGES, BUTTON STATE, TITLES, HIGHLIGHTS, OR SIMPLE TOGGLES, PATCH IN PLACE.
@@ -741,7 +750,7 @@ export async function refreshModuleContent(syncId) {
   bodyEl.innerHTML = renderModuleCardBody(adapted, {hydrateBodies: true})
 
   const refreshedTabsEl = card.querySelector('[data-yai-tabs]')
-  if (lastActive) {
+  if (lastActive && !fallbackToFirstTab) {
     refreshedTabsEl?.setAttribute('data-last-active', lastActive)
   }
 
@@ -755,7 +764,9 @@ export async function refreshModuleContent(syncId) {
   const uiConfigMap = await loadUiConfigsByEntitySyncIds('module', [enriched])
   applyModuleUiConfigMap(card, uiConfigMap)
 
-  if (lastActive && refreshedTabsEl) {
+  if (fallbackToFirstTab) {
+    activateFirstModuleTab(card)
+  } else if (lastActive && refreshedTabsEl) {
     const opener = refreshedTabsEl.querySelector(`:scope > [data-controller] [data-open="${CSS.escape(lastActive)}"]`)
     if (opener) {
       YaiCore.simulateClickEvent(opener)

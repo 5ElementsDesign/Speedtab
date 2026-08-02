@@ -140,8 +140,8 @@ function renderFloatingNoteEditorActions(note) {
     ` : ''
 
   return `
-    ${renderFlyingConfigButton(note)}
     ${isCryptLocked ? '' : previewButton}
+    ${renderFlyingConfigButton(note)}
     ${isCryptLocked ? '' : `
       <button
         type="submit"

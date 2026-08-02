@@ -222,6 +222,39 @@
   background: var(--st-form-elements-border-color);
 }
 
+[data-btn="link"] {
+  background: transparent;
+  border-color: transparent;
+  color: var(--yai-tabs-nav-button-color, var(--yai-tabs-color-text-muted));
+  text-decoration: none;
+}
+
+[data-btn="link"]:is(:hover, :focus-visible, .active) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--yai-tabs-nav-button-active-color, var(--yai-tabs-color-accent));
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+[data-bookmark-inline-add] [data-icon="plus"] {
+  width: 1rem;
+  height: 1rem;
+  opacity: var(--st-inline-add-icon-opacity);
+  transform: rotate(0deg) scale(1);
+  transform-origin: center;
+  transition: transform var(--st-timeout-2) cubic-bezier(0.2, 0.8, 0.2, 1) .3s;
+  filter:
+    drop-shadow(10.5px 0 0 currentColor)
+    drop-shadow(-0.5px 0 0 currentColor)
+    drop-shadow(0 10.5px 0 currentColor)
+    drop-shadow(0 -0.5px 0 currentColor);
+}
+
+[data-bookmark-inline-add]:is(:hover, :focus-visible) [data-icon="plus"] {
+  transform: rotate(1turn) scale(1.4);
+}
+
 [data-btn-size="sm"] {
   min-height: var(--st-btn-sm-min-height);
   padding: var(--st-btn-sm-padding);

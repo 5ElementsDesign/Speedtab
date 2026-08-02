@@ -1,18 +1,23 @@
 import {buildDropdown} from '../../components/dropdown.js'
+import {getFixedModuleColumnSpan, isBookmarkModuleType, isSpeedDialModuleType} from '../../config/module-types.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 import {renderNotesModule} from '../pages/modules/notes/render.js'
+import {renderSpeedDialModule} from '../pages/modules/speed-dial/render.js'
 import {renderTabsModule} from '../pages/modules/tabs/render.js'
 import {renderFeedsModule} from './feeds.js'
 
+const BOOKMARK_ACTION_ITEMS = [
+  {labelKey: 'modules.actions.addTab', action: 'addModuleTab'},
+  {labelKey: 'modules.actions.editTab', action: 'editCurrentModuleTab'},
+  {labelKey: 'modules.actions.addBookmark', action: 'addModuleBookmark', dividerTop: true, icon: 'plus'},
+  {labelKey: 'common.customize', action: 'openCustomizer', dividerTop: true},
+  {labelKey: 'modules.actions.quickSettings', submenu: 'moduleQuickSettings', dividerTop: true},
+]
+
 const MODULE_ACTION_ITEMS = {
-  tabs: [
-    {labelKey: 'modules.actions.addTab', action: 'addModuleTab'},
-    {labelKey: 'modules.actions.editTab', action: 'editCurrentModuleTab'},
-    {labelKey: 'modules.actions.addBookmark', action: 'addModuleBookmark', dividerTop: true, icon: 'plus'},
-    {labelKey: 'common.customize', action: 'openCustomizer', dividerTop: true},
-    {labelKey: 'modules.actions.quickSettings', submenu: 'moduleQuickSettings', dividerTop: true},
-  ],
+  tabs: BOOKMARK_ACTION_ITEMS,
+  'speed-dial': BOOKMARK_ACTION_ITEMS,
   notes: [
     {labelKey: 'modules.actions.addTab', action: 'addModuleTab'},
     {labelKey: 'modules.actions.editTab', action: 'editCurrentModuleTab'},
@@ -65,23 +70,25 @@ function buildModuleQuickSettings(viewModel) {
 
   const items = []
 
-  items.push({
-    label: t('customizer.fields.moduleHideHeader'),
-    action: 'toggleQuickModuleSetting',
-    attributes: {
-      ...sharedAttributes,
-      'data-quick-setting-key': 'module-hide-header',
-    },
-  })
+  if (!isSpeedDialModuleType(viewModel.type)) {
+    items.push({
+      label: t('customizer.fields.moduleHideHeader'),
+      action: 'toggleQuickModuleSetting',
+      attributes: {
+        ...sharedAttributes,
+        'data-quick-setting-key': 'module-hide-header',
+      },
+    })
 
-  items.push({
-    label: t('customizer.fields.moduleTabsGrow'),
-    action: 'toggleQuickModuleSetting',
-    attributes: {
-      ...sharedAttributes,
-      'data-quick-setting-key': 'module-tabs-grow',
-    },
-  })
+    items.push({
+      label: t('customizer.fields.moduleTabsGrow'),
+      action: 'toggleQuickModuleSetting',
+      attributes: {
+        ...sharedAttributes,
+        'data-quick-setting-key': 'module-tabs-grow',
+      },
+    })
+  }
 
   if (viewModel.type === 'tabs') {
     items.push(
@@ -104,7 +111,7 @@ function buildModuleQuickSettings(viewModel) {
     )
   }
 
-  if (viewModel.type === 'tabs' || viewModel.type === 'notes') {
+  if (isBookmarkModuleType(viewModel.type) || viewModel.type === 'notes') {
     items.push({
       label: t('moduleForm.showAddTile'),
       action: 'toggleQuickModuleSetting',
@@ -115,12 +122,24 @@ function buildModuleQuickSettings(viewModel) {
     })
   }
 
-  items.push(
-    {
+  if (isSpeedDialModuleType(viewModel.type)) {
+    items.push({
+      label: t('customizer.fields.speedDialFillHeight'),
+      action: 'toggleQuickModuleSetting',
+      attributes: {
+        ...sharedAttributes,
+        'data-quick-setting-key': 'speed-dial-fill-height',
+        'data-quick-setting-section': 'layout',
+      },
+    })
+  }
+
+  if (getFixedModuleColumnSpan(viewModel.type) == null) {
+    items.push({
       dividerTop: true,
       content: renderQuickSettingsColumnGrid(sharedAttributes),
-    },
-  )
+    })
+  }
 
   return items
 }
@@ -180,20 +199,31 @@ function createBaseViewModel(module) {
   }
 }
 
+async function enrichBookmarkModule(module, context) {
+  const tabs = await context.loadTabsByModuleId(module.id)
+  const tabsWithBookmarks = await Promise.all(
+    tabs.map(async (tab) => ({...tab, bookmarks: await context.loadBookmarksByTabId(tab.id)}))
+  )
+  return {...module, tabs: tabsWithBookmarks}
+}
+
 const MODULE_DEFINITIONS = {
   tabs: {
-    async enrich(module, context) {
-      const tabs = await context.loadTabsByModuleId(module.id)
-      const tabsWithBookmarks = await Promise.all(
-        tabs.map(async (tab) => ({...tab, bookmarks: await context.loadBookmarksByTabId(tab.id)}))
-      )
-      return {...module, tabs: tabsWithBookmarks}
-    },
+    enrich: enrichBookmarkModule,
     adapt(module) {
       return createBaseViewModel(module)
     },
     renderBody(viewModel) {
       return renderTabsModule(viewModel.tabs, buildModuleActions(viewModel), viewModel.moduleId, viewModel.syncId, viewModel.config)
+    },
+  },
+  'speed-dial': {
+    enrich: enrichBookmarkModule,
+    adapt(module) {
+      return createBaseViewModel(module)
+    },
+    renderBody(viewModel) {
+      return renderSpeedDialModule(viewModel.tabs, buildModuleActions(viewModel), viewModel.moduleId, viewModel.syncId, viewModel.config)
     },
   },
   notes: {

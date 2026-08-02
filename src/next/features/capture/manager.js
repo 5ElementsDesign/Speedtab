@@ -1,4 +1,5 @@
 import {openModal, closeModal, isModalOpen} from '../../components/modal.js'
+import {isBookmarkModuleType} from '../../config/module-types.js'
 import {createBookmark} from '../../data/bookmarks.js'
 import {deleteCaptureInboxItem, loadCaptureInboxContext, loadCaptureInboxItems} from '../../data/capture-inbox.js'
 import {createNoteData, loadNoteById, saveNoteData} from '../../data/notes.js'
@@ -29,9 +30,10 @@ function getActiveItem() {
 
 function getEligibleModules(item = getActiveItem()) {
   if (!item) return []
-  const targetType = item.kind === 'note' ? 'notes' : 'tabs'
   return state.modules
-    .filter((module) => module.type === targetType)
+    .filter((module) => item.kind === 'note'
+      ? module.type === 'notes'
+      : isBookmarkModuleType(module.type))
     .map((module) => ({...module, label: buildModuleLabel(module)}))
 }
 

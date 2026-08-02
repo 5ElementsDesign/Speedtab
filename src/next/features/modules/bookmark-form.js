@@ -1,9 +1,12 @@
 import fallbackFaviconUrl from '@/assets/st-favicon.ico'
-import {TILE_H, TILE_W, canvasToWebpBlob, loadAssetById, loadAssetObjectUrl, loadAssetsByKinds, storeOrGetAsset} from '../../data/assets.js'
+import {SPEED_DIAL_TILE_H, SPEED_DIAL_TILE_W, TILE_H, TILE_W, canvasToWebpBlob, loadAssetById, loadAssetObjectUrl, loadAssetsByKinds, storeOrGetAsset} from '../../data/assets.js'
+import {isSpeedDialModuleType} from '../../config/module-types.js'
+import {normalizeSpeedDialImagePadding, SPEED_DIAL_IMAGE_PADDING_MAX, SPEED_DIAL_IMAGE_PADDING_MIN} from '../../config/speed-dial.js'
 import {patchHost, readActiveFieldState, replaceNode, restoreActiveFieldState} from '../../utils/dom-patch.js'
-import {customizerDivider, customizerField, customizerSection, textInput, textarea, urlInput} from '../../ui/primitives.js'
+import {customizerDivider, customizerField, customizerSection, numberInput, textInput, textarea, urlInput} from '../../ui/primitives.js'
 import {ensureFaviconAssetIdForUrl, initFavicons, normalizeStoredFaviconBlob} from '../../utils/favicon.js'
 import {escapeHtml} from '../../utils/html.js'
+import {getDominantOpaqueRgb, getReadableTextColor, rgbToHex} from '../../utils/image-color.js'
 import {t} from '../../utils/i18n.js'
 import {extractDescription} from '../../utils/page-meta.js'
 import {initFormDirtyState, renderFormActions} from '../forms/actions.js'
@@ -12,6 +15,12 @@ import {initColorPicker, wrapColorPicker} from '../../utils/color-picker.js'
 let bookmarkFormState = null
 let cropperInstance = null
 let cropperLoaderPromise = null
+
+function getPreviewSpec(state = bookmarkFormState) {
+  return isSpeedDialModuleType(state?.moduleType)
+    ? {width: SPEED_DIAL_TILE_W, height: SPEED_DIAL_TILE_H, kind: 'speed_dial'}
+    : {width: TILE_W, height: TILE_H, kind: 'preview'}
+}
 
 function revokeObjectUrl(url) {
   if (url) URL.revokeObjectURL(url)
@@ -61,10 +70,11 @@ async function loadCropper() {
   return cropperLoaderPromise
 }
 
-function buildInitialState({record = null, moduleSyncId = '', parentId = '', parentSyncId = '', parentTitle = ''}) {
+function buildInitialState({record = null, moduleSyncId = '', moduleType = 'tabs', parentId = '', parentSyncId = '', parentTitle = ''}) {
   return {
     record,
     moduleSyncId,
+    moduleType,
     parentId,
     parentSyncId,
     parentTitle,
@@ -73,6 +83,8 @@ function buildInitialState({record = null, moduleSyncId = '', parentId = '', par
     description: record?.description ?? '',
     color: record?.color ?? '',
     backgroundColor: record?.background_color ?? '',
+    previewPadding: normalizeSpeedDialImagePadding(record?.preview_padding),
+    colorsEdited: false,
     selectedFaviconAssetId: record?.favicon_asset_id ?? null,
     selectedPreviewAssetId: record?.preview_asset_id ?? null,
     selectedFaviconAssetUrl: null,
@@ -107,12 +119,15 @@ async function hydrateSelectedUrls(state) {
 
 async function hydrateAssetLibrary(state) {
   clearAssetLibrary(state)
-  const assets = await loadAssetsByKinds(['favicon', 'preview', 'background', 'note_image'])
+  const reusableKinds = isSpeedDialModuleType(state.moduleType)
+    ? ['speed_dial']
+    : ['preview', 'background', 'note_image']
+  const assets = await loadAssetsByKinds(['favicon', ...reusableKinds])
   state.faviconAssets = assets
     .filter((asset) => asset.kind === 'favicon' && asset.id != null)
     .map((asset) => ({...asset, objectUrl: URL.createObjectURL(asset.blob)}))
   state.reusableAssets = assets
-    .filter((asset) => ['preview', 'background', 'note_image'].includes(asset.kind) && asset.id != null)
+    .filter((asset) => reusableKinds.includes(asset.kind) && asset.id != null)
     .map((asset) => ({...asset, objectUrl: URL.createObjectURL(asset.blob)}))
 }
 
@@ -135,6 +150,22 @@ export function syncBookmarkFormStateFromForm(form) {
   bookmarkFormState.description = form.querySelector('[name="description"]')?.value ?? ''
   bookmarkFormState.color = form.querySelector('[name="color"]')?.value ?? ''
   bookmarkFormState.backgroundColor = form.querySelector('[name="background_color"]')?.value ?? ''
+  const previewPaddingInput = form.querySelector('[name="preview_padding"]')
+  if (previewPaddingInput instanceof HTMLInputElement) {
+    bookmarkFormState.previewPadding = normalizeSpeedDialImagePadding(previewPaddingInput.value)
+  }
+}
+
+export function markBookmarkColorsEdited() {
+  if (bookmarkFormState) bookmarkFormState.colorsEdited = true
+}
+
+export function shouldAutoDetectBookmarkColors(state) {
+  return isSpeedDialModuleType(state?.moduleType)
+    && !state?.record
+    && state?.colorsEdited !== true
+    && !state?.color
+    && !state?.backgroundColor
 }
 
 
@@ -154,17 +185,10 @@ export async function fillBookmarkColorsFromFavicon() {
   try {
     context.drawImage(image, 0, 0, 12, 12)
     const pixels = context.getImageData(0, 0, 12, 12).data
-    let red = 0; let green = 0; let blue = 0; let count = 0
-    for (let i = 0; i < pixels.length; i += 4) {
-      if (pixels[i + 3] < 32) continue
-      red += pixels[i]; green += pixels[i + 1]; blue += pixels[i + 2]; count++
-    }
-    if (!count) return
-    const r = Math.round(red / count).toString(16).padStart(2, '0')
-    const g = Math.round(green / count).toString(16).padStart(2, '0')
-    const b = Math.round(blue / count).toString(16).padStart(2, '0')
-    state.backgroundColor = `#${r}${g}${b}`
-    state.color = ((0.299 * red + 0.587 * green + 0.114 * blue) / count) > 150 ? '#111827' : '#ffffff'
+    const dominantColor = getDominantOpaqueRgb(pixels)
+    if (!dominantColor) return
+    state.backgroundColor = rgbToHex(dominantColor)
+    state.color = getReadableTextColor(dominantColor)
   } catch {
     // Some image sources cannot be sampled by canvas.
   }
@@ -253,13 +277,31 @@ function renderFaviconField(state) {
 }
 
 function renderPreviewSelection(state) {
+  const previewSpec = getPreviewSpec(state)
   const currentPreviewUrl = state.croppedPreviewUrl || state.selectedPreviewAssetUrl
   if (currentPreviewUrl) {
+    const paddingField = isSpeedDialModuleType(state.moduleType)
+      ? customizerField({
+        type: 'integer',
+        label: t('tabForm.imagePadding'),
+        control: numberInput({
+          name: 'preview_padding',
+          value: normalizeSpeedDialImagePadding(state.previewPadding),
+          attrs: {
+            min: SPEED_DIAL_IMAGE_PADDING_MIN,
+            max: SPEED_DIAL_IMAGE_PADDING_MAX,
+            step: 1,
+            inputmode: 'numeric',
+          },
+        }),
+      })
+      : ''
     return `
       <div data-bookmark-form-current-preview>
-        <img src="${escapeHtml(currentPreviewUrl)}" style="width:${TILE_W}px;height:${TILE_H}px;" alt="${escapeHtml(t('tabForm.previewAlt'))}">
+        <img src="${escapeHtml(currentPreviewUrl)}" width="${previewSpec.width}" height="${previewSpec.height}" alt="${escapeHtml(t('tabForm.previewAlt'))}">
         <button type="button" data-click="bookmarkFormClearPreview" data-bookmark-form-link-btn>${escapeHtml(t('tabForm.remove'))}</button>
       </div>
+      ${paddingField}
     `
   }
 
@@ -280,18 +322,20 @@ function renderPreviewSelection(state) {
           <button type="button" data-btn="ghost" data-click="bookmarkFormCropFlipY" data-bookmark-form-crop-btn>${escapeHtml(t('tabForm.flipY'))}</button>
         </div>
         <div data-bookmark-form-crop-actions>
-          <button type="button" data-click="bookmarkFormApplyCrop" data-btn="primary" title="${escapeHtml(t('tabForm.cropBeforeSaving'))}">${escapeHtml(t('tabForm.applyCrop', {width: TILE_W, height: TILE_H}))}</button>
+          <button type="button" data-click="bookmarkFormApplyCrop" data-btn="primary" title="${escapeHtml(t('tabForm.cropBeforeSaving'))}">${escapeHtml(t('tabForm.applyCrop', previewSpec))}</button>
           <button type="button" data-click="bookmarkFormClearPreview" data-btn="ghost" data-bookmark-form-link-btn>${escapeHtml(t('common.cancel'))}</button>
         </div>
       </div>
     `
   }
 
-  const assetGroups = [
-    {kind: 'preview', label: t('tabForm.assetGroups.preview')},
-    {kind: 'background', label: t('tabForm.assetGroups.background')},
-    {kind: 'note_image', label: t('tabForm.assetGroups.noteImage')},
-  ]
+  const assetGroups = isSpeedDialModuleType(state.moduleType)
+    ? [{kind: 'speed_dial', label: t('tabForm.assetGroups.speedDial')}]
+    : [
+      {kind: 'preview', label: t('tabForm.assetGroups.preview')},
+      {kind: 'background', label: t('tabForm.assetGroups.background')},
+      {kind: 'note_image', label: t('tabForm.assetGroups.noteImage')},
+    ]
 
   const picker = state.isPreviewPickerOpen
     ? `<div data-bookmark-form-picker>${assetGroups.map((group) => {
@@ -360,6 +404,7 @@ export function renderBookmarkCrudForm(state) {
       data-record-id="${escapeHtml(String(state.record?.id ?? ''))}"
       data-record-sync-id="${escapeHtml(state.record?.sync_id ?? '')}"
       data-module-sync-id="${escapeHtml(state.moduleSyncId)}"
+      data-module-type="${escapeHtml(state.moduleType)}"
       data-parent-id="${escapeHtml(String(state.parentId ?? ''))}"
       data-parent-sync-id="${escapeHtml(state.parentSyncId ?? '')}"
     >
@@ -436,7 +481,7 @@ export function renderBookmarkCrudForm(state) {
         title: t('tabForm.previewImage'),
         section: 'preview',
         children: `<div data-bookmark-form-preview-wrap>${renderPreviewSelection(state)}</div>`,
-      }).replace('<p data-customizer-section-title>', `<p data-customizer-section-title title="${escapeHtml(t('tabForm.previewImageMeta', {width: TILE_W, height: TILE_H}))}">`)}
+      }).replace('<p data-customizer-section-title>', `<p data-customizer-section-title title="${escapeHtml(t('tabForm.previewImageMeta', getPreviewSpec(state)))}">`)}
 
       ${customizerDivider()}
 
@@ -478,8 +523,9 @@ async function afterBookmarkFormRenderWithOptions(body, {autoFocus = true} = {})
   const img = body.querySelector('[data-bookmark-cropper-image]')
   if (!img) return
   const Cropper = await loadCropper()
+  const previewSpec = getPreviewSpec(bookmarkFormState)
   cropperInstance = new Cropper(img, {
-    aspectRatio: TILE_W / TILE_H,
+    aspectRatio: previewSpec.width / previewSpec.height,
     viewMode: 1,
     autoCropArea: 1,
     movable: true,
@@ -757,13 +803,15 @@ export function clearBookmarkPreview() {
   revokeObjectUrl(state.selectedPreviewAssetUrl)
   state.selectedPreviewAssetUrl = null
   state.selectedPreviewAssetId = null
+  state.previewPadding = 0
   state.isPreviewPickerOpen = false
 }
 
 export async function applyBookmarkPreviewCrop() {
   const state = bookmarkFormState
   if (!state || !cropperInstance) return
-  const canvas = cropperInstance.getCroppedCanvas({width: TILE_W, height: TILE_H})
+  const previewSpec = getPreviewSpec(state)
+  const canvas = cropperInstance.getCroppedCanvas({width: previewSpec.width, height: previewSpec.height})
   const blob = await canvasToWebpBlob(canvas)
   resetPreviewCropState(state)
   state.croppedPreviewBlob = blob
@@ -799,12 +847,23 @@ export async function buildBookmarkSavePayload(form) {
 
   let previewAssetId = state.selectedPreviewAssetId
   if (state.croppedPreviewBlob) {
-    previewAssetId = await storeOrGetAsset(state.croppedPreviewBlob, 'preview', TILE_W, TILE_H)
+    const previewSpec = getPreviewSpec(state)
+    previewAssetId = await storeOrGetAsset(
+      state.croppedPreviewBlob,
+      previewSpec.kind,
+      previewSpec.width,
+      previewSpec.height,
+    )
   }
 
   let faviconAssetId = state.selectedFaviconAssetId
   if (!faviconAssetId && state.url) {
     faviconAssetId = await ensureFaviconAssetIdForUrl(state.url)
+  }
+  if (faviconAssetId && shouldAutoDetectBookmarkColors(state)) {
+    state.selectedFaviconAssetId = faviconAssetId
+    await hydrateSelectedUrls(state)
+    await fillBookmarkColorsFromFavicon()
   }
 
   let displayTitle = state.title.trim()
@@ -824,5 +883,6 @@ export async function buildBookmarkSavePayload(form) {
     background_color: state.backgroundColor.trim() || null,
     favicon_asset_id: faviconAssetId,
     preview_asset_id: previewAssetId,
+    preview_padding: previewAssetId ? normalizeSpeedDialImagePadding(state.previewPadding) : null,
   }
 }

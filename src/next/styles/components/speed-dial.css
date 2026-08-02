@@ -1,0 +1,85 @@
+/**
+ * Speed Dial layout. Visual surface and link-button states are foundational.
+ */
+[data-module-type="speed-dial"] {
+  --st-module-min-height: 50vh;
+  --st-bookmark-tile-bg-default: var(--st-speed-dial-tile-background);
+
+  > [data-module-card-title] {
+    display: none;
+  }
+  nav::after {
+    box-shadow: 0 0 0 transparent !important;
+  }
+  [data-dropdown-trigger] {
+    background: rgba(15, 15, 15, .05);
+  }
+
+  [data-module-presentation="speed-dial"] {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "nav"
+      "content";
+
+    &[data-single-tab] {
+      grid-template-rows: minmax(0, 1fr);
+      grid-template-areas: "content";
+
+      > [data-controller] {
+        display: none;
+      }
+    }
+
+    > [data-controller] {
+      align-items: center;
+      justify-content: start;
+      gap: 0;
+    }
+
+    > [data-module-actions] {
+      position: absolute;
+      top: 0;
+      inset-inline-end: 0;
+      z-index: 4;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    &:is(:hover, :focus-within) > [data-module-actions] {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  .st-module-content-wrapper {
+    align-content: var(--st-speed-dial-content-align);
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  [data-bookmark-tile] {
+    width: auto;
+    height: var(--st-speed-dial-tile-height);
+    aspect-ratio: 16 / 9;
+    flex: 0 0 auto;
+
+    > .st-trigger-tab {
+      width: 100%;
+      height: 100%;
+    }
+  }
+}
+
+[data-page-grid]:has([data-speed-dial-fill-height]) > [data-grid-row] {
+  flex: 1 1 auto;
+}
+
+[data-page-grid]:has([data-speed-dial-fill-height]) {
+  height: 100%;
+}
+
+[data-grid-col]:has([data-speed-dial-fill-height]) {
+  min-height: 100%;
+}

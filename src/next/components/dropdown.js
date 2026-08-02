@@ -1,4 +1,5 @@
 import {buildAttributes, escapeHtml} from '../utils/html.js'
+import {readQuickModuleSettingValue} from '../utils/module-quick-settings.js'
 
 const OPEN = 'data-dropdown-open'
 
@@ -76,46 +77,6 @@ export function buildDropdown({trigger, ariaLabel, align = 'right', triggerClass
 let _openPanel = null
 let _openRoot  = null
 
-function readQuickSettingValue(moduleRoot, key) {
-  if (!(moduleRoot instanceof HTMLElement) || !key) return null
-  const tabsRoot = moduleRoot.querySelector('[data-yai-tabs]')
-  const gridCol = moduleRoot.closest('[data-grid-col]')
-
-  if (key === 'module-tabs-quicklinks') {
-    return tabsRoot?.hasAttribute('data-bookmarks-quicklinks') === true
-  }
-
-  if (key === 'module-tabs-grow') {
-    return moduleRoot.querySelector('[data-controller]')?.hasAttribute('data-grow') === true
-  }
-
-  if (key === 'module-tabs-show-title-below') {
-    return tabsRoot?.hasAttribute('data-bookmarks-show-title-below') === true
-  }
-
-  if (key === 'module-tabs-force-favicon') {
-    return tabsRoot?.hasAttribute('data-bookmarks-force-favicon') === true
-  }
-
-  if (key === 'module-tabs-show-add-tile') {
-    return tabsRoot?.hasAttribute('data-bookmarks-inline-add-tile') === true
-  }
-
-  if (key === 'module-hide-header') {
-    return moduleRoot.hasAttribute('data-hide-header')
-  }
-
-  if (key === 'module-column-span') {
-    const raw = gridCol?.style?.getPropertyValue('--st-grid-col-span')?.trim()
-      || gridCol?.getAttribute('style')?.match(/--st-grid-col-span:\s*([0-9]+)/)?.[1]
-      || '12'
-    const value = parseInt(raw, 10)
-    return Number.isInteger(value) ? value : 12
-  }
-
-  return null
-}
-
 function syncQuickSettingState(root, panel) {
   const moduleRoot = root?.closest?.('[data-module-card]')
   if (!(moduleRoot instanceof HTMLElement) || !(panel instanceof HTMLElement)) return
@@ -123,7 +84,7 @@ function syncQuickSettingState(root, panel) {
   panel.querySelectorAll('[data-quick-setting-key]').forEach((item) => {
     const key = item.getAttribute('data-quick-setting-key')
     if (!key) return
-    const currentValue = readQuickSettingValue(moduleRoot, key)
+    const currentValue = readQuickModuleSettingValue(moduleRoot, key)
     const explicitValue = item.getAttribute('data-quick-setting-value')
 
     if (explicitValue !== null) {

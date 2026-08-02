@@ -1,3 +1,4 @@
+import {getFixedModuleColumnSpan, isBookmarkModuleType, isSpeedDialModuleType} from '../../../config/module-types.js'
 import {escapeHtml} from '../../../utils/html.js'
 import {t} from '../../../utils/i18n.js'
 import {adaptModule, renderModuleBody, renderModuleBodyShell} from '../../modules/registry.js'
@@ -18,8 +19,10 @@ function parsePageConfig(page) {
   }
 }
 
-function getModuleColumnSpan(module, defaultSpan) {
+export function getModuleColumnSpan(module, defaultSpan) {
   const fallback = Math.max(1, Math.min(12, Number(defaultSpan) || 12))
+  const fixedSpan = getFixedModuleColumnSpan(module?.type)
+  if (fixedSpan != null) return fixedSpan
 
   const sources = [
     module?.config?.layout?.['module-column-span'],
@@ -44,6 +47,11 @@ function getModuleColumnSpan(module, defaultSpan) {
   return fallback
 }
 
+export function getPageGridDefaultSpan(page) {
+  const {modulesPerRow} = parsePageConfig(page)
+  return Math.max(1, Math.floor(12 / Math.max(1, Math.min(12, modulesPerRow || 2))))
+}
+
 export function renderModuleCardBody(adapted, {hydrateBodies = false} = {}) {
   return hydrateBodies ? renderModuleBody(adapted) : renderModuleBodyShell(adapted)
 }
@@ -51,12 +59,15 @@ export function renderModuleCardBody(adapted, {hydrateBodies = false} = {}) {
 function renderModuleCard(adapted, {hydrateBodies = false} = {}) {
   const syncAttr = adapted.syncId ? ` data-sync-id="${escapeHtml(adapted.syncId)}"` : ''
   const idAttr = adapted.moduleId != null ? ` data-module-id="${escapeHtml(String(adapted.moduleId))}"` : ''
-  const hasActionsAttr = ['tabs', 'notes', 'feeds'].includes(adapted.type) && adapted.syncId ? ' data-has-module-actions' : ''
+  const hasActionsAttr = (isBookmarkModuleType(adapted.type) || ['notes', 'feeds'].includes(adapted.type)) && adapted.syncId
+    ? ' data-has-module-actions'
+    : ''
   const quicklinksAttr = adapted.type === 'tabs' && adapted?.config?.behavior?.['module-tabs-quicklinks'] === true
     ? ' data-module-sub-type="quicklinks" data-quicklinks'
     : ''
+  const surfaceAttr = isSpeedDialModuleType(adapted.type) ? ' data-surface="transparent"' : ''
   return `
-    <section data-module-card data-module-type="${escapeHtml(adapted.type || 'module')}"${syncAttr}${idAttr}${hasActionsAttr}${quicklinksAttr} data-module-contract="v1">
+    <section data-module-card data-module-type="${escapeHtml(adapted.type || 'module')}"${syncAttr}${idAttr}${hasActionsAttr}${quicklinksAttr}${surfaceAttr} data-module-contract="v1">
       <div data-module-card-body>
         ${renderModuleCardBody(adapted, {hydrateBodies})}
       </div>
@@ -79,11 +90,11 @@ function renderGridColumn({span, modules, hydrateBodies = false}) {
 }
 
 export function renderPageGrid(page, modules = [], {hydrateBodies = false} = {}) {
-  const {modulesPerRow, maxWidth} = parsePageConfig(page)
-  const perRow = Math.max(1, Math.min(12, modulesPerRow || 2))
-  const defaultSpan = Math.max(1, Math.floor(12 / perRow))
+  const {maxWidth} = parsePageConfig(page)
+  const defaultSpan = getPageGridDefaultSpan(page)
   const gridStyle = maxWidth ? ` style="--st-page-grid-max-width-local:${escapeHtml(String(maxWidth))}px;"` : ''
   const isEmptyStyle = modules.length ? `` : ` data-empty-state data-swipe-ignore`;
+  const pageAlignAttr = modules.some((module) => isSpeedDialModuleType(module.type)) ? ' data-page-align="start"' : ''
 
   const columns = modules.length
     ? modules.map((module) => {
@@ -93,7 +104,7 @@ export function renderPageGrid(page, modules = [], {hydrateBodies = false} = {})
     }).join('')
     : renderGridColumn({span: 12, modules: [{title: t('app.noModulesTitle'), body: t('app.noModulesDescription'), type: 'module', syncId: '', moduleId: null, tabs: []}], hydrateBodies})
   return `
-    <div data-page-grid${gridStyle}>
+    <div data-page-grid${pageAlignAttr}${gridStyle}>
       <section data-grid-row${isEmptyStyle}>${columns}</section>
     </div>
   `

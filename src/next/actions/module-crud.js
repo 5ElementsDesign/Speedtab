@@ -1,6 +1,7 @@
 import {useFeed} from '../../composables/useFeed.ts'
 import {db} from '../../db/db.ts'
 import {closeModal, openModal} from '../components/modal.js'
+import {isBookmarkModuleType} from '../config/module-types.js'
 import {closeSidepanel, onSidepanelClose, openSidepanel} from '../components/sidepanel.js'
 import {syncOpenQuickSettingState} from '../components/dropdown.js'
 import {createBookmark, loadBookmarkBySyncId, saveBookmarkData, softDeleteBookmark} from '../data/bookmarks.js'
@@ -25,6 +26,7 @@ import {
   clearBookmarkPreview,
   detectBookmarkColors,
   initBookmarkFormState,
+  markBookmarkColorsEdited,
   patchBookmarkForm,
   renderBookmarkCrudForm,
   rerenderBookmarkForm,
@@ -66,6 +68,7 @@ import {
 import {getVisibleBookmarkMediaScope, initBookmarkMedia} from '../utils/bookmark-media.js'
 import {escapeHtml} from '../utils/html.js'
 import {t} from '../utils/i18n.js'
+import {readQuickModuleSettingValue} from '../utils/module-quick-settings.js'
 
 const feedApi = useFeed()
 
@@ -216,25 +219,8 @@ function getModuleRoot(moduleSyncId) {
   return document.querySelector(`[data-module-card][data-sync-id="${CSS.escape(moduleSyncId)}"]`)
 }
 
-function getQuickModuleSettingValue(moduleRoot, key) {
-  if (!(moduleRoot instanceof HTMLElement) || !key) return null
-  const tabsRoot = moduleRoot.querySelector('[data-yai-tabs]')
-  const gridCol = moduleRoot.closest('[data-grid-col]')
-
-  if (key === 'module-tabs-grow') return tabsRoot?.querySelector('[data-controller]')?.hasAttribute('data-grow') === true
-  if (key === 'module-tabs-quicklinks') return tabsRoot?.hasAttribute('data-bookmarks-quicklinks') === true
-  if (key === 'module-tabs-force-favicon') return tabsRoot?.hasAttribute('data-bookmarks-force-favicon') === true
-  if (key === 'module-tabs-show-title-below') return tabsRoot?.hasAttribute('data-bookmarks-show-title-below') === true
-  if (key === 'module-tabs-show-add-tile') return tabsRoot?.hasAttribute('data-bookmarks-inline-add-tile') === true
-  if (key === 'module-hide-header') return moduleRoot.hasAttribute('data-hide-header')
-  if (key === 'module-column-span') {
-    const raw = gridCol?.style?.getPropertyValue('--st-grid-col-span')?.trim()
-      || gridCol?.getAttribute('style')?.match(/--st-grid-col-span:\s*([0-9]+)/)?.[1]
-      || '12'
-    const value = parseInt(raw, 10)
-    return Number.isInteger(value) ? value : 12
-  }
-  return null
+function getModuleType(moduleSyncId) {
+  return getModuleRoot(moduleSyncId)?.dataset?.moduleType || ''
 }
 
 async function persistModuleQuickConfig(moduleSyncId, moduleType, patch) {
@@ -249,7 +235,7 @@ async function persistModuleQuickConfig(moduleSyncId, moduleType, patch) {
   const moduleRoot = getModuleRoot(moduleSyncId)
   if (moduleRoot) {
     applyModuleUiConfig(moduleRoot, effectiveConfig)
-    if (moduleType === 'tabs') {
+    if (isBookmarkModuleType(moduleType)) {
       const mediaScope = getVisibleBookmarkMediaScope(moduleRoot.querySelector('[data-yai-tabs]') ?? moduleRoot)
       if (mediaScope) initBookmarkMedia(mediaScope)
     }
@@ -736,8 +722,8 @@ export async function ensureFeedCollectionLoaded(moduleSyncId, collectionId) {
   }
 }
 
-async function openCrudPanel({entityType, record = null, moduleSyncId = '', parentId = '', parentSyncId = '', parentTitle = ''}) {
-  const panelModuleType = entityType === 'feed-source' ? 'feeds' : 'tabs'
+async function openCrudPanel({entityType, record = null, moduleSyncId = '', moduleType = '', parentId = '', parentSyncId = '', parentTitle = ''}) {
+  const panelModuleType = moduleType || getModuleType(moduleSyncId) || (entityType === 'feed-source' ? 'feeds' : 'tabs')
   const panelEl = openSidepanel({
     title: getCrudPanelTitle(entityType, record),
     syncId: moduleSyncId,
@@ -764,7 +750,7 @@ async function openCrudPanel({entityType, record = null, moduleSyncId = '', pare
   const body = panelEl.querySelector('[data-sidepanel-body]')
   if (body) {
     if (entityType === 'bookmark') {
-      const state = await initBookmarkFormState({record, moduleSyncId, parentId, parentSyncId, parentTitle})
+      const state = await initBookmarkFormState({record, moduleSyncId, moduleType: panelModuleType, parentId, parentSyncId, parentTitle})
       body.innerHTML = renderBookmarkCrudForm(state)
       await afterBookmarkFormRender(body)
       initFormDirtyState(body)
@@ -896,9 +882,10 @@ export const moduleCrudActions = {
     const moduleRoot = getModuleRoot(moduleSyncId)
     if (!moduleSyncId || !moduleType || !key || !(moduleRoot instanceof HTMLElement)) return
 
-    const currentValue = getQuickModuleSettingValue(moduleRoot, key)
+    const currentValue = readQuickModuleSettingValue(moduleRoot, key)
+    const section = target.dataset.quickSettingSection === 'layout' ? 'layout' : 'behavior'
     await persistModuleQuickConfig(moduleSyncId, moduleType, {
-      behavior: {
+      [section]: {
         [key]: currentValue !== true,
       },
     })
@@ -955,7 +942,7 @@ export const moduleCrudActions = {
     const moduleType = moduleCard?.getAttribute('data-module-type') || ''
     await softDeleteModuleTabCascade(currentTab.tabId, moduleType)
     const {refreshModuleContent} = await import('../app/bootstrap.js')
-    await refreshModuleContent(moduleSyncId)
+    await refreshModuleContent(moduleSyncId, {fallbackToFirstTab: true})
   },
 
   async addModuleBookmark(target) {
@@ -1314,6 +1301,7 @@ export const moduleCrudActions = {
           background_color: payload.background_color,
           favicon_asset_id: payload.favicon_asset_id,
           preview_asset_id: payload.preview_asset_id,
+          preview_padding: payload.preview_padding,
           meta_json: payload.meta_json,
         })
         : await createBookmark(context.parentId, payload)
@@ -1372,6 +1360,7 @@ export const moduleCrudActions = {
   async moduleCrudDelete(target) {
     const context = getFormContext(target)
     if (!context || !context.recordId) return
+    const deletedTab = context.entityType === 'tab'
 
     if (context.entityType === 'tab') {
       const label = context.form.querySelector('[name="title"]')?.value?.trim() || ''
@@ -1396,7 +1385,7 @@ export const moduleCrudActions = {
     closeSidepanel()
     if (!context.moduleSyncId) return
     const {refreshModuleContent} = await import('../app/bootstrap.js')
-    await refreshModuleContent(context.moduleSyncId)
+    await refreshModuleContent(context.moduleSyncId, {fallbackToFirstTab: deletedTab})
   },
 
   async bookmarkFormTestUrl(target) {
@@ -1483,6 +1472,7 @@ export const moduleCrudActions = {
     const form = target.closest('[data-module-crud-form]')
     if (form) {
       syncBookmarkFormStateFromForm(form)
+      markBookmarkColorsEdited()
       updateFormDirtyState(form)
     }
   },
@@ -1491,6 +1481,7 @@ export const moduleCrudActions = {
     const form = target.closest('[data-module-crud-form]')
     if (form) {
       syncBookmarkFormStateFromForm(form)
+      markBookmarkColorsEdited()
       updateFormDirtyState(form)
     }
   },

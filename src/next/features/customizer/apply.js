@@ -1,4 +1,5 @@
 import {getUiConfigSpec} from '../../config/ui-config-spec.js'
+import {isBookmarkModuleType} from '../../config/module-types.js'
 import {getCachedAppSettings} from '../../data/app-settings.js'
 import {getVisibleBookmarkMediaScope, initBookmarkMedia} from '../../utils/bookmark-media.js'
 import {hasCustomUiConfig} from './normalize.js'
@@ -92,7 +93,7 @@ function applyInlineAddTileVisibility(moduleRoot, moduleType, effectiveConfig) {
   if (!moduleRoot) return
   const showAddTile = effectiveConfig?.behavior?.['module-tabs-show-add-tile'] !== false
 
-  if (moduleType === 'tabs') {
+  if (isBookmarkModuleType(moduleType)) {
     moduleRoot.querySelectorAll('[data-bookmark-add-tile]').forEach((tile) => {
       tile.toggleAttribute('hidden', !showAddTile)
     })
@@ -145,8 +146,6 @@ export function applyModuleUiConfig(moduleRoot, effectiveConfig) {
   if (!moduleRoot || !effectiveConfig) return
 
   const moduleType = moduleRoot.dataset.moduleType
-  if (moduleType !== 'tabs' && moduleType !== 'notes' && moduleType !== 'feeds') return
-
   const spec = getUiConfigSpec('module', moduleType)
   moduleRoot.toggleAttribute('data-ui-configured', hasCustomUiConfig('module', moduleType, effectiveConfig))
   applySection(moduleRoot, effectiveConfig.behavior, spec.behavior)
@@ -155,11 +154,11 @@ export function applyModuleUiConfig(moduleRoot, effectiveConfig) {
   applyModuleSubtype(moduleRoot, effectiveConfig)
 
   const linkBehavior = effectiveConfig.behavior?.['link-behavior'] ?? 'default'
-  if (moduleType === 'tabs') {
+  if (isBookmarkModuleType(moduleType)) {
     applyLinkTarget(moduleRoot, linkBehavior)
   }
   applyInlineAddTileVisibility(moduleRoot, moduleType, effectiveConfig)
-  if (moduleType === 'tabs') {
+  if (isBookmarkModuleType(moduleType)) {
     const mediaScope = getVisibleBookmarkMediaScope(moduleRoot.querySelector?.('[data-yai-tabs]') ?? moduleRoot)
     if (mediaScope) initBookmarkMedia(mediaScope)
   }
@@ -174,8 +173,8 @@ export function applyShellUiConfig(effectiveConfig) {
   applySection(shellRoot, effectiveConfig.behavior ?? {}, spec.behavior)
   applySection(shellRoot, effectiveConfig.layout ?? {}, spec.layout)
   applySection(shellRoot, effectiveConfig.appearance ?? {}, spec.appearance)
-
-
+  const borderRadius = effectiveConfig.layout?.['shell-border-radius-px']
+  shellRoot.toggleAttribute('data-border-radius', borderRadius != null && borderRadius !== '')
 }
 
 export function applyModuleUiConfigMap(root, configMap) {

@@ -1,4 +1,4 @@
-import {loadAssetObjectUrl} from '../data/assets.js'
+import {SPEED_DIAL_TILE_H, SPEED_DIAL_TILE_W, loadAssetObjectUrl} from '../data/assets.js'
 import {loadFaviconImg} from './favicon.js'
 import fallbackFaviconUrl from '@/assets/st-favicon.ico'
 
@@ -16,13 +16,19 @@ function isQuicklinksMode(img) {
   return !!img?.closest?.('[data-module-sub-type="quicklinks"], [data-yai-tabs][data-bookmarks-quicklinks]')
 }
 
+function isSpeedDialMode(img) {
+  return !!img?.closest?.('[data-module-type="speed-dial"], [data-module-presentation="speed-dial"]')
+}
+
 function getModeDimensions(img, mode) {
   if (mode === 'preview') {
+    if (isSpeedDialMode(img)) return {width: SPEED_DIAL_TILE_W, height: SPEED_DIAL_TILE_H}
     return isQuicklinksMode(img)
       ? {width: 48, height: 48}
       : {width: 106, height: 60}
   }
 
+  if (isSpeedDialMode(img)) return {width: 48, height: 48}
   return isQuicklinksMode(img)
     ? {width: 32, height: 32}
     : {width: 36, height: 36}
@@ -48,8 +54,13 @@ function applyMode(img, mode) {
     return
   }
 
-  img.style.width = `${width}px`
-  img.style.height = `${height}px`
+  if (isSpeedDialMode(img)) {
+    img.style.width = 'var(--st-speed-dial-favicon-size)'
+    img.style.height = 'var(--st-speed-dial-favicon-size)'
+  } else {
+    img.style.width = `${width}px`
+    img.style.height = `${height}px`
+  }
   img.style.objectFit = 'contain'
 }
 

@@ -6,6 +6,7 @@
 @import "./components/customizer.css";
 @import "./components/modules.css";
 @import "./components/bookmarks.css";
+@import "./components/speed-dial.css";
 @import "./components/notes.css";
 @import "./components/search.css";
 @import "./components/feeds.css";

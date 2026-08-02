@@ -2,6 +2,8 @@ import {db} from '../../db/db.ts'
 
 export const TILE_W = 106
 export const TILE_H = 60
+export const SPEED_DIAL_TILE_W = 256
+export const SPEED_DIAL_TILE_H = 144
 
 export async function sha256hex(blob) {
   const buffer     = await blob.arrayBuffer()

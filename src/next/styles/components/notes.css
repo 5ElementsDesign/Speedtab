@@ -383,13 +383,13 @@
   border-bottom: 1px solid var(--st-flying-config-border-color);
   box-shadow: var(--st-flying-config-shadow);
 
+  [data-icon] {
+    height: .8rem;
+    width: .8rem;
+  }
+
   [data-flying-config-delete] {
     padding: 0 10px;
-
-    [data-icon] {
-      height: .8rem;
-      width: .8rem;
-    }
   }
 
   &[data-target-index] [data-flying-config-actions] {
@@ -541,6 +541,11 @@
           content: 'active';
           margin-left: auto;
           color: var(--st-color-warning);
+        }
+
+        &[data-flying-config-moved] {
+          outline: 2px solid var(--st-color-success);
+          outline-offset: -2px;
         }
       }
 
@@ -883,6 +888,7 @@
   }
   code {
     background: color-mix(in srgb, var(--st-note-window-content-background-color) 40%, black 6%);
+    color: var(--st-note-tabs-color);
     font-size: 85%;
   }
   a {

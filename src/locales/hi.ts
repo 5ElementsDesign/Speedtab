@@ -59,6 +59,7 @@ const hi = {
     },
     moduleTypes: {
       tabs: 'विज़ुअल बुकमार्क',
+      speedDial: 'स्पीड डायल',
       notes: 'नोट्स',
       feeds: 'फ़ीड',
     },
@@ -278,6 +279,8 @@ const hi = {
     sections: {
       performance: 'प्रदर्शन',
     },
+    rememberLastPage: 'अंतिम पेज याद रखें',
+    rememberLastPageHelp: 'नया टैब खुलने पर पिछली बार देखा गया पेज खोलें।',
     htmlCache: 'HTML कैश',
     htmlCacheHelp: 'रेंडर किया पेज सामग्री मेमोरी में रखें। पेज बदलने पर हमेशा पुनः प्राप्त करने के लिए अक्षम करें।',
     themes: {
@@ -314,6 +317,7 @@ const hi = {
     firstTabTitle: 'पहला टैब',
     types: {
       tabs: 'विज़ुअल बुकमार्क',
+      speedDial: 'स्पीड डायल',
       notes: 'नोट्स',
       feeds: 'फ़ीड',
     },
@@ -436,6 +440,7 @@ const hi = {
     backgroundOverrideHelp: 'इस पेज के लिए वैश्विक ऐप पृष्ठभूमि उपयोग करने के लिए खाली छोड़ें।',
     backgroundPreviewAlt: 'पेज पृष्ठभूमि पूर्वावलोकन',
     useAppBackground: 'ऐप पृष्ठभूमि उपयोग करें',
+    notActivePage: 'सक्रिय पेज नहीं है',
     deletePage: 'पेज हटाएँ',
     saveChanges: 'बदलाव सहेजें',
     createPage: 'पेज बनाएँ',
@@ -500,9 +505,13 @@ const hi = {
       shellHeaderHeight: 'हेडर ऊँचाई',
       shellModuleGap: 'मॉड्यूल अंतर',
       shellModuleContentGap: 'मॉड्यूल सामग्री अंतर',
+      shellBorderRadius: 'कोने की त्रिज्या (px)',
       moduleColumnSpan: 'कॉलम चौड़ाई (1–12)',
       moduleContentGap: 'सामग्री अंतर (px)',
       moduleMinHeight: 'न्यूनतम ऊँचाई (px)',
+      speedDialContentAlign: 'सामग्री संरेखण',
+      speedDialTileHeight: 'टाइल ऊँचाई (px)',
+      speedDialFillHeight: 'उपलब्ध पेज ऊँचाई भरें',
       shellHeaderBackground: 'हेडर पृष्ठभूमि',
       shellNavBackground: 'नेव पृष्ठभूमि',
       shellNavActiveBackground: 'नेव सक्रिय पृष्ठभूमि',
@@ -569,6 +578,7 @@ const hi = {
     previewImage: 'छवि पूर्वावलोकन',
     previewImageMeta: '({width}×{height} WebP, उच्च गुणवत्ता)',
     previewAlt: 'पूर्वावलोकन',
+    imagePadding: 'छवि पैडिंग (px)',
     cropSourceAlt: 'क्रॉप स्रोत',
     remove: 'हटाएँ',
     zoomIn: 'ज़ूम +',
@@ -600,6 +610,7 @@ const hi = {
     assetGroups: {
       pageImage: 'पेज चित्र',
       preview: 'विज़ुअल बुकमार्क पूर्वावलोकन',
+      speedDial: 'स्पीड डायल चित्र',
       background: 'पृष्ठभूमि',
       noteImage: 'नोट छवियाँ',
     },
@@ -1135,6 +1146,7 @@ const hi = {
     assetKinds: {
       background: 'पृष्ठभूमि',
       preview: 'बुकमार्क पूर्वावलोकन',
+      speedDial: 'स्पीड डायल चित्र',
       noteImage: 'नोट छवियाँ',
       favicon: 'Favicons',
     },
@@ -1235,6 +1247,7 @@ const hi = {
       backgrounds: 'पृष्ठभूमि',
       bookmarkFavicons: 'बुकमार्क favicon',
       bookmarkPreviews: 'बुकमार्क पूर्वावलोकन',
+      speedDialImages: 'स्पीड डायल चित्र',
       feedFavicons: 'फ़ीड favicon',
       noteLinkFavicons: 'लिंक नोट favicon',
       noteImages: 'नोट छवियाँ',
@@ -1245,6 +1258,7 @@ const hi = {
     kindLabels: {
       background: 'पृष्ठभूमि',
       preview: 'बुकमार्क पूर्वावलोकन',
+      speedDial: 'स्पीड डायल चित्र',
       noteImage: 'नोट छवियाँ',
       favicon: 'Favicons',
     },

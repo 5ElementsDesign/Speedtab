@@ -293,4 +293,3 @@ Related links:
 - YaiTabs Demo: https://yaijs.github.io/yai/tabs/Example.html
 - YaiJS Repo: https://github.com/yaijs/yai
 - YEH: https://yaijs.github.io/yai/docs/yeh/
-

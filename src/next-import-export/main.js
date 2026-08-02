@@ -433,6 +433,7 @@ function assetKindLabel(kind) {
   const labels = {
     background: t('cleanup.assetKinds.background'),
     preview: t('cleanup.assetKinds.preview'),
+    speed_dial: t('cleanup.assetKinds.speedDial'),
     note_image: t('cleanup.assetKinds.noteImage'),
     favicon: t('cleanup.assetKinds.favicon'),
   }

@@ -1,4 +1,5 @@
 import {TILE_H, TILE_W} from '../../../../data/assets.js';
+import {normalizeSpeedDialImagePadding} from '../../../../config/speed-dial.js';
 import {escapeHtml} from '../../../../utils/html.js';
 import {t} from '../../../../utils/i18n.js';
 
@@ -14,6 +15,7 @@ function renderBookmarkTile(bookmark, moduleSyncId = '', config = {}) {
   const {forceFavicon, quicklinks} = getModuleBookmarkFlags(config)
   const title = escapeHtml(bookmark.title || bookmark.url)
   const hasThumbnail = !!bookmark.preview_asset_id
+  const previewPadding = normalizeSpeedDialImagePadding(bookmark.preview_padding)
   const showPreview = hasThumbnail && !forceFavicon
   const isColor = (value) => /^#[0-9a-f]{6}(?:[0-9a-f]{2})?$/i.test(value)
   const colorValue = isColor(bookmark.color ?? '') ? bookmark.color : ''
@@ -56,6 +58,7 @@ function renderBookmarkTile(bookmark, moduleSyncId = '', config = {}) {
           ${bookmark.url ? `data-favicon-url="${escapeHtml(bookmark.url)}"` : ''}
           alt=""
           class="st-bookmark-media"
+          ${hasThumbnail && previewPadding ? `style="--st-speed-dial-image-padding:${previewPadding}px"` : ''}
           draggable="false"
         >
       </a>
@@ -137,7 +140,7 @@ export function renderBookmarksGrid(bookmarks, moduleSyncId = '', config = {}) {
 export function renderModuleTabs(
   tabs = [],
   renderPanel,
-  {actionsHtml = '', moduleId = null, emptyLabel = t('modules.empty.tabs'), tabsAttrs = ''} = {},
+  {actionsHtml = '', moduleId = null, emptyLabel = t('modules.empty.tabs'), tabsAttrs = '', tabButtonAttrs = ''} = {},
 ) {
   const actions = actionsHtml
     ? `<div data-module-actions data-swipe-ignore>${actionsHtml}</div>`
@@ -160,6 +163,7 @@ export function renderModuleTabs(
   const navBtns = tabs.map((tab,idx) => `
     <button
       data-tab-action="open"
+      ${tabButtonAttrs}
       ${currentModulePage == tab.id ? 'data-inview-default' : ''}
       ${!currentModulePage && idx === 0 ? 'data-inview-default data-default' : ''}
       data-open="tab-${tab.id}"
@@ -176,9 +180,10 @@ export function renderModuleTabs(
   `).join('')
 
   const refPath = moduleId != null ? ` data-ref-path="${refPathName}"` : ''
+  const extraTabsAttrs = tabsAttrs ? ` ${tabsAttrs.trim()}` : ''
   return `
     <div data-module-tabs-shell>
-      <div data-yai-tabs data-swipe data-behavior="fade"${refPath}${tabsAttrs}>
+      <div data-yai-tabs data-swipe data-behavior="fade"${refPath}${extraTabsAttrs}>
         <nav data-controller>${navBtns}</nav>
         ${actions}
         <div data-content>${panels}</div>

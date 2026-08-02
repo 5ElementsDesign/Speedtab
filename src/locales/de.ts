@@ -59,6 +59,7 @@ const de = {
     },
     moduleTypes: {
       tabs: 'Visuelle Lesezeichen',
+      speedDial: 'Schnellwahl',
       notes: 'Notizen',
       feeds: 'Feeds',
     },
@@ -278,6 +279,8 @@ const de = {
     sections: {
       performance: 'Leistung',
     },
+    rememberLastPage: 'Letzte Seite merken',
+    rememberLastPageHelp: 'Beim Öffnen eines neuen Tabs die zuletzt besuchte Seite öffnen.',
     htmlCache: 'HTML-Cache',
     htmlCacheHelp: 'Gerenderte Seiteninhalte im Speicher behalten. Deaktivieren, um sie bei jedem Seitenwechsel neu zu laden.',
     themes: {
@@ -314,6 +317,7 @@ const de = {
     firstTabTitle: 'Erster Tab',
     types: {
       tabs: 'Visuelle Lesezeichen',
+      speedDial: 'Schnellwahl',
       notes: 'Notizen',
       feeds: 'Feeds',
     },
@@ -436,6 +440,7 @@ const de = {
     backgroundOverrideHelp: 'Leer lassen, um den globalen App-Hintergrund für diese Seite zu verwenden.',
     backgroundPreviewAlt: 'Seitenhintergrundvorschau',
     useAppBackground: 'App-Hintergrund verwenden',
+    notActivePage: 'Nicht aktive Seite',
     deletePage: 'Seite löschen',
     saveChanges: 'Änderungen speichern',
     createPage: 'Seite erstellen',
@@ -500,9 +505,13 @@ const de = {
       shellHeaderHeight: 'Header-Höhe',
       shellModuleGap: 'Modul-Abstand',
       shellModuleContentGap: 'Modul-Inhaltsabstand',
+      shellBorderRadius: 'Eckenradius (px)',
       moduleColumnSpan: 'Spaltenbreite (1–12)',
       moduleContentGap: 'Inhaltsabstand (px)',
       moduleMinHeight: 'Mindesthöhe (px)',
+      speedDialContentAlign: 'Inhaltsausrichtung',
+      speedDialTileHeight: 'Kachelhöhe (px)',
+      speedDialFillHeight: 'Verfügbare Seitenhöhe ausfüllen',
       shellHeaderBackground: 'Header-Hintergrund',
       shellNavBackground: 'Nav-Hintergrund',
       shellNavActiveBackground: 'Aktiver Nav-Hintergrund',
@@ -569,6 +578,7 @@ const de = {
     previewImage: 'Vorschaubild',
     previewImageMeta: '({width}×{height} WebP, hohe Qualität)',
     previewAlt: 'Vorschau',
+    imagePadding: 'Bildabstand (px)',
     cropSourceAlt: 'Zuschneidequelle',
     remove: 'Entfernen',
     zoomIn: 'Zoom +',
@@ -600,6 +610,7 @@ const de = {
     assetGroups: {
       pageImage: 'Seitenbilder',
       preview: 'Vorschauen visueller Lesezeichen',
+      speedDial: 'Schnellwahl-Bilder',
       background: 'Hintergründe',
       noteImage: 'Notizbilder',
     },
@@ -1135,6 +1146,7 @@ const de = {
     assetKinds: {
       background: 'Hintergründe',
       preview: 'Lesezeichen-Vorschauen',
+      speedDial: 'Schnellwahl-Bilder',
       noteImage: 'Notizbilder',
       favicon: 'Favicons',
     },
@@ -1235,6 +1247,7 @@ const de = {
       backgrounds: 'Hintergründe',
       bookmarkFavicons: 'Lesezeichen-Favicons',
       bookmarkPreviews: 'Lesezeichen-Vorschauen',
+      speedDialImages: 'Schnellwahl-Bilder',
       feedFavicons: 'Feed-Favicons',
       noteLinkFavicons: 'Link-Notiz-Favicons',
       noteImages: 'Notizbilder',
@@ -1245,6 +1258,7 @@ const de = {
     kindLabels: {
       background: 'Hintergründe',
       preview: 'Lesezeichen-Vorschauen',
+      speedDial: 'Schnellwahl-Bilder',
       noteImage: 'Notizbilder',
       favicon: 'Favicons',
     },

@@ -3,6 +3,7 @@ const TAB_THEME_VALUES = ['default', 'minimal']
 const COLOR_ACCENT_VALUES = ['primary', 'secondary', 'success', 'warning', 'danger', 'dark', 'light']
 const VARIANT_VALUES = ['primary', 'secondary', 'success', 'warning', 'danger', 'dark', 'light']
 const ALIGN_VALUES = ['left', 'center', 'right']
+const CONTENT_ALIGN_VALUES = ['start', 'center', 'end']
 const LINK_BEHAVIOR_VALUES = ['new-tab', 'same-tab']
 
 const TAB_BEHAVIORS = new Set(TAB_BEHAVIOR_VALUES)
@@ -10,6 +11,7 @@ const TAB_THEMES = new Set(TAB_THEME_VALUES)
 const COLOR_ACCENTS = new Set(COLOR_ACCENT_VALUES)
 const VARIANTS = new Set(VARIANT_VALUES)
 const ALIGNS = new Set(ALIGN_VALUES)
+const CONTENT_ALIGNS = new Set(CONTENT_ALIGN_VALUES)
 const LINK_BEHAVIORS = new Set(LINK_BEHAVIOR_VALUES)
 
 const MODULE_CONTENT_GAP_FIELD = {
@@ -23,6 +25,22 @@ const MODULE_CONTENT_GAP_FIELD = {
     applyAs: {
       type: 'css-variable',
       name: '--st-module-content-gap',
+      serialize: (value) => `${value}px`,
+    },
+  },
+}
+
+const MODULE_MIN_HEIGHT_FIELD = {
+  'module-min-height-px': {
+    valueType: 'integer',
+    min: 60,
+    max: 1200,
+    validate: isIntegerInRange(60, 1200),
+    defaultValue: null,
+    target: 'module-root',
+    applyAs: {
+      type: 'css-variable',
+      name: '--st-module-min-height',
       serialize: (value) => `${value}px`,
     },
   },
@@ -165,6 +183,19 @@ export const UI_CONFIG_SPEC = {
           applyAs: {
             type: 'css-variable',
             name: '--st-module-content-gap',
+            serialize: (v) => `${v}px`,
+          },
+        },
+        'shell-border-radius-px': {
+          valueType: 'integer',
+          min: 0,
+          max: 20,
+          validate: isIntegerInRange(0, 20),
+          defaultValue: null,
+          target: 'shell-root',
+          applyAs: {
+            type: 'css-variable',
+            name: '--st-usr-border-radius',
             serialize: (v) => `${v}px`,
           },
         },
@@ -357,20 +388,52 @@ export const UI_CONFIG_SPEC = {
             serialize: (value) => String(value),
           },
         },
-        'module-min-height-px': {
+        ...MODULE_MIN_HEIGHT_FIELD,
+        ...MODULE_CONTENT_GAP_FIELD,
+      },
+    },
+    'speed-dial': {
+      behavior: {
+        'module-tabs-show-add-tile': {
+          valueType: 'boolean',
+          validate: isBoolean,
+          defaultValue: true,
+          target: 'tabs-root',
+          applyAs: {type: 'attribute', name: 'data-bookmarks-inline-add-tile', trueValue: ''},
+        },
+      },
+      layout: {
+        'speed-dial-content-align': {
+          valueType: 'enum',
+          allowedValues: CONTENT_ALIGN_VALUES,
+          validate: isEnum(CONTENT_ALIGNS),
+          defaultValue: 'start',
+          showDefaultOption: false,
+          target: 'module-root',
+          applyAs: {type: 'css-variable', name: '--st-speed-dial-content-align'},
+        },
+        ...MODULE_MIN_HEIGHT_FIELD,
+        ...MODULE_CONTENT_GAP_FIELD,
+        'speed-dial-tile-height-px': {
           valueType: 'integer',
-          min: 60,
-          max: 1200,
-          validate: isIntegerInRange(60, 1200),
-          defaultValue: null,
+          min: 100,
+          max: 300,
+          validate: isIntegerInRange(100, 300),
+          defaultValue: 140,
           target: 'module-root',
           applyAs: {
             type: 'css-variable',
-            name: '--st-module-min-height',
+            name: '--st-speed-dial-tile-height',
             serialize: (value) => `${value}px`,
           },
         },
-        ...MODULE_CONTENT_GAP_FIELD,
+        'speed-dial-fill-height': {
+          valueType: 'boolean',
+          validate: isBoolean,
+          defaultValue: false,
+          target: 'module-root',
+          applyAs: {type: 'attribute', name: 'data-speed-dial-fill-height', trueValue: ''},
+        },
       },
     },
     notes: {
@@ -450,19 +513,7 @@ export const UI_CONFIG_SPEC = {
             serialize: (value) => String(value),
           },
         },
-        'module-min-height-px': {
-          valueType: 'integer',
-          min: 60,
-          max: 1200,
-          validate: isIntegerInRange(60, 1200),
-          defaultValue: null,
-          target: 'module-root',
-          applyAs: {
-            type: 'css-variable',
-            name: '--st-module-min-height',
-            serialize: (value) => `${value}px`,
-          },
-        },
+        ...MODULE_MIN_HEIGHT_FIELD,
         ...MODULE_CONTENT_GAP_FIELD,
       },
     },
@@ -521,19 +572,7 @@ export const UI_CONFIG_SPEC = {
             serialize: (value) => String(value),
           },
         },
-        'module-min-height-px': {
-          valueType: 'integer',
-          min: 60,
-          max: 1200,
-          validate: isIntegerInRange(60, 1200),
-          defaultValue: null,
-          target: 'module-root',
-          applyAs: {
-            type: 'css-variable',
-            name: '--st-module-min-height',
-            serialize: (value) => `${value}px`,
-          },
-        },
+        ...MODULE_MIN_HEIGHT_FIELD,
         ...MODULE_CONTENT_GAP_FIELD,
       },
     },

@@ -1,4 +1,5 @@
 import {db, isActiveRecord, makeCreateMetadata} from '../../db/db.ts'
+import {moduleCreatesDefaultCollection} from '../config/module-types.js'
 
 export async function loadModulesByPageId(pageId) {
   if (!pageId) return []
@@ -21,11 +22,23 @@ export async function createModuleData(pageId, payload = {}) {
   const now = Date.now()
 
   return db.transaction('rw', db.modules, db.collections, async () => {
-    const sortOrder = await db.modules
+    const activeModules = await db.modules
       .where('page_id')
       .equals(pageId)
       .filter(isActiveRecord)
-      .count()
+      .sortBy('sort_order')
+    const requestedIndex = Number(payload.insertAt)
+    const sortOrder = Number.isInteger(requestedIndex)
+      ? Math.max(0, Math.min(activeModules.length, requestedIndex))
+      : activeModules.length
+
+    if (sortOrder < activeModules.length) {
+      await db.modules.bulkPut(activeModules.map((module) => (
+        module.sort_order >= sortOrder
+          ? {...module, sort_order: module.sort_order + 1, updated_at: now}
+          : module
+      )))
+    }
 
     const moduleId = await db.modules.add({
       page_id: pageId,
@@ -36,7 +49,7 @@ export async function createModuleData(pageId, payload = {}) {
       ...makeCreateMetadata(now),
     })
 
-    if (['tabs', 'notes', 'feeds'].includes(payload.type ?? 'tabs') && payload.createDefaultTab !== false) {
+    if (moduleCreatesDefaultCollection(payload.type ?? 'tabs') && payload.createDefaultTab !== false) {
       await db.collections.add({
         module_id: moduleId,
         title: payload.defaultTabTitle ?? 'Tab 1',

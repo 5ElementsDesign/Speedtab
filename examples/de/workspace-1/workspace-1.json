@@ -66,6 +66,7 @@
               "bookmarks": [
                 {"title": "ChatGPT", "url": "https://chatgpt.com/"},
                 {"title": "Claude", "url": "https://claude.ai/"},
+                {"title": "Kimi", "url": "https://www.kimi.com/"},
                 {"title": "Grok", "url": "https://grok.com/"},
                 {"title": "Qwen", "url": "https://qwen.ai/"},
                 {"title": "Duck.ai", "url": "https://duck.ai/"}

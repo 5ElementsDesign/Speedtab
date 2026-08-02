@@ -6,8 +6,10 @@ import {createFragment, patchHost} from '../../utils/dom-patch.js'
 import {escapeHtml} from '../../utils/html.js'
 import {getLocale, t} from '../../utils/i18n.js'
 import {fixFaviconAssetBackground, getFaviconHostnameCandidatesForUrl, parseFaviconMeta, refreshStaleFavicons} from '../../utils/favicon.js'
+import {releaseBackgroundAssetUrl} from '../../utils/workspace-background.js'
 
-const ORDERED_KINDS = ['background', 'preview', 'note_image', 'favicon']
+const ORDERED_KINDS = ['background', 'preview', 'speed_dial', 'note_image', 'favicon']
+const PREVIEW_KINDS = new Set(['preview', 'speed_dial'])
 const NOTE_IMAGE_TOKEN_RE = /{{asset:image:(\d+)}}/g
 
 const state = {
@@ -84,6 +86,7 @@ function kindLabel(kind) {
   switch (kind) {
     case 'background': return t('assets.kindLabels.background')
     case 'preview': return t('assets.kindLabels.preview')
+    case 'speed_dial': return t('assets.kindLabels.speedDial')
     case 'note_image': return t('assets.kindLabels.noteImage')
     case 'favicon': return t('assets.kindLabels.favicon')
     default: return kind
@@ -92,13 +95,13 @@ function kindLabel(kind) {
 
 function previewFrameClass(kind) {
   if (kind === 'favicon') return 'is-favicon'
-  if (kind === 'preview') return 'is-preview'
+  if (PREVIEW_KINDS.has(kind)) return 'is-preview'
   return 'is-generic'
 }
 
 function previewImageClass(kind) {
   if (kind === 'favicon') return 'is-favicon'
-  if (kind === 'preview') return 'is-preview'
+  if (PREVIEW_KINDS.has(kind)) return 'is-preview'
   return 'is-generic'
 }
 
@@ -132,6 +135,7 @@ function getReferenceSummary(assetId, data) {
     backgrounds: 0,
     bookmarkFavicons: 0,
     bookmarkPreviews: 0,
+    speedDialImages: 0,
     feedFavicons: 0,
     noteLinkFavicons: 0,
     noteImages: 0,
@@ -177,7 +181,10 @@ function getReferenceSummary(assetId, data) {
       }
     }
 
-    if (tab.preview_asset_id === assetId) counts.bookmarkPreviews += 1
+    if (tab.preview_asset_id === assetId) {
+      if (selected?.kind === 'speed_dial') counts.speedDialImages += 1
+      else counts.bookmarkPreviews += 1
+    }
   }
 
   if (faviconHosts) {
@@ -289,6 +296,7 @@ function renderAssetDetails(selectedAsset, data) {
           <div>${escapeHtml(t('assets.referenceLabels.backgrounds'))}: ${refs.backgrounds}</div>
           <div>${escapeHtml(t('assets.referenceLabels.bookmarkFavicons'))}: ${refs.bookmarkFavicons}</div>
           <div>${escapeHtml(t('assets.referenceLabels.bookmarkPreviews'))}: ${refs.bookmarkPreviews}</div>
+          <div>${escapeHtml(t('assets.referenceLabels.speedDialImages'))}: ${refs.speedDialImages}</div>
           <div>${escapeHtml(t('assets.referenceLabels.feedFavicons'))}: ${refs.feedFavicons}</div>
           <div>${escapeHtml(t('assets.referenceLabels.noteLinkFavicons'))}: ${refs.noteLinkFavicons}</div>
           <div>${escapeHtml(t('assets.referenceLabels.noteImages'))}: ${refs.noteImages}</div>
@@ -534,6 +542,7 @@ export async function deleteAssetById(assetId) {
 
     await db.assets.delete(id)
   })
+  releaseBackgroundAssetUrl(id)
 
   await markExportDirty('assets:delete')
   state.selectedAssetId = null

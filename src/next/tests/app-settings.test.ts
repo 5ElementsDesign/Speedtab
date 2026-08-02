@@ -21,8 +21,11 @@ import {
     getCachedAppSettings,
     loadAppSettings,
     loadBgArchive,
+    loadPageBackgroundOverride,
     saveAppSetting,
+    savePageBackgroundOverride,
 } from '../data/app-settings.js'
+import {getPageBackgroundSet} from '../utils/workspace-background.js'
 
 beforeEach(async () => { await testDb.open() })
 afterEach(async () => {
@@ -87,6 +90,52 @@ describe('saveAppSetting', () => {
     await saveAppSetting('bookmarks_open_in_new_tab', false)
     const row = await testDb.app_settings.get('bookmarks_open_in_new_tab')
     expect(JSON.parse(row!.value_json!)).toBe(false)
+  })
+})
+
+describe('page background overrides', () => {
+  it('stores CSS and asset overrides under the stable page sync id', async () => {
+    await savePageBackgroundOverride('page-sync-1', {
+      background_properties: 'linear-gradient(red, blue)',
+      background_asset_id: null,
+    })
+    expect(await loadPageBackgroundOverride('page-sync-1')).toEqual({
+      background_properties: 'linear-gradient(red, blue)',
+      background_asset_id: null,
+    })
+
+    await savePageBackgroundOverride('page-sync-1', {
+      background_properties: null,
+      background_asset_id: 42,
+    })
+    expect(await loadPageBackgroundOverride('page-sync-1')).toEqual({
+      background_properties: null,
+      background_asset_id: 42,
+    })
+  })
+
+  it('deletes an empty override so the page inherits App Shell', async () => {
+    await savePageBackgroundOverride('page-sync-2', {background_properties: '#123456'})
+    await savePageBackgroundOverride('page-sync-2', null)
+
+    expect(await loadPageBackgroundOverride('page-sync-2')).toBeNull()
+    expect(await testDb.app_settings.get('page_background:page-sync-2')).toBeUndefined()
+  })
+
+  it('falls back to the App Shell background when no page override exists', async () => {
+    expect(await getPageBackgroundSet('page-without-override', {
+      background_properties: '#112233',
+      background_asset_id: null,
+    })).toBe('#112233')
+
+    await savePageBackgroundOverride('page-with-override', {
+      background_properties: '#abcdef',
+      background_asset_id: null,
+    })
+    expect(await getPageBackgroundSet('page-with-override', {
+      background_properties: '#112233',
+      background_asset_id: null,
+    })).toBe('#abcdef')
   })
 })
 

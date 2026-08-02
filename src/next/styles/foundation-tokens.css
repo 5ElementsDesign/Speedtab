@@ -215,6 +215,10 @@
   --st-page-grid-row-gap: 20px;
   --st-page-grid-col-gap: 20px;
   --st-module-content-gap: 4px;
+  --st-speed-dial-tile-height: 140px;
+  --st-speed-dial-content-align: start;
+  --st-speed-dial-favicon-size: clamp(42px, calc(var(--st-speed-dial-tile-height) * 0.36), 96px);
+  --st-speed-dial-tile-background: color-mix(in srgb, var(--yai-tabs-color-surface-alt) 88%, transparent);
   --st-app-header-height: 44px;
   --st-grid-col-span: 12;
   --st-module-min-height: initial;
@@ -315,6 +319,24 @@
   --st-link-color: var(--st-color-primary);
   --st-small-font-size: 85%;
   --st-small-opacity: 0.85;
+}
+
+[data-surface="transparent"] {
+  --st-container-surface-background: transparent;
+  --st-container-surface-shadow: none;
+}
+
+[data-module-presentation="speed-dial"] {
+  --yai-tabs-button-min-height: 32px;
+  --yai-tabs-nav-background: transparent;
+  --yai-tabs-nav-button-background: transparent;
+  --yai-tabs-nav-button-hover-background: transparent;
+  --yai-tabs-nav-button-active-background: transparent;
+  --yai-tabs-shadow-subtle: none;
+  --st-inline-add-background-color: color-mix(in srgb, var(--st-speed-dial-tile-background) 20%, transparent);
+  --st-inline-add-border-color: color-mix(in srgb, white 24%, transparent);
+  --st-inline-add-text-color: #fff;
+  --st-inline-add-icon-opacity: 1;
 }
 
 /*

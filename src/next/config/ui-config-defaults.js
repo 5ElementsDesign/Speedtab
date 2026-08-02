@@ -19,6 +19,7 @@ export const UI_CONFIG_DEFAULTS = {
         'shell-header-height-px': null,
         'shell-module-gap-px': null,
         'shell-module-content-gap-px': null,
+        'shell-border-radius-px': null,
       },
       appearance: {
         '--st-ws-shell-header-background-color': '',
@@ -56,6 +57,19 @@ export const UI_CONFIG_DEFAULTS = {
       layout: {
         'module-column-span': 6,
         'module-min-height-px': null,
+      },
+      appearance: {},
+    },
+    'speed-dial': {
+      behavior: {
+        'module-tabs-show-add-tile': true,
+      },
+      layout: {
+        'speed-dial-content-align': 'start',
+        'module-min-height-px': null,
+        'module-content-gap-px': 10,
+        'speed-dial-tile-height-px': 140,
+        'speed-dial-fill-height': false,
       },
       appearance: {},
     },

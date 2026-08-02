@@ -1,14 +1,14 @@
 import {on} from '../../app/dispatch.js'
 import {getSidepanelState, isSidepanelOpen, onSidepanelClose, openSidepanel} from '../../components/sidepanel.js'
-import {loadAppSettings, loadBgArchive} from '../../data/app-settings.js'
-import {loadAssetObjectUrl, loadBgAssets} from '../../data/assets.js'
-import {loadPageBySyncId} from '../../data/pages.js'
+import {loadPages} from '../../data/pages.js'
 import {loadModuleBySyncId} from '../../data/modules.js'
+import {getModuleTypeMessageKey} from '../../config/module-types.js'
 import {getUiConfigSpec} from '../../config/ui-config-spec.js'
 import {loadStoredUiConfigsByEntitySyncIds, loadUiConfigsByEntitySyncIds} from '../../data/ui-config.js'
 import {closeColorPicker, initColorPicker, wrapColorPicker} from '../../utils/color-picker.js'
 import {patchInner} from '../../utils/dom-patch.js'
 import {t} from '../../utils/i18n.js'
+import {loadBackgroundEditorData} from '../../utils/workspace-background.js'
 import {hasCustomUiConfig} from './normalize.js'
 import {renderCustomizerAppearancePanel, renderCustomizerForm, renderCustomizerList, SHELL_SYNC_ID} from './render.js'
 
@@ -93,20 +93,14 @@ async function renderCustomizerListBody(body, showResetOptions = false) {
   // DO NOT ROUTE SIMPLE FIELD OR TOGGLE STATE THROUGH A LIST REBUILD.
   clearCustomizerFocus()
   const activePanel = getActivePagePanel()
-  const pageSyncId = activePanel?.querySelector('[data-app-tab-shell]')?.dataset?.pageSyncId ?? ''
-  const activePageBtn = document.querySelector('[data-controller] [data-tab-action="open"][aria-selected="true"]')
-  let pageLabel = activePageBtn?.querySelector('.st-next-page-button-label')?.textContent?.trim()
-    ?? activePageBtn?.textContent?.trim()
-    ?? t('nav.page')
-  if ((!pageLabel || pageLabel === t('nav.page')) && pageSyncId) {
-    const activePage = await loadPageBySyncId(pageSyncId)
-    if (activePage?.title?.trim()) pageLabel = activePage.title.trim()
-  }
   const moduleCards = [...(activePanel ?? document).querySelectorAll('[data-module-card][data-sync-id]')]
-  const shellConfigMap = await loadUiConfigsByEntitySyncIds('shell', [{sync_id: SHELL_SYNC_ID, type: 'app'}])
+  const [pages, shellConfigMap] = await Promise.all([
+    loadPages(),
+    loadUiConfigsByEntitySyncIds('shell', [{sync_id: SHELL_SYNC_ID, type: 'app'}]),
+  ])
   const shellConfig = shellConfigMap.get(SHELL_SYNC_ID)
   const shellHasConfig = hasCustomUiConfig('shell', 'app', shellConfig)
-  patchInner(body, renderCustomizerList(moduleCards, shellHasConfig, pageLabel, pageSyncId, showResetOptions))
+  patchInner(body, renderCustomizerList(pages, moduleCards, shellHasConfig, showResetOptions))
 }
 
 function colorToHex(value = '') {
@@ -136,22 +130,7 @@ function colorToHex(value = '') {
 }
 
 async function loadShellBgData() {
-  const [settings, bgArchive, assets] = await Promise.all([
-    loadAppSettings(),
-    loadBgArchive(),
-    loadBgAssets(),
-  ])
-  const bgAssets = await Promise.all(assets.map(async (asset) => {
-    const url = await loadAssetObjectUrl(asset.id)
-    return {...asset, _objectUrl: url ?? ''}
-  }))
-  return {
-    background_properties: settings.background_properties ?? '',
-    background_asset_id: settings.background_asset_id ?? null,
-    ui_theme: settings.ui_theme ?? 'dark',
-    bgArchive,
-    bgAssets,
-  }
+  return loadBackgroundEditorData()
 }
 
 function resolveCssVariableColor(target, cssVarName) {
@@ -263,7 +242,7 @@ export async function openCustomizerFormPanel(syncId, moduleType, trigger = acti
   const isShell = syncId === SHELL_SYNC_ID
   const entityType = isShell ? 'shell' : 'module'
   const title = isShell ? t('app.shell') : t('common.customize')
-  const meta = !isShell && moduleType ? t(`app.moduleTypes.${moduleType}`) : ''
+  const meta = !isShell && moduleType ? t(`app.moduleTypes.${getModuleTypeMessageKey(moduleType)}`) : ''
   const panelEl = openSidepanel({
     title,
     meta,

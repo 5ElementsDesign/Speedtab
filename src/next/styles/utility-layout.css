@@ -20,6 +20,7 @@
 .turn-down { opacity: 1; }
 
 .rotate-top-to-left { transform: rotate(270deg); }
+.rotate-top-to-bottom { transform: rotate(180deg); }
 
 .position-relative { position: relative; }
 .pe-none { pointer-events: none; }

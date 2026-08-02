@@ -62,12 +62,19 @@ describe('createBookmark', () => {
     expect(bm!.deleted_at).toBeNull()
   })
 
-  it('stores optional description and null favicon/preview by default', async () => {
+  it('stores optional description and custom-image padding', async () => {
     const tabId = await seedTab()
-    const bm = await createBookmark(tabId, { title: 'Site', url: 'https://example.com', description: 'A site' })
+    const bm = await createBookmark(tabId, {
+      title: 'Site',
+      url: 'https://example.com',
+      description: 'A site',
+      preview_asset_id: 7,
+      preview_padding: 12,
+    })
     expect(bm!.description).toBe('A site')
     expect(bm!.favicon_asset_id).toBeNull()
-    expect(bm!.preview_asset_id).toBeNull()
+    expect(bm!.preview_asset_id).toBe(7)
+    expect(bm!.preview_padding).toBe(12)
   })
 
   it('assigns sequential sort_order for multiple bookmarks', async () => {

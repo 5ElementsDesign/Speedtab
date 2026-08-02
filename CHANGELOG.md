@@ -2,6 +2,25 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.5.1]
+
+### Added
+- Added a dedicated Speed Dial module with an invisible full-width surface, centered 16:9 tiles, optional tabs, configurable tile height and vertical alignment, inline add-tile support, and an optional full-page-height layout.
+- Added dedicated Speed Dial image assets, custom image padding, and favicon-color-based tile visuals without additional external image services.
+- Added per-page backgrounds by reusing the App Shell background editor, including CSS colors and gradients, uploaded images, archive/asset removal, and a fixed smooth transition when switching pages.
+- Added module insertion placement when creating modules, an App Shell border-radius control, and an optional setting to reopen the last active page.
+
+### Changed
+- Expanded Customize navigation to list App Shell, all Pages, and the current page's Modules while keeping the selected Page editor open during page switches.
+- Added a clear inactive-page hint to an open Page editor and kept background controls scoped to the page being edited.
+- Added direct sibling up/down controls to Flying Config and refined shared module quick-setting behavior for bookmark-based module types.
+
+### Fixed
+- Fixed module-tab deletion so the first remaining tab becomes active instead of leaving the module in an empty state.
+- Fixed removable bookmark tile colors and preserved explicit user color choices during favicon-based color detection.
+- Fixed Speed Dial add-tile visibility, image padding persistence, asset references, tile sizing, vertical alignment, and full-height behavior.
+- Fixed background list deletion so App Shell and Page editors retain their own selection actions after refreshing.
+
 ## [1.5.0]
 
 ### Added

@@ -1,7 +1,6 @@
 @import "./base.css";
 @import "./newtab-components.css";
 
-
 :where(button, select, .st-trigger-tab) {
   --st-interactive-transition:
     var(--st-motion-colors-fast, 0.15s ease),
@@ -16,6 +15,28 @@
 [data-focus-ring] {
   outline: 2px solid var(--st-color-focus);
   outline-offset: 2px;
+}
+
+[data-border-radius] {
+  button, .button,
+  input, .input,
+  select,
+  pre,
+  code,
+  .st-weather-widget,
+  [data-bookmark-link],
+  [data-title] {
+    border-radius: var(--st-usr-border-radius, 0);
+  }
+  .st-note-preview-content {
+    border-bottom-left-radius: var(--st-usr-border-radius, 0);
+    border-bottom-right-radius: var(--st-usr-border-radius, 0);
+  }
+  [data-controller] button,
+  [data-dropdown-trigger],
+  [data-search-trigger] {
+    --st-usr-border-radius: 0;
+  }
 }
 
 :where(

@@ -1,18 +1,45 @@
 import {closeModal, openModal} from '../components/modal.js'
-import {closeSidepanel, openSidepanel} from '../components/sidepanel.js'
+import {closeSidepanel, onSidepanelClose, openSidepanel} from '../components/sidepanel.js'
 import {db} from '../../db/db.ts'
 import {cleanupOrphans, deleteCollectionTree, deleteModuleTree, deletePageTree} from '../../composables/useMaintenance.ts'
-import {createModuleData} from '../data/modules.js'
+import {
+  archiveBgItem,
+  deletePageBackgroundOverride,
+  getCachedAppSettings,
+  loadBgArchive,
+  loadPageBackgroundOverride,
+  savePageBackgroundOverride,
+} from '../data/app-settings.js'
+import {normalizeImageBlob, storeOrGetAsset} from '../data/assets.js'
+import {createModuleData, loadModulesByPageId} from '../data/modules.js'
 import {createPageData, loadPageBySyncId, savePageData} from '../data/pages.js'
 import {createModuleTab} from '../data/tabs.js'
 import {upsertUiConfig} from '../data/ui-config.js'
+import {getModuleTypeMessageKey} from '../config/module-types.js'
 import {renderSidepanelDeleteFooter} from '../features/forms/actions.js'
 import {initFormDirtyState} from '../features/forms/actions.js'
-import {renderModuleCreateForm, renderPageForm} from '../features/pages/page-form.js'
+import {
+  renderModuleCreateForm,
+  renderPageBgArchiveSwatches,
+  renderPageBgAssetThumbs,
+  renderPageForm,
+  syncPageFormActiveHint,
+} from '../features/pages/page-form.js'
+import {closeColorPicker, initColorPicker, wrapColorPicker} from '../utils/color-picker.js'
 import {patchInner} from '../utils/dom-patch.js'
 import {escapeHtml} from '../utils/html.js'
 import {t} from '../utils/i18n.js'
 import {radioActive} from '../utils/radio-active.js'
+import {
+  addBgSet,
+  applyPageWorkspaceBackground,
+  getBgSet,
+  isValidBackground,
+  loadBackgroundAssetsForEditor,
+  loadBackgroundEditorData,
+  sanitizeBackgroundValue,
+  syncBackgroundInputs,
+} from '../utils/workspace-background.js'
 
 const DEFAULT_PAGE_GRID_MAX_WIDTH = 1500
 const MODULE_CREATE_MAX_TABS = 10
@@ -24,7 +51,15 @@ function getActivePageSyncId() {
   return document.querySelector(`[data-page-slug="${CSS.escape(activeSlug)}"]`)?.closest('[data-app-tab-shell]')?.dataset?.pageSyncId ?? null
 }
 
-function openPageEditor(page) {
+function getOpenPageForm() {
+  return document.querySelector('[data-sidepanel][data-sidepanel-open] [data-page-form]')
+}
+
+export function syncOpenPageEditorActiveHint(activePageSyncId = getActivePageSyncId()) {
+  syncPageFormActiveHint(getOpenPageForm(), activePageSyncId)
+}
+
+async function openPageEditor(page) {
   const pageSyncId = page?.sync_id ?? ''
   const panelEl = openSidepanel({
     title: page?.title || t('app.newPageTitle'),
@@ -39,19 +74,63 @@ function openPageEditor(page) {
       attrs: {
         'data-page-id': page.id,
         'data-page-slug': page.slug ?? '',
+        'data-page-sync-id': pageSyncId,
       },
     }) : '',
   })
+  onSidepanelClose(() => closeColorPicker())
   const body = panelEl.querySelector('[data-sidepanel-body]')
-  if (body) {
-    patchInner(body, renderPageForm(page))
+  if (!(body instanceof HTMLElement)) return
+
+  let backgroundData = null
+  if (page?.id && pageSyncId) {
+    patchInner(body, `<p data-customizer-loading>${t('common.loading')}</p>`)
+    const override = await loadPageBackgroundOverride(pageSyncId)
+    backgroundData = await loadBackgroundEditorData(override ?? {})
+  }
+
+  if (body.isConnected) {
+    patchInner(body, renderPageForm(page, {backgroundData}))
     initFormDirtyState(body)
+    syncOpenPageEditorActiveHint()
+    if (backgroundData) {
+      await initColorPicker()
+      wrapColorPicker(body)
+    }
     requestAnimationFrame(() => {
       const input = body.querySelector('[name="page-title"]')
       input?.focus?.()
       input?.select?.()
     })
   }
+}
+
+function getPageBackgroundForm(target) {
+  return target?.closest?.('[data-page-form]') ?? null
+}
+
+function getPageBackgroundSyncId(target) {
+  return getPageBackgroundForm(target)?.dataset?.pageSyncId ?? ''
+}
+
+function getPageBackgroundTextInput(target) {
+  return getPageBackgroundForm(target)?.querySelector('[data-bg-property-input]') ?? null
+}
+
+function syncPageBackgroundInputs(target, value, source = null) {
+  const form = getPageBackgroundForm(target)
+  if (form) syncBackgroundInputs(form, value, source)
+}
+
+async function applyPageBackgroundIfActive(pageSyncId, {immediate = false} = {}) {
+  if (!pageSyncId || getActivePageSyncId() !== pageSyncId) return
+  await applyPageWorkspaceBackground(pageSyncId, getCachedAppSettings(), {immediate})
+}
+
+async function refreshPageBackgroundAssets(target) {
+  const list = getPageBackgroundForm(target)?.querySelector('[data-bg-asset-list]')
+  if (!list) return
+  patchInner(list, renderPageBgAssetThumbs(await loadBackgroundAssetsForEditor()))
 }
 
 function createDraftPage() {
@@ -64,10 +143,11 @@ function createDraftPage() {
   }
 }
 
-function openCreateModuleModal(page) {
+function openCreateModuleModal(page, modules = []) {
   openModal({
     title: t('moduleForm.createModule'),
-    content: renderModuleCreateForm(page),
+    content: renderModuleCreateForm(page, modules),
+    panelClass: 'st-create-module-modal',
   })
 
   const body = document.querySelector('[data-modal][data-modal-open] [data-modal-body]')
@@ -76,6 +156,29 @@ function openCreateModuleModal(page) {
   const titleInput = body.querySelector('[name="module-title"]')
   titleInput?.focus?.()
   titleInput?.select?.()
+  setTimeout(() => syncModulePlacementSpans(page), 0)
+}
+
+function syncModulePlacementSpans(page, attempt = 0) {
+  const syncId = page?.sync_id ?? ''
+  if (!syncId) return
+  const shell = document.querySelector(`[data-app-tab-shell][data-page-sync-id="${CSS.escape(syncId)}"]`)
+  if (!(shell instanceof HTMLElement)) return
+  const spans = new Map()
+  shell.querySelectorAll('[data-grid-col]').forEach((column) => {
+    const card = column.querySelector('[data-module-card][data-sync-id]')
+    const moduleSyncId = card?.dataset.syncId
+    const span = Number.parseInt(column.style.getPropertyValue('--st-grid-col-span'), 10)
+    if (moduleSyncId && Number.isInteger(span)) spans.set(moduleSyncId, span)
+  })
+  const fakeModules = document.querySelectorAll('[data-module-placement-module][data-module-placement-sync-id]')
+  fakeModules.forEach((fake) => {
+    const span = spans.get(fake.dataset.modulePlacementSyncId ?? '')
+    if (Number.isInteger(span)) fake.style.setProperty('--st-module-placement-span', String(span - 1))
+  })
+  if (spans.size < fakeModules.length && attempt < 3) {
+    setTimeout(() => syncModulePlacementSpans(page, attempt + 1), 50)
+  }
 }
 
 function getCurrentRestoreUrl() {
@@ -149,7 +252,7 @@ export const pageActions = {
     if (!pageSyncId) return
     const page = await loadPageBySyncId(pageSyncId)
     if (!page) return
-    openPageEditor(page)
+    await openPageEditor(page)
   },
 
   async editActivePage() {
@@ -157,11 +260,97 @@ export const pageActions = {
     if (!pageSyncId) return
     const page = await loadPageBySyncId(pageSyncId)
     if (!page) return
-    openPageEditor(page)
+    await openPageEditor(page)
   },
 
   async addPage() {
-    openPageEditor(createDraftPage())
+    await openPageEditor(createDraftPage())
+  },
+
+  previewPageBgProperty(target) {
+    const pageSyncId = getPageBackgroundSyncId(target)
+    if (!pageSyncId) return
+    const value = sanitizeBackgroundValue(target.value)
+    syncPageBackgroundInputs(target, value, target)
+    if (getActivePageSyncId() !== pageSyncId) return
+    if (value && isValidBackground(value)) {
+      addBgSet(value)
+      return
+    }
+    void getBgSet(getCachedAppSettings()).then((background) => addBgSet(background))
+  },
+
+  async savePageBgProperty(target) {
+    const pageSyncId = getPageBackgroundSyncId(target)
+    if (!pageSyncId) return
+    const value = sanitizeBackgroundValue(target.value)
+    if (!isValidBackground(value)) return
+    syncPageBackgroundInputs(target, value, target)
+    await savePageBackgroundOverride(pageSyncId, value ? {
+      background_properties: value,
+      background_asset_id: null,
+    } : null)
+    await applyPageBackgroundIfActive(pageSyncId, {immediate: true})
+  },
+
+  async archivePageBgProperty(target) {
+    const value = sanitizeBackgroundValue(getPageBackgroundTextInput(target)?.value)
+    if (!value || !isValidBackground(value)) return
+    await archiveBgItem(value)
+    const list = getPageBackgroundForm(target)?.querySelector('[data-bg-archive-list]')
+    if (list) patchInner(list, renderPageBgArchiveSwatches(await loadBgArchive()))
+  },
+
+  async clearPageBgProperty(target) {
+    const pageSyncId = getPageBackgroundSyncId(target)
+    if (!pageSyncId) return
+    await deletePageBackgroundOverride(pageSyncId)
+    syncPageBackgroundInputs(target, '')
+    await applyPageBackgroundIfActive(pageSyncId)
+  },
+
+  async loadPageBgArchiveItem(target) {
+    const pageSyncId = getPageBackgroundSyncId(target)
+    const value = target.closest('[data-click]')?.dataset?.bgValue ?? ''
+    if (!pageSyncId || !value || !isValidBackground(value)) return
+    await savePageBackgroundOverride(pageSyncId, {
+      background_properties: value,
+      background_asset_id: null,
+    })
+    syncPageBackgroundInputs(target, value)
+    await applyPageBackgroundIfActive(pageSyncId)
+  },
+
+  triggerPageWallpaperUpload(target) {
+    getPageBackgroundForm(target)?.querySelector('[name="uploadPageBgWallpaperInput"]')?.click()
+  },
+
+  async uploadPageBgWallpaper(target) {
+    const pageSyncId = getPageBackgroundSyncId(target)
+    const file = target.files?.[0]
+    if (!pageSyncId || !file) return
+    target.value = ''
+    const {blob, width, height} = await normalizeImageBlob(file)
+    const assetId = await storeOrGetAsset(blob, 'background', width, height)
+    await savePageBackgroundOverride(pageSyncId, {
+      background_properties: null,
+      background_asset_id: assetId,
+    })
+    syncPageBackgroundInputs(target, '')
+    await refreshPageBackgroundAssets(target)
+    await applyPageBackgroundIfActive(pageSyncId)
+  },
+
+  async loadPageBgAsset(target) {
+    const pageSyncId = getPageBackgroundSyncId(target)
+    const assetId = Number(target.closest('[data-click]')?.dataset?.assetId)
+    if (!pageSyncId || !assetId) return
+    await savePageBackgroundOverride(pageSyncId, {
+      background_properties: null,
+      background_asset_id: assetId,
+    })
+    syncPageBackgroundInputs(target, '')
+    await applyPageBackgroundIfActive(pageSyncId)
   },
 
   async addPageModule() {
@@ -169,7 +358,25 @@ export const pageActions = {
     if (!pageSyncId) return
     const page = await loadPageBySyncId(pageSyncId)
     if (!page?.id) return
-    openCreateModuleModal(page)
+    const modules = await loadModulesByPageId(page.id)
+    openCreateModuleModal(page, modules)
+  },
+
+  toggleModuleCreatePlacement(target) {
+    const form = target.closest('[data-page-module-form]')
+    const placement = form?.querySelector('[data-module-create-placement]')
+    const panel = target.closest('[data-modal-panel]')
+    if (!(placement instanceof HTMLElement) || !(panel instanceof HTMLElement)) return
+    const expanded = placement.hidden
+    placement.hidden = !expanded
+    target.setAttribute('aria-expanded', String(expanded))
+    panel.classList.toggle('st-create-module-modal-expanded', expanded)
+  },
+
+  pageModuleTypeChange(target) {
+    const form = target.closest?.('[data-page-module-form]')
+    if (!(form instanceof HTMLFormElement)) return
+    form.dataset.moduleType = target.value || 'tabs'
   },
 
   addModuleCreateTabInput(target) {
@@ -344,7 +551,7 @@ export const pageActions = {
     const {renderNextRoot} = await import('../app/bootstrap.js')
     await renderNextRoot()
     if (!savedPage) return
-    openPageEditor(savedPage)
+    await openPageEditor(savedPage)
   },
 
   async pageModuleCreateSave(target) {
@@ -359,29 +566,34 @@ export const pageActions = {
 
     const type = form.querySelector('[name="module-type"]')?.value || 'tabs'
     const rawTitle = form.querySelector('[name="module-title"]')?.value?.trim()
-    const title = rawTitle || t(`moduleForm.types.${type}`)
+    const title = rawTitle || t(`moduleForm.types.${getModuleTypeMessageKey(type)}`)
     const tabTitles = Array.from(form.querySelectorAll('[name="module-first-tab-title"]'))
       .map((input) => input instanceof HTMLInputElement ? input.value.trim() : '')
       .filter(Boolean)
       .slice(0, MODULE_CREATE_MAX_TABS)
     const firstTabTitle = tabTitles[0] || t('moduleCard.newTabTitle')
     const rawColumnSpan = parseInt(form.querySelector('[name="module-column-span"]')?.value ?? '', 10)
-    const columnSpan = Math.max(1, Math.min(12, Number.isInteger(rawColumnSpan) ? rawColumnSpan : 6))
+    const columnSpan = type === 'speed-dial'
+      ? 12
+      : Math.max(1, Math.min(12, Number.isInteger(rawColumnSpan) ? rawColumnSpan : 6))
+    const rawInsertAt = parseInt(form.querySelector('[name="module-insert-at"]:checked')?.value ?? '', 10)
+    const insertAt = Number.isInteger(rawInsertAt) ? rawInsertAt : undefined
 
     const module = await createModuleData(pageId, {
       type,
       title,
+      insertAt,
       defaultTabTitle: firstTabTitle,
       createDefaultTab: true,
       config_json: JSON.stringify({
-        layout: {
-          'module-column-span': columnSpan,
-        },
+        layout: type === 'speed-dial'
+          ? {}
+          : {'module-column-span': columnSpan},
       }),
     })
     if (!module?.sync_id) return
 
-    if (columnSpan !== 6) {
+    if (type !== 'speed-dial' && columnSpan !== 6) {
       await upsertUiConfig({
         entityType: 'module',
         entitySubtype: type,
@@ -413,6 +625,7 @@ export const pageActions = {
     if (!pageId) return
     if (!confirm(t('app.confirms.deletePage'))) return
     await deletePageTree(pageId)
+    await deletePageBackgroundOverride(target.dataset.pageSyncId ?? '')
     closeSidepanel()
 
     const pageSlug = target.dataset.pageSlug

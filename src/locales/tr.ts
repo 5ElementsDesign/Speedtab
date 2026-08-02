@@ -59,6 +59,7 @@ const tr = {
     },
     moduleTypes: {
       tabs: 'Görsel Yer İmleri',
+      speedDial: 'Hızlı Arama',
       notes: 'Notlar',
       feeds: 'Akışlar',
     },
@@ -278,6 +279,8 @@ const tr = {
     sections: {
       performance: 'Performans',
     },
+    rememberLastPage: 'Son sayfayı hatırla',
+    rememberLastPageHelp: 'Yeni bir sekme açıldığında en son ziyaret ettiğiniz sayfayı açar.',
     htmlCache: 'HTML önbelleği',
     htmlCacheHelp: 'Oluşturulan sayfa içeriğini bellekte tutar. Sayfa geçişlerinde her zaman yeniden yüklemek için devre dışı bırakın.',
     themes: {
@@ -314,6 +317,7 @@ const tr = {
     firstTabTitle: 'İlk Sekme',
     types: {
       tabs: 'Görsel Yer İmleri',
+      speedDial: 'Hızlı Arama',
       notes: 'Notlar',
       feeds: 'Akışlar',
     },
@@ -436,6 +440,7 @@ const tr = {
     backgroundOverrideHelp: 'Bu sayfada genel uygulama arka planını kullanmak için boş bırakın.',
     backgroundPreviewAlt: 'Sayfa arka planı önizlemesi',
     useAppBackground: 'Uygulama Arka Planını Kullan',
+    notActivePage: 'Etkin sayfa değil',
     deletePage: 'Sayfayı Sil',
     saveChanges: 'Değişiklikleri Kaydet',
     createPage: 'Sayfa Oluştur',
@@ -500,9 +505,13 @@ const tr = {
       shellHeaderHeight: 'Başlık Yüksekliği',
       shellModuleGap: 'Modül Boşluğu',
       shellModuleContentGap: 'Modül İçerik Boşluğu',
+      shellBorderRadius: 'Köşe Yarıçapı (px)',
       moduleColumnSpan: 'Sütun Genişliği (1–12)',
       moduleContentGap: 'İçerik Aralığı (px)',
       moduleMinHeight: 'Min. Yüksekliği (px)',
+      speedDialContentAlign: 'İçerik Hizalaması',
+      speedDialTileHeight: 'Döşeme Yüksekliği (px)',
+      speedDialFillHeight: 'Kullanılabilir Sayfa Yüksekliğini Doldur',
       shellHeaderBackground: 'Başlık Arka Planı',
       shellNavBackground: 'Gezinti Arka Planı',
       shellNavActiveBackground: 'Aktif Gezinti Arka Planı',
@@ -569,6 +578,7 @@ const tr = {
     previewImage: 'Önizleme Resmi',
     previewImageMeta: '({width}×{height} WebP, yüksek kalite)',
     previewAlt: 'Önizleme',
+    imagePadding: 'Görsel Dolgusu (px)',
     cropSourceAlt: 'Kırpma kaynağı',
     remove: 'Kaldır',
     zoomIn: 'Yakınlaştır +',
@@ -600,6 +610,7 @@ const tr = {
     assetGroups: {
       pageImage: 'Sayfa Görselleri',
       preview: 'Görsel Yer İmi Önizlemeleri',
+      speedDial: 'Hızlı Arama Görselleri',
       background: 'Arka Planlar',
       noteImage: 'Not Resimleri',
     },
@@ -1135,6 +1146,7 @@ const tr = {
     assetKinds: {
       background: 'Arka Planlar',
       preview: 'Yer İmi Önizlemeleri',
+      speedDial: 'Hızlı Arama Görselleri',
       noteImage: 'Not Resimleri',
       favicon: 'Favicon\'lar',
     },
@@ -1235,6 +1247,7 @@ const tr = {
       backgrounds: 'Arka planlar',
       bookmarkFavicons: 'Yer imi favicon\'ları',
       bookmarkPreviews: 'Yer imi önizlemeleri',
+      speedDialImages: 'Hızlı Arama görselleri',
       feedFavicons: 'Akış favicon\'ları',
       noteLinkFavicons: 'Bağlantı notu favicon\'ları',
       noteImages: 'Not resimleri',
@@ -1245,6 +1258,7 @@ const tr = {
     kindLabels: {
       background: 'Arka Planlar',
       preview: 'Yer İmi Önizlemeleri',
+      speedDial: 'Hızlı Arama Görselleri',
       noteImage: 'Not Resimleri',
       favicon: 'Favicon\'lar',
     },

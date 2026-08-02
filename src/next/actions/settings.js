@@ -12,7 +12,7 @@ import {
   loadBgArchive,
   saveAppSetting,
 } from '../data/app-settings.js'
-import {deleteBgAsset, loadAssetObjectUrl, loadBgAssets, normalizeImageBlob, storeOrGetAsset} from '../data/assets.js'
+import {deleteBgAsset, loadAssetObjectUrl, normalizeImageBlob, storeOrGetAsset} from '../data/assets.js'
 import {renderBgArchiveSwatches, renderBgAssetThumbs, renderFeedbackModal, renderSettingsFooter, renderSettingsPanel, renderWeatherLocationSearchState, renderWidgetSettingsPanel} from '../features/settings/render.js'
 import {
   createClockPresetTimer,
@@ -33,6 +33,14 @@ import {
 import {initColorPicker, wrapColorPicker} from '../utils/color-picker.js'
 import {patchInner, replaceNode} from '../utils/dom-patch.js'
 import {t} from '../utils/i18n.js'
+import {
+  addBgSet,
+  isValidBackground,
+  loadBackgroundAssetsForEditor,
+  releaseBackgroundAssetUrl,
+  sanitizeBackgroundValue,
+  syncBackgroundInputs,
+} from '../utils/workspace-background.js'
 
 const weatherSearchState = {
   query: '',
@@ -41,76 +49,30 @@ const weatherSearchState = {
   error: '',
 }
 
+function getBackgroundListRenderContext(target, listSelector, selectSelector) {
+  const list = target.closest(listSelector)
+  return {
+    list,
+    options: {
+      selectAction: list?.querySelector(selectSelector)?.dataset?.click,
+      deleteAction: target.dataset.click,
+    },
+  }
+}
+
 let weatherSearchController = null
 let liveWidgetSettings = null
 
-function sanitizeBg(raw) {
-  return (raw ?? '')
-    .trim()
-    .replace(/^background-image\s*:\s*/i, '')
-    .replace(/^background\s*:\s*/i, '')
-    .replace(/;$/, '')
-    .trim()
-}
-
-function isValidBg(value) {
-  if (!value) return true
-  return CSS.supports('background', value) || CSS.supports('background-image', value)
-}
-
 function applyBg(value) {
-  if (value) {
-    document.body.style.setProperty('--st-workspace-background', value)
-    return
-  }
-
-  document.body.style.removeProperty('--st-workspace-background')
-}
-
-function toBgColorValue(raw) {
-  const value = sanitizeBg(raw)
-  if (!value) return ''
-  if (/^#[0-9a-fA-F]{6,8}$/.test(value)) return value
-  if (/^#[0-9a-fA-F]{3}$/.test(value)) {
-    const [, r, g, b] = value
-    return `#${r}${r}${g}${g}${b}${b}`
-  }
-  return ''
+  addBgSet(value || 'none')
 }
 
 function getBgTextInput() {
   return document.querySelector('[data-bg-property-input]')
 }
 
-function getBgColorInput() {
-  return document.querySelector('[data-bg-color-input]')
-}
-
 function syncBgInputs(value, source = null) {
-  const normalizedValue = sanitizeBg(value)
-  const colorValue = toBgColorValue(normalizedValue)
-  const textInput = getBgTextInput()
-  const colorInput = getBgColorInput()
-
-  if (textInput && textInput !== source) {
-    textInput.value = normalizedValue
-  }
-
-  if (colorInput && colorInput !== source) {
-    colorInput.value = colorValue
-    const clrField = colorInput.closest('.clr-field')
-    if (clrField) clrField.style.color = colorValue || ''
-  }
-}
-
-async function buildBgAssets() {
-  const assets = await loadBgAssets()
-  // Attach ephemeral object URL for thumbnail rendering — caller must not revoke these;
-  // they live for the lifetime of the settings panel.
-  return Promise.all(assets.map(async (asset) => {
-    const url = await loadAssetObjectUrl(asset.id)
-    return {...asset, _objectUrl: url ?? ''}
-  }))
+  syncBackgroundInputs(document, value, source)
 }
 
 function flashBgArchiveSwatch(value) {
@@ -382,9 +344,14 @@ export const settingsActions = {
     } else if (target.dataset.valueType === 'number') {
       value = parseFloat(target.value)
     } else {
-      value = sanitizeBg(target.value) || null
+      value = sanitizeBackgroundValue(target.value) || null
     }
     await saveAppSetting(key, value)
+    if (key === 'remember_last_page' && value === true) {
+      const activePage = document.querySelector('[data-app-header-nav] [data-tab-action="open"][aria-selected="true"]')
+      const activeSlug = activePage?.dataset?.open
+      if (activeSlug) await saveAppSetting('last_page_slug', activeSlug)
+    }
     if (key === 'background_properties') {
       syncBgInputs(value, target)
       applyBg(value)
@@ -654,14 +621,14 @@ export const settingsActions = {
   },
 
   previewBgProperty(target) {
-    const value = sanitizeBg(target.value)
+    const value = sanitizeBackgroundValue(target.value)
     syncBgInputs(value, target)
-    applyBg(isValidBg(value) ? value : '')
+    applyBg(isValidBackground(value) ? value : '')
   },
 
   async archiveBgProperty() {
-    const value = sanitizeBg(getBgTextInput()?.value)
-    if (!value || !isValidBg(value)) return
+    const value = sanitizeBackgroundValue(getBgTextInput()?.value)
+    if (!value || !isValidBackground(value)) return
     const result = await archiveBgItem(value)
     const items = await loadBgArchive()
     const list  = document.querySelector('[data-bg-archive-list]')
@@ -678,7 +645,7 @@ export const settingsActions = {
 
   async loadBgArchiveItem(target) {
     const value = target.closest('[data-click]')?.dataset?.bgValue ?? ''
-    if (!value || !isValidBg(value)) return
+    if (!value || !isValidBackground(value)) return
     await saveAppSetting('background_properties', value)
     await saveAppSetting('background_asset_id', null)
     syncBgInputs(value)
@@ -688,10 +655,14 @@ export const settingsActions = {
   async deleteBgArchiveItem(target) {
     const id = target.dataset.archiveId
     if (!id) return
+    const {list, options} = getBackgroundListRenderContext(
+      target,
+      '[data-bg-archive-list]',
+      '[data-bg-archive-swatch]',
+    )
     await deleteBgArchiveItem(id)
     const items = await loadBgArchive()
-    const list  = document.querySelector('[data-bg-archive-list]')
-    if (list) list.innerHTML = renderBgArchiveSwatches(items)
+    if (list) patchInner(list, renderBgArchiveSwatches(items, options))
   },
 
   triggerWallpaperUpload() {
@@ -713,7 +684,7 @@ export const settingsActions = {
     applyBg(`url('${objUrl}') center/cover no-repeat`)
     syncBgInputs('')
 
-    const bgAssets = await buildBgAssets()
+    const bgAssets = await loadBackgroundAssetsForEditor()
     const list = document.querySelector('[data-bg-asset-list]')
     if (list) list.innerHTML = renderBgAssetThumbs(bgAssets)
   },
@@ -732,10 +703,15 @@ export const settingsActions = {
   async deleteBgAsset(target) {
     const assetId = Number(target.closest('[data-click]')?.dataset?.assetId)
     if (!assetId) return
+    const {list, options} = getBackgroundListRenderContext(
+      target,
+      '[data-bg-asset-list]',
+      '[data-bg-asset-thumb]',
+    )
     await deleteBgAsset(assetId)
-    const bgAssets = await buildBgAssets()
-    const list = document.querySelector('[data-bg-asset-list]')
-    if (list) list.innerHTML = renderBgAssetThumbs(bgAssets)
+    releaseBackgroundAssetUrl(assetId)
+    const bgAssets = await loadBackgroundAssetsForEditor()
+    if (list) patchInner(list, renderBgAssetThumbs(bgAssets, options))
   },
 
   openImportExport() {

@@ -81,6 +81,13 @@ describe('createModuleData', () => {
     expect(collections).toHaveLength(1)
   })
 
+  it('creates a default collection for "speed-dial" type', async () => {
+    const pageId = await seedPage()
+    const mod = await createModuleData(pageId, {type: 'speed-dial', title: 'Start'})
+    const collections = await testDb.collections.where('module_id').equals(mod!.id).toArray()
+    expect(collections).toHaveLength(1)
+  })
+
   it('skips default collection when createDefaultTab is false', async () => {
     const pageId = await seedPage()
     const mod = await createModuleData(pageId, { type: 'tabs', createDefaultTab: false })
@@ -105,6 +112,18 @@ describe('createModuleData', () => {
     const m2 = await createModuleData(pageId, { type: 'tabs', title: 'M2' })
     expect(m1!.sort_order).toBe(0)
     expect(m2!.sort_order).toBe(1)
+  })
+
+  it('inserts a module at the requested position and shifts later modules', async () => {
+    const pageId = await seedPage()
+    await createModuleData(pageId, {type: 'tabs', title: 'M1'})
+    await createModuleData(pageId, {type: 'tabs', title: 'M2'})
+    const inserted = await createModuleData(pageId, {type: 'tabs', title: 'Inserted', insertAt: 1})
+
+    const modules = await loadModulesByPageId(pageId)
+    expect(inserted!.sort_order).toBe(1)
+    expect(modules.map((module) => module.title)).toEqual(['M1', 'Inserted', 'M2'])
+    expect(modules.map((module) => module.sort_order)).toEqual([0, 1, 2])
   })
 })
 

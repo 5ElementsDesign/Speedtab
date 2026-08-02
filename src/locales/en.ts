@@ -59,6 +59,7 @@ const en = {
     },
     moduleTypes: {
       tabs: 'Visual Bookmarks',
+      speedDial: 'Speed Dial',
       notes: 'Notes',
       feeds: 'Feeds',
     },
@@ -278,6 +279,8 @@ const en = {
     sections: {
       performance: 'Performance',
     },
+    rememberLastPage: 'Remember last page',
+    rememberLastPageHelp: 'Open the last page you visited when a new tab opens.',
     htmlCache: 'HTML cache',
     htmlCacheHelp: 'Keep rendered page content in memory. Disable to always re-fetch on page switch.',
     themes: {
@@ -314,6 +317,7 @@ const en = {
     firstTabTitle: 'First Tab',
     types: {
       tabs: 'Visual Bookmarks',
+      speedDial: 'Speed Dial',
       notes: 'Notes',
       feeds: 'Feeds',
     },
@@ -436,6 +440,7 @@ const en = {
     backgroundOverrideHelp: 'Leave empty to use the global app background for this page.',
     backgroundPreviewAlt: 'Page background preview',
     useAppBackground: 'Use App Background',
+    notActivePage: 'Not active page',
     deletePage: 'Delete Page',
     saveChanges: 'Save Changes',
     createPage: 'Create Page',
@@ -500,9 +505,13 @@ const en = {
       shellHeaderHeight: 'Header Height',
       shellModuleGap: 'Module Gap',
       shellModuleContentGap: 'Module Content Gap',
+      shellBorderRadius: 'Border Radius (px)',
       moduleColumnSpan: 'Column Width (1–12)',
       moduleContentGap: 'Content Gap (px)',
       moduleMinHeight: 'Min Height (px)',
+      speedDialContentAlign: 'Content Alignment',
+      speedDialTileHeight: 'Tile Height (px)',
+      speedDialFillHeight: 'Fill Available Page Height',
       shellHeaderBackground: 'Header Background',
       shellNavBackground: 'Nav Background',
       shellNavActiveBackground: 'Nav Active Background',
@@ -569,6 +578,7 @@ const en = {
     previewImage: 'Preview Image',
     previewImageMeta: '({width}×{height} WebP, high quality)',
     previewAlt: 'Preview',
+    imagePadding: 'Image Padding (px)',
     cropSourceAlt: 'Crop source',
     remove: 'Remove',
     zoomIn: 'Zoom +',
@@ -600,6 +610,7 @@ const en = {
     assetGroups: {
       pageImage: 'Page Images',
       preview: 'Visual Bookmark Previews',
+      speedDial: 'Speed Dial Images',
       background: 'Backgrounds',
       noteImage: 'Note Images',
     },
@@ -1135,6 +1146,7 @@ const en = {
     assetKinds: {
       background: 'Backgrounds',
       preview: 'Bookmark Previews',
+      speedDial: 'Speed Dial Images',
       noteImage: 'Note Images',
       favicon: 'Favicons',
     },
@@ -1235,6 +1247,7 @@ const en = {
       backgrounds: 'Backgrounds',
       bookmarkFavicons: 'Bookmark favicons',
       bookmarkPreviews: 'Bookmark previews',
+      speedDialImages: 'Speed Dial images',
       feedFavicons: 'Feed favicons',
       noteLinkFavicons: 'Link note favicons',
       noteImages: 'Note images',
@@ -1245,6 +1258,7 @@ const en = {
     kindLabels: {
       background: 'Backgrounds',
       preview: 'Bookmark Previews',
+      speedDial: 'Speed Dial Images',
       noteImage: 'Note Images',
       favicon: 'Favicons',
     },

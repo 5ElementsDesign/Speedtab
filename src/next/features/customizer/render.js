@@ -1,4 +1,5 @@
 import {getUiConfigSpec} from '../../config/ui-config-spec.js'
+import {getModuleTypeMessageKey} from '../../config/module-types.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 import {renderBackgroundSettingsSection} from '../settings/render.js'
@@ -29,9 +30,13 @@ const FIELD_LABELS = {
   'shell-header-height-px': 'customizer.fields.shellHeaderHeight',
   'shell-module-gap-px': 'customizer.fields.shellModuleGap',
   'shell-module-content-gap-px': 'customizer.fields.shellModuleContentGap',
+  'shell-border-radius-px': 'customizer.fields.shellBorderRadius',
   'module-column-span': 'customizer.fields.moduleColumnSpan',
   'module-content-gap-px': 'customizer.fields.moduleContentGap',
   'module-min-height-px': 'customizer.fields.moduleMinHeight',
+  'speed-dial-content-align': 'customizer.fields.speedDialContentAlign',
+  'speed-dial-tile-height-px': 'customizer.fields.speedDialTileHeight',
+  'speed-dial-fill-height': 'customizer.fields.speedDialFillHeight',
   '--st-ws-shell-header-background-color': 'customizer.fields.shellHeaderBackground',
   '--st-ws-shell-nav-background-color': 'customizer.fields.shellNavBackground',
   '--st-ws-shell-nav-active-background-color': 'customizer.fields.shellNavActiveBackground',
@@ -93,6 +98,8 @@ const OPTION_LABELS = {
   left: 'customizer.options.left',
   center: 'customizer.options.center',
   right: 'customizer.options.right',
+  start: 'customizer.options.top',
+  end: 'customizer.options.bottom',
 }
 
 const FIELD_DISPLAY_DEFAULTS = {
@@ -137,7 +144,9 @@ const GROUP_FALLBACKS = {
 }
 
 function getModuleTypeLabel(type) {
-  if (type === 'tabs' || type === 'notes' || type === 'feeds') return t(`app.moduleTypes.${type}`)
+  if (type === 'tabs' || type === 'speed-dial' || type === 'notes' || type === 'feeds') {
+    return t(`app.moduleTypes.${getModuleTypeMessageKey(type)}`)
+  }
   return type || t('modules.untitled')
 }
 
@@ -186,14 +195,15 @@ function renderBooleanField(key, spec, value, section) {
 }
 
 function renderEnumField(key, spec, value, section) {
+  const selectedValue = spec.showDefaultOption === false ? (value ?? spec.defaultValue) : value
   const options = (spec.allowedValues ?? []).map((v) =>
-    `<option value="${escapeHtml(v)}"${value === v ? ' selected' : ''}>${escapeHtml(t(OPTION_LABELS[v] ?? v))}</option>`
+    `<option value="${escapeHtml(v)}"${selectedValue === v ? ' selected' : ''}>${escapeHtml(t(OPTION_LABELS[v] ?? v))}</option>`
   ).join('')
   return `
     <label data-customizer-field data-customizer-field-type="enum">
       <span data-customizer-field-label>${getFieldLabel(key)}</span>
       <select name="${escapeHtml(key)}" data-change="customizerChange" data-config-section="${escapeHtml(section)}">
-        <option value="">${escapeHtml(t('customizer.defaultOption'))}</option>
+        ${spec.showDefaultOption === false ? '' : `<option value="">${escapeHtml(t('customizer.defaultOption'))}</option>`}
         ${options}
       </select>
     </label>
@@ -570,7 +580,7 @@ export function updateContrastBadgeDOM(groupId, appearanceValues) {
   if (newBadge) badge.replaceWith(newBadge)
 }
 
-export function renderCustomizerList(moduleCards, shellHasConfig = false, pageLabel = t('nav.page'), pageSyncId = '', showResetOptions = false) {
+export function renderCustomizerList(pages, moduleCards, shellHasConfig = false, showResetOptions = false) {
   const renderListRow = ({action, label, type, syncId = '', moduleType = '', pageSyncIdValue = '', showReset = false}) => `
     <div data-customizer-list-row>
       <button
@@ -607,15 +617,17 @@ export function renderCustomizerList(moduleCards, shellHasConfig = false, pageLa
     showReset: shellHasConfig,
   })
 
-  const pageItem = pageSyncId ? `
-    ${renderListRow({
-      action: 'openPageForm',
-      label: pageLabel,
-      type: t('customizer.types.page'),
-      pageSyncIdValue: pageSyncId,
-      showReset: false,
-    })}
-  ` : `<p data-customizer-list-section>${escapeHtml(pageLabel)}</p>`
+  const pageItems = pages.map((page) => {
+    const pageLabel = page?.title?.trim?.() || t('nav.page')
+    return page?.sync_id
+      ? renderListRow({
+        action: 'openPageForm',
+        label: pageLabel,
+        type: t('customizer.types.page'),
+        pageSyncIdValue: page.sync_id,
+      })
+      : `<p data-customizer-list-section>${escapeHtml(pageLabel)}</p>`
+  }).join('')
 
   const moduleItems = moduleCards.map((card) => {
     const title = card.querySelector('[data-module-card-title]')?.textContent?.trim() ?? t('modules.untitled')
@@ -636,7 +648,7 @@ export function renderCustomizerList(moduleCards, shellHasConfig = false, pageLa
     <div data-customizer-list>
       ${shellItem}
       <div data-customizer-divider aria-hidden="true"></div>
-      ${pageItem}
+      ${pageItems}
       <div data-customizer-divider aria-hidden="true"></div>
       ${moduleItems}
     </div>

@@ -14,7 +14,7 @@ export function installFlyingConfig(tabs, onEvent) {
 
   const eventClick = (context) => {
     const {target, action} = context ?? {}
-    if (!target?.matches?.('[data-flying-config-trigger], [data-flying-config-menu], [data-flying-config-target-index], [data-click="saveFlyingConfig"], [data-flying-config-back], [data-flying-config-maximize], [data-flying-config-close], [data-flying-config-remove-markers], [data-flying-config-add], [data-flying-config-delete], [data-flying-config-view-toggle]')) return
+    if (!target?.matches?.('[data-flying-config-trigger], [data-flying-config-menu], [data-flying-config-target-index], [data-click="saveFlyingConfig"], [data-flying-config-back], [data-flying-config-maximize], [data-flying-config-close], [data-flying-config-remove-markers], [data-flying-config-add], [data-flying-config-delete], [data-flying-config-move], [data-flying-config-view-toggle]')) return
     onEvent({target, action, event: context?.event})
   }
 
@@ -36,6 +36,36 @@ export function installFlyingConfig(tabs, onEvent) {
 function getDirectTabButtons(container) {
   return [...container.querySelectorAll('[data-open]')]
     .filter((button) => button.closest('[data-yai-tabs]') === container)
+}
+
+function getDirectTabPanel(container, button) {
+  const open = button?.dataset?.open ?? ''
+  return open
+    ? container.querySelector(`:scope > [data-content] [data-tab="${CSS.escape(open)}"]`)
+    : null
+}
+
+function moveDirectTab(container, index, direction) {
+  const buttons = getDirectTabButtons(container)
+  const targetIndex = index + direction
+  if (targetIndex < 0 || targetIndex >= buttons.length) return false
+
+  const button = buttons[index]
+  const targetButton = buttons[targetIndex]
+  const panel = getDirectTabPanel(container, button)
+  const targetPanel = getDirectTabPanel(container, targetButton)
+  const controller = container.querySelector(':scope > [data-controller]')
+  const content = container.querySelector(':scope > [data-content]')
+  if (!(button instanceof HTMLElement) || !(targetButton instanceof HTMLElement) || !(panel instanceof HTMLElement) || !(targetPanel instanceof HTMLElement) || !(controller instanceof HTMLElement) || !(content instanceof HTMLElement)) return false
+
+  if (direction < 0) {
+    controller.insertBefore(button, targetButton)
+    content.insertBefore(panel, targetPanel)
+  } else {
+    controller.insertBefore(button, targetButton.nextSibling)
+    content.insertBefore(panel, targetPanel.nextSibling)
+  }
+  return true
 }
 
 function getNestedComponents(scope, owner, orderedContainers = []) {
@@ -224,6 +254,12 @@ async function mutateFlyingConfigTarget(noteWindow, action, path) {
     if (!target || !(componentTarget instanceof HTMLElement) || getDirectTabButtons(componentTarget).length <= 1) return false
     target.button.remove()
     target.panel.remove()
+  } else if (action === 'move-up' || action === 'move-down') {
+    const parts = path.split('.')
+    const index = Number.parseInt(parts.at(-1) ?? '', 10)
+    const component = resolveComponentPath(sourceDocument.body, parts.slice(0, -1).join('.'))
+    const direction = action === 'move-up' ? -1 : 1
+    if (!(component instanceof HTMLElement) || !Number.isInteger(index) || !moveDirectTab(component, index, direction)) return false
   } else {
     const componentTarget = resolveComponentPath(sourceDocument.body, path)
     const controller = componentTarget?.querySelector(':scope > [data-controller]')
@@ -271,6 +307,7 @@ function renderTargetEditor(layer, target) {
   visual.dataset.flyingConfigVisualEditor = ''
   visual.contentEditable = 'true'
   visual.hidden = true
+  visual.classList.add('p-3')
   visual.setAttribute('aria-label', 'Visual content editor')
   visual.innerHTML = target.panel.innerHTML
   editor.append(visual)
@@ -310,7 +347,11 @@ function renderComponentTree(container, path, orderedContainers = [], markActive
             <li data-flying-config-tab data-flying-config-tab-path="${escapeHtml(`${path}.${index}`)}">
               <div data-tab-action-wrapper>
                 <div data-tab-default><button type="button" data-click="openFlyingConfig" data-flying-config-target-index="${escapeHtml(`${path}.${index}`)}"${isActive ? ' data-flying-config-active' : ''}>${escapeHtml(label)}</button></div>
-                <div data-tab-actions><button type="button" data-click="openFlyingConfig" data-flying-config-delete data-flying-config-path="${escapeHtml(`${path}.${index}`)}" title="Delete this Tab"><i data-icon="trash" aria-hidden="true"></i></button></div>
+                <div data-tab-actions>
+                  <button type="button" data-click="openFlyingConfig" data-flying-config-move="up" data-flying-config-path="${escapeHtml(`${path}.${index}`)}" title="Move up"${index === 0 ? ' disabled' : ''}><i data-icon="arrow" aria-hidden="true"></i></button>
+                  <button type="button" data-click="openFlyingConfig" data-flying-config-move="down" data-flying-config-path="${escapeHtml(`${path}.${index}`)}" title="Move down"${index === buttons.length - 1 ? ' disabled' : ''}><i data-icon="arrow" aria-hidden="true" class="rotate-top-to-bottom"></i></button>
+                  <button type="button" data-click="openFlyingConfig" data-flying-config-delete data-flying-config-path="${escapeHtml(`${path}.${index}`)}" title="Delete this Tab"><i data-icon="trash" aria-hidden="true"></i></button>
+                </div>
               </div>
               ${children.length ? `<ul>${children.map((child, childIndex) => renderComponentTree(child, `${path}.${index}.${childIndex}`, orderedContainers, markActive)).join('')}</ul>` : ''}
             </li>
@@ -372,6 +413,31 @@ export async function openFlyingConfig(target) {
     return
   }
 
+  if (target.matches('[data-flying-config-move]')) {
+    const layer = target.closest('[data-flying-config-customize]')
+    const targets = layer?.querySelector('[data-flying-config-targets]')
+    const path = target.dataset.flyingConfigPath ?? ''
+    const parts = path.split('.')
+    const index = Number.parseInt(parts.at(-1) ?? '', 10)
+    const componentPath = parts.slice(0, -1).join('.')
+    const direction = target.dataset.flyingConfigMove === 'up' ? -1 : 1
+    if (!(layer instanceof HTMLElement) || !(targets instanceof HTMLElement) || !path || !Number.isInteger(index)) return
+    const noteComponent = resolveComponentPath(noteWindow, componentPath)
+    if (!(noteComponent instanceof HTMLElement)) return
+    if (!moveDirectTab(noteComponent, index, direction)) return
+    const saved = await mutateFlyingConfigTarget(noteWindow, `move-${direction < 0 ? 'up' : 'down'}`, path)
+    if (!saved) {
+      moveDirectTab(noteComponent, index + direction, -direction)
+      return
+    }
+    targets.innerHTML = `<ul>${renderComponentTreeList(noteWindow)}</ul>`
+    const movedPath = `${componentPath}.${index + direction}`
+    const movedButton = targets.querySelector(`[data-flying-config-target-index="${CSS.escape(movedPath)}"]`)
+    movedButton?.setAttribute('data-flying-config-moved', '')
+    setTimeout(() => movedButton?.removeAttribute('data-flying-config-moved'), 1200)
+    return
+  }
+
   if (target.matches('[data-flying-config-add], [data-flying-config-delete]')) {
     const layer = target.closest('[data-flying-config-customize]')
     const targets = layer?.querySelector('[data-flying-config-targets]')
@@ -384,32 +450,32 @@ export async function openFlyingConfig(target) {
       : (isComponentDelete ? 'delete-component' : 'delete')
     if (action.startsWith('delete') && !window.confirm(`Delete ${action === 'delete-component' ? 'this component' : 'this tab'}?`)) return
     const result = await mutateFlyingConfigTarget(noteWindow, action, path)
-  if (result) {
-    if (action === 'delete-component') {
-      resolveComponentPath(noteWindow, path)?.remove()
-    } else if (action === 'delete') {
-      const liveTarget = resolveTargetPath(noteWindow, path)
-      liveTarget?.button.remove()
-      liveTarget?.panel.remove()
-    } else {
-      const liveComponent = resolveComponentPath(noteWindow, path)
-      const controller = liveComponent?.querySelector(':scope > [data-controller]')
-      const content = liveComponent?.querySelector(':scope > [data-content]')
-      if (liveComponent instanceof HTMLElement && controller instanceof HTMLElement && content instanceof HTMLElement) {
-        const button = document.createElement('button')
-        button.type = 'button'
-        button.dataset.tabAction = 'open'
-        button.dataset.open = result.open
-        button.textContent = 'New Tab'
-        const panel = document.createElement('div')
-        panel.dataset.tab = result.open
-        controller.append(button)
-        content.append(panel)
-        tabsInstance?.initializeAllContainers?.(liveComponent, {staticDefaults: true})
+    if (result) {
+      if (action === 'delete-component') {
+        resolveComponentPath(noteWindow, path)?.remove()
+      } else if (action === 'delete') {
+        const liveTarget = resolveTargetPath(noteWindow, path)
+        liveTarget?.button.remove()
+        liveTarget?.panel.remove()
+      } else {
+        const liveComponent = resolveComponentPath(noteWindow, path)
+        const controller = liveComponent?.querySelector(':scope > [data-controller]')
+        const content = liveComponent?.querySelector(':scope > [data-content]')
+        if (liveComponent instanceof HTMLElement && controller instanceof HTMLElement && content instanceof HTMLElement) {
+          const button = document.createElement('button')
+          button.type = 'button'
+          button.dataset.tabAction = 'open'
+          button.dataset.open = result.open
+          button.textContent = 'New Tab'
+          const panel = document.createElement('div')
+          panel.dataset.tab = result.open
+          controller.append(button)
+          content.append(panel)
+          tabsInstance?.initializeAllContainers?.(liveComponent, {staticDefaults: true})
+        }
       }
-    }
       targets.innerHTML = `<ul>${renderComponentTreeList(noteWindow)}</ul>`
-  }
+    }
     return
   }
 

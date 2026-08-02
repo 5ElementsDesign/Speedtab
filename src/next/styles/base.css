@@ -22,6 +22,36 @@ body {
   font: 1rem/1.5 var(--st-font-family);
   color: var(--yai-tabs-color-text);
   background: var(--st-workspace-background, transparent);
+  isolation: isolate;
+}
+
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 220ms ease-in-out;
+}
+
+body::before {
+  background: var(--st-workspace-background-a, var(--st-workspace-background, transparent));
+}
+
+body::after {
+  background: var(--st-workspace-background-b, var(--st-workspace-background, transparent));
+}
+
+body:not([data-workspace-background-layer="b"])::before,
+body[data-workspace-background-layer="b"]::after {
+  opacity: 1;
+}
+
+body:has([data-prefers-reduced-motion])::before,
+body:has([data-prefers-reduced-motion])::after {
+  transition-duration: 1ms;
 }
 
 .active.dragging [data-app-tab-content] {
