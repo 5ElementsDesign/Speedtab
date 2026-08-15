@@ -47,21 +47,25 @@ Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/a
 
 ![Speedtab open notes](screenshots/2-speedtab-open-notes.1.jpg)
 
-### Expanded Feed Reader
-
-![Speedtab maximized feeds module](screenshots/3-speedtab-expanded-feed-reader.1.jpg)
-
-### Custom Speedtab
-
-![Speedtab Custom](screenshots/4-speedtab-theme-customizable.1.jpg)
-
 ### Interactive Nested Notes
 
 ![Speedtab open tabbed note](screenshots/5-speedtab-tabbed-note.1.jpg)
 
+### Speedtab Speed Dial Module
+
+![Speedtab Speed Dial Module](screenshots/6-speedtab-speed-dial-module.1.png)
+
+### Expanded Feed Reader
+
+![Speedtab maximized feeds module](screenshots/3-speedtab-expanded-feed-reader.1.jpg)
+
 ### Sort Speedtab
 
 ![Speedtab Sorter](screenshots/5-speedtab-manage-content.1.jpg)
+
+### Custom Speedtab
+
+![Speedtab Custom](screenshots/4-speedtab-theme-customizable.1.jpg)
 
 ## Privacy
 
@@ -188,7 +192,6 @@ Current extension permissions:
 - `unlimitedStorage`
 - `contextMenus`
 - `identity`
-- `identity.email`
 - host permissions for `http://*/*` and `https://*/*`
 
 Why they are needed:
@@ -196,8 +199,8 @@ Why they are needed:
 - `storage`: required for local-only extension settings such as remote sync configuration and credentials in `chrome.storage.local`
 - `unlimitedStorage`: allows larger local datasets and image assets in IndexedDB
 - `contextMenus`: lets users send selected text or the current page into Speedtab from the browser context menu
-- `identity` and `identity.email`: required for optional Google Drive OAuth and account display
-- host permissions: required so the background service worker can fetch RSS/Atom feeds across origins
+- `identity`: required for optional Google Drive OAuth
+- `host permissions`: required so the background service worker can fetch RSS/Atom feeds across origins
 
 Speedtab requests broad host permissions because users can configure RSS/Atom feeds from arbitrary domains, and those domains cannot be enumerated in advance.
 

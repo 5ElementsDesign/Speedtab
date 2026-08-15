@@ -294,6 +294,10 @@ select {
   border-color: rgba(0, 210, 255, 0.58);
 }
 
+[data-sorter-module-card][data-module-type="speed-dial"] {
+  border-color: rgba(170, 140, 255, 0.58);
+}
+
 [data-sorter-module-card][data-module-type="notes"] {
   border-color: rgba(255, 196, 87, 0.58);
 }
@@ -304,6 +308,10 @@ select {
 
 [data-sorter-module-card][data-module-type="tabs"] [data-sorter-module-type] {
   color: #7cdff0;
+}
+
+[data-sorter-module-card][data-module-type="speed-dial"] [data-sorter-module-type] {
+  color: #b9a4ff;
 }
 
 [data-sorter-module-card][data-module-type="notes"] [data-sorter-module-type] {

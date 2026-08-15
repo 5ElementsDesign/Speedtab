@@ -44,7 +44,6 @@ export type RemoteProviderResult<T> =
 
 export interface RemoteProviderConnectionStatus {
   provider_id: string | null
-  account_email?: string | null
 }
 
 export interface RemoteProviderUploadReceipt {
@@ -94,7 +93,6 @@ export interface RemoteLocalSettings
     RemotePullBookkeeping,
     RemotePushBookkeeping,
     RemoteSeenMetadata {
-  remote_provider_account_email: string | null
   device_label: string | null
   remote_dashboard_url: string | null
   remote_auto_sync_enabled: boolean
@@ -117,7 +115,6 @@ export const REMOTE_PROVIDER_SETTING_KEYS = [
   'remote_secret',
   'remote_path',
   'remote_dashboard_url',
-  'remote_provider_account_email',
 ] as const satisfies readonly RemoteLocalSettingKey[]
 
 export const REMOTE_PULL_BOOKKEEPING_KEYS = [
@@ -161,7 +158,6 @@ export const DEFAULT_REMOTE_LOCAL_SETTINGS: RemoteLocalSettings = {
   remote_username: null,
   remote_secret: null,
   remote_path: null,
-  remote_provider_account_email: null,
   device_label: null,
   remote_auto_sync_enabled: false,
   remote_auto_sync_interval_minutes: null,

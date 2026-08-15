@@ -18,7 +18,6 @@ function installChromeIdentityMock() {
     identity: {
       getAuthToken: vi.fn((_options, callback) => callback('token-123')),
       removeCachedAuthToken: vi.fn((_details, callback) => callback()),
-      getProfileUserInfo: vi.fn((callback) => callback({email: 'alice@example.com', id: 'profile-id'})),
     },
   })
 }
@@ -66,28 +65,5 @@ describe('useGoogleDriveProvider', () => {
     expect(firstUrl).toContain('orderBy=modifiedTime+desc')
     expect(firstUrl).toContain("name%3D%27speedtab-meta.json%27")
     expect(firstUrl).toContain('trashed%3Dfalse')
-  })
-
-  it('returns the connected profile email and can disconnect cached auth', async () => {
-    installChromeIdentityMock()
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(jsonResponse({files: []}))
-      .mockResolvedValueOnce(new Response('', {status: 200}))
-    vi.stubGlobal('fetch', fetchMock)
-
-    const provider = createGoogleDriveProvider(configuredSettings())
-    const result = await provider.testConnection()
-    expect(result.ok).toBe(true)
-    if (!result.ok) throw new Error('Expected success result')
-    expect(result.value.account_email).toBe('alice@example.com')
-
-    const disconnect = await provider.disconnect?.()
-    expect(disconnect?.ok).toBe(true)
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://oauth2.googleapis.com/revoke',
-      expect.objectContaining({
-        method: 'POST',
-      }),
-    )
   })
 })

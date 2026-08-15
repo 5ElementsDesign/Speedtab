@@ -1,3 +1,4 @@
+import type { RemoteExportProvider, RemoteProviderRequestOptions } from '@/composables/useRemoteProvider'
 import type {
   RemoteArchiveEntry,
   RemoteExportMetadata,
@@ -7,7 +8,6 @@ import type {
   RemoteProviderResult,
   RemoteProviderUploadReceipt,
 } from '@/types/remote'
-import type { RemoteExportProvider, RemoteProviderRequestOptions } from '@/composables/useRemoteProvider'
 
 const DRIVE_API_ROOT = 'https://www.googleapis.com/drive/v3'
 const DRIVE_UPLOAD_ROOT = 'https://www.googleapis.com/upload/drive/v3'
@@ -111,21 +111,6 @@ async function revokeGoogleToken(token: string): Promise<void> {
   } catch (error) {
     console.warn('[Speedtab] Google token revocation failed', error)
   }
-}
-
-function getProfileUserInfo(): Promise<{email?: string; id?: string}> {
-  return new Promise((resolve) => {
-    const identity = globalThis.chrome?.identity as (typeof globalThis.chrome.identity & {
-      getProfileUserInfo?: (callback: (info: {email?: string; id?: string}) => void) => void
-    }) | undefined
-    if (!identity?.getProfileUserInfo) {
-      resolve({})
-      return
-    }
-    identity.getProfileUserInfo((info) => {
-      resolve(info || {})
-    })
-  })
 }
 
 async function fetchWithDriveAuth(
@@ -451,12 +436,10 @@ export function createGoogleDriveProvider(settings: RemoteLocalSettings): Remote
     async testConnection(options = {}) {
       try {
         await getAuthToken(true)
-        const profile = await getProfileUserInfo()
         const files = await listFilesByName(META_FILENAME, {...options, interactive: false})
         if (!files.ok && files.error.code !== 'file_missing') return files as RemoteProviderResult<RemoteProviderConnectionStatus>
         return toOk({
           provider_id: PROVIDER_ID,
-          account_email: profile.email || null,
         })
       } catch (error) {
         return toErr(error as RemoteProviderError)

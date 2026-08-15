@@ -255,11 +255,11 @@ function renderAnalogClockSvg(state = {}) {
     >
       <circle cx="50" cy="50" r="46" class="st-clock-widget-analog-ring" />
       ${markers}
-      <line x1="50" y1="50" x2="50" y2="28" ${smoothMotion ? '' : `transform="${hourRotation}"`} class="st-clock-widget-analog-hand is-hour" />
-      <line x1="50" y1="50" x2="50" y2="18" ${smoothMotion ? '' : `transform="${minuteRotation}"`} class="st-clock-widget-analog-hand is-minute" />
-      ${showSeconds
-        ? `<line x1="50" y1="54" x2="50" y2="14" ${smoothMotion ? '' : `transform="${secondRotation}"`} class="st-clock-widget-analog-hand is-second" />`
-        : ''}
+      ${smoothMotion ? `<g class="st-clock-widget-analog-hand-pivot is-hour"><line x1="50" y1="50" x2="50" y2="28" class="st-clock-widget-analog-hand is-hour" /></g>` : `<line x1="50" y1="50" x2="50" y2="28" transform="${hourRotation}" class="st-clock-widget-analog-hand is-hour" />`}
+      ${smoothMotion ? `<g class="st-clock-widget-analog-hand-pivot is-minute"><line x1="50" y1="50" x2="50" y2="18" class="st-clock-widget-analog-hand is-minute" /></g>` : `<line x1="50" y1="50" x2="50" y2="18" transform="${minuteRotation}" class="st-clock-widget-analog-hand is-minute" />`}
+      ${showSeconds ? (smoothMotion
+        ? `<g class="st-clock-widget-analog-hand-pivot is-second"><line x1="50" y1="54" x2="50" y2="14" class="st-clock-widget-analog-hand is-second" /></g>`
+        : `<line x1="50" y1="54" x2="50" y2="14" transform="${secondRotation}" class="st-clock-widget-analog-hand is-second" />`) : ''}
       <circle cx="50" cy="50" r="3.5" class="st-clock-widget-analog-center" />
     </svg>
   `

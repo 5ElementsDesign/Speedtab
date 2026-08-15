@@ -1,4 +1,5 @@
 import {escapeHtml} from '../next/utils/html.js'
+import {getModuleTypeMessageKey} from '../next/config/module-types.js'
 import {t} from '../next/utils/i18n.js'
 
 function region(name, content) {
@@ -244,7 +245,7 @@ function renderModuleCard(module, options = {}) {
           ${structureSortActive ? 'disabled' : ''}
           autocomplete="off"
         >
-        <span data-sorter-module-type>${escapeHtml(t(`app.moduleTypes.${module.type}`))}</span>
+        <span data-sorter-module-type>${escapeHtml(t(`app.moduleTypes.${getModuleTypeMessageKey(module.type)}`))}</span>
       </header>
 
       <div data-sorter-module-meta>

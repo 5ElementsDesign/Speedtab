@@ -89,7 +89,9 @@ function normalizeClockConfig(value: unknown): ClockWidgetConfig {
   return {
     enabled: candidate.enabled === true,
     align: candidate.align === 'left' ? 'left' : defaultClock.align,
-    display: candidate.display === 'analog' ? 'analog' : defaultClock.display,
+    display: candidate.display === 'analog' || candidate.display === 'digital'
+      ? candidate.display
+      : defaultClock.display,
     smooth_motion: typeof candidate.smooth_motion === 'boolean'
       ? candidate.smooth_motion
       : defaultClock.smooth_motion,

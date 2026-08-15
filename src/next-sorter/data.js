@@ -68,7 +68,7 @@ function buildModulesByPage(modules, uiConfigMap, tabsByModuleId) {
 }
 
 function getCollectionContentTable(moduleType) {
-  if (moduleType === 'tabs') return db.tabs
+  if (moduleType === 'tabs' || moduleType === 'speed-dial') return db.tabs
   if (moduleType === 'notes') return db.notes
   if (moduleType === 'feeds') return db.feed_sources
   return null
@@ -77,7 +77,7 @@ function getCollectionContentTable(moduleType) {
 function mapCollectionContentRecord(moduleType, record) {
   if (!record) return null
 
-  if (moduleType === 'tabs') {
+  if (moduleType === 'tabs' || moduleType === 'speed-dial') {
     return {
       id: record.id,
       syncId: record.sync_id,

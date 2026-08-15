@@ -9,13 +9,13 @@ import {
   parseManifestText,
   readManifestFile,
 } from '../composables/useBackup.ts'
+import {clearExportDirty, getExportState, noteImportedWorkspace} from '../composables/useExportState.ts'
+import {clearRemoteProviderSettings, getLocalSettings, updateLocalSettings} from '../composables/useLocalSettings.ts'
 import {cleanupOrphans, getCleanupCandidates} from '../composables/useMaintenance.ts'
 import {
   getRemoteAutoSyncUiStatus,
   requestRemoteAutoSyncRefresh,
 } from '../composables/useRemoteAutoSync.ts'
-import {clearExportDirty, getExportState, noteImportedWorkspace} from '../composables/useExportState.ts'
-import {clearRemoteProviderSettings, getLocalSettings, updateLocalSettings} from '../composables/useLocalSettings.ts'
 import {
   downloadRemoteExportArtifact,
   inspectRemotePush,
@@ -25,15 +25,15 @@ import {
   verifyRemoteHealth,
 } from '../composables/useRemoteExchange.ts'
 import {createRemoteExportProvider, isRemoteProviderConfigured} from '../composables/useRemoteProvider.ts'
-import {db, isActiveRecord} from '../db/db.ts'
-import {DEFAULT_REMOTE_LOCAL_SETTINGS} from '../types/remote.ts'
 import {getWidgetSettings, saveWidgetSettings} from '../composables/useWidgetSettings.ts'
+import {db, isActiveRecord} from '../db/db.ts'
 import YaiWorker from '../lib/yai/worker/yai-worker.js'
 import {YEH} from '../lib/yai/yeh.js'
+import '../next/styles/foundation.css'
 import {loadAndApplyDocumentTheme} from '../next/utils/document-theme.js'
 import {initI18n, t} from '../next/utils/i18n.js'
 import {applyWorkspaceBackground} from '../next/utils/workspace-background.js'
-import '../next/styles/foundation.css'
+import {DEFAULT_REMOTE_LOCAL_SETTINGS} from '../types/remote.ts'
 import deepCleanupWorkerUrl from './deep-cleanup-worker.js?url'
 import {renderImportExportApp} from './render.js'
 import {createImportExportState} from './state.js'
@@ -255,7 +255,6 @@ function clearRemoteBookkeepingPatch() {
     last_remote_seen_checksum: null,
     last_remote_seen_exported_at: null,
     last_known_local_checksum: null,
-    remote_provider_account_email: null,
   }
 }
 
@@ -981,9 +980,6 @@ async function saveRemoteConfig() {
         : null,
       remote_archive_keep_latest_count: state.remoteDraft.remote_archive_keep_latest_count ?? null,
       ...(remoteIdentityChanged(state.remoteDraft, state.remoteSettings) ? clearRemoteBookkeepingPatch() : {}),
-      remote_provider_account_email: state.remoteDraft.remote_provider_type === 'gdrive'
-        ? state.remoteDraft.remote_provider_account_email || null
-        : null,
     }
 
     state.remoteSettings = await updateLocalSettings(patch)
@@ -1064,16 +1060,6 @@ async function testRemoteConfig() {
     })
     const result = await provider.testConnection({timeoutMs: 10_000})
     if (result.ok) {
-      if (state.remoteDraft?.remote_provider_type === 'gdrive') {
-        const persistedSettings = await updateLocalSettings({
-          remote_provider_account_email: result.value.account_email || null,
-        })
-        state.remoteSettings = persistedSettings
-        state.remoteDraft = {
-          ...(state.remoteDraft ?? {}),
-          remote_provider_account_email: persistedSettings.remote_provider_account_email,
-        }
-      }
       setStatus(`${t('dataExchange.status.connectionOk')}${result.value.provider_id ? ` · ${result.value.provider_id}` : ''}`, 'success', '', 'remote-config')
     } else {
       setStatus(t('dataExchange.status.connectionFailed', {message: result.error.message}), 'error', '', 'remote-config')
@@ -1104,7 +1090,6 @@ async function disconnectGoogleDrive() {
     if (disconnect && !disconnect.ok) throw new Error(disconnect.error.message)
     state.remoteSettings = await updateLocalSettings({
       remote_provider_type: null,
-      remote_provider_account_email: null,
       remote_auto_sync_enabled: false,
       remote_auto_sync_interval_minutes: null,
       remote_archive_keep_latest_count: null,

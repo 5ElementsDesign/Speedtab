@@ -174,6 +174,7 @@
   height: var(--st-clock-widget-analog-size);
   flex: 0 0 auto;
 }
+/* On older Intel Macs (e.g. 2015 / macOS 12) Chrome may fall back to software rendering, where CSS transforms on SVG <line> hands can stop painting. The <g> pivot wrapper above gives a stable coordinate box and stays visible under SwiftShader. The non-smooth path uses the SVG `transform` attribute, which is unaffected. */
 
 .st-clock-widget-analog-svg {
   display: block;
@@ -182,18 +183,18 @@
   overflow: visible;
 
   &.is-smooth {
-    .st-clock-widget-analog-hand {
+    .st-clock-widget-analog-hand-pivot {
       transform-origin: 50px 50px;
     }
-    .st-clock-widget-analog-hand.is-hour {
+    .st-clock-widget-analog-hand-pivot.is-hour {
       animation: st-clock-analog-rotate 43200s linear infinite;
       animation-delay: var(--st-clock-hour-delay);
     }
-    .st-clock-widget-analog-hand.is-minute {
+    .st-clock-widget-analog-hand-pivot.is-minute {
       animation: st-clock-analog-rotate 3600s linear infinite;
       animation-delay: var(--st-clock-minute-delay);
     }
-    .st-clock-widget-analog-hand.is-second {
+    .st-clock-widget-analog-hand-pivot.is-second {
       animation: st-clock-analog-rotate 60s linear infinite;
       animation-delay: var(--st-clock-second-delay);
     }

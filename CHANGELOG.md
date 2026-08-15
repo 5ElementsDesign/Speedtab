@@ -2,6 +2,18 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.5.2]
+
+### Changed
+- Dropped the `identity.email` permission and removed the hidden connected-account email hint in Google Drive sync settings.
+- Wrapped Clock widget analog hands in a pivot group so smooth-motion rotation is painted consistently across GPU paths.
+
+### Fixed
+- Fixed Clock widget "Clock Display" not persisting when switched from analog to digital; the normalized setting now accepts both display modes instead of falling back to the default.
+- Fixed the Sorter so Speed Dial module contents can be reordered like Visual Bookmarks; the content table and record mapper now recognise the `speed-dial` module type.
+- Fixed the Sorter Speed Dial card border colour and module-type label, and routed the type label through the shared `getModuleTypeMessageKey` helper so it resolves against the existing `app.moduleTypes.speedDial` translations.
+
+
 ## [1.5.1]
 
 ### Added

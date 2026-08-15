@@ -432,21 +432,6 @@ function renderRemoteForm(state) {
             <option value="webdav"${settings.remote_provider_type === 'webdav' ? ' selected' : ''}>WebDAV</option>
             <option value="gdrive"${isGoogleDrive ? ' selected' : ''}>Google Drive</option>
           </select>
-          ${hasConnectedGoogleAccount ? `
-          <button
-            type="button"
-            data-click="disconnectGoogleDrive"
-            data-btn="danger"
-            ${busy || state.busy.remoteDisconnect ? ' disabled' : ''}
-          >${escapeHtml(t('dataExchange.disconnectGoogleDrive'))}</button>
-          <button
-            type="button"
-            data-btn="ghost"
-            data-ie-help
-            title="${escapeHtml(settings.remote_provider_account_email || '')}"
-            aria-label="${escapeHtml(settings.remote_provider_account_email || '')}"
-          >?</button>
-          ` : ''}
         </div>
       </label>
       ${providerSelected ? `

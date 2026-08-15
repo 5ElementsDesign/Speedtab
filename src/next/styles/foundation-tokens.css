@@ -64,7 +64,7 @@
   --yai-tabs-color-background:            var(--st-ws-module-background-color, linear-gradient(180deg, #090b0d, #0d1116 40%, #0b0e12));
   --yai-tabs-color-surface:               #1c1c1d;
   --yai-tabs-color-surface-alt:           #252526;
-  --yai-tabs-content-inactive-background: #0e0e0fd1;
+  --yai-tabs-content-inactive-background: #0e0e0f10;
   --yai-tabs-content-inactive-color-muted:#c7ccd3;
 
   /* Brand / semantic palette */
