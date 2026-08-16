@@ -1,0 +1,85 @@
+{
+  "extName": {
+    "message": "Speedtab",
+    "description": "The extension name shown in Chrome and the Chrome Web Store."
+  },
+  "extDescription": {
+    "message": "本地优先的浏览器新标签页仪表板，包含书签、订阅源和笔记。",
+    "description": "The extension description shown in Chrome and the Chrome Web Store."
+  },
+  "actionTitle": {
+    "message": "Speedtab",
+    "description": "Default title for the extension action."
+  },
+  "contextMenuRoot": {
+    "message": "Speedtab",
+    "description": "Root title for the extension context menu."
+  },
+  "saveCurrentPageAsBookmark": {
+    "message": "将当前页面保存为书签",
+    "description": "Context menu item to save the current page as a bookmark."
+  },
+  "storeCurrentPageAsNote": {
+    "message": "将当前页面保存为笔记",
+    "description": "Context menu item to store the current page as a note."
+  },
+  "saveSelectionAsNote": {
+    "message": "将选中内容保存为笔记",
+    "description": "Context menu item to save the current text selection as a note."
+  },
+  "appendSelectionToQuicknote": {
+    "message": "将选中内容追加到便签",
+    "description": "Context menu item to append the current text selection to the local Quicknote scratchpad."
+  },
+  "capturedPage": {
+    "message": "页面: $VALUE$",
+    "description": "Label used in captured page notes for the page title or URL.",
+    "placeholders": {
+      "value": {
+        "content": "$1"
+      }
+    }
+  },
+  "capturedUrl": {
+    "message": "URL: $VALUE$",
+    "description": "Label used in captured page notes for the final page URL.",
+    "placeholders": {
+      "value": {
+        "content": "$1"
+      }
+    }
+  },
+  "capturedDescription": {
+    "message": "描述: $VALUE$",
+    "description": "Label used in captured page notes for the page description.",
+    "placeholders": {
+      "value": {
+        "content": "$1"
+      }
+    }
+  },
+  "selectionLabel": {
+    "message": "选中内容:",
+    "description": "Label used in captured page notes before the selected text."
+  },
+  "requestTimedOut": {
+    "message": "请求超时",
+    "description": "Background fetch error when a request exceeds its timeout."
+  },
+  "requestFailed": {
+    "message": "请求失败",
+    "description": "Background fetch error when a request fails for an unspecified reason."
+  },
+  "httpError": {
+    "message": "HTTP $STATUS$: $STATUSTEXT$",
+    "description": "Background fetch error including HTTP status code and text.",
+    "placeholders": {
+      "status": {
+        "content": "$1"
+      },
+      "statusText": {
+        "content": "$2"
+      }
+    }
+  }
+}

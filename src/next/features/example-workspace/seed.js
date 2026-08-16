@@ -4,7 +4,7 @@ import {db as defaultDb, isActiveRecord, makeCreateMetadata} from '../../../db/d
 import {DEFAULT_WIDGET_SETTINGS} from '../../../types/widgets.ts'
 import {upsertUiConfig} from '../../data/ui-config.js'
 import {ensureFaviconAssetIdForUrl} from '../../utils/favicon.js'
-import {DEFAULT_LOCALE, SUPPORTED_LOCALES, getLocale} from '../../utils/i18n.js'
+import {DEFAULT_LOCALE, getLocale, normalizeLocale} from '../../utils/i18n.js'
 
 const MANIFEST_LOADERS = import.meta.glob('../../../../examples/*/workspace-*/*.json', {import: 'default'})
 const NOTE_DEFINITION_LOADERS = import.meta.glob('../../../../examples/*/workspace-*/example-workspace.js', {import: 'default'})
@@ -19,11 +19,6 @@ const NOTE_TYPE_BY_EXTENSION = {
   links: 'links',
   code: 'code',
   crypt: 'crypt',
-}
-
-function normalizeLocale(locale) {
-  const short = String(locale ?? '').toLowerCase().split('-')[0]
-  return SUPPORTED_LOCALES.includes(short) ? short : DEFAULT_LOCALE
 }
 
 function manifestPath(locale, workspaceId) {

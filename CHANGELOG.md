@@ -2,6 +2,17 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.5.3]
+
+### Added
+- Added full Dutch (`nl`), Simplified Chinese (`zh_CN`), and Russian (`ru`) UI translations via `chrome.i18n` and the internal application locale system.
+- Added localized initial example workspaces (`exampleWorkspaceDefinition`) for Dutch, Simplified Chinese, and Russian.
+- Added Dutch store package metadata (`_locales/nl/messages.json`).
+
+### Changed
+- Consolidated CJK locale fallback handling to standard `zh_CN` for Simplified Chinese distributions.
+
+
 ## [1.5.2]
 
 ### Changed
@@ -12,7 +23,6 @@ All notable changes to Speedtab will be documented in this file.
 - Fixed Clock widget "Clock Display" not persisting when switched from analog to digital; the normalized setting now accepts both display modes instead of falling back to the default.
 - Fixed the Sorter so Speed Dial module contents can be reordered like Visual Bookmarks; the content table and record mapper now recognise the `speed-dial` module type.
 - Fixed the Sorter Speed Dial card border colour and module-type label, and routed the type label through the shared `getModuleTypeMessageKey` helper so it resolves against the existing `app.moduleTypes.speedDial` translations.
-
 
 ## [1.5.1]
 

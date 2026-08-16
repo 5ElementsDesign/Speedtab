@@ -39,7 +39,7 @@
     }
 
     main {
-      width: min(980px, 100%);
+      width: min(1080px, 100%);
       margin: 0 auto;
       display: grid;
       gap: 20px;
@@ -67,7 +67,7 @@
       color: var(--muted);
     }
 
-    h1, h2 {
+    h1, h2, h3 {
       margin: 0;
       line-height: 1.05;
     }
@@ -76,8 +76,10 @@
       font-size: clamp(2rem, 4vw, 3.4rem);
     }
 
-    h2 {
+    h2, h3 {
       font-size: 1.2rem;
+      height: 32px;
+      border-bottom: 1px solid #dddddd44;
     }
 
     p {
@@ -132,54 +134,77 @@
       padding-left: 18px;
       color: var(--muted);
       display: grid;
+      align-items: baseline;
+      margin-bottom: auto;
+    }
+    
+    li a {
+      display: block;
+      padding: 4px;
+    }
+    
+    ul.ul-text {
       gap: 8px;
+    }
+
+    ul.ul-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding-left: 0;
+      list-style: none;
+    }
+
+    ul.ul-nav li a {
+      line-height: 1;
+      padding: 8px;
+      border: 1px solid #454545;
+      text-decoration: none;
+    }
+
+    li p {
+      line-height: 1.4;
     }
 
     code {
       font-family: "Ubuntu Mono", "Cascadia Code", monospace;
       color: #fff;
     }
-
-    .footer {
-      font-size: .92rem;
-      color: var(--muted);
-    }
   </style>
 </head>
 <body>
   <main>
     <section class="hero">
-      <p class="eyebrow">Speedtab</p>
-      <h1>Local-first Speed Dial and modular new-tab dashboard.</h1>
+      <h1>Speedtab – Speed Dial Next</h1>
       <p class="hero-copy">
         Speedtab replaces the default browser new-tab page with a dense, fast workspace for visual bookmarks,
         typed notes, RSS/Atom feeds, local assets, and portable exports.
       </p>
       <div class="actions">
-        <a class="button primary" href="./privacy/">Privacy Policy</a>
+        <a class="button primary" href="./privacy/index.html">Privacy Policy</a>
         <a class="button" href="https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff">Chrome Web Store</a>
-        <a class="button" href="https://github.com/enginypsilon/speedtab">GitHub Repository</a>
+        <a class="button" href="https://github.com/5ElementsDesign/Speedtab">GitHub Repository</a>
       </div>
     </section>
 
     <section class="grid">
       <article class="panel">
         <h2>Highlights</h2>
-        <ul>
-          <li>Visual bookmarks with preview images, custom favicons, quicklinks mode, and title-below-tile mode</li>
-          <li>Notes with text, code, links, HTML, and encrypted client-side content</li>
-          <li>Integrated RSS/Atom feed reader with archiving, unread state, and focused reading mode</li>
-          <li>Sortable pages, modules, tabs, and content on a dedicated management surface</li>
+        <ul class="ul-text"> 
+          <li><p>Visual bookmarks with preview images, custom favicons, quicklinks mode, and title-below-tile mode</p></li>
+          <li><p>Notes with text, code, links, HTML, and encrypted client-side content</p></li>
+          <li><p>Integrated RSS/Atom feed reader with archiving, unread state, and focused reading mode</p></li>
+          <li><p>Sortable pages, modules, tabs, and content on a dedicated management surface</p></li>
         </ul>
       </article>
 
       <article class="panel">
         <h2>Architecture</h2>
-        <ul>
-          <li>Runs fully local-first in the browser with IndexedDB via Dexie</li>
-          <li>Rebuilt on YaiJS, YaiTabs, and Ypsilon Event Handler (YEH)</li>
-          <li>Delegation-first event model with nested tab interfaces across the shell and HTML notes</li>
-          <li>No cloud backend required for workspace storage</li>
+        <ul class="ul-text">
+          <li><p>Runs fully local-first in the browser with IndexedDB via Dexie</p></li>
+          <li><p>Rebuilt on YaiJS, YaiTabs, and Ypsilon Event Handler (YEH)</p></li>
+          <li><p>Delegation-first event model with nested tab interfaces across the shell and HTML notes</p></li>
+          <li><p>No cloud backend required for workspace storage</p></li>
         </ul>
       </article>
 
@@ -191,12 +216,19 @@
           <li><a href="../README.md">Project README</a></li>
           <li><a href="../CHANGELOG.md">Changelog</a></li>
         </ul>
+        <h3>Store Descriptions</h3>
+        <ul class="ul-nav">
+          <li><a href="./extensionStore/description.en.md">English</a></li>
+          <li><a href="./extensionStore/description.de.md">Deutsch</a></li>
+          <li><a href="./extensionStore/description.nl.md">Nederlands</a></li>
+          <li><a href="./extensionStore/description.tr.md">Türkçe</a></li>
+          <li><a href="./extensionStore/description.hi.md">हिन्दी</a></li>
+          <li><a href="./extensionStore/description.ru.md">Русский</a></li>
+          <li><a href="./extensionStore/description.zh.md">中文</a></li>
+        </ul>
       </article>
     </section>
 
-    <p class="footer">
-      Version <code>1.4.1</code>. For Chrome Web Store policy linking, use the privacy page URL under <code>/privacy/</code>.
-    </p>
   </main>
 </body>
 </html>

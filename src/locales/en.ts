@@ -174,6 +174,7 @@ const en = {
       german: 'German',
       turkish: 'Turkish',
       hindi: 'Hindi',
+      russian: 'Russian',
     },
     customBg: {
       confirmRemoveBg: 'Remove this background from the archive?',

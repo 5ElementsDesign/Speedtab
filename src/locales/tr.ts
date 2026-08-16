@@ -174,6 +174,7 @@ const tr = {
       german: 'Almanca',
       turkish: 'Türkçe',
       hindi: 'हिन्दी',
+      russian: 'Rusça',
     },
     customBg: {
       confirmRemoveBg: 'Bu arka plan arşivden silinsin mi?',

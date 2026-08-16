@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "workspace_id": "workspace-1",
+  "pages": [
+    {
+      "title": "Главная",
+      "slug": "main",
+      "icon": "⭕",
+      "nav_group": "main",
+      "is_home": true,
+      "config": {
+        "modulesPerRow": 12,
+        "maxWidth": 1500
+      },
+      "modules": [
+        {
+          "title": "веб",
+          "type": "tabs",
+          "column_span": 6,
+          "tabs": [
+            {
+              "title": "Приложения",
+              "bookmarks": [
+                {"title": "Google", "url": "https://www.google.com/"},
+                {"title": "Gemini", "url": "https://gemini.google.com/"},
+                {"title": "Google Карты", "url": "https://maps.google.com/"},
+                {"title": "Google Переводчик", "url": "https://translate.google.com/"},
+                {"title": "YouTube", "url": "https://www.youtube.com/"}
+              ]
+            },
+            {
+              "title": "Общение",
+              "bookmarks": [
+                {"title": "WhatsApp", "url": "https://www.whatsapp.com/"},
+                {"title": "Telegram", "url": "https://web.telegram.org/"},
+                {"title": "Discord", "url": "https://discord.com/app"},
+                {"title": "Slack", "url": "https://app.slack.com/"}
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Заметки",
+          "type": "notes",
+          "column_span": 6,
+          "tabs": [
+            {"title": "Старт"},
+            {"title": "Возможности"},
+            {"title": "❔"}
+          ]
+        },
+        {
+          "title": "qbox",
+          "type": "tabs",
+          "column_span": 4,
+          "config": {
+            "quicklinks": true
+          },
+          "tabs": [
+            {
+              "title": "ИИ",
+              "bookmarks": [
+                {"title": "ChatGPT", "url": "https://chatgpt.com/"},
+                {"title": "Claude", "url": "https://claude.ai/"},
+                {"title": "Kimi", "url": "https://www.kimi.com/"},
+                {"title": "Grok", "url": "https://grok.com/"},
+                {"title": "Qwen", "url": "https://qwen.ai/"},
+                {"title": "Duck.ai", "url": "https://duck.ai/"}
+              ]
+            }
+          ]
+        },
+        {
+          "title": "новости",
+          "type": "feeds",
+          "column_span": 8,
+          "tabs": [
+            {
+              "title": "Срочно",
+              "sources": [
+                {
+                  "title": "GTmetrix Blog",
+                  "feed_url": "https://gtmetrix.com/blog/feed/",
+                  "site_url": "https://gtmetrix.com/blog/"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Работа",
+      "slug": "work",
+      "icon": "💼",
+      "nav_group": "main",
+      "is_home": false,
+      "config": {
+        "modulesPerRow": 12,
+        "maxWidth": 1500
+      },
+      "modules": [
+        {
+          "title": "работнику",
+          "type": "tabs",
+          "column_span": 6,
+          "tabs": [
+            {
+              "title": "Компания",
+              "bookmarks": [
+                {"title": "GitHub", "url": "https://github.com/"},
+                {"title": "GitLab", "url": "https://gitlab.com/"},
+                {"title": "Atlassian", "url": "https://www.atlassian.com/"},
+                {"title": "Notion", "url": "https://www.notion.so/"}
+              ]
+            }
+          ]
+        },
+        {
+          "title": "задачи",
+          "type": "notes",
+          "column_span": 6,
+          "tabs": [
+            {"title": "Сделать"}
+          ]
+        }
+      ]
+    }
+  ]
+}

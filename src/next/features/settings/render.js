@@ -719,8 +719,11 @@ export function renderSettingsPanel(settings, widgetSettings = {}) {
             <option value="">${escapeHtml(t('noteForm.code.autoDetect'))}</option>
             <option value="en" lang="en"${ui_language === 'en' ? ' selected' : ''}>English</option>
             <option value="de" lang="de"${ui_language === 'de' ? ' selected' : ''}>Deutsch</option>
+            <option value="nl" lang="nl"${ui_language === 'nl' ? ' selected' : ''}>Nederlands</option>
             <option value="tr" lang="tr"${ui_language === 'tr' ? ' selected' : ''}>Türkçe</option>
             <option value="hi" lang="hi"${ui_language === 'hi' ? ' selected' : ''}>हिन्दी</option>
+            <option value="ru" lang="ru"${ui_language === 'ru' ? ' selected' : ''}>Русский</option>
+            <option value="zh_CN" lang="zh"${ui_language === 'zh_CN' ? ' selected' : ''}>中文</option>
           </select>
         </div>
         <p data-settings-hint>${t('settings.language.help')}</p>

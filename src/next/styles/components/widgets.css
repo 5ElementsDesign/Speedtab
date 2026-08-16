@@ -174,7 +174,6 @@
   height: var(--st-clock-widget-analog-size);
   flex: 0 0 auto;
 }
-/* On older Intel Macs (e.g. 2015 / macOS 12) Chrome may fall back to software rendering, where CSS transforms on SVG <line> hands can stop painting. The <g> pivot wrapper above gives a stable coordinate box and stays visible under SwiftShader. The non-smooth path uses the SVG `transform` attribute, which is unaffected. */
 
 .st-clock-widget-analog-svg {
   display: block;

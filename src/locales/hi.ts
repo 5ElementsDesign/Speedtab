@@ -174,6 +174,7 @@ const hi = {
       german: 'जर्मन',
       turkish: 'तुर्की',
       hindi: 'हिन्दी',
+      russian: 'रूसी',
     },
     customBg: {
       confirmRemoveBg: 'इस पृष्ठभूमि को संग्रह से हटाएँ?',

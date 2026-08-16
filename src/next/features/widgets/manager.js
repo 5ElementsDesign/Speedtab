@@ -6,7 +6,7 @@ import {openModal, isModalOpen} from '../../components/modal.js'
 import {createDefaultClockToolsState, getStopwatchElapsedMs, hasRunningClockTools, loadClockToolsState, normalizeClockToolsState, saveClockToolsState} from '../../data/clock-tools.js'
 import {patchHost, patchInner} from '../../utils/dom-patch.js'
 import {escapeHtml} from '../../utils/html.js'
-import {t, getLocale} from '../../utils/i18n.js'
+import {t, getLocale, toBcp47} from '../../utils/i18n.js'
 import {buildWeatherInlineStyle, getWeatherIcon, renderClockDateMarkup, renderClockToolsModal, renderClockWidget, renderRemoteSyncIndicator, renderWeatherForecastModal, renderWeatherWidget} from './render.js'
 import {createClockDraftFromDuration, createClockDraftFromParts, createCurrentClockDraft, getClockDraftDurationMs} from './utils.js'
 
@@ -109,7 +109,7 @@ function isWeatherStaleNow() {
 
 function formatTime(value) {
   if (!value) return ''
-  return new Intl.DateTimeFormat(getLocale(), {
+  return new Intl.DateTimeFormat(toBcp47(getLocale()), {
     hour: '2-digit',
     minute: '2-digit',
   }).format(value)
@@ -119,7 +119,7 @@ function formatForecastDay(value) {
   if (!value) return ''
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return new Intl.DateTimeFormat(getLocale(), {
+  return new Intl.DateTimeFormat(toBcp47(getLocale()), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -186,7 +186,7 @@ function getClockDate() {
 }
 
 function formatClockToken(date, token) {
-  const locale = getLocale()
+  const locale = toBcp47(getLocale())
   switch (token) {
     case 'dayShort':
     case 'shortDay':

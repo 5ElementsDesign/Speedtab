@@ -21,8 +21,8 @@ import {loadUiConfigsByEntitySyncIds} from '../data/ui-config.js'
 import {applyModuleUiConfigMap, applyShellUiConfig} from '../features/customizer/apply.js'
 import {initCustomizerListeners} from '../features/customizer/panel.js'
 import {SHELL_SYNC_ID} from '../features/customizer/render.js'
-import {initializeLocalTools, refreshOpenNotePreviewState, refreshQuicknoteWindow} from '../features/local-tools/manager.js'
 import {installFlyingConfig, openFlyingConfig} from '../features/flying-config/index.js'
+import {initializeLocalTools, refreshOpenNotePreviewState, refreshQuicknoteWindow} from '../features/local-tools/manager.js'
 import {adaptModule} from '../features/modules/registry.js'
 import {enrichModules} from '../features/modules/service.js'
 import {renderModuleCardBody, renderPageGrid} from '../features/pages/modules/render.js'
@@ -34,7 +34,7 @@ import {renderWidgetRailShell} from '../features/widgets/render.js'
 import {initBookmarkMedia} from '../utils/bookmark-media.js'
 import {loadAndApplyDocumentTheme} from '../utils/document-theme.js'
 import {initFavicons} from '../utils/favicon.js'
-import {getLocale, initI18n, t} from '../utils/i18n.js'
+import {SUPPORTED_LOCALES, getLocale, initI18n, t} from '../utils/i18n.js'
 import {activateFirstModuleTab} from '../utils/module-tabs.js'
 import {applyPageWorkspaceBackground} from '../utils/workspace-background.js'
 import {installWorkspaceDirtyTracking} from './dirty-tracker.js'
@@ -49,7 +49,7 @@ let quicknotePendingCount = 0
 
 function renderExampleWorkspaceLocaleSelect() {
   const locale = getLocale()
-  const selected = ['en', 'de', 'tr', 'hi'].includes(locale) ? locale : 'en'
+  const selected = SUPPORTED_LOCALES.includes(locale) ? locale : 'en'
 
   return `
     <label class="st-app-empty-language">
@@ -61,8 +61,11 @@ function renderExampleWorkspaceLocaleSelect() {
       >
         <option value="en" lang="en"${selected === 'en' ? ' selected' : ''}>English</option>
         <option value="de" lang="de"${selected === 'de' ? ' selected' : ''}>Deutsch</option>
+        <option value="nl" lang="nl"${selected === 'nl' ? ' selected' : ''}>Nederlands</option>
         <option value="tr" lang="tr"${selected === 'tr' ? ' selected' : ''}>Türkçe</option>
         <option value="hi" lang="hi"${selected === 'hi' ? ' selected' : ''}>हिन्दी</option>
+        <option value="ru" lang="ru"${selected === 'ru' ? ' selected' : ''}>Русский</option>
+        <option value="zh_CN" lang="zh"${selected === 'zh_CN' ? ' selected' : ''}>中文</option>
       </select>
       <small>${t('app.onboardingLanguageDescription')}</small>
     </label>

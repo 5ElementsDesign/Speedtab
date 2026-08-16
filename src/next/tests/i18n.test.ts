@@ -37,6 +37,12 @@ describe('i18n utility', () => {
     expect(getLocale()).toBe('de')
   })
 
+  it('initializes with Russian locale if browser language is Russian', async () => {
+    vi.stubGlobal('navigator', { language: 'ru-RU' })
+    await initI18n()
+    expect(getLocale()).toBe('ru')
+  })
+
   it('initializes with saved setting locale', async () => {
     await testDb.app_settings.put({
       key: 'ui_language',

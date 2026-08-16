@@ -164,10 +164,13 @@ Speedtab does not currently export feed cache responses. Feed items fetched from
 
 ### Languages
 
-- English
-- German
-- Turkish
-- Hindi
+- English 
+- German 
+- Netherlands 
+- Turkish 
+- Hindi 
+- Russian 
+- Chinese (simplified)
 
 ## Tech Stack
 
@@ -296,3 +299,7 @@ Related links:
 - YaiTabs Demo: https://yaijs.github.io/yai/tabs/Example.html
 - YaiJS Repo: https://github.com/yaijs/yai
 - YEH: https://yaijs.github.io/yai/docs/yeh/
+
+---
+
+[Speedtab HTML Version](https://5elementsdesign.github.io/Speedtab/docs/)
