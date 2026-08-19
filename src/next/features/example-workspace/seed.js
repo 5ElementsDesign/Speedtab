@@ -435,7 +435,7 @@ export async function seedExampleWorkspace(database = defaultDb, options = {}) {
               ...makeCreateMetadata(now),
             })
 
-            if (moduleDef.type === 'tabs') {
+            if (moduleDef.type === 'tabs' || moduleDef.type === 'speed-dial') {
               let bookmarkSortOrder = 0
               for (const bookmark of tabDef.bookmarks ?? []) {
                 const bookmarkId = await database.tabs.add({
@@ -443,6 +443,8 @@ export async function seedExampleWorkspace(database = defaultDb, options = {}) {
                   title: bookmark.title,
                   url: bookmark.url,
                   description: bookmark.description ?? null,
+                  background_color: bookmark.background_color ?? null,
+                  color: bookmark.color ?? null,
                   favicon_asset_id: null,
                   preview_asset_id: null,
                   meta_json: null,

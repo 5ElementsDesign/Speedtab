@@ -1,11 +1,10 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import { UI_CONFIG_VERSION, getUiConfigDefaults } from '../config/ui-config-defaults.js'
 import {
-  normalizeUiConfig,
   getEffectiveUiConfig,
   hasCustomUiConfig,
+  normalizeUiConfig,
 } from '../features/customizer/normalize.js'
-import { UI_CONFIG_DEFAULTS, getUiConfigDefaults } from '../config/ui-config-defaults.js'
-import { UI_CONFIG_VERSION } from '../config/ui-config-defaults.js'
 
 // Convenience shortcuts
 const TYPE = 'module'
@@ -28,7 +27,7 @@ describe('getUiConfigDefaults', () => {
 
   it('returns focused Speed Dial defaults without a column-span option', () => {
     const defaults = getUiConfigDefaults('module', 'speed-dial')
-    expect(defaults.layout['speed-dial-tile-height-px']).toBe(140)
+    expect(defaults.layout['speed-dial-tile-height-px']).toBe(132)
     expect(defaults.layout['speed-dial-content-align']).toBe('start')
     expect(defaults.layout['module-content-gap-px']).toBe(10)
     expect(defaults.layout['speed-dial-fill-height']).toBe(false)

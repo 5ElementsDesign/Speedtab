@@ -13,7 +13,6 @@ function getExtensionVersion() {
 
 export function renderSettingsFooter() {
   const version = getExtensionVersion()
-  const feedbackHref = `mailto:5.smart.mailbot@gmail.com?subject=Speedtab%20Feedback%20v${encodeURIComponent(version)}&body=Hi!%20I%20have%20some%20feedback%20about%20Speedtab:%0A%0A`
   return `
     <div data-settings-footer>
       <span>v${escapeHtml(version)}</span>
@@ -717,12 +716,14 @@ export function renderSettingsPanel(settings, widgetSettings = {}) {
             data-settings-scale-select
           >
             <option value="">${escapeHtml(t('noteForm.code.autoDetect'))}</option>
-            <option value="en" lang="en"${ui_language === 'en' ? ' selected' : ''}>English</option>
             <option value="de" lang="de"${ui_language === 'de' ? ' selected' : ''}>Deutsch</option>
+            <option value="en" lang="en"${ui_language === 'en' ? ' selected' : ''}>English</option>
+            <option value="es" lang="es"${ui_language === 'es' ? ' selected' : ''}>Español</option>
+            <option value="fr" lang="fr"${ui_language === 'fr' ? ' selected' : ''}>Français</option>
             <option value="nl" lang="nl"${ui_language === 'nl' ? ' selected' : ''}>Nederlands</option>
             <option value="tr" lang="tr"${ui_language === 'tr' ? ' selected' : ''}>Türkçe</option>
-            <option value="hi" lang="hi"${ui_language === 'hi' ? ' selected' : ''}>हिन्दी</option>
             <option value="ru" lang="ru"${ui_language === 'ru' ? ' selected' : ''}>Русский</option>
+            <option value="hi" lang="hi"${ui_language === 'hi' ? ' selected' : ''}>हिन्दी</option>
             <option value="zh_CN" lang="zh"${ui_language === 'zh_CN' ? ' selected' : ''}>中文</option>
           </select>
         </div>

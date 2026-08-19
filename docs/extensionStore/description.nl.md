@@ -136,7 +136,7 @@ INTERNATIONALISERING & INHEMSE LOKALISATIE
 PRESTATIES & GROOTTE
 ----------------------------------------
 
-• Ingepakt extensieformaat (.ZIP): ~644 KB
+• Ingepakt extensieformaat (.ZIP): ~650 KB
 • Chrome Taakbeheer
   - Geheugen: ~50 MB totaal geheugen / ~5 MB live JavaScript-heap
   - CPU-gebruik: 1-10% tijdens actief gebruik

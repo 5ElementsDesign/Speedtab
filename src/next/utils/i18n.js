@@ -1,6 +1,6 @@
 import {db} from '../../db/db.ts'
 
-export const SUPPORTED_LOCALES = ['en', 'de', 'nl', 'tr', 'hi', 'ru', 'zh', 'zh_CN']
+export const SUPPORTED_LOCALES = ['en', 'de', 'nl', 'fr', 'es', 'tr', 'hi', 'ru', 'zh', 'zh_CN']
 export const DEFAULT_LOCALE = 'en'
 const UI_LANGUAGE_SETTING_KEY = 'ui_language'
 
@@ -11,6 +11,8 @@ const CORE_LOADERS = {
   en: () => import('../../locales/en.ts'),
   de: () => import('../../locales/de.ts'),
   nl: () => import('../../locales/nl.ts'),
+  fr: () => import('../../locales/fr.ts'),
+  es: () => import('../../locales/es.ts'),
   tr: () => import('../../locales/tr.ts'),
   hi: () => import('../../locales/hi.ts'),
   ru: () => import('../../locales/ru.ts'),

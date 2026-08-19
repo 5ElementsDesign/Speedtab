@@ -2,7 +2,7 @@
  * Speed Dial layout. Visual surface and link-button states are foundational.
  */
 [data-module-type="speed-dial"] {
-  --st-module-min-height: 50vh;
+  --st-module-min-height: 40vh;
   --st-bookmark-tile-bg-default: var(--st-speed-dial-tile-background);
 
   > [data-module-card-title] {

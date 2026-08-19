@@ -419,7 +419,7 @@ export const UI_CONFIG_SPEC = {
           min: 100,
           max: 300,
           validate: isIntegerInRange(100, 300),
-          defaultValue: 140,
+          defaultValue: 132,
           target: 'module-root',
           applyAs: {
             type: 'css-variable',

@@ -68,7 +68,7 @@ export const UI_CONFIG_DEFAULTS = {
         'speed-dial-content-align': 'start',
         'module-min-height-px': null,
         'module-content-gap-px': 10,
-        'speed-dial-tile-height-px': 140,
+        'speed-dial-tile-height-px': 132,
         'speed-dial-fill-height': false,
       },
       appearance: {},

@@ -136,7 +136,7 @@ INTERNATIONALIZATION & NATIVE LOCALIZATION
 PERFORMANCE & SIZE
 ----------------------------------------
 
-• Zipped extension size: ~580 KB
+• Zipped extension size: ~650 KB
 • Chrome Task Manager
   - Memory: ~50 MB total memory / ~5 MB live JavaScript heap
   - CPU usage: 1-10% during active use

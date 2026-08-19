@@ -5,6 +5,9 @@ export type ClockWidgetDisplay = 'digital' | 'analog'
 export type WeatherWidgetProvider = 'open_meteo'
 export type WeatherWidgetUnits = 'metric' | 'imperial'
 
+export const DEFAULT_CLOCK_DATE_FORMAT = '{dayName} [hr] {day}. {monthShort}'
+export const DEFAULT_CLOCK_TIME_FORMAT = '{hour}:{minute}:{second}'
+
 export interface WeatherWidgetLocation {
   name: string
   country: string | null
@@ -81,14 +84,12 @@ export interface WeatherWidgetData {
   updated_at: number
 }
 
-export const DEFAULT_CLOCK_DATE_FORMAT = '{dayName} [hr] {day}. {monthShort}'
-export const DEFAULT_CLOCK_TIME_FORMAT = '{hour}:{minute}:{second}'
-
+// Clock widget
 export const DEFAULT_CLOCK_WIDGET_SETTINGS: ClockWidgetConfig = {
   enabled: true,
   align: 'left',
   display: 'analog',
-  smooth_motion: true,
+  smooth_motion: false,
   two_row: false,
   date_format: DEFAULT_CLOCK_DATE_FORMAT,
   time_format: DEFAULT_CLOCK_TIME_FORMAT,
@@ -97,7 +98,7 @@ export const DEFAULT_CLOCK_WIDGET_SETTINGS: ClockWidgetConfig = {
   dial_color: null,
   date_color: null,
   time_color: null,
-  date_font_size: 14,
+  date_font_size: 15,
   time_font_size: 20,
 }
 
@@ -105,7 +106,7 @@ export const DEFAULT_WEATHER_WIDGET_SETTINGS: WeatherWidgetConfig = {
   enabled: true,
   provider: 'open_meteo',
   units: 'metric',
-  refresh_interval_minutes: 120,
+  refresh_interval_minutes: 30,
   display_label: null,
   compact_mode: false,
   background: null,

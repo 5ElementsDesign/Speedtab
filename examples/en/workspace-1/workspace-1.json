@@ -84,6 +84,61 @@
                   "site_url": "https://gtmetrix.com/blog/"
                 }
               ]
+            },
+            {
+              "title": "International",
+              "sources": [
+                {
+                  "title": "ABC News: US (en)",
+                  "feed_url": "https://abcnews.com/abcnews/usheadlines",
+                  "site_url": "https://abcnews.com/"
+                },
+                {
+                  "title": "Al Jazeera (en)",
+                  "feed_url": "https://www.aljazeera.com/xml/rss/all.xml",
+                  "site_url": "https://aljazeera.com"
+                },
+                {
+                  "title": "Tagesschau (de)",
+                  "feed_url": "https://www.tagesschau.de/index~rss2.xml",
+                  "site_url": "https://tagesschau.de"
+                },
+                {
+                  "title": "NOS Nieuws (nl)",
+                  "feed_url": "https://nos.nl/rss.xml",
+                  "site_url": "https://nos.nl"
+                },
+                {
+                  "title": "Le Monde (fr)",
+                  "feed_url": "https://www.lemondeinformatique.fr/flux-rss/thematique/internet/rss.xml",
+                  "site_url": "https://www.lemondeinformatique.fr/"
+                },
+                {
+                  "title": "El País (es)",
+                  "feed_url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/portada",
+                  "site_url": "https://elpais.com"
+                },
+                {
+                  "title": "Anadolu Ajansı (tr)",
+                  "feed_url": "https://aa.com.tr/tr/rss/default?cat=live",
+                  "site_url": "https://aa.com.tr"
+                },
+                {
+                  "title": "RIA Novosti (ru)",
+                  "feed_url": "https://ria.ru/export/rss2/archive/index.xml",
+                  "site_url": "https://ria.ru"
+                },
+                {
+                  "title": "NDTV India (hi)",
+                  "feed_url": "https://feeds.feedburner.com/ndtvkhabar-latest",
+                  "site_url": "https://ndtv.in"
+                },
+                {
+                  "title": "Sina News (zh_CN)",
+                  "feed_url": "https://rss.sina.com.cn/news/china/focus15.xml",
+                  "site_url": "https://www.sina.com.cn/"
+                }
+              ]
             }
           ]
         }

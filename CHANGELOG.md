@@ -2,6 +2,17 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.5.4]
+
+### Added
+- Added full French (`fr`) and Spanish (`es`) UI translations via `chrome.i18n` and the internal application locale system.
+- Added localized initial example workspaces (`exampleWorkspaceDefinition`) for French, Spanish, and Russian.
+- Added French and Spanish store package metadata (`_locales/fr/messages.json` & `_locales/es/messages.json`).
+
+### Fixed
+- Fixed character set encoding issues (ISO-8859-1 / Windows-1252) when fetching non-UTF-8 RSS feeds and URL metadata in the service worker.
+
+
 ## [1.5.3]
 
 ### Added
@@ -11,7 +22,6 @@ All notable changes to Speedtab will be documented in this file.
 
 ### Changed
 - Consolidated CJK locale fallback handling to standard `zh_CN` for Simplified Chinese distributions.
-
 
 ## [1.5.2]
 

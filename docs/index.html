@@ -3,189 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Speedtab</title>
+  <title>Speedtab Docs</title>
   <meta name="description" content="Speedtab is a local-first Chrome new tab extension built as a fast Speed Dial and modular dashboard.">
-  <style>
-    :root {
-      color-scheme: dark;
-      --bg-a: #171a20;
-      --bg-b: #0b0d11;
-      --panel: rgb(16 18 23 / 88%);
-      --panel-border: rgb(255 255 255 / 10%);
-      --text: #eef1f4;
-      --muted: rgb(238 241 244 / 72%);
-      --accent: #4e74f0;
-      --accent-2: #00a0b8;
-      --shadow: 0 16px 40px rgb(0 0 0 / 32%);
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html, body {
-      margin: 0;
-      min-height: 100%;
-      font-family: Ubuntu, "Segoe UI", sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(circle at top right, rgb(78 116 240 / 18%), transparent 28%),
-        radial-gradient(circle at bottom left, rgb(0 160 184 / 18%), transparent 34%),
-        linear-gradient(145deg, var(--bg-a), var(--bg-b) 58%);
-    }
-
-    body {
-      padding: 32px 20px 48px;
-    }
-
-    main {
-      width: min(1080px, 100%);
-      margin: 0 auto;
-      display: grid;
-      gap: 20px;
-    }
-
-    .hero,
-    .panel {
-      border: 1px solid var(--panel-border);
-      background: var(--panel);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
-    }
-
-    .hero {
-      padding: 28px;
-      display: grid;
-      gap: 18px;
-    }
-
-    .eyebrow {
-      margin: 0;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: .12em;
-      color: var(--muted);
-    }
-
-    h1, h2, h3 {
-      margin: 0;
-      line-height: 1.05;
-    }
-
-    h1 {
-      font-size: clamp(2rem, 4vw, 3.4rem);
-    }
-
-    h2, h3 {
-      font-size: 1.2rem;
-      height: 32px;
-      border-bottom: 1px solid #dddddd44;
-    }
-
-    p {
-      margin: 0;
-      line-height: 1.6;
-      color: var(--muted);
-    }
-
-    .hero-copy {
-      width: min(720px, 100%);
-      font-size: 1.02rem;
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 38px;
-      padding: 0 14px;
-      color: var(--text);
-      background: rgb(255 255 255 / 7%);
-      border: 1px solid rgb(255 255 255 / 12%);
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    .button.primary {
-      background: linear-gradient(180deg, var(--accent), #3655c2);
-      border-color: rgb(255 255 255 / 10%);
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-    }
-
-    .panel {
-      padding: 18px;
-      display: grid;
-      gap: 12px;
-    }
-
-    ul {
-      margin: 0;
-      padding-left: 18px;
-      color: var(--muted);
-      display: grid;
-      align-items: baseline;
-      margin-bottom: auto;
-    }
-    
-    li a {
-      display: block;
-      padding: 4px;
-    }
-    
-    ul.ul-text {
-      gap: 8px;
-    }
-
-    ul.ul-nav {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      padding-left: 0;
-      list-style: none;
-    }
-
-    ul.ul-nav li a {
-      line-height: 1;
-      padding: 8px;
-      border: 1px solid #454545;
-      text-decoration: none;
-    }
-
-    li p {
-      line-height: 1.4;
-    }
-
-    code {
-      font-family: "Ubuntu Mono", "Cascadia Code", monospace;
-      color: #fff;
-    }
-  </style>
+  <link rel="stylesheet" href="assets/main.css">
+  <link rel="icon" type="image/x-icon" href="assets/favicon.png">
 </head>
-<body>
+<body class="speedtab-repo-app"> 
   <main>
-    <section class="hero">
+    <header class="hero">
       <h1>Speedtab – Speed Dial Next</h1>
-      <p class="hero-copy">
-        Speedtab replaces the default browser new-tab page with a dense, fast workspace for visual bookmarks,
-        typed notes, RSS/Atom feeds, local assets, and portable exports.
-      </p>
+      <p class="hero-copy">Speedtab replaces the default browser new-tab page with a dense, fast workspace for visual bookmarks,
+        typed notes, RSS/Atom feeds, local assets, and portable exports.</p>
       <div class="actions">
         <a class="button primary" href="./privacy/index.html">Privacy Policy</a>
-        <a class="button" href="https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff">Chrome Web Store</a>
-        <a class="button" href="https://github.com/5ElementsDesign/Speedtab">GitHub Repository</a>
+        <a class="button" target="_blank" rel="noopener noreferrer" href="https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff">Chrome Web Store</a>
+        <a class="button" target="_blank" rel="noopener noreferrer" href="https://github.com/5ElementsDesign/Speedtab">GitHub Repository</a>
       </div>
-    </section>
+    </header>
 
     <section class="grid">
       <article class="panel">
@@ -211,23 +45,61 @@
       <article class="panel">
         <h2>Links</h2>
         <ul>
-          <li><a href="https://yaijs.github.io/yai/tabs/Example.html">YaiTabs Demo</a></li>
-          <li><a href="https://github.com/yaijs/yai">YaiJS Repository</a></li>
-          <li><a href="../README.md">Project README</a></li>
-          <li><a href="../CHANGELOG.md">Changelog</a></li>
+          <li><a target="_blank" rel="noopener noreferrer" href="https://yaijs.github.io/yai/tabs/Example.html">YaiTabs Demo</a></li>
+          <li><a target="_blank" rel="noopener noreferrer" href="https://github.com/yaijs/yai">YaiJS Repository</a></li>
+          <li><a target="_blank" rel="noopener noreferrer" href="../README.md">Project README</a></li>
+          <li><a target="_blank" rel="noopener noreferrer" href="../CHANGELOG.md">Changelog</a></li>
         </ul>
         <h3>Store Descriptions</h3>
         <ul class="ul-nav">
-          <li><a href="./extensionStore/description.en.md">English</a></li>
           <li><a href="./extensionStore/description.de.md">Deutsch</a></li>
+          <li><a href="./extensionStore/description.en.md">English</a></li>
+          <li><a href="./extensionStore/description.es.md">Español</a></li>
+          <li><a href="./extensionStore/description.fr.md">Français</a></li>
           <li><a href="./extensionStore/description.nl.md">Nederlands</a></li>
           <li><a href="./extensionStore/description.tr.md">Türkçe</a></li>
-          <li><a href="./extensionStore/description.hi.md">हिन्दी</a></li>
           <li><a href="./extensionStore/description.ru.md">Русский</a></li>
+          <li><a href="./extensionStore/description.hi.md">हिन्दी</a></li>
           <li><a href="./extensionStore/description.zh.md">中文</a></li>
         </ul>
       </article>
     </section>
+
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@yaijs/core@latest/tabs/yai-tabs.css"> -->
+    <!--     
+    <div data-yai-tabs data-behavior="blur" data-theme="default" data-nav="left" data-color-scheme="dark" data-color-accent="light">
+      <header data-tabs-header data-swipe-ignore>
+        <div data-header-content><strong>Dynamic Store Description Loader</strong></div>
+      </header>
+      <nav data-controller>
+        <button data-open="2" data-min-loading="250" data-url="https://5elementsdesign.github.io/Speedtab/docs/extensionStore/description.de.md" data-tab-action="open">Deutsch</button>
+        <button data-open="1" data-min-loading="250" data-url="https://5elementsdesign.github.io/Speedtab/docs/extensionStore/description.en.md" data-tab-action="open">English</button>
+        <button data-open="5" data-min-loading="250" data-url="https://5elementsdesign.github.io/Speedtab/docs/extensionStore/description.es.md" data-tab-action="open">Español</button>
+        <button data-open="4" data-min-loading="250" data-url="https://5elementsdesign.github.io/Speedtab/docs/extensionStore/description.fr.md" data-tab-action="open">Français</button>
+        <button data-open="3" data-min-loading="250" data-url="https://5elementsdesign.github.io/Speedtab/docs/extensionStore/description.nl.md" data-tab-action="open">Nederlands</button>
+        <button data-open="6" data-min-loading="250" data-url="https://5elementsdesign.github.io/Speedtab/docs/extensionStore/description.tr.md" data-tab-action="open">Türkçe</button>
+        <button data-open="8" data-min-loading="250" data-url="https://5elementsdesign.github.io/Speedtab/docs/extensionStore/description.ru.md" data-tab-action="open">Русский</button>    
+        <button data-open="7" data-min-loading="250" data-url="https://5elementsdesign.github.io/Speedtab/docs/extensionStore/description.hi.md" data-tab-action="open">हिन्दी</button>
+        <button data-open="9" data-min-loading="250" data-url="https://5elementsdesign.github.io/Speedtab/docs/extensionStore/description.zh.md" data-tab-action="open">中文</button>
+      </nav>
+      <div data-content>
+        <pre data-tab="1"></pre>
+        <pre data-tab="2"></pre>
+        <pre data-tab="3"></pre>
+        <pre data-tab="4"></pre>
+        <pre data-tab="5"></pre>
+        <pre data-tab="6"></pre>
+        <pre data-tab="7"></pre>
+        <pre data-tab="8"></pre>
+        <pre data-tab="9"></pre>
+      </div>
+    </div>
+
+    <script type="module">
+      import {YaiTabs} from 'https://cdn.jsdelivr.net/npm/@yaijs/core@latest/dist/yai-bundle.js';
+      new YaiTabs();
+    </script> 
+    -->
 
   </main>
 </body>

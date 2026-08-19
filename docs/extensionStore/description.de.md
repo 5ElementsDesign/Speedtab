@@ -136,7 +136,7 @@ INTERNATIONALISIERUNG & NATIVE LOKALISIERUNG
 PERFORMANCE & GRÖSSE
 ----------------------------------------
 
-• Gezippte Extension-Größe: ~590 KB
+• Gezippte Extension-Größe: ~650 KB
 • Chrome Task-Manager:
   - Speicher: ~50 MB Gesamtspeicher / ~5 MB aktiver JavaScript-Heap
   - CPU-Auslastung: 1-10% während aktiver Nutzung

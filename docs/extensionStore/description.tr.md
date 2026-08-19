@@ -136,7 +136,7 @@ ULUSLARARASI LAŞTIRMA VE YEREL DİL DESTEĞİ
 PERFORMANS VE BOYUT
 ----------------------------------------
 
-• Sıkıştırılmış eklenti boyutu: ~580 KB
+• Sıkıştırılmış eklenti boyutu: ~650 KB
 • Chrome Görev Yöneticisi:
   - Bellek: ~50 MB toplam bellek / ~5 MB canlı JavaScript yığını
   - CPU kullanımı: Etkin kullanım sırasında %1-10

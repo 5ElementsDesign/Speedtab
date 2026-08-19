@@ -22,7 +22,7 @@ const zh_CN = {
   },
   app: {
     title: 'Speedtab',
-    shell: '应用外壳',
+    shell: '应用框架',
     workspace: '工作区',
     workspaceRoot: '工作区根目录',
     noPagesTitle: '暂无页面',
@@ -156,7 +156,7 @@ const zh_CN = {
     configure: '配置',
   },
   scratchpad: {
-    title: '便签',
+    title: '速记本',
     helperLabel: '常驻便签本',
     helpersTitle: 'Speedtab 工具',
     helpersDescription: '打开仅限本地的工具（不包含在工作区导出中）。',

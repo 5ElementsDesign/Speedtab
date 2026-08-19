@@ -15,7 +15,7 @@
  *   and runtime coordination for extension-side background tasks.
  */
 
-import { db } from '@/db/db'
+import { getLocalSettings } from '@/composables/useLocalSettings'
 import {
   REMOTE_AUTO_SYNC_CHECK_ALARM,
   REMOTE_AUTO_SYNC_MARK_DIRTY_MESSAGE,
@@ -27,8 +27,8 @@ import {
   runRemoteAutoSyncCheckPass,
   runRemoteAutoSyncPass,
 } from '@/composables/useRemoteAutoSync'
-import { getLocalSettings } from '@/composables/useLocalSettings'
 import { isRemoteProviderConfigured } from '@/composables/useRemoteProvider'
+import { db } from '@/db/db'
 import { loadLocalToolsState, saveLocalToolsState } from '../next/data/local-tools.js'
 import { extractDescription } from '../next/utils/page-meta.js'
 
@@ -85,39 +85,44 @@ interface FetchUrlContentResponse {
   error?: string
 }
 
-const URL_CONTENT_PREVIEW_LIMIT = 256 * 1024
+/**
+ * Decode a Response body using the charset declared in the HTTP Content-Type
+ * header, falling back to any XML/HTML encoding declaration in the document,
+ * and finally to UTF-8.
+ *
+ * `Response.text()` only honours the HTTP-level charset (plus BOM). It ignores
+ * `<?xml encoding="..."?>` and `<meta charset="...">`, which causes feeds and
+ * pages that omit the HTTP charset (e.g. lemondeinformatique.fr — XML declares
+ * ISO-8859-15 but the server sends `Content-Type: application/rss+xml` with
+ * no charset) to be mis-decoded as UTF-8, dropping any byte in the 0x80–0xFF
+ * range (so `ê`/`à`/etc. silently vanish from French titles).
+ */
+async function decodeResponseText(response: Response, contentType: string): Promise<string> {
+  const buffer = await response.arrayBuffer()
 
-async function readHtmlPreview(response: Response, maxBytes = URL_CONTENT_PREVIEW_LIMIT): Promise<string> {
-  if (!response.body) return response.text()
+  // 1. HTTP header charset.
+  let charset = contentType.match(/charset=([^\s;]+)/i)?.[1]?.toLowerCase()
 
-  const reader = response.body.getReader()
-  const decoder = new TextDecoder()
-  let html = ''
-  let totalBytes = 0
-
-  try {
-    while (true) {
-      const {done, value} = await reader.read()
-      if (done) break
-      if (!value) continue
-
-      totalBytes += value.byteLength
-      html += decoder.decode(value, {stream: true})
-
-      if (html.toLowerCase().includes('</head>')) break
-      if (totalBytes >= maxBytes) break
-    }
-
-    html += decoder.decode()
-  } finally {
-    try {
-      await reader.cancel()
-    } catch {
-      // Ignore cancel errors.
-    }
+  // 2. XML declaration or HTML <meta> tag. ASCII-decode a small head so we
+  //    never accidentally split a multi-byte sequence.
+  if (!charset) {
+    const headBytes = buffer.slice(0, Math.min(buffer.byteLength, 512))
+    const head = new TextDecoder('ascii').decode(headBytes)
+    charset =
+      head.match(/<\?xml[^>]*encoding=["']([^"']+)["']/i)?.[1]?.toLowerCase() ||
+      head.match(/<meta[^>]+charset=["']?([^"';\s>]+)/i)?.[1]?.toLowerCase() ||
+      head.match(/<meta[^>]+content=["'][^"']*charset=([^"';\s>]+)/i)?.[1]?.toLowerCase()
   }
 
-  return html
+  ;(response as any).__sniffedCharset = charset || 'utf-8'
+
+  // 3. Fall back to UTF-8. Unknown / invalid labels fall through to the catch
+  //    and also default to UTF-8.
+  try {
+    return new TextDecoder(charset || 'utf-8', {fatal: false}).decode(buffer)
+  } catch {
+    return new TextDecoder('utf-8', {fatal: false}).decode(buffer)
+  }
 }
 
 type IncomingMessage =
@@ -327,7 +332,7 @@ async function fetchPageMeta(url: string) {
       return { title: null as string | null, description: null as string | null, finalUrl }
     }
 
-    const html = await response.text()
+    const html = await decodeResponseText(response, contentType)
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
     const description = extractDescription(html)
 
@@ -619,7 +624,9 @@ async function handleFetchFeed(url: string): Promise<FetchFeedResponse> {
       }
     }
 
-    const xml = await response.text()
+    const xml = await decodeResponseText(response, response.headers.get('content-type') ?? '')
+    // DEBUG: temporary diagnostic — please remove after verifying the fix
+    console.log('[Speedtab SW DEBUG] handleFetchFeed url=', url, ' sniffed charset=', (response as any).__sniffedCharset, ' first 200 chars:', xml.slice(0, 200))
     return { ok: true, xml }
   } catch (err: unknown) {
     if (err instanceof Error) {
@@ -653,7 +660,7 @@ async function handleFetchUrlMeta(url: string): Promise<FetchUrlMetaResponse> {
       return { ok: true, title: null, description: null, finalUrl }
     }
 
-    const html = await readHtmlPreview(response)
+    const html = await decodeResponseText(response, contentType)
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
     const title = titleMatch?.[1]
       ?.replace(/\s+/g, ' ')
@@ -688,9 +695,7 @@ async function handleFetchUrlContent(url: string): Promise<FetchUrlContentRespon
     }
 
     const contentType = response.headers.get('content-type') ?? ''
-    const html = contentType.includes('text/html')
-      ? await readHtmlPreview(response)
-      : await response.text()
+    const html = await decodeResponseText(response, contentType)
 
     return {
       ok: true,

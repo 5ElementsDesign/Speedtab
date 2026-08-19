@@ -91,10 +91,3 @@ This privacy policy may be updated if Speedtab’s data handling changes.
 
 The Chrome Web Store listing, privacy disclosures, and this policy should remain consistent with the current extension behavior.
 
-## Contact
-
-If you publish Speedtab under a public repository or project site, add your preferred contact method here:
-
-- project repository
-- issue tracker
-- email address

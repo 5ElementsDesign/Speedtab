@@ -501,7 +501,7 @@
 .st-module-feed-list-inner.st-feed-grid-ajax-response {
   display: flex;
   flex-direction: column;
-  max-height: 360px;
+  max-height: 100%;
   overflow: auto;
   scrollbar-gutter: stable;
   overflow-anchor: none;
@@ -724,7 +724,7 @@ main[data-app-content][data-feed-focus-app-open] {
 }
 
 [data-module-type="feeds"] [data-yai-tabs] {
-  max-height: 440px;
+  max-height: 452px;
 }
 
 [data-module-card][data-feed-focus-open] {

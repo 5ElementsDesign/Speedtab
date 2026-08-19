@@ -1,6 +1,6 @@
 // ─── Shared enums ─────────────────────────────────────────────────────────────
 
-export type ModuleType = 'tabs' | 'notes' | 'feeds'
+export type ModuleType = 'tabs' | 'speed-dial' | 'notes' | 'feeds'
 export type NoteType   = 'text' | 'code' | 'links' | 'crypt' | 'html'
 export type AssetKind  = 'favicon' | 'preview' | 'background' | 'note_image'
 export type NavGroup   = 'main' | 'overflow'

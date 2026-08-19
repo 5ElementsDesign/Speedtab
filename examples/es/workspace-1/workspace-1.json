@@ -1,0 +1,111 @@
+{
+  "version": 1,
+  "workspace_id": "workspace-1",
+  "pages": [
+    {
+      "title": "Principal",
+      "icon": "⭕",
+      "is_home": true,
+      "config": {
+        "modulesPerRow": 12,
+        "maxWidth": 1500
+      },
+      "modules": [
+        {
+          "title": "web",
+          "type": "tabs",
+          "column_span": 6,
+          "tabs": [
+            {
+              "title": "Aplicaciones",
+              "bookmarks": [
+                {"title": "Google", "url": "https://www.google.com/"},
+                {"title": "Gemini", "url": "https://gemini.google.com/"},
+                {"title": "Google Maps", "url": "https://maps.google.com/"},
+                {"title": "Traductor de Google", "url": "https://translate.google.com/"},
+                {"title": "YouTube", "url": "https://www.youtube.com/"}
+              ]
+            },
+            {
+              "title": "Comunicación",
+              "bookmarks": [
+                {"title": "WhatsApp", "url": "https://www.whatsapp.com/"},
+                {"title": "Telegram", "url": "https://web.telegram.org/"},
+                {"title": "Discord", "url": "https://discord.com/app"},
+                {"title": "Slack", "url": "https://app.slack.com/"}
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Notas",
+          "type": "notes",
+          "column_span": 6,
+          "tabs": [
+            {"title": "Inicio"},
+            {"title": "Características"},
+            {"title": "❔"}
+          ]
+        },
+        {
+          "title": "qbox",
+          "type": "tabs",
+          "column_span": 4,
+          "config": {
+            "quicklinks": true
+          },
+          "tabs": [
+            {
+              "title": "AI",
+              "bookmarks": [
+                {"title": "ChatGPT", "url": "https://chatgpt.com/"},
+                {"title": "Claude", "url": "https://claude.ai/"},
+                {"title": "Kimi", "url": "https://www.kimi.com/"},
+                {"title": "Grok", "url": "https://grok.com/"},
+                {"title": "Qwen", "url": "https://qwen.ai/"},
+                {"title": "Duck.ai", "url": "https://duck.ai/"}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "trabajo",
+      "slug": "work",
+      "icon": "💼",
+      "nav_group": "main",
+      "is_home": false,
+      "config": {
+        "modulesPerRow": 12,
+        "maxWidth": 1500
+      },
+      "modules": [
+        {
+          "title": "Trabajo",
+          "type": "tabs",
+          "column_span": 8,
+          "tabs": [
+            {
+              "title": "Empresa",
+              "bookmarks": [
+                {"title": "GitHub", "url": "https://github.com/"},
+                {"title": "GitLab", "url": "https://gitlab.com/"},
+                {"title": "Atlassian", "url": "https://www.atlassian.com/"},
+                {"title": "Notion", "url": "https://www.notion.so/"}
+              ]
+            }
+          ]
+        },
+        {
+          "title": "todo",
+          "type": "notes",
+          "column_span": 4,
+          "tabs": [
+            {"title": "ToDo"}
+          ]
+        }
+      ]
+    }
+  ]
+}

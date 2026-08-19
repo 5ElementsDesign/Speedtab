@@ -35,7 +35,7 @@ Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/a
 - Identity-aware JSON export/import for portable local workspaces
 - Drag reordering for pages, modules, source lists, and collections
 - Responsive zoomed feed module for focused reading
-- UI translations for English, German, Turkish, and Hindi
+- UI translations for English, German, Dutch, French, Spanish, Turkish, Hindi, Russian, and Simplified Chinese
 
 ## Screenshots
 

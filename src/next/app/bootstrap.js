@@ -59,12 +59,14 @@ function renderExampleWorkspaceLocaleSelect() {
         data-example-workspace-locale
         data-change="changeUiLanguage"
       >
-        <option value="en" lang="en"${selected === 'en' ? ' selected' : ''}>English</option>
         <option value="de" lang="de"${selected === 'de' ? ' selected' : ''}>Deutsch</option>
+        <option value="en" lang="en"${selected === 'en' ? ' selected' : ''}>English</option>
+        <option value="es" lang="es"${selected === 'es' ? ' selected' : ''}>Español</option>
+        <option value="fr" lang="fr"${selected === 'fr' ? ' selected' : ''}>Français</option>
         <option value="nl" lang="nl"${selected === 'nl' ? ' selected' : ''}>Nederlands</option>
         <option value="tr" lang="tr"${selected === 'tr' ? ' selected' : ''}>Türkçe</option>
-        <option value="hi" lang="hi"${selected === 'hi' ? ' selected' : ''}>हिन्दी</option>
         <option value="ru" lang="ru"${selected === 'ru' ? ' selected' : ''}>Русский</option>
+        <option value="hi" lang="hi"${selected === 'hi' ? ' selected' : ''}>हिन्दी</option>
         <option value="zh_CN" lang="zh"${selected === 'zh_CN' ? ' selected' : ''}>中文</option>
       </select>
       <small>${t('app.onboardingLanguageDescription')}</small>
