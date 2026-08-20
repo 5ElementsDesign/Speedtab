@@ -1,10 +1,10 @@
 {
   "extName": {
-    "message": "Speedtab",
+    "message": "Speedtab - Local Speed Dial & New Tab",
     "description": "The extension name shown in Chrome and the Chrome Web Store."
   },
   "extDescription": {
-    "message": "A local-first browser new-tab dashboard with bookmarks, feeds, and notes.",
+    "message": "An ultra-fast, local-first browser new-tab dashboard with bookmarks, RSS feeds, and private notes.",
     "description": "The extension description shown in Chrome and the Chrome Web Store."
   },
   "actionTitle": {

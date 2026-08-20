@@ -1,39 +1,30 @@
 {
   "extName": {
-    "message": "Speedtab",
-    "description": "Der Erweiterungsname in Chrome und im Chrome Web Store."
+    "message": "Speedtab - Lokale Startseite & Speed Dial"
   },
   "extDescription": {
-    "message": "Ein lokal-first New-Tab-Dashboard mit Lesezeichen, Feeds und Notizen.",
-    "description": "Die Erweiterungsbeschreibung in Chrome und im Chrome Web Store."
+    "message": "Eine ultraschnelle, lokale Browser-Startseite für neue Tabs mit Lesezeichen, RSS-Feeds und privaten Notizen."
   },
   "actionTitle": {
-    "message": "Speedtab",
-    "description": "Standardtitel für die Erweiterungsaktion."
+    "message": "Speedtab"
   },
   "contextMenuRoot": {
-    "message": "Speedtab",
-    "description": "Obertitel für das Kontextmenü der Erweiterung."
+    "message": "Speedtab"
   },
   "saveCurrentPageAsBookmark": {
-    "message": "Aktuelle Seite als Lesezeichen speichern",
-    "description": "Kontextmenüeintrag zum Speichern der aktuellen Seite als Lesezeichen."
+    "message": "Aktuelle Seite als Lesezeichen speichern"
   },
   "storeCurrentPageAsNote": {
-    "message": "Aktuelle Seite als Notiz speichern",
-    "description": "Kontextmenüeintrag zum Speichern der aktuellen Seite als Notiz."
+    "message": "Aktuelle Seite als Notiz speichern"
   },
   "saveSelectionAsNote": {
-    "message": "Auswahl als Notiz speichern",
-    "description": "Kontextmenüeintrag zum Speichern der aktuellen Textauswahl als Notiz."
+    "message": "Auswahl als Notiz speichern"
   },
   "appendSelectionToQuicknote": {
-    "message": "Auswahl an Quicknote anhängen",
-    "description": "Kontextmenüeintrag zum Anhängen der aktuellen Textauswahl an den lokalen Quicknote-Notizzettel."
+    "message": "Auswahl an Quicknote anhängen"
   },
   "capturedPage": {
     "message": "Seite: $VALUE$",
-    "description": "Bezeichnung in erfassten Seitennotizen für den Seitentitel oder die URL.",
     "placeholders": {
       "value": {
         "content": "$1"
@@ -42,7 +33,6 @@
   },
   "capturedUrl": {
     "message": "URL: $VALUE$",
-    "description": "Bezeichnung in erfassten Seitennotizen für die endgültige Seiten-URL.",
     "placeholders": {
       "value": {
         "content": "$1"
@@ -51,7 +41,6 @@
   },
   "capturedDescription": {
     "message": "Beschreibung: $VALUE$",
-    "description": "Bezeichnung in erfassten Seitennotizen für die Seitenbeschreibung.",
     "placeholders": {
       "value": {
         "content": "$1"
@@ -59,20 +48,16 @@
     }
   },
   "selectionLabel": {
-    "message": "Auswahl:",
-    "description": "Bezeichnung in erfassten Seitennotizen vor dem ausgewählten Text."
+    "message": "Auswahl:"
   },
   "requestTimedOut": {
-    "message": "Zeitüberschreitung der Anfrage",
-    "description": "Fehlermeldung im Background-Prozess, wenn eine Anfrage das Timeout überschreitet."
+    "message": "Zeitüberschreitung der Anfrage"
   },
   "requestFailed": {
-    "message": "Anfrage fehlgeschlagen",
-    "description": "Fehlermeldung im Background-Prozess, wenn eine Anfrage ohne genaueren Grund fehlschlägt."
+    "message": "Anfrage fehlgeschlagen"
   },
   "httpError": {
     "message": "HTTP $STATUS$: $STATUSTEXT$",
-    "description": "Fehlermeldung im Background-Prozess mit HTTP-Statuscode und Status-Text.",
     "placeholders": {
       "status": {
         "content": "$1"

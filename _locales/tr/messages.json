@@ -1,39 +1,30 @@
 {
   "extName": {
-    "message": "Speedtab",
-    "description": "The extension name shown in Chrome and the Chrome Web Store."
+    "message": "Speedtab - Yerel Yeni Sekme ve Speed Dial"
   },
   "extDescription": {
-    "message": "Yer imleri, akışlar ve notlar içeren yerel öncelikli (local-first) bir tarayıcı yeni sekme paneli.",
-    "description": "The extension description shown in Chrome and the Chrome Web Store."
+    "message": "Yer imleri, RSS beslemeleri ve özel notlar içeren, ultra hızlı ve yerel odaklı bir yeni sekme başlangıç sayfası."
   },
   "actionTitle": {
-    "message": "Speedtab",
-    "description": "Default title for the extension action."
+    "message": "Speedtab"
   },
   "contextMenuRoot": {
-    "message": "Speedtab",
-    "description": "Root title for the extension context menu."
+    "message": "Speedtab"
   },
   "saveCurrentPageAsBookmark": {
-    "message": "Mevcut sayfayı görsel yer imi olarak kaydet",
-    "description": "Context menu item to save the current page as a bookmark."
+    "message": "Mevcut sayfayı görsel yer imi olarak kaydet"
   },
   "storeCurrentPageAsNote": {
-    "message": "Mevcut sayfayı not olarak sakla",
-    "description": "Context menu item to store the current page as a note."
+    "message": "Mevcut sayfayı not olarak sakla"
   },
   "saveSelectionAsNote": {
-    "message": "Seçimi not olarak kaydet",
-    "description": "Context menu item to save the current text selection as a note."
+    "message": "Seçimi not olarak kaydet"
   },
   "appendSelectionToQuicknote": {
-    "message": "Seçimi Hızlı Not'un sonuna ekle",
-    "description": "Context menu item to append the current text selection to the local Quicknote scratchpad."
+    "message": "Seçimi Hızlı Not'un sonuna ekle"
   },
   "capturedPage": {
     "message": "Sayfa: $VALUE$",
-    "description": "Label used in captured page notes for the page title or URL.",
     "placeholders": {
       "value": {
         "content": "$1"
@@ -42,7 +33,6 @@
   },
   "capturedUrl": {
     "message": "URL: $VALUE$",
-    "description": "Label used in captured page notes for the final page URL.",
     "placeholders": {
       "value": {
         "content": "$1"
@@ -51,7 +41,6 @@
   },
   "capturedDescription": {
     "message": "Açıklama: $VALUE$",
-    "description": "Label used in captured page notes for the page description.",
     "placeholders": {
       "value": {
         "content": "$1"
@@ -59,20 +48,16 @@
     }
   },
   "selectionLabel": {
-    "message": "Seçim:",
-    "description": "Label used in captured page notes before the selected text."
+    "message": "Seçim:"
   },
   "requestTimedOut": {
-    "message": "İstek zaman aşımına uğradı",
-    "description": "Background fetch error when a request exceeds its timeout."
+    "message": "İstek zaman aşımına uğradı"
   },
   "requestFailed": {
-    "message": "İstek başarısız oldu",
-    "description": "Background fetch error when a request fails for an unspecified reason."
+    "message": "İstek başarısız oldu"
   },
   "httpError": {
     "message": "HTTP $STATUS$: $STATUSTEXT$",
-    "description": "Background fetch error including HTTP status code and text.",
     "placeholders": {
       "status": {
         "content": "$1"

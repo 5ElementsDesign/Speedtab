@@ -1,39 +1,31 @@
 {
   "extName": {
-    "message": "Speedtab",
-    "description": "The extension name shown in Chrome and the Chrome Web Store."
+    "message": "Speedtab - Lokale Speed Dial & Nieuw Tabblad"
   },
   "extDescription": {
-    "message": "Een lokaal-eerst nieuw-tabblad dashboard met bladwijzers, feeds en notities.",
-    "description": "The extension description shown in Chrome and the Chrome Web Store."
+    "message": "Een supersnel, lokaal browser-dashboard voor nieuwe tabbladen met bladwijzers, RSS-feeds en privénotities."
   },
   "actionTitle": {
-    "message": "Speedtab",
-    "description": "Default title for the extension action."
+    "message": "Speedtab"
   },
   "contextMenuRoot": {
     "message": "Speedtab",
     "description": "Root title for the extension context menu."
   },
   "saveCurrentPageAsBookmark": {
-    "message": "Huidige pagina opslaan als bladwijzer",
-    "description": "Context menu item to save the current page as a bookmark."
+    "message": "Huidige pagina opslaan als bladwijzer"
   },
   "storeCurrentPageAsNote": {
-    "message": "Huidige pagina opslaan als notitie",
-    "description": "Context menu item to store the current page as a note."
+    "message": "Huidige pagina opslaan als notitie"
   },
   "saveSelectionAsNote": {
-    "message": "Selectie opslaan als notitie",
-    "description": "Context menu item to save the current text selection as a note."
+    "message": "Selectie opslaan als notitie"
   },
   "appendSelectionToQuicknote": {
-    "message": "Selectie toevoegen aan snelle notitie",
-    "description": "Context menu item to append the current text selection to the local Quicknote scratchpad."
+    "message": "Selectie toevoegen aan snelle notitie"
   },
   "capturedPage": {
     "message": "Pagina: $VALUE$",
-    "description": "Label used in captured page notes for the page title or URL.",
     "placeholders": {
       "value": {
         "content": "$1"
@@ -42,7 +34,6 @@
   },
   "capturedUrl": {
     "message": "URL: $VALUE$",
-    "description": "Label used in captured page notes for the final page URL.",
     "placeholders": {
       "value": {
         "content": "$1"
@@ -51,7 +42,6 @@
   },
   "capturedDescription": {
     "message": "Beschrijving: $VALUE$",
-    "description": "Label used in captured page notes for the page description.",
     "placeholders": {
       "value": {
         "content": "$1"
@@ -59,20 +49,16 @@
     }
   },
   "selectionLabel": {
-    "message": "Selectie:",
-    "description": "Label used in captured page notes before the selected text."
+    "message": "Selectie:"
   },
   "requestTimedOut": {
-    "message": "Verzoek is verlopen",
-    "description": "Background fetch error when a request exceeds its timeout."
+    "message": "Verzoek is verlopen"
   },
   "requestFailed": {
-    "message": "Verzoek mislukt",
-    "description": "Background fetch error when a request fails for an unspecified reason."
+    "message": "Verzoek mislukt"
   },
   "httpError": {
     "message": "HTTP $STATUS$: $STATUSTEXT$",
-    "description": "Background fetch error including HTTP status code and text.",
     "placeholders": {
       "status": {
         "content": "$1"

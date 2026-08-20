@@ -1,39 +1,30 @@
 {
   "extName": {
-    "message": "Speedtab",
-    "description": "The extension name shown in Chrome and the Chrome Web Store."
+    "message": "Speedtab - Speed Dial Local & Nouvel Onglet"
   },
   "extDescription": {
-    "message": "Un tableau de bord local pour nouvel onglet avec favoris, flux RSS et notes.",
-    "description": "The extension description shown in Chrome and the Chrome Web Store."
+    "message": "Un tableau de bord d'onglet ultra-rapide et local avec Speed Dial, flux RSS et notes privées."
   },
   "actionTitle": {
-    "message": "Speedtab",
-    "description": "Default title for the extension action."
+    "message": "Speedtab"
   },
   "contextMenuRoot": {
-    "message": "Speedtab",
-    "description": "Root title for the extension context menu."
+    "message": "Speedtab"
   },
   "saveCurrentPageAsBookmark": {
-    "message": "Enregistrer la page actuelle comme favori",
-    "description": "Context menu item to save the current page as a bookmark."
+    "message": "Enregistrer la page actuelle comme favori"
   },
   "storeCurrentPageAsNote": {
-    "message": "Enregistrer la page actuelle comme note",
-    "description": "Context menu item to store the current page as a note."
+    "message": "Enregistrer la page actuelle comme note"
   },
   "saveSelectionAsNote": {
-    "message": "Enregistrer la sélection comme note",
-    "description": "Context menu item to save the current text selection as a note."
+    "message": "Enregistrer la sélection comme note"
   },
   "appendSelectionToQuicknote": {
-    "message": "Ajouter la sélection au Bloc-notes rapide",
-    "description": "Context menu item to append the current text selection to the local Quicknote scratchpad."
+    "message": "Ajouter la sélection au Bloc-notes rapide"
   },
   "capturedPage": {
     "message": "Page : $VALUE$",
-    "description": "Label used in captured page notes for the page title or URL.",
     "placeholders": {
       "value": {
         "content": "$1"
@@ -42,7 +33,6 @@
   },
   "capturedUrl": {
     "message": "URL : $VALUE$",
-    "description": "Label used in captured page notes for the final page URL.",
     "placeholders": {
       "value": {
         "content": "$1"
@@ -51,7 +41,6 @@
   },
   "capturedDescription": {
     "message": "Description : $VALUE$",
-    "description": "Label used in captured page notes for the page description.",
     "placeholders": {
       "value": {
         "content": "$1"
@@ -59,20 +48,16 @@
     }
   },
   "selectionLabel": {
-    "message": "Sélection :",
-    "description": "Label used in captured page notes before the selected text."
+    "message": "Sélection :"
   },
   "requestTimedOut": {
-    "message": "La demande a expiré",
-    "description": "Background fetch error when a request exceeds its timeout."
+    "message": "La demande a expiré"
   },
   "requestFailed": {
-    "message": "Échec de la demande",
-    "description": "Background fetch error when a request fails for an unspecified reason."
+    "message": "Échec de la demande"
   },
   "httpError": {
     "message": "HTTP $STATUS$ : $STATUSTEXT$",
-    "description": "Background fetch error including HTTP status code and text.",
     "placeholders": {
       "status": {
         "content": "$1"

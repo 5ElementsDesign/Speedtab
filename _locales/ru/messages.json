@@ -1,39 +1,30 @@
 {
   "extName": {
-    "message": "Speedtab",
-    "description": "The extension name shown in Chrome and the Chrome Web Store."
+    "message": "Speedtab – Быстрый запуск и Новая вкладка"
   },
   "extDescription": {
-    "message": "Локальное приложение новой вкладки с закладками, новостными лентами и заметками.",
-    "description": "The extension description shown in Chrome and the Chrome Web Store."
+    "message": "Сверхбыстрая локальная панель управления вкладками с визуальными закладками, RSS-лентами и приватными заметками."
   },
   "actionTitle": {
-    "message": "Speedtab",
-    "description": "Default title for the extension action."
+    "message": "Speedtab"
   },
   "contextMenuRoot": {
-    "message": "Speedtab",
-    "description": "Root title for the extension context menu."
+    "message": "Speedtab"
   },
   "saveCurrentPageAsBookmark": {
-    "message": "Сохранить текущую страницу как закладку",
-    "description": "Context menu item to save the current page as a bookmark."
+    "message": "Сохранить текущую страницу как закладку"
   },
   "storeCurrentPageAsNote": {
-    "message": "Сохранить текущую страницу как заметку",
-    "description": "Context menu item to store the current page as a note."
+    "message": "Сохранить текущую страницу как заметку"
   },
   "saveSelectionAsNote": {
-    "message": "Сохранить выделение как заметку",
-    "description": "Context menu item to save the current text selection as a note."
+    "message": "Сохранить выделение как заметку"
   },
   "appendSelectionToQuicknote": {
-    "message": "Добавить выделение в быструю заметку",
-    "description": "Context menu item to append the current text selection to the local Quicknote scratchpad."
+    "message": "Добавить выделение в быструю заметку"
   },
   "capturedPage": {
     "message": "Страница: $VALUE$",
-    "description": "Label used in captured page notes for the page title or URL.",
     "placeholders": {
       "value": {
         "content": "$1"
@@ -42,7 +33,6 @@
   },
   "capturedUrl": {
     "message": "URL: $VALUE$",
-    "description": "Label used in captured page notes for the final page URL.",
     "placeholders": {
       "value": {
         "content": "$1"
@@ -51,7 +41,6 @@
   },
   "capturedDescription": {
     "message": "Описание: $VALUE$",
-    "description": "Label used in captured page notes for the page description.",
     "placeholders": {
       "value": {
         "content": "$1"
@@ -59,20 +48,16 @@
     }
   },
   "selectionLabel": {
-    "message": "Выделение:",
-    "description": "Label used in captured page notes before the selected text."
+    "message": "Выделение:"
   },
   "requestTimedOut": {
-    "message": "Время ожидания запроса истекло",
-    "description": "Background fetch error when a request exceeds its timeout."
+    "message": "Время ожидания запроса истекло"
   },
   "requestFailed": {
-    "message": "Ошибка запроса",
-    "description": "Background fetch error when a request fails for an unspecified reason."
+    "message": "Ошибка запроса"
   },
   "httpError": {
     "message": "HTTP $STATUS$: $STATUSTEXT$",
-    "description": "Background fetch error including HTTP status code and text.",
     "placeholders": {
       "status": {
         "content": "$1"

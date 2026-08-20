@@ -2,6 +2,12 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.5.5]
+
+### Changed
+- Optimized Chrome Web Store titles (`extName`) and descriptions (`extDescription`) across all 9 supported languages (`de`, `en`, `es`, `fr`, `hi`, `nl`, `ru`, `tr`, `zh_CN`) in `_locales/*/messages.json` with targeted keywords for improved search visibility.
+
+
 ## [1.5.4]
 
 ### Added
@@ -11,7 +17,6 @@ All notable changes to Speedtab will be documented in this file.
 
 ### Fixed
 - Fixed character set encoding issues (ISO-8859-1 / Windows-1252) when fetching non-UTF-8 RSS feeds and URL metadata in the service worker.
-
 
 ## [1.5.3]
 
@@ -92,7 +97,6 @@ All notable changes to Speedtab will be documented in this file.
 - Fixed weather-widget color defaults and supporting theme tokens so default rail colors no longer render as harsh pure white.
 - Fixed Quicknote marker behavior so repeated context-menu appends now increase the visible pending value instead of stopping after the first notification.
 
-
 ## [1.4.3]
 
 ### Added
@@ -123,7 +127,6 @@ All notable changes to Speedtab will be documented in this file.
 - Fixed clock-widget rerender noise so the widget shell no longer thrashes attributes or DOM every second.
 - Fixed analog clock smooth-motion rendering so CSS-driven hands no longer double-rotate or drift to incorrect times.
 - Fixed weather forecast modal parity by exposing the same configuration shortcut used by the clock-tools modal.
-
 
 ## [1.4.2]
 
@@ -173,7 +176,6 @@ All notable changes to Speedtab will be documented in this file.
 - Fixed search, dropdown, and sidepanel close interactions after later event-handler refinements.
 - Fixed weather-widget localization details, widget configuration flow, and expanded forecast modal behavior.
 - Fixed various mobile-shell, module-header, and feed-focus UI regressions introduced by the 1.4.0 engine migration.
-
 
 ## [1.4.0]
 
