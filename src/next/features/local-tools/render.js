@@ -109,6 +109,17 @@ function renderFloatingNoteViewActions(note, title) {
     <button
       type="button"
       class="st-btn"
+      data-click="openInPip"
+      data-pip-trigger
+      data-pip-target="${escapeHtml(`[data-window-id=\"note:${String(note.id ?? '')}\"]`)}"
+      data-pip-width="${escapeHtml(String(note.width ?? 820))}"
+      data-pip-height="${escapeHtml(String(note.height ?? 660))}"
+      title="${escapeHtml(t('common.pictureInPicture'))}"
+      aria-label="${escapeHtml(t('common.pictureInPicture'))}"
+    ><i data-icon="external" aria-hidden="true"></i></button>
+    <button
+      type="button"
+      class="st-btn"
       data-click="editFloatingNote"
       data-note-id="${escapeHtml(String(note.id ?? ''))}"
       title="${escapeHtml(t('noteViewer.edit'))}"

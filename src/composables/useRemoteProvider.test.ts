@@ -64,7 +64,7 @@ describe('useRemoteProvider', () => {
   })
 
   it('returns a not-configured stub provider when settings are incomplete', async () => {
-    const provider = createRemoteExportProvider(DEFAULT_REMOTE_LOCAL_SETTINGS)
+    const provider = await createRemoteExportProvider(DEFAULT_REMOTE_LOCAL_SETTINGS)
     const result = await provider.verify()
 
     expect(provider.type).toBe('none')
@@ -72,17 +72,6 @@ describe('useRemoteProvider', () => {
     expect(result.ok).toBe(false)
     if (result.ok) throw new Error('Expected failure result')
     expect(result.error.code).toBe('not_configured')
-  })
-
-  it('returns an unsupported-provider stub when configured settings have no implementation', async () => {
-    const provider = createRemoteExportProvider(configuredSettings())
-    const result = await provider.testConnection()
-
-    expect(provider.type).toBe('webdav')
-    expect(provider.isConfigured()).toBe(true)
-    expect(result.ok).toBe(false)
-    if (result.ok) throw new Error('Expected failure result')
-    expect(result.error.code).toBe('unsupported_provider')
   })
 
   it('uses a registered provider factory when available', async () => {
@@ -129,7 +118,7 @@ describe('useRemoteProvider', () => {
       }),
     }))
 
-    const provider = createRemoteExportProvider(configuredSettings())
+    const provider = await createRemoteExportProvider(configuredSettings())
     const result = await provider.downloadMeta()
 
     expect(provider.type).toBe('webdav')

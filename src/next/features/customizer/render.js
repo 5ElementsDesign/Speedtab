@@ -1,7 +1,8 @@
-import {getUiConfigSpec} from '../../config/ui-config-spec.js'
 import {getModuleTypeMessageKey} from '../../config/module-types.js'
+import {getUiConfigSpec} from '../../config/ui-config-spec.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
+import {getFeedFetchItemLimit, getFeedSkipImages} from '../modules/feed-auto-refresh.js'
 import {renderBackgroundSettingsSection} from '../settings/render.js'
 import {contrastRatio, GROUP_PAIR_KEYS, wcagLevel} from './contrast.js'
 
@@ -25,7 +26,6 @@ const FIELD_LABELS = {
   'module-tabs-show-add-tile': 'moduleForm.showAddTile',
   'module-tabs-quicklinks': 'moduleForm.quicklinksMode',
   'module-tabs-force-favicon': 'moduleForm.forceFavicon',
-  'module-tabs-show-title-below': 'moduleForm.showTitleBelow',
   'shell-max-width': 'customizer.fields.shellMaxWidth',
   'shell-header-height-px': 'customizer.fields.shellHeaderHeight',
   'shell-module-gap-px': 'customizer.fields.shellModuleGap',
@@ -34,6 +34,7 @@ const FIELD_LABELS = {
   'module-column-span': 'customizer.fields.moduleColumnSpan',
   'module-content-gap-px': 'customizer.fields.moduleContentGap',
   'module-min-height-px': 'customizer.fields.moduleMinHeight',
+  'todo-show-tiles': 'todo.tiles',
   'speed-dial-content-align': 'customizer.fields.speedDialContentAlign',
   'speed-dial-tile-height-px': 'customizer.fields.speedDialTileHeight',
   'speed-dial-fill-height': 'customizer.fields.speedDialFillHeight',
@@ -144,7 +145,8 @@ const GROUP_FALLBACKS = {
 }
 
 function getModuleTypeLabel(type) {
-  if (type === 'tabs' || type === 'speed-dial' || type === 'notes' || type === 'feeds') {
+  if (type === 'tabs' || type === 'speed-dial' || type === 'notes' || type === 'feeds' || type === 'todo') {
+    if (type === 'todo') return t('todo.moduleType')
     return t(`app.moduleTypes.${getModuleTypeMessageKey(type)}`)
   }
   return type || t('modules.untitled')
@@ -398,6 +400,43 @@ function renderSection(sectionName, sectionSpec, sectionValues) {
     <div data-customizer-section data-section="${escapeHtml(sectionName)}">
       <p data-customizer-section-title>${escapeHtml(t(`customizer.sections.${sectionName}`))}</p>
       ${fields}
+    </div>
+  `
+}
+
+function renderFeedBehaviorSection(sectionSpec, sectionValues, moduleData) {
+  const fields = Object.entries(sectionSpec).map(([key, spec]) => {
+    const divider = spec.dividerAbove ? '<div data-customizer-divider aria-hidden="true"></div>' : ''
+    const field = renderField(key, spec, sectionValues?.[key], 'behavior', sectionValues)
+    if (key !== 'module-hide-header') return divider + field
+    const skipImages = getFeedSkipImages(moduleData?.config_json)
+    const fetchItemLimit = getFeedFetchItemLimit(moduleData?.config_json)
+    return `${divider}${field}
+      <label data-customizer-field data-customizer-field-type="boolean">
+        <span data-customizer-field-label>${escapeHtml(t('feeds.skipImages'))}</span>
+        <input type="checkbox" data-change="changeFeedSkipImages" data-module-sync-id="${escapeHtml(moduleData?.sync_id ?? '')}"${skipImages ? ' checked' : ''}>
+      </label>
+      <label data-customizer-field data-customizer-field-type="integer">
+        <span data-customizer-field-label>${escapeHtml(t('feeds.fetchItemLimit'))}</span>
+        <input type="number" min="1" max="100" step="1" value="${escapeHtml(String(fetchItemLimit))}" data-change="changeFeedFetchItemLimit" data-module-sync-id="${escapeHtml(moduleData?.sync_id ?? '')}">
+      </label>`
+  }).join('')
+  return `
+    <div data-customizer-section data-section="behavior">
+      <p data-customizer-section-title>${escapeHtml(t('customizer.sections.behavior'))}</p>
+      ${fields}
+    </div>
+  `
+}
+
+function renderFeedUtilitiesSection(moduleData) {
+  return `
+    <div data-customizer-section data-section="utilities">
+      <p data-customizer-section-title>${escapeHtml(t('customizer.sections.utilities'))}</p>
+      <div class="flex flex-wrap flex-grid gap-1">
+        <button type="button" class="px-0 flex-grid" data-btn="light" data-click="openArchivedFeedItems" data-module-sync-id="${escapeHtml(moduleData?.sync_id ?? '')}">${escapeHtml(t('feeds.archivedFeedItemsTitle'))}</button>
+        <button type="button" class="px-0 flex-grid" data-btn="warning" data-click="clearModuleFeedItems" data-module-sync-id="${escapeHtml(moduleData?.sync_id ?? '')}">${escapeHtml(t('feeds.clearLoaded'))}</button>
+      </div>
     </div>
   `
 }
@@ -741,10 +780,15 @@ export function renderCustomizerForm(entityType, moduleType, config = {}, bgData
     sections.push(renderModuleIdentitySection(moduleData?.title ?? ''))
   }
   if (Object.keys(behaviorSpec).length) {
-    sections.push(renderSection('behavior', behaviorSpec, config.behavior))
+    sections.push(entityType === 'module' && moduleType === 'feeds'
+      ? renderFeedBehaviorSection(behaviorSpec, config.behavior, moduleData)
+      : renderSection('behavior', behaviorSpec, config.behavior))
   }
   if (Object.keys(spec.layout).length) {
     sections.push(renderSection('layout', spec.layout, config.layout))
+  }
+  if (entityType === 'module' && moduleType === 'feeds') {
+    sections.push(renderFeedUtilitiesSection(moduleData))
   }
   if (entityType === 'shell' && Object.keys(spec.appearance).length) {
     sections.push(renderAppearanceLauncherSection(bgData))

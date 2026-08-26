@@ -6,23 +6,25 @@ Créez des pages d'accueil personnalisées pour différents contextes, divisez-l
 
 Speedtab est conçu pour la structure, la vitesse et un contrôle total sur vos données :
 
-- aucun compte requis
-- aucun service de serveur central Speedtab
-- aucun compte cloud requis
-- véritable stockage local au sein du navigateur
-- exportation/importation portable pour une liberté totale de vos données
+• aucun compte requis
+• aucun service de serveur central Speedtab
+• aucun compte cloud requis
+• véritable stockage local au sein du navigateur
+• exportation/importation portable pour une liberté totale de vos données
 
 Ce que vous pouvez faire avec Speedtab :
 
-- organiser vos favoris en pages, modules et onglets personnalisés
-- profiter d'une expérience classique de Pave de raccourcis haute performance adaptée à vos flux de travail
-- téléverser des images d'aperçu locales et des favicons personnalisés pour vos favoris
-- créer des notes de texte, de code, de liens, du HTML personnalisé et des notes chiffrées
-- construire des structures d'onglets imbriquées et infinies dans vos notes HTML grâce à YaiTabs
-- lire des flux RSS/Atom directement sur votre page d'accueil de nouvel onglet
-- suivre l'état lu/non lu et archiver des éléments de flux intéressants avec des commentaires
-- personnaliser le thème visuel, les dispositions de grille et les arrière-plans CSS
-- transférer votre espace de travail entre différents profils de navigateur grâce à des exportations et importations fluides
+• organiser vos favoris en pages, modules et onglets personnalisés
+• profiter d'une expérience classique de Pave de raccourcis haute performance adaptée à vos flux de travail
+• téléverser des images d'aperçu locales et des favicons personnalisés pour vos favoris
+• gérer vos tâches et to-dos avec priorités, dates d'échéance, notes et indicateurs visuels d'état
+• créer des notes de texte, de code, de liens, du HTML personnalisé et des notes chiffrées
+• construire des structures d'onglets imbriquées et infinies dans vos notes HTML grâce à YaiTabs
+• détacher des notes et modules de flux dans des fenêtres flottantes Document Picture-in-Picture (PiP)
+• lire des flux RSS/Atom directement sur votre page d'accueil avec des intervalles de rafraîchissement automatique par onglet
+• suivre l'état lu/non lu et archiver des éléments de flux intéressants avec des commentaires
+• personnaliser le thème visuel, les dispositions de grille et les arrière-plans CSS
+• exporter et importer des espaces de travail complets ou des collections individuelles de favoris, notes et ToDo en JSON
 
 Speedtab fonctionne entièrement en local. Les données de l'application sont enregistrées en toute sécurité dans IndexedDB au sein du profil de votre navigateur. La récupération des flux RSS est gérée intégralement par l'extension via le service worker en arrière-plan. Les notes chiffrées sont protégées côté client avec AES-GCM et PBKDF2-SHA256. Vos phrases secrètes ne quittent jamais votre appareil.
 
@@ -68,6 +70,12 @@ MODULE PAVE DE RACCOURCIS
 • Fichiers d'images locaux dédiés pour le Pave de raccourcis avec ajustement de la marge interne par image.
 • Les couleurs de pavés dérivées des favicons créent des compositions visuelles harmonieuses sans dépendre de services externes de capture ou d'images.
 
+MODULE DE TÂCHES (TODO)
+• Module dédié à la gestion des tâches intégré directement dans la grille de votre espace de travail.
+• Options de tâches flexibles : priorités, indicateurs de couleur optionnels, notes, dates/heures d'échéance et affichage compact des métadonnées.
+• Étiquettes d'état visuelles claires et code couleur pour les tâches ouvertes, terminées à temps, terminées en retard et en retard.
+• Mode d'affichage en pavés (tuiles), onglets de module standard et commandes partagées de réglage rapide.
+
 NOTES ET MOTEUR DE NOTES INTERACTIF
 • Cinq types de contenu pour les notes :
   - Notes HTML :
@@ -83,7 +91,7 @@ NOTES ET MOTEUR DE NOTES INTERACTIF
   - Éditeur en vue divisée standard avec aperçu en direct activable pour les notes HTML.
   - Configuration à la volée : Modifiez le contenu d'onglets dans des notes HTML profondément imbriquées depuis une surface de configuration dédiée sans naviguer dans les onglets.
   - Bloc-notes rapide local : Bloc-notes local accessible depuis l'en-tête, enregistré indépendamment des exportations de l'espace de travail.
-• Système de fenêtres flottantes : Les notes peuvent être détachées dans des fenêtres déplaçables et redimensionnables avec ordre de focalisation, conservant leur état, position et dimensions lors du rechargement du navigateur.
+• Système de fenêtres flottantes et Picture-in-Picture : Les notes peuvent être détachées dans des fenêtres déplaçables et redimensionnables avec ordre de focalisation, ou ouvertes dans des fenêtres natives Document Picture-in-Picture (PiP) avec synchronisation du contenu en temps réel.
 
 MODULE LECTEUR DE FLUX RSS
 • Module lecteur de flux RSS/Atom intégré pouvant être placé sur n'importe quelle grille de modules de la page.
@@ -93,13 +101,15 @@ MODULE LECTEUR DE FLUX RSS
   - Suivi de l'état lu et non lu avec actions groupées pour marquer les éléments.
   - Gestionnaire d'archives pour enregistrer des articles localement avec des commentaires optionnels.
   - Vue lecteur agrandie : Agrandit les modules de flux vers une vue de lecture dédiée pleine largeur avec largeur de colonne de lecture ajustable.
+  - Prise en charge de Document Picture-in-Picture (PiP) : Détachez les modules de flux dans des fenêtres flottantes sur le bureau en conservant la position de défilement et la mise à jour du contenu en temps réel.
   - Filtre de texte local au sein du flux pour rechercher des articles chargés en temps réel.
-  - Boucle d'actualisation automatique optionnelle par module tant que l'onglet actif reste visible.
+  - Rafraîchissement automatique par onglet de flux avec des intervalles configurables tant que l'onglet reste ouvert.
   - La récupération des données entre origines (cross-origin) est effectuée en toute sécurité par le service worker en arrière-plan.
 
 BARRE DE WIDGETS ET OUTILS
 • Barre de widgets modulaire placée en haut ou en bas des pages de l'espace de travail.
 • Outils d'horloge et de gestion du temps :
+  - Planificateur centralisé partagé App Clock alimentant les horloges synchronisées et les minuteurs de tâches.
   - Modes d'affichage d'horloge Numérique ou Analogique activables.
   - Format de date/heure localisable, outils d'insertion de caractères, taille de police personnalisée, alignement et couleurs des éléments par composant.
   - Chronomètre local et outils de minuteurs multiples s'exécutant dans une boucle DOM en temps réel sans impact sur les performances.
@@ -117,6 +127,7 @@ PROPRIÉTÉ DES DONNÉES, STOCKAGE ET SYNCHRONISATION DISTANTE
 • Stockage 100% local : Tous les états de l'application, structures de modules et fichiers binaires sont enregistrés dans IndexedDB sur le client via Dexie.
 • Échange de données JSON portable :
   - Fichiers d'exportation JSON vérifiés par somme de contrôle (speedtab-export-<checksum>.json).
+  - Importation et exportation compactes en format JSON pour les collections de favoris visuels, notes et onglets ToDo.
   - Moteur de fusion d'enregistrements intelligent pour transférer des espaces de travail entre profils de navigateur sans duplication.
   - Interface utilitaire d'importation/exportation isolée (import-export.html).
 • Synchronisation cloud optionnelle :
@@ -136,7 +147,7 @@ INTERNATIONALISATION ET LOCALISATION NATIVE
 PERFORMANCES ET TAILLE
 ----------------------------------------
 
-• Taille de l'extension compressée (.ZIP) : ~650 Ko
+• Taille de l'extension compressée (.ZIP) : ~710 Ko
 • Gestionnaire de tâches de Chrome
   - Mémoire : ~50 Mo de mémoire totale / ~5 Mo de tas JavaScript actif
   - Utilisation du processeur : 1-10% en cours d'utilisation active

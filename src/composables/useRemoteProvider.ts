@@ -1,6 +1,4 @@
 import { getLocalSettings } from '@/composables/useLocalSettings'
-import { createGoogleDriveProvider } from '@/composables/useGoogleDriveProvider'
-import { createWebDavProvider } from '@/composables/useWebDavProvider'
 import type {
   RemoteArchiveEntry,
   RemoteExportMetadata,
@@ -45,11 +43,9 @@ export interface RemoteExportProvider {
   disconnect?(options?: RemoteProviderRequestOptions): Promise<RemoteProviderResult<true>>
 }
 
-export type RemoteProviderFactory = (settings: RemoteLocalSettings) => RemoteExportProvider
+export type RemoteProviderFactory = (settings: RemoteLocalSettings) => RemoteExportProvider | Promise<RemoteExportProvider>
 
 const remoteProviderFactories = new Map<RemoteProviderType, RemoteProviderFactory>()
-remoteProviderFactories.set('webdav', createWebDavProvider)
-remoteProviderFactories.set('gdrive', createGoogleDriveProvider)
 
 function makeProviderError(
   code: RemoteProviderError['code'],
@@ -127,7 +123,19 @@ export function unregisterRemoteProviderFactory(type: RemoteProviderType): void 
   remoteProviderFactories.delete(type)
 }
 
-export function createRemoteExportProvider(settings: RemoteLocalSettings): RemoteExportProvider {
+async function loadBuiltInRemoteProviderFactory(type: RemoteProviderType): Promise<RemoteProviderFactory | null> {
+  if (type === 'gdrive') {
+    const {createGoogleDriveProvider} = await import('@/composables/useGoogleDriveProvider')
+    return createGoogleDriveProvider
+  }
+  if (type === 'webdav') {
+    const {createWebDavProvider} = await import('@/composables/useWebDavProvider')
+    return createWebDavProvider
+  }
+  return null
+}
+
+export async function createRemoteExportProvider(settings: RemoteLocalSettings): Promise<RemoteExportProvider> {
   if (!isRemoteProviderConfigured(settings)) {
     return makeFailureProvider(
       'none',
@@ -140,17 +148,18 @@ export function createRemoteExportProvider(settings: RemoteLocalSettings): Remot
     )
   }
 
-  const factory = remoteProviderFactories.get(settings.remote_provider_type!)
+  const type = settings.remote_provider_type!
+  const factory = remoteProviderFactories.get(type) ?? await loadBuiltInRemoteProviderFactory(type)
   if (factory) {
-    return factory(settings)
+    return await factory(settings)
   }
 
   return makeFailureProvider(
-    settings.remote_provider_type!,
+    type,
     settings,
     makeProviderError(
       'unsupported_provider',
-      `No provider implementation is registered for ${settings.remote_provider_type}.`,
+      `No provider implementation is registered for ${type}.`,
       false,
     ),
   )
@@ -158,5 +167,5 @@ export function createRemoteExportProvider(settings: RemoteLocalSettings): Remot
 
 export async function getRemoteExportProvider(): Promise<RemoteExportProvider> {
   const settings = await getLocalSettings()
-  return createRemoteExportProvider(settings)
+  return await createRemoteExportProvider(settings)
 }

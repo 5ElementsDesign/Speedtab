@@ -352,6 +352,7 @@ export async function seedExampleWorkspace(database = defaultDb, options = {}) {
       database.collections,
       database.tabs,
       database.notes,
+      database.todos,
       database.feed_sources,
       database.app_settings,
     ],
@@ -408,22 +409,6 @@ export async function seedExampleWorkspace(database = defaultDb, options = {}) {
             })
           }
 
-          if (moduleDef.type === 'tabs' && moduleDef.title === 'qbox') {
-            postSeedUiConfigJobs.push({
-              entityType: 'module',
-              entitySubtype: 'tabs',
-              entitySyncId: moduleMeta.sync_id,
-              patch: {
-                behavior: {
-                  'module-tabs-quicklinks': true,
-                  'module-tabs-force-favicon': true,
-                  'module-tabs-show-add-tile': false,
-                  'module-hide-header': true,
-                },
-              },
-            })
-          }
-
           let tabSortOrder = 0
 
           for (const tabDef of moduleDef.tabs ?? []) {
@@ -471,6 +456,24 @@ export async function seedExampleWorkspace(database = defaultDb, options = {}) {
                   style_token: note.style_token,
                   meta_json: Object.keys(noteMeta).length ? JSON.stringify(noteMeta) : null,
                   sort_order: noteSortOrder++,
+                  ...makeCreateMetadata(now),
+                })
+              }
+              continue
+            }
+
+            if (moduleDef.type === 'todo') {
+              let todoSortOrder = 0
+              for (const todo of tabDef.todos ?? []) {
+                await database.todos.add({
+                  collection_id: collectionId,
+                  title: todo.title,
+                  note: todo.note ?? null,
+                  completed_at: Number.isFinite(todo.completed_at) ? todo.completed_at : null,
+                  due_at: Number.isFinite(todo.due_at) ? todo.due_at : null,
+                  priority: ['low', 'medium', 'high'].includes(todo.priority) ? todo.priority : null,
+                  color_scheme: ['primary', 'secondary', 'success', 'warning', 'danger', 'dark', 'light'].includes(todo.color_scheme) ? todo.color_scheme : null,
+                  sort_order: todoSortOrder++,
                   ...makeCreateMetadata(now),
                 })
               }

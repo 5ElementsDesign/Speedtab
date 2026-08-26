@@ -1,8 +1,8 @@
 # Speedtab Privacy Policy
 
-Last updated: 2026-07-10
+Last updated: 2026-08-25
 
-Speedtab is a local-first browser extension. Its purpose is to provide a structured new-tab dashboard for bookmarks, notes, RSS/Atom feeds, and workspace organization.
+Speedtab is a local-first browser extension. Its purpose is to provide a structured new-tab dashboard for bookmarks, notes, tasks, RSS/Atom feeds, and workspace organization.
 
 ## Summary
 
@@ -25,6 +25,7 @@ Speedtab may store the following data locally inside the browser profile:
 - collections
 - bookmarks
 - notes
+- tasks and to-do items
 - feed source definitions
 - archived feed items
 - local image assets such as bookmark previews, favicons, and backgrounds
@@ -85,9 +86,10 @@ Speedtab is designed to minimize unnecessary data exposure by keeping applicatio
 
 No software can guarantee absolute security, but Speedtab is built to reduce exposure by storing workspace data locally and by encrypting encrypted-note content before storage.
 
-## Changes to This Policy
+## Changes & Contact
 
-This privacy policy may be updated if Speedtab’s data handling changes.
+This privacy policy may be updated as Speedtab evolves. The latest version is always hosted publicly at:
+[https://github.com/5ElementsDesign/Speedtab/blob/main/PRIVACY.md](https://github.com/5ElementsDesign/Speedtab/blob/main/PRIVACY.md)
 
-The Chrome Web Store listing, privacy disclosures, and this policy should remain consistent with the current extension behavior.
+For questions or security concerns regarding Speedtab, please refer to our [Security Policy](SECURITY.md) or open an issue on GitHub at [https://github.com/5ElementsDesign/Speedtab](https://github.com/5ElementsDesign/Speedtab).
 

@@ -69,6 +69,32 @@ export async function normalizeImageBlob(blob, maxDimension = 2560) {
   }
 }
 
+export async function convertImageBlobToWebp(blob, maxDimension = 2560, quality = 0.86) {
+  if (typeof createImageBitmap !== 'function') return {blob, width: null, height: null}
+
+  let bitmap = null
+  try {
+    bitmap = await createImageBitmap(blob)
+    const {width, height} = bitmap
+    const scale = Math.min(1, maxDimension / width, maxDimension / height)
+    const targetWidth = Math.max(1, Math.round(width * scale))
+    const targetHeight = Math.max(1, Math.round(height * scale))
+    const canvas = document.createElement('canvas')
+    canvas.width = targetWidth
+    canvas.height = targetHeight
+    const context = canvas.getContext('2d')
+    if (!context) return {blob, width, height}
+
+    context.drawImage(bitmap, 0, 0, targetWidth, targetHeight)
+    const converted = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', quality))
+    return {blob: converted ?? blob, width: targetWidth, height: targetHeight}
+  } catch {
+    return {blob, width: null, height: null}
+  } finally {
+    bitmap?.close()
+  }
+}
+
 export function canvasToWebpBlob(canvas, quality = 0.97) {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {

@@ -6,23 +6,25 @@ Erstelle maßgeschneiderte Startseiten für verschiedene Kontexte, unterteile si
 
 Speedtab ist auf Struktur, Geschwindigkeit und vollständige Datenkontrolle ausgelegt:
 
-- kein Account erforderlich
-- kein Speedtab-Backend
-- kein Cloud-Konto erforderlich
-- echtes Local-First-Speichern im Browser
-- portabler Export/Import für volle Datensouveränität
+• kein Account erforderlich
+• kein Speedtab-Backend
+• kein Cloud-Konto erforderlich
+• echtes Local-First-Speichern im Browser
+• portabler Export/Import für volle Datensouveränität
 
 Was du mit Speedtab tun kannst:
 
-- Lesezeichen in Seiten, Modulen und benutzerdefinierten Tabs organisieren
-- ein klassisches, leistungsstarkes Speed-Dial-Erlebnis genießen, das auf deine Workflows zugeschnitten ist
-- lokale Vorschaubilder und eigene Favicons für deine Lesezeichen hochladen
-- Text-, Code-, Link-, benutzerdefinierte HTML- und verschlüsselte Notizen erstellen
-- unendliche, tief verschachtelte Tab-Strukturen in deinen HTML-Notizen erstellen (angetrieben durch YaiTabs)
-- RSS/Atom-Feeds direkt auf deiner Startseite lesen
-- Gelesen/Ungelesen-Status verfolgen und interessante Feed-Einträge mit Kommentaren archivieren
-- das visuelle Theme, Raster-Layouts und CSS-Hintergründe anpassen
-- deinen Workspace mit nahtlosem Export/Import zwischen Browserprofilen übertragen
+• Lesezeichen in Seiten, Modulen und benutzerdefinierten Tabs organisieren
+• ein klassisches, leistungsstarkes Speed-Dial-Erlebnis genießen, das auf deine Workflows zugeschnitten ist
+• lokale Vorschaubilder und eigene Favicons für deine Lesezeichen hochladen
+• Aufgaben und To-Dos mit Prioritäten, Fälligkeitsdaten, Notizen und visuellen Statusindikatoren verwalten
+• Text-, Code-, Link-, benutzerdefinierte HTML- und verschlüsselte Notizen erstellen
+• unendliche, tief verschachtelte Tab-Strukturen in deinen HTML-Notizen erstellen (angetrieben durch YaiTabs)
+• Notizen und Feed-Module in schwebende Document Picture-in-Picture-Fenster (PiP) auskoppeln
+• RSS/Atom-Feeds direkt auf deiner Startseite mit individuellen Tab-Aktualisierungsintervallen lesen
+• Gelesen/Ungelesen-Status verfolgen und interessante Feed-Einträge mit Kommentaren archivieren
+• das visuelle Theme, Raster-Layouts und CSS-Hintergründe anpassen
+• vollständige Workspaces oder einzelne Lesezeichen-, Notiz- und ToDo-Sammlungen via JSON exportieren und importieren
 
 Speedtab arbeitet vollständig lokal. Anwendungsdaten werden sicher in IndexedDB innerhalb deines Browserprofils gespeichert. Das Abrufen von Feeds erfolgt direkt über den Hintergrund-Service-Worker der Extension. Verschlüsselte Notizen werden clientseitig mit AES-GCM und PBKDF2-SHA256 geschützt. Deine Passphrasen verlassen niemals deinen Rechner.
 
@@ -68,6 +70,12 @@ SPEED-DIAL-MODUL
 • Eigene lokale Speed-Dial-Bildassets mit einstellbarem Bildabstand.
 • Aus Favicon-Farben abgeleitete Kachelvisuals ohne externe Screenshot- oder Bilddienste.
 
+TODO-MODUL
+• Dediziertes Aufgabenverwaltungs-Modul direkt in deinem Workspace-Raster integriert.
+• Flexible Aufgabenoptionen: Prioritäten, optionale Farbindikatoren, Notizen, Fälligkeitsdatum/-zeit und kompakte Metadaten-Anzeige.
+• Eindeutige visuelle Status-Labels und Farbcodierungen für offene, pünktlich erledigte, verspätet erledigte und überfällige Aufgaben.
+• Kachelansicht-Modus, standardmäßige Modul-Tabs und gemeinsame Quick-Setting-Steuerung.
+
 NOTIZEN & INTERAKTIVE NOTE ENGINE
 • Fünf Notiz-Inhaltstypen:
   - HTML-Notizen:
@@ -83,7 +91,7 @@ NOTIZEN & INTERAKTIVE NOTE ENGINE
   - Standard-Split-View-Editor mit zuschaltbarer Live-Vorschau für HTML-Notizen.
   - Flying Config: Bearbeite tief verschachtelte HTML-Notiz-Tab-Inhalte über eine dedizierte, fokussierte Konfigurationsoberfläche. Kein langes Suchen mehr in verschachtelten Tabs nach dem richtigen Inhalt.
   - Lokaler Quicknote-Spickzettel (Scratchpad): Über den Header erreichbares lokales Scratchpad, das unabhängig von Workspace-Exporten gespeichert wird.
-• Schwebendes Fenstersystem (Floating Windows): Notizen können in ziehbare, skalierbare und stapelebenen-gesteuerte Fenster ausgekoppelt werden, die ihren Zustand, ihre Position und ihre Größe über Browser-Neustarts hinweg beibehalten.
+• Schwebendes Fenstersystem & Picture-in-Picture: Notizen können in ziehbare, skalierbare und stapelebenen-gesteuerte Fenster ausgekoppelt oder in native Document Picture-in-Picture-Fenster (PiP) mit Live-Inhalts-Synchronisierung gelöst werden.
 
 FEED-READER-MODUL
 • Integriertes RSS/Atom-Feed-Reader-Modul, das direkt in jedem Modulraster platziert werden kann.
@@ -93,13 +101,15 @@ FEED-READER-MODUL
   - Verfolgung des Gelesen-/Ungelesen-Status mit gesammelten Aktionen zum Markieren.
   - Artikel-Archiv-Manager zum lokalen Speichern von Artikeln mit optionalen Benutzerkommentaren.
   - Erweiterte Leseansicht (Expanded Reader View): Maximierung von Feed-Modulen in eine dedizierte Vollbreiten-Leseansicht mit anpassbaren Lesespalten-Breiten.
-  - Lokales In-Feed-Textfilter-Eingabefeld zur Echtzeit-Suche geladener Artikel.
-  - Optionale automatische Aktualisierungsschleife pro Modul, während der Tab aktiv ist.
+  - Document Picture-in-Picture (PiP) Unterstützung: Feed-Module in schwebende Desktop-Fenster mit erhaltener Scrollposition und Live-Inhaltsaktualisierung auskoppeln.
+  - In-Feed-Textfilter-Eingabefeld zur Echtzeit-Suche geladener Artikel.
+  - Automatische Aktualisierung pro Feed-Tab mit konfigurierbaren Intervallen, während der Tab geöffnet ist.
   - Cross-Origin-Feed-Abrufe werden sicher durch den Hintergrund-Service-Worker ausgeführt.
 
 WIDGET-LEISTE & UTILITY-TOOLS
 • Modulare Widget-Leiste oberhalb oder unterhalb der Hauptseiten des Workspaces.
 • Uhr- & Zeit-Utilities:
+  - Zentraler App-Clock-Scheduler für synchronisierte Uhrzeitanzeigen und Aufgaben-Timer.
   - Umschaltbare digitale oder analoge Uhrzeitanzeige.
   - Lokalisierte Datums-/Uhrzeitformatierung, Token-Einfügehilfen, benutzerdefinierte Schriftgrößen, Ausrichtung und Elementfarben.
   - Lokale Stoppuhr- und Multi-Timer-Tools, die auf einer extrem effizienten Real-DOM-Renderschleife laufen.
@@ -117,6 +127,7 @@ DATENKONTROLLE, SPEICHERUNG & REMOTE-SYNC
 • 100% Local-First-Speicherung: Der gesamte Anwendungsstatus, Modulstrukturen und Binärdateien werden in der clientseitigen IndexedDB über Dexie gespeichert.
 • Portabler JSON-Datenaustausch:
   - Prüfsummenvalidierte JSON-Exportdateien (speedtab-export-<prüfsumme>.json).
+  - Kompakter JSON-Sammlungs-Import und -Export für visuelle Lesezeichen, Notizen und ToDo-Tabs.
   - Identitätsbewusste Record-Merge-Engine zur Übertragung von Workspaces zwischen Browserprofilen ohne Datensatzduplizierung.
   - Isolierte Import/Export-Dienstoberfläche (import-export.html).
 • Optionale Remote-Cloud-Synchronisierung:
@@ -136,7 +147,7 @@ INTERNATIONALISIERUNG & NATIVE LOKALISIERUNG
 PERFORMANCE & GRÖSSE
 ----------------------------------------
 
-• Gezippte Extension-Größe: ~650 KB
+• Gezippte Extension-Größe: ~710 KB
 • Chrome Task-Manager:
   - Speicher: ~50 MB Gesamtspeicher / ~5 MB aktiver JavaScript-Heap
   - CPU-Auslastung: 1-10% während aktiver Nutzung

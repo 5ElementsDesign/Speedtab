@@ -2,7 +2,7 @@ import {markExportDirty} from '../../composables/useExportState.ts'
 import {
   REMOTE_AUTO_SYNC_PUSH_DEBOUNCE_MS,
   requestRemoteAutoSyncDirty,
-} from '../../composables/useRemoteAutoSync.ts'
+} from '../../composables/remoteAutoSyncProtocol.ts'
 import {db} from '../../db/db.ts'
 
 let trackingInstalled = false

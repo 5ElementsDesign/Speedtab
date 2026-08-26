@@ -258,6 +258,7 @@ function renderRemotePreviewSummary(summary) {
       ${renderSummaryCell(t('dataExchange.collections'), summary.collections)}
       ${renderSummaryCell(t('dataExchange.bookmarks'), summary.tabs)}
       ${renderSummaryCell(t('dataExchange.notes'), summary.notes)}
+      ${renderSummaryCell(t('todo.moduleType'), summary.todos)}
       ${renderSummaryCell(t('dataExchange.feeds'), summary.feedSources)}
       ${renderSummaryCell(t('dataExchange.archived'), summary.savedFeedItems)}
       ${renderSummaryCell(t('dataExchange.assets'), summary.assets)}
@@ -277,6 +278,7 @@ function renderCurrentWorkspaceSummary(state) {
       ${renderSummaryCell(t('dataExchange.collections'), state.localSummary.collections)}
       ${renderSummaryCell(t('dataExchange.bookmarks'), state.localSummary.tabs)}
       ${renderSummaryCell(t('dataExchange.notes'), state.localSummary.notes)}
+      ${renderSummaryCell(t('todo.moduleType'), state.localSummary.todos)}
       ${renderSummaryCell(t('dataExchange.feeds'), state.localSummary.feedSources)}
       ${renderSummaryCell(t('dataExchange.archived'), state.localSummary.savedFeedItems)}
       ${renderSummaryCell(t('dataExchange.assets'), state.localSummary.assets)}

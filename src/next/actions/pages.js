@@ -566,7 +566,7 @@ export const pageActions = {
 
     const type = form.querySelector('[name="module-type"]')?.value || 'tabs'
     const rawTitle = form.querySelector('[name="module-title"]')?.value?.trim()
-    const title = rawTitle || t(`moduleForm.types.${getModuleTypeMessageKey(type)}`)
+    const title = rawTitle || (type === 'todo' ? t('todo.moduleType') : t(`moduleForm.types.${getModuleTypeMessageKey(type)}`))
     const tabTitles = Array.from(form.querySelectorAll('[name="module-first-tab-title"]'))
       .map((input) => input instanceof HTMLInputElement ? input.value.trim() : '')
       .filter(Boolean)

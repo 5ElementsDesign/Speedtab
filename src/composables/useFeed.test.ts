@@ -47,6 +47,43 @@ describe('useFeed - RSS Parsing', () => {
     const items = parseFeed(rss, 1)
     expect(items[0].author).toBe('Jane Doe')
   })
+
+  it('uses dc:date when an RSS item has no pubDate', () => {
+    const rss = `
+      <rss xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
+        <channel>
+          <item>
+            <title>Item</title>
+            <dc:date>2026-07-03T10:11:10</dc:date>
+          </item>
+        </channel>
+      </rss>
+    `
+    const items = parseFeed(rss, 1)
+    expect(items[0].published_at).toBe(new Date('2026-07-03T10:11:10').getTime())
+  })
+
+  it('uses an image enclosure as the item media fallback', () => {
+    const rss = `
+      <rss version="2.0"><channel><item>
+        <title>Image only</title>
+        <enclosure url="https://example.com/image.webp" type="image/jpeg"/>
+      </item></channel></rss>
+    `
+    const [item] = parseFeed(rss, 1)
+    expect(JSON.parse(item.payload_json || '{}')).toEqual({kind: 'media', image_url: 'https://example.com/image.webp'})
+  })
+
+  it('does not duplicate enclosure media already present in the description', () => {
+    const imageUrl = 'https://example.com/image.webp'
+    const rss = `<rss version="2.0"><channel><item>
+      <title>Image in description</title>
+      <description><![CDATA[<img src="${imageUrl}">]]></description>
+      <enclosure url="${imageUrl}" type="image/jpeg"/>
+    </item></channel></rss>`
+    const [item] = parseFeed(rss, 1)
+    expect(item.payload_json).toBeNull()
+  })
 })
 
 describe('useFeed - Atom Parsing', () => {

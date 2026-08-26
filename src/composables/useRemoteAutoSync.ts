@@ -4,18 +4,22 @@ import { inspectRemotePush, pushToRemote } from '@/composables/useRemoteExchange
 import { getRemoteExportProvider, isRemoteProviderConfigured } from '@/composables/useRemoteProvider'
 import type { RemoteLocalSettings } from '@/types/remote'
 import type { RemoteCompareState } from '@/composables/useRemoteExchange'
-
-const DEFAULT_AUTO_SYNC_INTERVAL_MINUTES = 10
-const MIN_INTERVAL_MINUTES = 1
-const MAX_INTERVAL_MINUTES = 1_440
-export const REMOTE_AUTO_SYNC_STALE_CHECK_MS = 10 * 60_000
-export const REMOTE_AUTO_SYNC_PUSH_DEBOUNCE_MS = 15_000
-
-export const REMOTE_AUTO_SYNC_REFRESH_MESSAGE = 'REMOTE_AUTO_SYNC_REFRESH'
-export const REMOTE_AUTO_SYNC_MARK_DIRTY_MESSAGE = 'REMOTE_AUTO_SYNC_MARK_DIRTY'
-export const REMOTE_AUTO_SYNC_CHECK_ALARM = 'speedtab-remote-auto-sync-check'
-export const REMOTE_AUTO_SYNC_PUSH_ALARM = 'speedtab-remote-auto-sync-push'
-
+export {
+  REMOTE_AUTO_SYNC_CHECK_ALARM,
+  REMOTE_AUTO_SYNC_MARK_DIRTY_MESSAGE,
+  REMOTE_AUTO_SYNC_PUSH_ALARM,
+  REMOTE_AUTO_SYNC_PUSH_DEBOUNCE_MS,
+  REMOTE_AUTO_SYNC_REFRESH_MESSAGE,
+  requestRemoteAutoSyncDirty,
+  requestRemoteAutoSyncRefresh,
+} from '@/composables/remoteAutoSyncProtocol'
+export {
+  getRemoteAutoSyncUiStatus,
+  REMOTE_AUTO_SYNC_STALE_CHECK_MS,
+  resolveRemoteAutoSyncIntervalMs,
+  type RemoteAutoSyncUiState,
+  type RemoteAutoSyncUiStatus,
+} from '@/composables/remoteAutoSyncStatus'
 type AutoSyncPassResult =
   | 'disabled'
   | 'not_configured'
@@ -72,54 +76,6 @@ function isPushableCompareState(state: RemoteCompareState | 'not_configured'): b
     || state === 'remote_missing'
 }
 
-export function resolveRemoteAutoSyncIntervalMs(settings: Pick<RemoteLocalSettings, 'remote_auto_sync_enabled' | 'remote_auto_sync_interval_minutes'>): number {
-  if (!settings.remote_auto_sync_enabled) return 0
-  const interval = settings.remote_auto_sync_interval_minutes ?? DEFAULT_AUTO_SYNC_INTERVAL_MINUTES
-  if (interval < 1) return 0
-  const minutes = Math.min(MAX_INTERVAL_MINUTES, Math.max(MIN_INTERVAL_MINUTES, Math.trunc(interval)))
-  return minutes * 60_000
-}
-
-export type RemoteAutoSyncUiState =
-  | 'disabled'
-  | 'not_configured'
-  | 'offline'
-  | 'blocked'
-  | 'pending'
-  | 'idle'
-
-export interface RemoteAutoSyncUiStatus {
-  state: RemoteAutoSyncUiState
-  interval_minutes: number | null
-}
-
-export function getRemoteAutoSyncUiStatus(
-  settings: Pick<RemoteLocalSettings, 'remote_auto_sync_enabled' | 'remote_auto_sync_interval_minutes'>,
-  exportState: Pick<LocalExportState, 'export_dirty' | 'remote_out_of_date'> | null | undefined,
-  compareState: RemoteCompareState | null = null,
-): RemoteAutoSyncUiStatus {
-  if (!settings.remote_auto_sync_enabled) {
-    return {state: 'disabled', interval_minutes: null}
-  }
-
-  const intervalMinutes = settings.remote_auto_sync_interval_minutes == null
-    ? DEFAULT_AUTO_SYNC_INTERVAL_MINUTES
-    : Math.max(MIN_INTERVAL_MINUTES, Math.trunc(settings.remote_auto_sync_interval_minutes))
-
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-    return {state: 'offline', interval_minutes: intervalMinutes}
-  }
-
-  if (compareState === 'divergent' || compareState === 'remote_newer' || compareState === 'version_mismatch' || compareState === 'unknown_endpoint_context') {
-    return {state: 'blocked', interval_minutes: intervalMinutes}
-  }
-
-  if (exportState?.export_dirty === true && exportState?.remote_out_of_date === true) {
-    return {state: 'pending', interval_minutes: intervalMinutes}
-  }
-
-  return {state: 'idle', interval_minutes: intervalMinutes}
-}
 
 export async function runRemoteAutoSyncCheckPass(deps: RemoteAutoSyncDeps = defaultDeps): Promise<RemoteAutoSyncCheckResult> {
   const settings = await deps.getLocalSettings()
@@ -228,30 +184,4 @@ export async function runRemoteAutoSyncPass(deps: RemoteAutoSyncDeps = defaultDe
     remote_auto_sync_last_push_result: 'pushed',
   })
   return 'pushed'
-}
-
-export async function requestRemoteAutoSyncRefresh() {
-  if (!chrome?.runtime?.sendMessage) return
-  try {
-    await chrome.runtime.sendMessage({type: REMOTE_AUTO_SYNC_REFRESH_MESSAGE})
-  } catch {
-    // Ignore if the background is not reachable yet.
-  }
-}
-
-export async function requestRemoteAutoSyncDirty() {
-  if (!chrome?.runtime?.sendMessage) return
-  try {
-    await chrome.runtime.sendMessage({type: REMOTE_AUTO_SYNC_MARK_DIRTY_MESSAGE})
-  } catch {
-    // Ignore if the background is not reachable yet.
-  }
-}
-
-export function startRemoteAutoSync(): void {
-  void requestRemoteAutoSyncRefresh()
-}
-
-export function stopRemoteAutoSync(): void {
-  // Background alarms are the source of truth now.
 }

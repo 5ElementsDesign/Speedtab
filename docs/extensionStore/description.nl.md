@@ -6,23 +6,25 @@ Bouw aangepaste startpagina's voor verschillende contexten, verdeel ze in modula
 
 Speedtab is ontworpen voor structuur, snelheid en het volledige eigendom over je gegevens:
 
-- geen account vereist
-- geen Speedtab-backendservice
-- geen cloudaccount vereist
-- echte lokaal-eerst opslag in de browser
-- overdraagbare export/import voor volledige gegevensvrijheid
+• geen account vereist
+• geen Speedtab-backendservice
+• geen cloudaccount vereist
+• echte lokaal-eerst opslag in de browser
+• overdraagbare export/import voor volledige gegevensvrijheid
 
 Wat je kunt doen met Speedtab:
 
-- organiseer bladwijzers in pagina's, modulen en aangepaste tabbladen
-- geniet van een klassieke, hoogwaardige Snelkiezer-ervaring afgestemd op jouw werkwijzen
-- upload lokale voorbeeldafbeeldingen en aangepaste favicons voor je bladwijzers
-- maak tekst-, code-, link-, aangepaste HTML- en versleutelde notities
-- bouw oneindige, diep geneste tabbladstructuren binnen je HTML-notities aangedreven door YaiTabs
-- lees RSS/Atom-feeds rechtstreeks op je nieuwe tabblad startpagina
-- houd de status van gelezen/ongelezen items bij en archiveer interessante feed-items met opmerkingen
-- pas het visuele thema, de roosterindelingen en CSS-achtergronden aan
-- verplaats je werkruimte tussen browserprofielen met naadloze export/import
+• organiseer bladwijzers in pagina's, modulen en aangepaste tabbladen
+• geniet van een klassieke, hoogwaardige Snelkiezer-ervaring afgestemd op jouw werkwijzen
+• upload lokale voorbeeldafbeeldingen en aangepaste favicons voor je bladwijzers
+• beheer taken en to-do's met prioriteiten, vervaldatums, notities en visuele statusindicatoren
+• maak tekst-, code-, link-, aangepaste HTML- en versleutelde notities
+• bouw oneindige, diep geneste tabbladstructuren binnen je HTML-notities aangedreven door YaiTabs
+• koppel notities en feedmodulen los in zwevende Document Picture-in-Picture (PiP) vensters
+• lees RSS/Atom-feeds rechtstreeks op je startpagina met automatische vernieuwingsintervallen per tabblad
+• houd de status van gelezen/ongelezen items bij en archiveer interessante feed-items met opmerkingen
+• pas het visuele thema, de roosterindelingen en CSS-achtergronden aan
+• exporteer en importeer volledige werkruimten of individuele bladwijzer-, notitie- en ToDo-verzamelingen via JSON
 
 Speedtab is volledig lokaal-eerst. Toepassingsgegevens worden veilig opgeslagen in IndexedDB binnen je browserprofiel. Het ophalen van feeds wordt volledig door de extensie zelf afgehandeld via de achtergrond-serviceworker. Versleutelde notities worden aan de clientzijde beschermd met AES-GCM en PBKDF2-SHA256. Je wachtzinnen verlaten nooit je apparaat.
 
@@ -68,6 +70,12 @@ SNELKIEZER MODULE
 • Dedicated lokale Snelkiezer-afbeeldingsbestanden met opvulling per afbeelding.
 • Van favicons afgeleide tegelkleuren creëren harmonieuze beelden zonder externe screenshot- of afbeeldingsservices.
 
+TODO-MODULE
+• Dedicated taakbeheermodule rechtstreeks geïntegreerd in het rooster van je werkruimte.
+• Flexibele taakopties: prioriteiten, optionele kleurindicatoren, notities, vervaldatum/-tijd ondersteuning en compacte weergave van metagegevens.
+• Duidelijke visuele statuslabels en kleurcodering voor openstaande, op tijd voltooide, te laat voltooide en verlopen taken.
+• Tegelweergavemodus, standaard module-tabbladen en gedeelde snelinstellingen.
+
 NOTITIES & INTERACTIEVE NOTITIE-ENGINE
 • Vijf notitie-inhoudstypen:
   - HTML-notities:
@@ -83,7 +91,7 @@ NOTITIES & INTERACTIEVE NOTITIE-ENGINE
   - Standaard gesplitste weergave-editor met in- en uitschakelbaar live voorbeeld voor HTML-notities.
   - Vliegende Configuratie: Bewerk diep geneste HTML-notitie tabblad-inhoud vanuit een dedicated, gefocust configuratie-oppervlak. Niet meer zoeken door geneste tabbladen om de juiste inhoud te vinden.
   - Lokale Snelle Notitie: Vanuit de koptekst toegankelijk lokaal kladblok dat onafhankelijk van werkruimte-exports wordt opgeslagen.
-• Zwevend Venstersysteem: Notities kunnen worden losgekoppeld in sleepbare, in grootte aanpasbare vensters met focusvolgorde, die de status, positie en afmetingen behouden bij het herladen van de browser.
+• Zwevend Venstersysteem & Picture-in-Picture: Notities kunnen worden losgekoppeld in sleepbare, in grootte aanpasbare vensters met focusvolgorde, of geopend in inheemse Document Picture-in-Picture (PiP) vensters met live inhoudssynchronisatie.
 
 FEEDLEZER MODULE
 • Geïntegreerde RSS/Atom-feedlezer module die rechtstreeks in elk paginamodulerooster kan worden geplaatst.
@@ -93,13 +101,15 @@ FEEDLEZER MODULE
   - Status van gelezen en ongelezen items bijhouden met acties voor bulk-markering.
   - Archiefbeheerder om artikelen lokaal op te slaan met optionele opmerkingen.
   - Uitgebreide lezersweergave: Vergroot feedmodulen tot een dedicated lesweergave over de volle breedte met aanpasbare leaskolombreedte.
+  - Document Picture-in-Picture (PiP) ondersteuning: Koppel feedmodulen los in zwevende bureaubladvensters met behoud van scrollpositie en live inhoudsupdates.
   - Lokale tekstfilter binnen de feed om geladen artikelen in realtime te zoeken.
-  - Optionele automatische vernieuwingslus per module zolang het actieve tabblad zichtbaar is.
+  - Automatische vernieuwing per feed-tabblad met configureerbare intervallen zolang het tabblad geopend is.
   - Cross-origin ophalen van feeds veilig uitgevoerd door de achtergrond-serviceworker.
 
 WIDGETBALK & HULPMIDDELEN
 • Modulaire widgetbalk geplaatst boven of onder de hoofdwerkruimtepagina's.
 • Klok & Tijd Hulpmiddelen:
+  - Gedeelde centrale App Clock-planner die gesynchroniseerde klokweergaven en taaktimers aanstuurt.
   - In- en uitschakelbare Digitale of Analoge klokweergave modi.
   - Gelokaliseerde datum/tijdnotatie, hulp middelen voor het invoegen van tekens, aangepaste lettergrootte, uitlijning en elementkleuren per onderdeel.
   - Lokaal-eerst Stopwatch en Multi-Timer hulpmiddelen die draaien op een realtime DOM-lus zonder prestatieverlies.
@@ -117,6 +127,7 @@ EIGENDOM VAN GEGEVENS, OPSLAG & EXTERNE SYNCHRONISATIE
 • 100% Lokaal-eerst Opslag: Alle toepassingsstatussen, modulestructuren en binaire bestanden worden opgeslagen in IndexedDB aan de clientzijde via Dexie.
 • Overdraagbare JSON Gegevensuitwisseling:
   - Met controlesom geverifieerde JSON-exportbestanden (speedtab-export-<controlesom>.json).
+  - Compacte JSON-verzameling import en export voor visuele bladwijzers, notities en ToDo-tabbladen.
   - Identiteitsbewuste samenvoeg-engine om werkruimten tussen browserprofielen over te dragen zonder duplicaten.
   - Geïsoleerde import/export hulppagina (import-export.html).
 • Optionele Externe Cloudsynchronisatie:
@@ -136,7 +147,7 @@ INTERNATIONALISERING & INHEMSE LOKALISATIE
 PRESTATIES & GROOTTE
 ----------------------------------------
 
-• Ingepakt extensieformaat (.ZIP): ~650 KB
+• Ingepakt extensieformaat (.ZIP): ~710 KB
 • Chrome Taakbeheer
   - Geheugen: ~50 MB totaal geheugen / ~5 MB live JavaScript-heap
   - CPU-gebruik: 1-10% tijdens actief gebruik

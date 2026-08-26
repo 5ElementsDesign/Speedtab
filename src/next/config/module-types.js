@@ -1,5 +1,5 @@
 const BOOKMARK_MODULE_TYPES = new Set(['tabs', 'speed-dial'])
-const COLLECTION_MODULE_TYPES = new Set(['tabs', 'speed-dial', 'notes', 'feeds'])
+const COLLECTION_MODULE_TYPES = new Set(['tabs', 'speed-dial', 'notes', 'feeds', 'todo'])
 
 export function isBookmarkModuleType(type) {
   return BOOKMARK_MODULE_TYPES.has(type)

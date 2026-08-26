@@ -14,8 +14,8 @@ import {clearRemoteProviderSettings, getLocalSettings, updateLocalSettings} from
 import {cleanupOrphans, getCleanupCandidates} from '../composables/useMaintenance.ts'
 import {
   getRemoteAutoSyncUiStatus,
-  requestRemoteAutoSyncRefresh,
-} from '../composables/useRemoteAutoSync.ts'
+} from '../composables/remoteAutoSyncStatus.ts'
+import {requestRemoteAutoSyncRefresh} from '../composables/remoteAutoSyncProtocol.ts'
 import {
   downloadRemoteExportArtifact,
   inspectRemotePush,
@@ -279,6 +279,7 @@ async function readSummary() {
     collections,
     tabs,
     notes,
+    todos,
     feedSources,
     savedFeedItems,
     assets,
@@ -288,6 +289,7 @@ async function readSummary() {
     db.collections.filter(isActiveRecord).count(),
     db.tabs.filter(isActiveRecord).count(),
     db.notes.filter(isActiveRecord).count(),
+    db.todos.filter(isActiveRecord).count(),
     db.feed_sources.filter(isActiveRecord).count(),
     db.saved_feed_items.filter(isActiveRecord).count(),
     db.assets.count(),
@@ -299,6 +301,7 @@ async function readSummary() {
     collections,
     tabs,
     notes,
+    todos,
     feedSources,
     savedFeedItems,
     assets,
@@ -353,6 +356,7 @@ function formatImportReport(report, cleanupCount) {
       (report.collections_inserted ?? 0) +
       (report.tabs_inserted ?? 0) +
       (report.notes_inserted ?? 0) +
+      (report.todos_inserted ?? 0) +
       (report.feed_sources_inserted ?? 0) +
       (report.saved_feed_items_inserted ?? 0)
     const updated =
@@ -361,6 +365,7 @@ function formatImportReport(report, cleanupCount) {
       (report.collections_updated ?? 0) +
       (report.tabs_updated ?? 0) +
       (report.notes_updated ?? 0) +
+      (report.todos_updated ?? 0) +
       (report.feed_sources_updated ?? 0) +
       (report.saved_feed_items_updated ?? 0)
 
@@ -500,6 +505,15 @@ function buildDeepCheckPreview(candidates) {
       })),
     },
     {
+      key: 'todos',
+      label: t('todo.moduleType'),
+      rows: candidates.todos.map((row) => ({
+        id: row.id,
+        title: compactText(row.title, t('todo.untitled')),
+        meta: `collection_id:${row.collection_id} · id:${row.id}`,
+      })),
+    },
+    {
       key: 'feedSources',
       label: t('maintenance.orphanFeedSources'),
       rows: candidates.feedSources.map((row) => ({
@@ -556,6 +570,7 @@ async function buildDeepCleanupSnapshot() {
     collections,
     tabs,
     notes,
+    todos,
     feedSources,
     feedItems,
     savedFeedItems,
@@ -567,6 +582,7 @@ async function buildDeepCleanupSnapshot() {
     db.collections.filter(isActiveRecord).toArray(),
     db.tabs.filter(isActiveRecord).toArray(),
     db.notes.filter(isActiveRecord).toArray(),
+    db.todos.filter(isActiveRecord).toArray(),
     db.feed_sources.filter(isActiveRecord).toArray(),
     db.feed_items.toArray(),
     db.saved_feed_items.filter(isActiveRecord).toArray(),
@@ -591,6 +607,7 @@ async function buildDeepCleanupSnapshot() {
       type: row.type ?? 'text',
       content: row.content ?? '',
     })),
+    todos: todos.map((row) => ({id: row.id, collection_id: row.collection_id})),
     feedSources: feedSources.map((row) => ({
       id: row.id,
       collection_id: row.collection_id,
@@ -671,7 +688,7 @@ async function refreshRemoteCompare() {
   setTransfer(true, t('dataExchange.status.verifyingRemoteCompare'), 'remote-sync')
   render()
   try {
-    const provider = createRemoteExportProvider(state.remoteSettings)
+    const provider = await createRemoteExportProvider(state.remoteSettings)
     state.compareInspection = await inspectRemotePush({provider})
     state.remoteHealth = await verifyRemoteHealth({provider})
     const archives = await provider.listArchives()
@@ -707,7 +724,7 @@ async function previewRemoteContents() {
   setTransfer(true, t('dataExchange.status.checkingRemoteContents'), 'remote-sync')
   render()
   try {
-    const provider = createRemoteExportProvider(state.remoteSettings)
+    const provider = await createRemoteExportProvider(state.remoteSettings)
     const preview = await previewRemotePull({provider})
     state.remotePullPreview = preview
     state.remoteWarnings = [...(preview?.warnings ?? [])]
@@ -735,6 +752,7 @@ async function previewRemoteContents() {
         collections: manifest.collections.length,
         tabs: manifest.tabs.length,
         notes: manifest.notes.length,
+        todos: manifest.todos?.length ?? 0,
         feedSources: manifest.feed_sources.length,
         savedFeedItems: manifest.saved_feed_items.length,
         assets: assetCount,
@@ -1004,7 +1022,7 @@ async function clearRemoteConfig() {
   try {
     const providerType = state.remoteSettings?.remote_provider_type || state.remoteDraft?.remote_provider_type
     if (providerType === 'gdrive') {
-      const provider = createRemoteExportProvider({
+      const provider = await createRemoteExportProvider({
         ...DEFAULT_REMOTE_LOCAL_SETTINGS,
         ...state.remoteSettings,
         ...state.remoteDraft,
@@ -1053,7 +1071,7 @@ async function testRemoteConfig() {
   setTransfer(true, t('dataExchange.testConnection'), 'remote-config')
   render()
   try {
-    const provider = createRemoteExportProvider({
+    const provider = await createRemoteExportProvider({
       ...DEFAULT_REMOTE_LOCAL_SETTINGS,
       ...state.remoteSettings,
       ...state.remoteDraft,
@@ -1081,7 +1099,7 @@ async function disconnectGoogleDrive() {
   setTransfer(true, t('dataExchange.disconnectGoogleDrive'), 'remote-config')
   render()
   try {
-    const provider = createRemoteExportProvider({
+    const provider = await createRemoteExportProvider({
       ...DEFAULT_REMOTE_LOCAL_SETTINGS,
       ...state.remoteSettings,
       ...state.remoteDraft,
@@ -1126,7 +1144,7 @@ async function deleteLiveRemoteExport() {
   setTransfer(true, t('dataExchange.deleteLiveRemote'), 'remote-config')
   render()
   try {
-    const provider = createRemoteExportProvider(state.remoteSettings)
+    const provider = await createRemoteExportProvider(state.remoteSettings)
     const result = await provider.deleteLiveExport?.()
     if (!result?.ok) throw new Error(result?.error?.message || 'Remote live export deletion is unavailable.')
 
@@ -1164,7 +1182,7 @@ async function wipeRemoteData() {
   setTransfer(true, t('dataExchange.wipeRemoteData'), 'remote-config')
   render()
   try {
-    const provider = createRemoteExportProvider(state.remoteSettings)
+    const provider = await createRemoteExportProvider(state.remoteSettings)
     const result = await provider.wipeRemoteData?.()
     if (!result?.ok) throw new Error(result?.error?.message || 'Remote wipe is unavailable.')
 
@@ -1324,7 +1342,7 @@ async function downloadRemotePackagePart(kind) {
   render()
 
   try {
-    const provider = createRemoteExportProvider(state.remoteSettings)
+    const provider = await createRemoteExportProvider(state.remoteSettings)
     const checksum = await resolveRemoteChecksum(provider)
     if (kind === 'data') {
       const result = await provider.downloadExport()
@@ -1367,7 +1385,7 @@ async function downloadRemoteArchive(checksum) {
   render()
 
   try {
-    const provider = createRemoteExportProvider(state.remoteSettings)
+    const provider = await createRemoteExportProvider(state.remoteSettings)
     const result = await provider.downloadArchiveExport(checksum)
     if (!result.ok) throw new Error(result.error.message)
     const filename = buildExportFilename('archive', checksum)
@@ -1402,7 +1420,7 @@ async function restoreRemoteArchive(checksum) {
   render()
 
   try {
-    const provider = createRemoteExportProvider(state.remoteSettings)
+    const provider = await createRemoteExportProvider(state.remoteSettings)
     const archiveResult = await provider.downloadArchiveExport(checksum)
     if (!archiveResult.ok) throw new Error(archiveResult.error.message)
 
@@ -1453,7 +1471,7 @@ async function deleteRemoteArchive(checksum) {
   render()
 
   try {
-    const provider = createRemoteExportProvider(state.remoteSettings)
+    const provider = await createRemoteExportProvider(state.remoteSettings)
     const result = await provider.deleteArchive(checksum)
     if (!result.ok) throw new Error(result.error.message)
     state.remoteArchives = (state.remoteArchives ?? []).filter((archive) => archive.workspace_checksum !== checksum)
@@ -1521,7 +1539,7 @@ async function pruneRemoteArchives() {
   render()
 
   try {
-    const provider = createRemoteExportProvider(state.remoteSettings)
+    const provider = await createRemoteExportProvider(state.remoteSettings)
     let deleted = 0
     for (const archive of victims) {
       const result = await provider.deleteArchive(archive.workspace_checksum)

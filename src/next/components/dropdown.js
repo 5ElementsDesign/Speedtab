@@ -76,9 +76,13 @@ export function buildDropdown({trigger, ariaLabel, align = 'right', triggerClass
 // Currently open panel (teleported to body) and its root [data-dropdown]
 let _openPanel = null
 let _openRoot  = null
+let _openModuleSyncId = ''
 
 function syncQuickSettingState(root, panel) {
-  const moduleRoot = root?.closest?.('[data-module-card]')
+  const moduleSyncId = panel?.querySelector?.('[data-quick-setting-key][data-sync-id]')?.dataset?.syncId || ''
+  const moduleRoot = moduleSyncId
+    ? document.querySelector(`[data-module-card][data-sync-id="${CSS.escape(moduleSyncId)}"]`)
+    : root?.closest?.('[data-module-card]')
   if (!(moduleRoot instanceof HTMLElement) || !(panel instanceof HTMLElement)) return
 
   panel.querySelectorAll('[data-quick-setting-key]').forEach((item) => {
@@ -145,6 +149,7 @@ export function openDropdown(root) {
   document.body.appendChild(panel)
   _openPanel = panel
   _openRoot  = root
+  _openModuleSyncId = root.closest('[data-module-card]')?.dataset?.syncId || ''
 
   positionPanel(root, panel)
   syncQuickSettingState(root, panel)
@@ -167,11 +172,31 @@ export function closeDropdown(root) {
   if (_openRoot === root) {
     _openPanel = null
     _openRoot  = null
+    _openModuleSyncId = ''
   }
 }
 
 export function closeAll() {
+  if (_openRoot) closeDropdown(_openRoot)
   document.querySelectorAll(`[data-dropdown][${OPEN}]`).forEach(closeDropdown)
+}
+
+// A module content refresh replaces the dropdown root while its open panel is
+// teleported to body. Attach that panel to the replacement root so its state,
+// including inert handling, remains intact.
+export function rebindOpenDropdown(moduleRoot) {
+  if (!(moduleRoot instanceof HTMLElement) || !_openPanel || !_openModuleSyncId) return
+  if (moduleRoot.dataset.syncId !== _openModuleSyncId) return
+
+  const nextRoot = moduleRoot.querySelector('[data-dropdown]')
+  if (!(nextRoot instanceof HTMLElement) || nextRoot === _openRoot) return
+
+  _openRoot?.removeAttribute(OPEN)
+  _openRoot?.querySelector('[data-dropdown-trigger]')?.setAttribute('aria-expanded', 'false')
+  _openRoot = nextRoot
+  nextRoot.setAttribute(OPEN, '')
+  nextRoot.querySelector('[data-dropdown-trigger]')?.setAttribute('aria-expanded', 'true')
+  positionPanel(nextRoot, _openPanel)
 }
 
 export function toggle(root) {

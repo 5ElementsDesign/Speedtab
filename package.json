@@ -1,6 +1,6 @@
 {
   "name": "speedtab",
-  "version": "1.5.4",
+  "version": "1.5.6",
   "private": true,
   "type": "module",
   "description": "Local-first browser new-tab dashboard – Chrome Extension",

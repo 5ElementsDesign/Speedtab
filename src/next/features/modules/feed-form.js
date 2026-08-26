@@ -391,8 +391,6 @@ export function renderFeedSourceCrudForm(state) {
         `,
       })}
 
-      ${customizerDivider()}
-
       ${renderFormActions({saveLabel: t('feedForm.saveFeed')})}
 
       <input type="hidden" name="feed_test_success" value="${state.testSuccess ? '1' : ''}" data-form-state-ignore>

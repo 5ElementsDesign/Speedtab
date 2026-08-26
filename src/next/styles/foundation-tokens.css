@@ -414,7 +414,6 @@ html.light {
   [data-color-accent="success"]   { --yai-tabs-shadow-accent: rgba(24, 195, 138, 0.46); }
   [data-color-accent="warning"]   { --yai-tabs-shadow-accent: rgba(245, 159, 11, 0.6); }
   [data-color-accent="danger"]    { --yai-tabs-shadow-accent: rgba(239, 68, 68, 0.6); }
-  [data-color-accent="dark"]      { --yai-tabs-shadow-accent: rgba(161, 158, 160, 0.45); }
   [data-color-accent="light"] {
     --yai-tabs-shadow-accent: rgba(181, 207, 230, 0.649);
     > [data-controller] {
@@ -515,7 +514,7 @@ html.light {
   [data-theme="dark"] {
     --st-note-tabs-bg: #1e1e1e;
     --st-note-tabs-color: #f5f5f5;
-    --st-color-dark: #e9e9e9;
+    --st-color-dark: #1e1e1e;
     --st-border-color: rgba(255, 255, 255, 0.08);
     --st-note-tabs-main-header-bg: #181818cc;
     --st-note-tabs-main-footer-bg: #181818cc;

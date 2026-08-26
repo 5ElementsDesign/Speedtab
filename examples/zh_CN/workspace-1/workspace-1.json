@@ -20,22 +20,11 @@
           "tabs": [
             {
               "title": "应用",
-              "bookmarks": [
-                {"title": "Google", "url": "https://www.google.com/"},
-                {"title": "Gemini", "url": "https://gemini.google.com/"},
-                {"title": "Google 地图", "url": "https://maps.google.com/"},
-                {"title": "Google 翻译", "url": "https://translate.google.com/"},
-                {"title": "YouTube", "url": "https://www.youtube.com/"}
-              ]
+              "bookmarks": []
             },
             {
               "title": "社交",
-              "bookmarks": [
-                {"title": "WhatsApp", "url": "https://www.whatsapp.com/"},
-                {"title": "Telegram", "url": "https://web.telegram.org/"},
-                {"title": "Discord", "url": "https://discord.com/app"},
-                {"title": "Slack", "url": "https://app.slack.com/"}
-              ]
+              "bookmarks": []
             }
           ]
         },
@@ -50,24 +39,17 @@
           ]
         },
         {
-          "title": "qbox",
-          "type": "tabs",
+          "title": "待办事项",
+          "type": "todo",
           "column_span": 4,
-          "config": {
-            "quicklinks": true
-          },
           "tabs": [
             {
-              "title": "AI",
-              "bookmarks": [
-                {"title": "ChatGPT", "url": "https://chatgpt.com/"},
-                {"title": "Claude", "url": "https://claude.ai/"},
-                {"title": "Kimi", "url": "https://www.kimi.com/"},
-                {"title": "Grok", "url": "https://grok.com/"},
-                {"title": "Qwen", "url": "https://qwen.ai/"},
-                {"title": "Duck.ai", "url": "https://duck.ai/"}
+              "title": "任务",
+              "todos": [
+                {"title": "为了任务而任务", "color_scheme": "success"}
               ]
-            }
+            },
+            {"title": "稍后"}
           ]
         },
         {
@@ -77,13 +59,7 @@
           "tabs": [
             {
               "title": "快讯",
-              "sources": [
-                {
-                  "title": "GTmetrix Blog",
-                  "feed_url": "https://gtmetrix.com/blog/feed/",
-                  "site_url": "https://gtmetrix.com/blog/"
-                }
-              ]
+              "sources": []
             }
           ]
         }
@@ -107,12 +83,7 @@
           "tabs": [
             {
               "title": "公司",
-              "bookmarks": [
-                {"title": "GitHub", "url": "https://github.com/"},
-                {"title": "GitLab", "url": "https://gitlab.com/"},
-                {"title": "Atlassian", "url": "https://www.atlassian.com/"},
-                {"title": "Notion", "url": "https://www.notion.so/"}
-              ]
+              "bookmarks": []
             }
           ]
         },

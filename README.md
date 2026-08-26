@@ -6,6 +6,7 @@ It replaces the browser new tab page with three integrated building blocks:
 - visual bookmarks
 - RSS/Atom feeds
 - typed notes, including client-side encrypted notes
+- ToDo/tasks with optional due dates and times
 
 Everything runs in the browser. There is no backend, no account, and no required cloud service.
 
@@ -26,9 +27,11 @@ Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/a
 - Visual bookmark tiles with preview images and favicons
 - Optional bookmark titles below full-size tiles
 - Notes with text, code, links, HTML, and encrypted content
+- ToDo modules with priorities, notes, due dates, and tile view
 - Interactive nested tabbed notes authored directly inside HTML notes
 - `TABBY-TABS` example note showcasing onboarding-as-content with live nested tabs, swipe, and click behavior on the same delegated runtime
 - RSS/Atom feed reader with source navigation, read state, archiving, and optional auto-refresh
+- Picture-in-Picture viewing for floating notes and Feed modules in supported Chromium browsers
 - Widget rail with weather, digital or analog clock, and remote-sync indicator support
 - Module quick settings directly inside module dropdowns
 - Asset browser with favicon repair tools for difficult transparent icons
@@ -41,7 +44,7 @@ Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/a
 
 ### Speedtab - Speed Dial 4.0
 
-![Speedtab start page](screenshots/1-speedtab-start.1.jpg)
+![Speedtab start page](screenshots/1-speedtab-start.1.png)
 
 ### Notes Viewer
 
@@ -80,6 +83,8 @@ Speedtab is designed to keep user data local.
 - Export/import uses a local `export.json` file
 - Optional Google Drive sync uses the user's own hidden Drive app-data folder through `chrome.identity`, with no Speedtab-operated backend
 
+For full details, see our [Privacy Policy](PRIVACY.md) and [Security Policy](SECURITY.md).
+
 ## What Speedtab Stores
 
 Speedtab stores:
@@ -90,6 +95,7 @@ Speedtab stores:
 - collections
 - bookmarks
 - notes
+- tasks and to-do items
 - feed sources
 - archived feed items
 - bookmark preview and favicon assets
@@ -120,6 +126,7 @@ Speedtab does not currently export feed cache responses. Feed items fetched from
 - `html` notes sanitized before rendering
 - `crypt` notes encrypted locally before storage
 - floating note windows with persisted open state, size, and position
+- Document Picture-in-Picture (PiP) viewing for open notes in supported Chromium browsers
 - nested interactive YaiTabs inside HTML notes
 - safe `data-st-*` utility attributes for trusted HTML-note styling
 - example-workspace flagship note `TABBY-TABS.html` demonstrates deeply nested interactive notes running on the same event-delegated system as the rest of Speedtab
@@ -140,18 +147,28 @@ Speedtab does not currently export feed cache responses. Feed items fetched from
 - Limit visible items per source
 - Track read/unread state per item
 - Mark visible items read or unread in bulk
-- Optional per-feed-module auto-refresh while the tab is visible
+- Optional per-feed-tab auto-refresh with configurable intervals while open
 - Expand a feed module into a focused reading view
+- Document Picture-in-Picture (PiP) viewing for a full Feed module in supported Chromium browsers
 - Archive interesting items with optional comments
 
 ### Portability
 
 - Export workspace data to a checksum-based `speedtab-export-<checksum>.json`
+- Export and import individual bookmark, note, or ToDo collections as compact JSON files
 - Re-import the same export without duplicating authored records
 - Move workspaces between browser profiles with identity-aware merge import
 - Feed cache stays local; archived feed items remain portable
 - Optional WebDAV sync for manual remote backup and restore
 - Optional Google Drive sync with auto-push checks, remote health verification, and app-data reset controls
+
+### ToDo
+
+- Create tasks with optional notes, priority, color indicator, and due date/time
+- Clear visual status indicators for open, completed-on-time, completed-late, and overdue tasks
+- Keep timed due states current through the shared central App Clock
+- Switch between compact rows and tile view
+- Import and export tab content as compact JSON for bookmarks, notes, and tasks
 
 ### Appearance
 
@@ -166,6 +183,8 @@ Speedtab does not currently export feed cache responses. Feed items fetched from
 
 - English 
 - German 
+- Spanish
+- French
 - Netherlands 
 - Turkish 
 - Hindi 

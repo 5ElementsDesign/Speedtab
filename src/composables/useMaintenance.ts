@@ -2,13 +2,14 @@ import { db as defaultDb, isActiveRecord, type SpeedtabDB } from '@/db/db'
 import { getFaviconHostnameCandidatesForUrl, parseFaviconMeta } from '@/next/utils/favicon.js'
 import { extractLinkNoteUrls } from '@/composables/useNoteLinks'
 import { extractNoteImageAssetIds } from '@/composables/useNoteImages'
-import type { Asset, Collection, FeedItem, FeedSource, Module, Note, SavedFeedItem, Tab } from '@/types/db'
+import type { Asset, Collection, FeedItem, FeedSource, Module, Note, SavedFeedItem, Tab, Todo } from '@/types/db'
 
 export interface CleanupReport {
   removedModules: number
   removedCollections: number
   removedTabs: number
   removedNotes: number
+  removedTodos: number
   removedFeedSources: number
   removedFeedItems: number
   removedSavedFeedItems: number
@@ -20,6 +21,7 @@ export interface CleanupCandidates {
   collections: Collection[]
   tabs: Tab[]
   notes: Note[]
+  todos: Todo[]
   feedSources: FeedSource[]
   feedItems: FeedItem[]
   savedFeedItems: SavedFeedItem[]
@@ -38,6 +40,7 @@ function emptyReport(): CleanupReport {
     removedCollections: 0,
     removedTabs: 0,
     removedNotes: 0,
+    removedTodos: 0,
     removedFeedSources: 0,
     removedFeedItems: 0,
     removedSavedFeedItems: 0,
@@ -51,6 +54,7 @@ function emptyCandidates(): CleanupCandidates {
     collections: [],
     tabs: [],
     notes: [],
+    todos: [],
     feedSources: [],
     feedItems: [],
     savedFeedItems: [],
@@ -128,7 +132,7 @@ export async function deleteCollectionTree(
 ): Promise<void> {
   await database.transaction(
     'rw',
-    [database.collections, database.tabs, database.notes, database.feed_sources, database.feed_items, database.saved_feed_items],
+    [database.collections, database.tabs, database.notes, database.todos, database.feed_sources, database.feed_items, database.saved_feed_items],
     async () => {
       const sourceIds = (await database.feed_sources.where('collection_id').equals(collectionId).primaryKeys()) as number[]
       if (sourceIds.length) {
@@ -138,6 +142,7 @@ export async function deleteCollectionTree(
       await database.feed_sources.where('collection_id').equals(collectionId).delete()
       await database.tabs.where('collection_id').equals(collectionId).delete()
       await database.notes.where('collection_id').equals(collectionId).delete()
+      await database.todos.where('collection_id').equals(collectionId).delete()
       await database.collections.delete(collectionId)
     },
   )
@@ -151,7 +156,7 @@ export async function deleteModuleTree(
     'rw',
     [
       database.modules, database.collections, database.tabs,
-      database.notes, database.feed_sources, database.feed_items, database.saved_feed_items,
+      database.notes, database.todos, database.feed_sources, database.feed_items, database.saved_feed_items,
     ],
     async () => {
       const collectionIds = (await database.collections.where('module_id').equals(moduleId).primaryKeys()) as number[]
@@ -164,6 +169,7 @@ export async function deleteModuleTree(
         await database.feed_sources.where('collection_id').anyOf(collectionIds).delete()
         await database.tabs.where('collection_id').anyOf(collectionIds).delete()
         await database.notes.where('collection_id').anyOf(collectionIds).delete()
+        await database.todos.where('collection_id').anyOf(collectionIds).delete()
         await database.collections.where('module_id').equals(moduleId).delete()
       }
       await database.modules.delete(moduleId)
@@ -179,7 +185,7 @@ export async function deletePageTree(
     'rw',
     [
       database.pages, database.modules, database.collections, database.tabs,
-      database.notes, database.feed_sources, database.feed_items, database.saved_feed_items,
+      database.notes, database.todos, database.feed_sources, database.feed_items, database.saved_feed_items,
     ],
     async () => {
       const moduleIds = (await database.modules.where('page_id').equals(pageId).primaryKeys()) as number[]
@@ -194,6 +200,7 @@ export async function deletePageTree(
           await database.feed_sources.where('collection_id').anyOf(collectionIds).delete()
           await database.tabs.where('collection_id').anyOf(collectionIds).delete()
           await database.notes.where('collection_id').anyOf(collectionIds).delete()
+          await database.todos.where('collection_id').anyOf(collectionIds).delete()
           await database.collections.where('module_id').anyOf(moduleIds).delete()
         }
         await database.modules.where('page_id').equals(pageId).delete()
@@ -214,6 +221,7 @@ export async function clearAuthoredWorkspace(
       database.collections,
       database.tabs,
       database.notes,
+      database.todos,
       database.feed_sources,
       database.feed_items,
       database.saved_feed_items,
@@ -226,6 +234,7 @@ export async function clearAuthoredWorkspace(
       await database.feed_sources.clear()
       await database.tabs.clear()
       await database.notes.clear()
+      await database.todos.clear()
       await database.collections.clear()
       await database.modules.clear()
       await database.pages.clear()
@@ -265,6 +274,11 @@ export async function cleanupOrphans(
   if (freshCandidates.notes.length) {
     await database.notes.bulkDelete(freshCandidates.notes.map((row) => row.id!).filter(Boolean))
     report.removedNotes = freshCandidates.notes.length
+  }
+
+  if (freshCandidates.todos.length) {
+    await database.todos.bulkDelete(freshCandidates.todos.map((row) => row.id!).filter(Boolean))
+    report.removedTodos = freshCandidates.todos.length
   }
 
   if (freshCandidates.feedSources.length) {
@@ -307,6 +321,7 @@ export async function getCleanupCandidates(
     collections,
     tabs,
     notes,
+    todos,
     feedSources,
     feedItems,
     savedFeedItems,
@@ -318,6 +333,7 @@ export async function getCleanupCandidates(
     database.collections.filter(isActiveRecord).toArray(),
     database.tabs.filter(isActiveRecord).toArray(),
     database.notes.filter(isActiveRecord).toArray(),
+    database.todos.filter(isActiveRecord).toArray(),
     database.feed_sources.filter(isActiveRecord).toArray(),
     database.feed_items.toArray(),
     database.saved_feed_items.filter(isActiveRecord).toArray(),
@@ -334,6 +350,7 @@ export async function getCleanupCandidates(
   const collectionIds = new Set(collections.map((collection) => collection.id!).filter((id): id is number => typeof id === 'number'))
   candidates.tabs = tabs.filter((tab) => !collectionIds.has(tab.collection_id))
   candidates.notes = notes.filter((note) => !collectionIds.has(note.collection_id))
+  candidates.todos = todos.filter((todo) => !collectionIds.has(todo.collection_id))
   candidates.feedSources = feedSources.filter((source) => !collectionIds.has(source.collection_id))
   candidates.savedFeedItems = savedFeedItems.filter((item) => !collectionIds.has(item.collection_id))
 

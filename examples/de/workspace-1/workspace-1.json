@@ -20,22 +20,15 @@
           "tabs": [
             {
               "title": "Apps",
-              "bookmarks": [
-                {"title": "Google", "url": "https://www.google.com/"},
-                {"title": "Gemini", "url": "https://gemini.google.com/"},
-                {"title": "Google Maps", "url": "https://maps.google.com/"},
-                {"title": "Google Übersetzer", "url": "https://translate.google.com/"},
-                {"title": "YouTube", "url": "https://www.youtube.com/"}
-              ]
+              "bookmarks": []
             },
             {
               "title": "Com",
-              "bookmarks": [
-                {"title": "WhatsApp", "url": "https://www.whatsapp.com/"},
-                {"title": "Telegram", "url": "https://web.telegram.org/"},
-                {"title": "Discord", "url": "https://discord.com/app"},
-                {"title": "Slack", "url": "https://app.slack.com/"}
-              ]
+              "bookmarks": []
+            },
+            {
+              "title": "KI",
+              "bookmarks": []
             }
           ]
         },
@@ -50,46 +43,24 @@
           ]
         },
         {
-          "title": "qbox",
-          "type": "tabs",
+          "title": "ToDo",
+          "type": "todo",
           "column_span": 4,
-          "config": {
-            "quicklinks": true,
-            "force_favicon": true,
-            "show_add_tile": false,
-            "open_in_new_tab": true,
-            "show_hover_actions": false
-          },
           "tabs": [
             {
-              "title": "KI",
-              "bookmarks": [
-                {"title": "ChatGPT", "url": "https://chatgpt.com/"},
-                {"title": "Claude", "url": "https://claude.ai/"},
-                {"title": "Kimi", "url": "https://www.kimi.com/"},
-                {"title": "Grok", "url": "https://grok.com/"},
-                {"title": "Qwen", "url": "https://qwen.ai/"},
-                {"title": "Duck.ai", "url": "https://duck.ai/"}
+              "title": "Aufgaben",
+              "todos": [
+                {"title": "Eine Aufgabe der Aufgabe wegen", "color_scheme": "success"}
               ]
-            }
+            },
+            {"title": "Danach"}
           ]
         },
         {
           "title": "news",
           "type": "feeds",
           "column_span": 8,
-          "tabs": [
-            {
-              "title": "Breaking",
-              "sources": [
-                {
-                  "title": "GTmetrix Blog",
-                  "feed_url": "https://gtmetrix.com/blog/feed/",
-                  "site_url": "https://gtmetrix.com/blog/"
-                }
-              ]
-            }
-          ]
+          "tabs": []
         }
       ]
     },
@@ -108,17 +79,7 @@
           "title": "worker",
           "type": "tabs",
           "column_span": 6,
-          "tabs": [
-            {
-              "title": "Firma",
-              "bookmarks": [
-                {"title": "GitHub", "url": "https://github.com/"},
-                {"title": "GitLab", "url": "https://gitlab.com/"},
-                {"title": "Atlassian", "url": "https://www.atlassian.com/"},
-                {"title": "Notion", "url": "https://www.notion.so/"}
-              ]
-            }
-          ]
+          "tabs": []
         },
         {
           "title": "todo",

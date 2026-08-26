@@ -13,6 +13,27 @@ export function useFeed() {
     return entry.querySelector(selector)?.getAttribute(attribute)?.trim() || null
   }
 
+  function imageUrlOf(entry: Element): string | null {
+    const candidates = [
+      attributeOf(entry, 'media\\:content, content', 'url'),
+      attributeOf(entry, 'media\\:thumbnail, thumbnail', 'url'),
+      attributeOf(entry, 'enclosure[type^="image/"]', 'url'),
+      attributeOf(entry, 'itunes\\:image, image', 'href'),
+      attributeOf(entry, 'link[rel="enclosure"][type^="image/"]', 'href'),
+    ]
+    return candidates.find(Boolean) ?? null
+  }
+
+  function mediaAlreadyInContent(imageUrl: string | null, ...content: Array<string | null>): boolean {
+    return !!imageUrl && content.some((value) => value?.includes(imageUrl))
+  }
+
+  function parsePublishedAt(value: string | null): number | null {
+    if (!value) return null
+    const timestamp = new Date(value).getTime()
+    return Number.isFinite(timestamp) ? timestamp : null
+  }
+
   function parseFeed(xmlText: string, sourceId: number): FeedItem[] {
     const parser = new DOMParser()
     const doc = parser.parseFromString(xmlText, 'text/xml')
@@ -48,6 +69,7 @@ export function useFeed() {
                       null
     const summary = textContentOf(entry, 'summary')
     const content = textContentOf(entry, 'content')
+    const imageUrl = imageUrlOf(entry)
 
     const youtubeVideoId = textContentOf(entry, 'yt\\:videoId, videoId')
     const youtubeChannelId = textContentOf(entry, 'yt\\:channelId, channelId')
@@ -64,7 +86,7 @@ export function useFeed() {
       description: youtubeDescription,
       view_count: youtubeViewCount ? Number(youtubeViewCount) : null,
       star_count: youtubeStarCount ? Number(youtubeStarCount) : null,
-    } : null
+    } : imageUrl && !mediaAlreadyInContent(imageUrl, content ?? summary) ? {kind: 'media', image_url: imageUrl} : null
 
     return {
       feed_source_id: sourceId,
@@ -72,7 +94,7 @@ export function useFeed() {
       title,
       url: link,
       author,
-      published_at: published ? new Date(published).getTime() : null,
+      published_at: parsePublishedAt(published),
       summary,
       content,
       fetched_at: Date.now(),
@@ -86,9 +108,10 @@ export function useFeed() {
     const title = item.querySelector('title')?.textContent || 'Untitled'
     const link = item.querySelector('link')?.textContent || null
     const author = item.querySelector('dc\\:creator, creator')?.textContent || null
-    const pubDate = item.querySelector('pubDate')?.textContent || null
+    const published = textContentOf(item, 'pubDate') || textContentOf(item, 'dc\\:date, date')
     const description = item.querySelector('description')?.textContent || null
     const content = item.querySelector('content\\:encoded, encoded')?.textContent || null
+    const imageUrl = imageUrlOf(item)
 
     return {
       feed_source_id: sourceId,
@@ -96,12 +119,14 @@ export function useFeed() {
       title,
       url: link,
       author,
-      published_at: pubDate ? new Date(pubDate).getTime() : null,
+      published_at: parsePublishedAt(published),
       summary: description,
       content: content,
       fetched_at: Date.now(),
       read_at: null,
-      payload_json: null
+      payload_json: imageUrl && !mediaAlreadyInContent(imageUrl, content ?? description)
+        ? JSON.stringify({kind: 'media', image_url: imageUrl})
+        : null
     }
   }
 

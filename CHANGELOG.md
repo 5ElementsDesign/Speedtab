@@ -2,11 +2,29 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.5.6]
+
+### Added
+- Added a dedicated ToDo module with priorities, optional color indicators, notes, due date/time support, compact task metadata, tile view, and shared module layout and quick-setting behavior.
+- Added a shared App Clock with second, minute, hour, and day subscriptions; timed task updates and the Clock widget now use its central scheduler instead of separate loops.
+- Added compact JSON collection import/export for visual bookmarks, notes, and ToDo tabs.
+- Added per-feed-tab auto-refresh while the tab is open, with configurable intervals.
+- Added Document Picture-in-Picture support for floating notes and Feed modules, including delegated interactions, async content syncing, and preserved Feed scroll position.
+
+### Changed
+- Refined Feed rendering and focused-view behavior during automatic refreshes.
+- Refined Customize navigation and module tab forms, including cleaner identity and collection-import sections.
+
+### Fixed
+- Fixed ToDo due-state labels and colors so open, completed-on-time, completed-late, and overdue tasks are distinguishable.
+- Fixed Feed auto-refresh from closing the focused reader view.
+- Fixed PiP content updates for fetched Feed items, source filters, and URL-backed note tabs.
+
+
 ## [1.5.5]
 
 ### Changed
 - Optimized Chrome Web Store titles (`extName`) and descriptions (`extDescription`) across all 9 supported languages (`de`, `en`, `es`, `fr`, `hi`, `nl`, `ru`, `tr`, `zh_CN`) in `_locales/*/messages.json` with targeted keywords for improved search visibility.
-
 
 ## [1.5.4]
 

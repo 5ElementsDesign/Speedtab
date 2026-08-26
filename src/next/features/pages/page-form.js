@@ -204,6 +204,7 @@ export function renderModuleCreateForm(page, modules = []) {
                 <option value="speed-dial">${t('moduleForm.types.speedDial')}</option>
                 <option value="notes">${t('moduleForm.types.notes')}</option>
                 <option value="feeds">${t('moduleForm.types.feeds')}</option>
+                <option value="todo">${t('todo.moduleType')}</option>
               </select>
             `,
           })}
@@ -262,8 +263,6 @@ export function renderModuleCreateForm(page, modules = []) {
           </div>
         `,
       })}
-
-      ${customizerDivider()}
 
       <div data-form-actions data-module-create-actions>
         <button type="submit" data-btn="primary" data-form-save-btn disabled>${escapeHtml(t('moduleForm.createModule'))}</button>

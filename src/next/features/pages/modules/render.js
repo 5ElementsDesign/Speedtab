@@ -59,7 +59,7 @@ export function renderModuleCardBody(adapted, {hydrateBodies = false} = {}) {
 function renderModuleCard(adapted, {hydrateBodies = false} = {}) {
   const syncAttr = adapted.syncId ? ` data-sync-id="${escapeHtml(adapted.syncId)}"` : ''
   const idAttr = adapted.moduleId != null ? ` data-module-id="${escapeHtml(String(adapted.moduleId))}"` : ''
-  const hasActionsAttr = (isBookmarkModuleType(adapted.type) || ['notes', 'feeds'].includes(adapted.type)) && adapted.syncId
+  const hasActionsAttr = (isBookmarkModuleType(adapted.type) || ['notes', 'feeds', 'todo'].includes(adapted.type)) && adapted.syncId
     ? ' data-has-module-actions'
     : ''
   const quicklinksAttr = adapted.type === 'tabs' && adapted?.config?.behavior?.['module-tabs-quicklinks'] === true

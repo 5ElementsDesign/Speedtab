@@ -1,15 +1,19 @@
+import {requestRemoteAutoSyncRefresh} from '../../composables/remoteAutoSyncProtocol.ts'
 import {getCleanupCandidates} from '../../composables/useMaintenance.ts'
-import {startRemoteAutoSync} from '../../composables/useRemoteAutoSync.ts'
 import {getWidgetSettings} from '../../composables/useWidgetSettings.ts'
 import {YaiCore, YaiTabs, YaiTabsSwipe} from '../../lib/yai/yai-local-bundle.js'
 import {assetActions} from '../actions/assets.js'
 import {captureActions} from '../actions/capture.js'
 import {customizerActions} from '../actions/customizer.js'
 import {localToolsActions} from '../actions/local-tools.js'
-import {ensureFeedCollectionLoaded, moduleCrudActions} from '../actions/module-crud.js'
+import {ensureFeedCollectionLoaded, moduleCrudActions, syncFeedAutoRefreshSchedule} from '../actions/module-crud.js'
+import {rebindOpenDropdown} from '../components/dropdown.js'
 import {pageActions, syncOpenPageEditorActiveHint} from '../actions/pages.js'
+import {pictureInPictureActions, syncPictureInPicture} from '../actions/picture-in-picture.js'
 import {searchActions} from '../actions/search.js'
 import {settingsActions} from '../actions/settings.js'
+import {syncTodoClockSubscription, todoActions} from '../actions/todos.js'
+import {userActions} from '../actions/user-actions.js'
 import {workspaceActions} from '../actions/workspace.js'
 import {closeAll, closeDropdown} from '../components/dropdown.js'
 import {dismissToast, initToastEvents} from '../components/toast.js'
@@ -23,6 +27,7 @@ import {initCustomizerListeners} from '../features/customizer/panel.js'
 import {SHELL_SYNC_ID} from '../features/customizer/render.js'
 import {installFlyingConfig, openFlyingConfig} from '../features/flying-config/index.js'
 import {initializeLocalTools, refreshOpenNotePreviewState, refreshQuicknoteWindow} from '../features/local-tools/manager.js'
+import {queueFeedFavicons} from '../features/modules/feeds.js'
 import {adaptModule} from '../features/modules/registry.js'
 import {enrichModules} from '../features/modules/service.js'
 import {renderModuleCardBody, renderPageGrid} from '../features/pages/modules/render.js'
@@ -37,6 +42,7 @@ import {initFavicons} from '../utils/favicon.js'
 import {SUPPORTED_LOCALES, getLocale, initI18n, t} from '../utils/i18n.js'
 import {activateFirstModuleTab} from '../utils/module-tabs.js'
 import {applyPageWorkspaceBackground} from '../utils/workspace-background.js'
+import {startAppClock} from './clock.js'
 import {installWorkspaceDirtyTracking} from './dirty-tracker.js'
 import {dispatch} from './dispatch.js'
 import {createHandler} from './handler.js'
@@ -313,8 +319,10 @@ function hydrateVisibleFeedCollections(scope) {
     const moduleSyncId = collectionRoot.dataset.feedModuleSyncId || ''
     const collectionId = parseInt(collectionRoot.dataset.feedCollectionId ?? '', 10)
     if (!moduleSyncId || !collectionId) return
+    queueFeedFavicons(collectionRoot)
     void ensureFeedCollectionLoaded(moduleSyncId, collectionId)
   })
+  syncFeedAutoRefreshSchedule()
 }
 
 function hydrateModuleBodies(pageContent, modules = []) {
@@ -367,9 +375,12 @@ const appActions = {
   ...customizerActions,
   ...moduleCrudActions,
   ...pageActions,
+  ...pictureInPictureActions,
   ...localToolsActions,
   ...searchActions,
   ...workspaceActions,
+  ...todoActions,
+  ...userActions,
   dismissToast(target) {
     dismissToast(target)
   },
@@ -386,6 +397,9 @@ export function initializeNextTabs(mount, pages) {
 
   initCustomizerListeners()
   initToastEvents()
+  startAppClock()
+  syncTodoClockSubscription()
+  syncFeedAutoRefreshSchedule()
 
   const setListenerType = YaiDevice.hasTouch
     ? ['touchstart', 'touchmove', 'touchend']
@@ -449,6 +463,7 @@ export function initializeNextTabs(mount, pages) {
         if (container?.dataset?.refPath !== 'pages') {
           hydrateModuleTabBookmarks(content, container, context)
           hydrateVisibleFeedCollections(content)
+          syncTodoClockSubscription()
           return
         }
 
@@ -469,6 +484,10 @@ export function initializeNextTabs(mount, pages) {
         })
       }],
     },
+  })
+
+  tabs.hook('contentReady', () => {
+    syncPictureInPicture()
   })
 
   mount.__flyingConfigCleanup = installFlyingConfig(tabs, ({target}) => openFlyingConfig(target))
@@ -630,6 +649,7 @@ export async function renderNextRoot() {
     orphanCandidates.collections,
     orphanCandidates.tabs,
     orphanCandidates.notes,
+    orphanCandidates.todos,
     orphanCandidates.feedSources,
     orphanCandidates.feedItems,
     orphanCandidates.savedFeedItems,
@@ -702,14 +722,14 @@ export async function renderNextRoot() {
     initializeSearch()
     await initializeLocalTools(mount.querySelector('[data-app]'))
     initializeWidgetRail(widgetSettings)
-    startRemoteAutoSync()
+    void requestRemoteAutoSyncRefresh()
     const tabs = initializeNextTabs(mount, renderPages)
     return tabs
   } else {
     mount.innerHTML = `
       <div class="st-app-empty">
         ${renderEmptyStateThemeSelect(appSettings)}
-        <div class="st-app-empty-card">
+        <div class="st-app-empty-card st-main-card">
           <h1><span>${t('app.title')}</span></h1>
           <p>${t('app.noPagesTitle')}</p>
           <p>${t('app.noPagesDescription')}</p>
@@ -728,7 +748,7 @@ export async function renderNextRoot() {
     `
     await initializeLocalTools(null)
     initializeWidgetRail(widgetSettings)
-    startRemoteAutoSync()
+    void requestRemoteAutoSyncRefresh()
     return null
   }
 }
@@ -753,6 +773,7 @@ export async function refreshModuleContent(syncId, {fallbackToFirstTab = false} 
   const lastActive = card.querySelector('[data-yai-tabs]')?.dataset?.lastActive ?? null
 
   bodyEl.innerHTML = renderModuleCardBody(adapted, {hydrateBodies: true})
+  rebindOpenDropdown(card)
 
   const refreshedTabsEl = card.querySelector('[data-yai-tabs]')
   if (lastActive && !fallbackToFirstTab) {
@@ -779,6 +800,8 @@ export async function refreshModuleContent(syncId, {fallbackToFirstTab = false} 
   }
 
   refreshOpenNotePreviewState()
+  syncTodoClockSubscription()
+  syncFeedAutoRefreshSchedule()
 }
 
 export async function refreshPageContent(pageReference = {}) {
@@ -841,6 +864,7 @@ export async function refreshPageContent(pageReference = {}) {
   hydrateVisibleFeedCollections(pageContent)
   syncActivePageGridMaxWidthToken(pageContent)
   refreshOpenNotePreviewState()
+  syncTodoClockSubscription()
 }
 
 // YEH: dropdown toggle + resize/scroll repositioning

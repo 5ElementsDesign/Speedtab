@@ -19,6 +19,12 @@ const tr = {
     current: 'Mevcut',
     customize: 'Özelleştir',
     appearance: 'Görünüm',
+    pictureInPicture: 'Resim içinde resim',
+  },
+  todo: {
+    tiles: 'Görevleri kutucuk olarak göster',
+    created: 'Oluşturuldu', updated: 'Güncellendi', finished: 'Tamamlandı',
+    moduleType: 'Yapılacaklar', add: 'Görev ekle', addPlaceholder: 'Görev ekle…', empty: 'Henüz görev yok.', untitled: 'Adsız görev', edit: 'Görevi düzenle', dueAt: 'Son tarih ve saat', completed: 'Tamamlandı', note: 'Not', markComplete: 'Tamamlandı olarak işaretle', markIncomplete: 'Tamamlanmadı olarak işaretle', confirmDelete: 'Bu görev silinsin mi?', priority: {label: 'Öncelik', none: 'Yok', low: 'Düşük', medium: 'Orta', high: 'Yüksek'},
   },
   app: {
     title: 'Speedtab',
@@ -307,7 +313,6 @@ const tr = {
     showHoverActions: 'Görsel yer imi hover (üzerine gelme) eylem butonlarını göster',
     quicklinksMode: 'Hızlı bağlantı modu',
     forceFavicon: 'Favicon\'u Zorla',
-    showTitleBelow: 'Başlığı görselin altında göster',
     layoutGrid: 'Düzen Izgarası',
     bookmarkOpenBehavior: 'Görsel Yer İmi Açılma Davranışı',
     visibleFeedItems: 'Görünür Akış Ögeleri',
@@ -364,6 +369,12 @@ const tr = {
     sections: {
       context: 'Bağlam',
       identity: 'Kimlik',
+      import: 'İçe aktar',
+    },
+    import: {
+      bookmark: 'Görsel yer imi JSON', note: 'Notlar JSON', todo: 'Görevler JSON',
+      help: 'Bir JSON dizisi yapıştırın veya JSON dosyası seçin. Öğeler bu sekmeye eklenecek.',
+      chooseFile: 'JSON dosyası seç', import: 'İçe aktar', download: 'JSON olarak indir', invalidJson: 'İçe aktarma geçerli JSON içermiyor.', 'invalid-json': 'İçe aktarma geçerli JSON içermiyor.', 'empty-import': 'İçe aktarmak için en az bir öğe ekleyin.', 'invalid-item': 'Bir veya daha fazla içe aktarma öğesi geçersiz.', fileReadError: 'JSON dosyası okunamadı.',
     },
     fields: {
       url: 'URL',
@@ -466,6 +477,7 @@ const tr = {
     sections: {
       behavior: 'Davranış',
       layout: 'Düzen',
+      utilities: 'Araçlar',
       appearance: 'Görünüm',
       background: 'Arka Plan',
     },
@@ -1153,6 +1165,11 @@ const tr = {
     },
   },
   feeds: {
+    autoRefresh: 'Otomatik yenileme',
+    skipImages: 'Görselleri indirme',
+    fetchItemLimit: 'Toplam alınacak ögeler',
+    autoRefreshOff: 'Kapalı',
+    autoRefreshMinutes: '{minutes} dk.',
     feedSourcesAria: 'Akış kaynakları',
     clearLoadedForSource: '"{title}" için yüklenen akış ögelerini',
     clearLoadedNew: 'bu sekmede yeni çekilen yüklenmiş ögeleri',

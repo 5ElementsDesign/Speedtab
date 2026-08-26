@@ -159,6 +159,7 @@ function runDeepCleanupCheck(snapshot) {
   const collectionIds = new Set(snapshot.collections.map((row) => row.id).filter((id) => typeof id === 'number'))
   const orphanTabs = snapshot.tabs.filter((row) => !collectionIds.has(row.collection_id))
   const orphanNotes = snapshot.notes.filter((row) => !collectionIds.has(row.collection_id))
+  const orphanTodos = (snapshot.todos ?? []).filter((row) => !collectionIds.has(row.collection_id))
   const orphanFeedSources = snapshot.feedSources.filter((row) => !collectionIds.has(row.collection_id))
   const orphanSavedFeedItems = snapshot.savedFeedItems.filter((row) => !collectionIds.has(row.collection_id))
 
@@ -173,6 +174,7 @@ function runDeepCleanupCheck(snapshot) {
     collections: orphanCollections.length,
     tabs: orphanTabs.length,
     notes: orphanNotes.length,
+    todos: orphanTodos.length,
     feedSources: orphanFeedSources.length,
     feedItems: orphanFeedItems.length,
     savedFeedItems: orphanSavedFeedItems.length,
@@ -182,6 +184,7 @@ function runDeepCleanupCheck(snapshot) {
       orphanCollections.length +
       orphanTabs.length +
       orphanNotes.length +
+      orphanTodos.length +
       orphanFeedSources.length +
       orphanFeedItems.length +
       orphanSavedFeedItems.length +

@@ -15,7 +15,7 @@ const ALLOWED_TAGS = [
   'blockquote', 'pre', 'code', 'kbd', 'samp',
   'picture', 'figure', 'img',
   'details', 'summary',
-  'nav', 'aside', 'article', 'main', 'address', 'header', 'footer',
+  'nav', 'aside', 'article', 'section', 'main', 'address', 'header', 'footer',
   'table', 'thead', 'tbody', 'tr', 'th', 'td',
   'button',
   'textarea',
@@ -28,7 +28,23 @@ const ALLOWED_ATTR = [
   'width', 'height',
   'loading',
   'colspan', 'rowspan',
+  'data-url',
 ]
+
+function isValidDynamicContentUrl(value: unknown): boolean {
+  if (typeof value !== 'string') return false
+  const url = value.trim()
+  if (!url || /\s/.test(url)) return false
+  if (/^(?:javascript|vbscript|data|file|jar|livescript|mocha|feed|about):/i.test(url)) return false
+  if (/^(?:\/|\.\/|\.\.\/|#|\?)/.test(url)) return true
+
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return !url.includes('://')
+  }
+}
 
 /**
  * Sanitise untrusted HTML for the `html` note type. Strips:
@@ -68,6 +84,7 @@ export function installSanitizeHooks(): void {
   })
   DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
     if (data.attrName === 'data-flying-config-active') data.keepAttr = false
+    if (data.attrName === 'data-url') data.keepAttr = isValidDynamicContentUrl(data.attrValue)
   })
   hookInstalled = true
 }

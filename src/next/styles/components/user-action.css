@@ -1,0 +1,65 @@
+/* Gallery Container Grid */
+[data-wallpaper-list] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+
+  figure[data-wp-item] {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: 0;
+    background: color-mix(in srgb, var(--st-note-window-content-background-color) 95%, #06075a 25%);
+    border: 1px solid rgb(173 159 159 / 66%);
+    box-shadow: 0 1px 12px rgb(0 0 0 / 40%);
+    transition: transform 0.2s ease, box-shadow .35s ease, border-color .2s ease;
+
+    &:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 14px 1px rgb(25 25 25 / 60%);
+      border-color: var(--st-color-accent-primary, #007acc88);;
+    }
+    img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      display: block;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    button {
+      margin: 0;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.825rem;
+      font-weight: 500;
+      border-radius: 0;
+      cursor: pointer;
+      transition: background 0.15s ease, opacity 0.15s ease;
+      color: #fff;
+
+      &:hover { opacity: 0.9; }
+      &:active { transform: scale(.97); }
+    }
+    [data-wp-actions] {
+      display: flex;
+      gap: .1rem;
+      padding: .5rem;
+
+      button {
+        padding: .5rem;
+        flex: 1 auto;
+      }
+      [data-click="usrCaptureImageAsWallpaper"] {
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: var(--st-color-accent-primary, #007acc);
+      }
+      [data-click="goToHref"] {
+        color: #252525;
+        max-width: 40px;
+      }
+    }
+  }
+}

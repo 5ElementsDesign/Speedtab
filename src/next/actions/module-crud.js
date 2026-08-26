@@ -1,19 +1,21 @@
 import {useFeed} from '../../composables/useFeed.ts'
 import {db} from '../../db/db.ts'
-import {closeModal, openModal} from '../components/modal.js'
-import {isBookmarkModuleType} from '../config/module-types.js'
-import {closeSidepanel, onSidepanelClose, openSidepanel} from '../components/sidepanel.js'
+import {softDeleteModuleTabCascade} from '../../next-sorter/data.js'
 import {syncOpenQuickSettingState} from '../components/dropdown.js'
-import {createBookmark, loadBookmarkBySyncId, saveBookmarkData, softDeleteBookmark} from '../data/bookmarks.js'
+import {closeModal, openModal} from '../components/modal.js'
+import {closeSidepanel, onSidepanelClose, openSidepanel} from '../components/sidepanel.js'
+import {showToast} from '../components/toast.js'
+import {isBookmarkModuleType} from '../config/module-types.js'
+import {createBookmark, loadBookmarkBySyncId, loadBookmarksByTabId, saveBookmarkData, softDeleteBookmark} from '../data/bookmarks.js'
 import {clearFeedItemsBySourceIds, createFeedSourceData, createSavedFeedItemData, loadFeedItemById, loadFeedItemsBySourceIds, loadFeedSourceById, loadFeedSourceBySyncId, loadFeedSourcesByCollectionId, loadSavedFeedItemsByCollectionId, saveFeedSourceData, softDeleteFeedSource, softDeleteSavedFeedItem} from '../data/feeds.js'
-import {loadModuleBySyncId} from '../data/modules.js'
-import {createNoteData, softDeleteNote} from '../data/notes.js'
-import {createModuleTab, loadModuleTabById, loadModuleTabBySyncId, saveModuleTabData, softDeleteModuleTab} from '../data/tabs.js'
+import {loadModuleBySyncId, saveModuleData} from '../data/modules.js'
+import {createNoteData, loadNotesByCollectionId, softDeleteNote} from '../data/notes.js'
+import {createModuleTab, loadModuleTabById, loadModuleTabBySyncId, saveModuleTabData} from '../data/tabs.js'
+import {createTodoData, loadTodosByCollectionId} from '../data/todos.js'
 import {upsertUiConfig} from '../data/ui-config.js'
 import {applyModuleUiConfig} from '../features/customizer/apply.js'
 import {initFormDirtyState, renderSidepanelDeleteFooter, updateFormDirtyState} from '../features/forms/actions.js'
 import {closeFloatingNote, openFloatingNote, startFloatingNoteEdit} from '../features/local-tools/manager.js'
-import {softDeleteModuleTabCascade} from '../../next-sorter/data.js'
 import {
   afterBookmarkFormRender,
   applyBookmarkPreviewCrop,
@@ -29,7 +31,6 @@ import {
   markBookmarkColorsEdited,
   patchBookmarkForm,
   renderBookmarkCrudForm,
-  rerenderBookmarkForm,
   resetBookmarkFormState,
   selectBookmarkFaviconAsset,
   selectBookmarkPreviewAsset,
@@ -38,9 +39,11 @@ import {
   toggleBookmarkFaviconPicker,
   toggleBookmarkPreviewPicker,
   uploadBookmarkFavicon,
-  uploadBookmarkPreview,
+  uploadBookmarkPreview
 } from '../features/modules/bookmark-form.js'
+import {getCollectionImportKind, parseCollectionImport} from '../features/modules/collection-import.js'
 import {getCrudPanelTitle, renderModuleCrudForm} from '../features/modules/crud-form.js'
+import {getFeedAutoRefreshDelay, getFeedFetchItemLimit, getFeedSkipImages, normalizeFeedAutoRefreshInterval, withFeedAutoRefreshInterval, withFeedFetchItemLimit, withFeedSkipImages} from '../features/modules/feed-auto-refresh.js'
 import {
   canSaveFeedSourceForm,
   getFeedFormState,
@@ -53,7 +56,7 @@ import {
   testFeedSourceUrl,
   useDiscoveredFeedUrl,
 } from '../features/modules/feed-form.js'
-import {addFeedLatestItems, closeFeedFocusState, computeFeedCollectionViewModel, getFeedUiState, initFeedFavicons, openFeedFocusState, renderFeedCollection, renderFeedContentZone, renderFeedFocusControls, renderFeedItem, renderFeedItemBody, renderFeedSidebarFooter, renderFeedToolbar, setFeedFocusWidth, setFeedRefreshingState, setFeedSourceLoadingState, toggleFeedItemExpansionState, toggleFeedLatestState, toggleFeedLoadedState, toggleFeedSourceState, toggleFeedUnreadState} from '../features/modules/feeds.js'
+import {addFeedLatestItems, closeFeedFocusState, computeFeedCollectionViewModel, getFeedUiState, initFeedFavicons, openFeedFocusState, queueFeedFavicons, renderFeedCollection, renderFeedContentZone, renderFeedFocusControls, renderFeedItem, renderFeedItemBody, setFeedFocusWidth, setFeedRefreshingState, setFeedSourceLoadingState, toggleFeedItemExpansionState, toggleFeedLatestState, toggleFeedLoadedState, toggleFeedSourceState, toggleFeedUnreadState} from '../features/modules/feeds.js'
 import {
   afterNoteFormRender,
   buildNoteSavePayload,
@@ -69,6 +72,7 @@ import {getVisibleBookmarkMediaScope, initBookmarkMedia} from '../utils/bookmark
 import {escapeHtml} from '../utils/html.js'
 import {t} from '../utils/i18n.js'
 import {readQuickModuleSettingValue} from '../utils/module-quick-settings.js'
+import {syncPictureInPicture} from './picture-in-picture.js'
 
 const feedApi = useFeed()
 
@@ -151,7 +155,7 @@ function renderArchivedFeedItemsModal(collectionId, items = []) {
   if (!items.length) {
     return `
       <div data-feed-archived-items>
-        <p class="st-module-empty-state">${escapeHtml(t('feeds.noArchivedFeedItems'))}</p>
+        <p class="st-module-empty-state mb-0">${escapeHtml(t('feeds.noArchivedFeedItems'))}</p>
         <div data-feed-archived-items-actions>
           <button type="button" class="st-btn" data-modal-close>${escapeHtml(t('common.close'))}</button>
         </div>
@@ -265,12 +269,12 @@ function getFeedCollectionContext(target) {
   return {collectionId, moduleSyncId, collectionRoot, collectionTitle}
 }
 
-async function refreshFeedSourceRecord(source) {
+async function refreshFeedSourceRecord(source, itemLimit = 100) {
   if (!source?.id) return 0
   const insertedItemIds = []
   try {
     const xml = await feedApi.fetchFeed(source.feed_url)
-    const parsedItems = feedApi.parseFeed(xml, source.id)
+    const parsedItems = feedApi.parseFeed(xml, source.id).slice(0, itemLimit)
     await db.transaction('rw', db.feed_items, db.feed_sources, async () => {
       for (const item of parsedItems) {
         const existing = item.external_id
@@ -297,6 +301,124 @@ async function refreshFeedSourceRecord(source) {
     })
   }
   return insertedItemIds
+}
+
+async function refreshAllFeedSources(moduleSyncId, collectionId) {
+  const sources = await loadFeedSourcesByCollectionId(collectionId)
+  const module = await loadModuleBySyncId(moduleSyncId)
+  const fetchItemLimit = getFeedFetchItemLimit(module?.config_json)
+  const focusState = getFeedUiState(moduleSyncId, collectionId)
+  setFeedRefreshingState(moduleSyncId, collectionId, true)
+  await refreshFeedCollectionView(moduleSyncId, collectionId)
+  try {
+    for (const source of sources) {
+      setFeedSourceLoadingState(moduleSyncId, collectionId, source.id)
+      await refreshFeedCollectionView(moduleSyncId, collectionId)
+      const insertedItemIds = await refreshFeedSourceRecord(source, fetchItemLimit)
+      if (insertedItemIds.length) addFeedLatestItems(moduleSyncId, collectionId, insertedItemIds)
+      setFeedSourceLoadingState(moduleSyncId, collectionId, null)
+      await refreshFeedCollectionView(moduleSyncId, collectionId)
+    }
+    const cutoff = Date.now() - (90 * 24 * 60 * 60 * 1000)
+    await db.feed_items.where('fetched_at').below(cutoff).delete()
+  } finally {
+    setFeedSourceLoadingState(moduleSyncId, collectionId, null)
+    setFeedRefreshingState(moduleSyncId, collectionId, false)
+    await refreshFeedCollectionView(moduleSyncId, collectionId)
+    if (focusState.focusOpen) {
+      openFeedFocusState(moduleSyncId, collectionId, focusState.focusWidth)
+      applyFeedFocusMode(moduleSyncId, collectionId)
+    }
+  }
+}
+
+async function refreshOneFeedSource(moduleSyncId, collectionId, source) {
+  if (!source?.id) return
+  const module = await loadModuleBySyncId(moduleSyncId)
+  const fetchItemLimit = getFeedFetchItemLimit(module?.config_json)
+
+  setFeedSourceLoadingState(moduleSyncId, collectionId, source.id)
+  await refreshFeedCollectionView(moduleSyncId, collectionId)
+  try {
+    const insertedItemIds = await refreshFeedSourceRecord(source, fetchItemLimit)
+    if (insertedItemIds.length) addFeedLatestItems(moduleSyncId, collectionId, insertedItemIds)
+  } finally {
+    setFeedSourceLoadingState(moduleSyncId, collectionId, null)
+    await refreshFeedCollectionView(moduleSyncId, collectionId)
+  }
+}
+
+let feedAutoRefreshTimer = null
+let feedAutoRefreshVisibilityBound = false
+const feedAutoRefreshStartedAt = new Map()
+const feedAutoRefreshBusy = new Set()
+
+function getActiveFeedAutoRefreshTargets() {
+  if (document.hidden) return []
+  return [...document.querySelectorAll('[data-feed-collection-id][data-feed-module-sync-id][data-feed-auto-refresh-interval]')]
+    .filter((element) => element instanceof HTMLElement && (
+      element.hasAttribute('data-feed-focus-open')
+      || !element.closest('[aria-hidden="true"], [inert]')
+    ))
+    .map((element) => ({
+      moduleSyncId: element.dataset.feedModuleSyncId || '',
+      collectionId: parseInt(element.dataset.feedCollectionId ?? '', 10),
+      interval: normalizeFeedAutoRefreshInterval(element.dataset.feedAutoRefreshInterval),
+    }))
+    .filter((target) => target.moduleSyncId && target.collectionId && target.interval)
+}
+
+function getFeedAutoRefreshKey(target) {
+  return `${target.moduleSyncId}:${target.collectionId}`
+}
+
+function clearFeedAutoRefreshTimer() {
+  if (feedAutoRefreshTimer !== null) window.clearTimeout(feedAutoRefreshTimer)
+  feedAutoRefreshTimer = null
+}
+
+async function runFeedAutoRefresh() {
+  const now = Date.now()
+  for (const target of getActiveFeedAutoRefreshTargets()) {
+    const key = getFeedAutoRefreshKey(target)
+    const startedAt = feedAutoRefreshStartedAt.get(key) ?? now
+    const interval = getFeedAutoRefreshDelay(target.interval)
+    if (now - startedAt < interval || feedAutoRefreshBusy.has(key)) continue
+    feedAutoRefreshStartedAt.set(key, now)
+    feedAutoRefreshBusy.add(key)
+    try {
+      await refreshAllFeedSources(target.moduleSyncId, target.collectionId)
+    } finally {
+      feedAutoRefreshBusy.delete(key)
+    }
+  }
+  syncFeedAutoRefreshSchedule()
+}
+
+export function syncFeedAutoRefreshSchedule() {
+  clearFeedAutoRefreshTimer()
+  if (!feedAutoRefreshVisibilityBound) {
+    feedAutoRefreshVisibilityBound = true
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) feedAutoRefreshStartedAt.clear()
+      syncFeedAutoRefreshSchedule()
+    })
+  }
+  const now = Date.now()
+  const targets = getActiveFeedAutoRefreshTargets()
+  const activeKeys = new Set(targets.map(getFeedAutoRefreshKey))
+  feedAutoRefreshStartedAt.forEach((_value, key) => {
+    if (!activeKeys.has(key)) feedAutoRefreshStartedAt.delete(key)
+  })
+  let nextDelay = null
+  targets.forEach((target) => {
+    const key = getFeedAutoRefreshKey(target)
+    const startedAt = feedAutoRefreshStartedAt.get(key) ?? now
+    feedAutoRefreshStartedAt.set(key, startedAt)
+    const delay = Math.max(1, getFeedAutoRefreshDelay(target.interval) - (now - startedAt))
+    nextDelay = nextDelay === null ? delay : Math.min(nextDelay, delay)
+  })
+  if (nextDelay !== null) feedAutoRefreshTimer = window.setTimeout(runFeedAutoRefresh, nextDelay)
 }
 
 /**
@@ -415,6 +537,7 @@ function patchFeedCollectionView(collectionRoot, collectionData, moduleSyncId, m
         btn.setAttribute('aria-busy', isLoading ? 'true' : 'false')
       }
       row.classList.toggle('is-loading', isLoading)
+      row.toggleAttribute('data-feed-source-loaded', source.last_fetched_at != null)
     })
   }
 
@@ -520,7 +643,7 @@ function patchFeedCollectionView(collectionRoot, collectionData, moduleSyncId, m
     if (!(article instanceof HTMLElement)) {
       const source = sourceById.get(item.feed_source_id)
       const wrapper = document.createElement('div')
-      wrapper.innerHTML = renderFeedItem(item, source, moduleSyncId, collectionId, state, isArchived).trim()
+      wrapper.innerHTML = renderFeedItem(item, source, moduleSyncId, collectionId, state, isArchived, vm.skipImages).trim()
       article = wrapper.firstElementChild
       if (!(article instanceof HTMLElement)) return
       newArticles.push(article)
@@ -581,11 +704,12 @@ async function refreshFeedCollectionView(moduleSyncId, collectionId, options = {
       const parsed = JSON.parse(module.config_json)
       return {
         feedItemLimit: typeof parsed.feed_item_limit === 'number' ? parsed.feed_item_limit : 0,
+        skipImages: getFeedSkipImages(module.config_json),
       }
     } catch {
-      return {feedItemLimit: 0}
+      return {feedItemLimit: 0, skipImages: true}
     }
-  })() : {feedItemLimit: 0}
+  })() : {feedItemLimit: 0, skipImages: true}
 
   const collectionData = {
     ...tab,
@@ -609,7 +733,7 @@ async function refreshFeedCollectionView(moduleSyncId, collectionId, options = {
     const nextRoot = wrapper.firstElementChild
     if (!(nextRoot instanceof HTMLElement)) return
     collectionRoot.replaceWith(nextRoot)
-    initFeedFavicons(nextRoot)
+    queueFeedFavicons(nextRoot)
 
     const nextOuterScrollHost = nextRoot.querySelector('.st-module-feed-list')
     const nextInnerScrollHost = nextRoot.querySelector('.st-module-feed-list-inner')
@@ -630,6 +754,7 @@ async function refreshFeedCollectionView(moduleSyncId, collectionId, options = {
     } else {
       clearFeedFocusMode(moduleSyncId)
     }
+    syncPictureInPicture()
     return
   }
 
@@ -654,6 +779,8 @@ async function refreshFeedCollectionView(moduleSyncId, collectionId, options = {
   } else {
     clearFeedFocusMode(moduleSyncId)
   }
+  queueFeedFavicons(collectionRoot)
+  syncPictureInPicture()
 }
 
 function updateFeedItemDom(article, item, context) {
@@ -685,23 +812,28 @@ function updateFeedItemDom(article, item, context) {
 
   if (!expanded) {
     existingBody?.remove()
+    syncPictureInPicture()
     return
   }
 
+  const skipImages = article.closest('[data-feed-skip-images]')?.getAttribute('data-feed-skip-images') !== 'false'
   const bodyHtml = renderFeedItemBody(
     item.read_at == null ? {...item, read_at: Date.now()} : item,
     sourceTitle,
     context.moduleSyncId,
     context.collectionId,
     isArchived,
+    skipImages,
   ).trim()
 
   if (existingBody) {
     existingBody.outerHTML = bodyHtml
+    syncPictureInPicture()
     return
   }
 
   header?.insertAdjacentHTML('afterend', bodyHtml)
+  syncPictureInPicture()
 }
 
 export async function ensureFeedCollectionLoaded(moduleSyncId, collectionId) {
@@ -765,13 +897,18 @@ async function openCrudPanel({entityType, record = null, moduleSyncId = '', modu
     }
 
     resetBookmarkFormState()
+    const hasContent = entityType === 'tab' && record?.id
+      ? (await loadCollectionContent(panelModuleType, record.id)).length > 0
+      : false
     body.innerHTML = renderModuleCrudForm({
       entityType,
       record,
       moduleSyncId,
+      moduleType: panelModuleType,
       parentId,
       parentSyncId,
       parentTitle,
+      hasContent,
     })
     initFormDirtyState(body)
     if (entityType === 'tab') {
@@ -857,6 +994,59 @@ function normalizeTabPayload(form) {
   }
 }
 
+async function importCollectionRecords(moduleType, collectionId, records = []) {
+  const kind = getCollectionImportKind(moduleType)
+  const table = kind === 'bookmark' ? db.tabs : kind === 'note' ? db.notes : kind === 'todo' ? db.todos : null
+  if (!table) return
+  await db.transaction('rw', table, async () => {
+    for (const record of records) {
+      const {sort_order: _sortOrder, ...payload} = record
+      if (kind === 'bookmark') await createBookmark(collectionId, payload)
+      if (kind === 'note') await createNoteData(collectionId, payload)
+      if (kind === 'todo') await createTodoData(collectionId, payload)
+    }
+  })
+}
+
+async function loadCollectionContent(moduleType, collectionId) {
+  const kind = getCollectionImportKind(moduleType)
+  if (kind === 'bookmark') return loadBookmarksByTabId(collectionId)
+  if (kind === 'note') return loadNotesByCollectionId(collectionId)
+  if (kind === 'todo') return loadTodosByCollectionId(collectionId)
+  return []
+}
+
+function exportCollectionRows(moduleType, rows = []) {
+  const kind = getCollectionImportKind(moduleType)
+  const fields = kind === 'bookmark'
+    ? ['title', 'url', 'description', 'color', 'background_color', 'preview_padding', 'meta_json', 'sort_order']
+    : kind === 'note'
+      ? ['title', 'type', 'content', 'style_token', 'meta_json', 'sort_order']
+      : ['title', 'note', 'completed_at', 'due_at', 'priority', 'color_scheme', 'sort_order']
+  return rows.map((row) => Object.fromEntries(fields
+    .filter((field) => row[field] != null)
+    .map((field) => [field, row[field]])))
+}
+
+function filenamePart(value) {
+  return String(value ?? '').trim().replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ') || 'Untitled'
+}
+
+function downloadJson(filename, payload) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], {type: 'application/json'}))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+function readCollectionImport(form, moduleType) {
+  const raw = form.querySelector('[name="collection-import-json"]')?.value?.trim() || ''
+  if (!raw) return []
+  return parseCollectionImport(raw, moduleType)
+}
+
 function getFormContext(target) {
   const form = target?.matches?.('[data-module-crud-form]')
     ? target
@@ -902,6 +1092,58 @@ export const moduleCrudActions = {
         'module-column-span': Math.max(1, Math.min(12, columnSpan)),
       },
     })
+  },
+
+  async changeFeedAutoRefresh(target) {
+    const id = parseInt(target.dataset.recordId ?? '', 10)
+    const moduleSyncId = target.dataset.moduleSyncId || ''
+    if (!id || !moduleSyncId) return
+    const tab = await loadModuleTabById(id)
+    if (!tab) return
+    await saveModuleTabData(id, {
+      config_json: withFeedAutoRefreshInterval(tab.config_json, target.value),
+    })
+    const {refreshModuleContent} = await import('../app/bootstrap.js')
+    await refreshModuleContent(moduleSyncId)
+    syncFeedAutoRefreshSchedule()
+  },
+
+  async changeFeedSkipImages(target) {
+    const moduleSyncId = target.dataset.moduleSyncId || ''
+    if (!moduleSyncId) return
+    const module = await loadModuleBySyncId(moduleSyncId)
+    if (!module) return
+    await saveModuleData(module.id, {
+      config_json: withFeedSkipImages(module.config_json, target.checked),
+    })
+    const {refreshModuleContent} = await import('../app/bootstrap.js')
+    await refreshModuleContent(moduleSyncId)
+  },
+
+  async toggleFeedSkipImages(target) {
+    const moduleSyncId = target.dataset.syncId || ''
+    if (!moduleSyncId) return
+    const module = await loadModuleBySyncId(moduleSyncId)
+    if (!module) return
+    await saveModuleData(module.id, {
+      config_json: withFeedSkipImages(module.config_json, !getFeedSkipImages(module.config_json)),
+    })
+    const {refreshModuleContent} = await import('../app/bootstrap.js')
+    await refreshModuleContent(moduleSyncId)
+  },
+
+  async changeFeedFetchItemLimit(target) {
+    const moduleSyncId = target.dataset.moduleSyncId || ''
+    if (!moduleSyncId) return
+    const module = await loadModuleBySyncId(moduleSyncId)
+    if (!module) return
+    const limit = getFeedFetchItemLimit(JSON.stringify({feed_fetch_item_limit: target.value}))
+    target.value = String(limit)
+    await saveModuleData(module.id, {
+      config_json: withFeedFetchItemLimit(module.config_json, limit),
+    })
+    const {refreshModuleContent} = await import('../app/bootstrap.js')
+    await refreshModuleContent(moduleSyncId)
   },
 
   async addModuleTab(target) {
@@ -1028,6 +1270,20 @@ export const moduleCrudActions = {
     const context = getFeedCollectionContext(target)
     const sourceId = parseInt(target.dataset.feedSourceId ?? '', 10)
     if (!context || !sourceId) return
+    const state = getFeedUiState(context.moduleSyncId, context.collectionId)
+    if (state.loadingSourceId === sourceId) return
+
+    const source = await loadFeedSourceById(sourceId)
+    if (!source) return
+
+    if (source.last_fetched_at == null) {
+      if (state.activeSourceId !== sourceId) {
+        toggleFeedSourceState(context.moduleSyncId, context.collectionId, sourceId)
+      }
+      await refreshOneFeedSource(context.moduleSyncId, context.collectionId, source)
+      return
+    }
+
     toggleFeedSourceState(context.moduleSyncId, context.collectionId, sourceId)
     await refreshFeedCollectionView(context.moduleSyncId, context.collectionId)
   },
@@ -1062,6 +1318,7 @@ export const moduleCrudActions = {
     if (value === 'expand') {
       closeFeedFocusState(moduleSyncId, collectionId)
       await refreshFeedCollectionView(moduleSyncId, collectionId)
+      syncFeedAutoRefreshSchedule()
       return
     }
 
@@ -1069,6 +1326,7 @@ export const moduleCrudActions = {
     setFeedFocusWidth(moduleSyncId, collectionId, value)
     openFeedFocusState(moduleSyncId, collectionId, value)
     await refreshFeedCollectionView(moduleSyncId, collectionId)
+    syncFeedAutoRefreshSchedule()
   },
 
   async openFeedFocusQuick(target) {
@@ -1080,6 +1338,7 @@ export const moduleCrudActions = {
     primeFeedFocusPlaceholder(moduleSyncId)
     openFeedFocusState(moduleSyncId, collectionId, state.focusWidth)
     await refreshFeedCollectionView(moduleSyncId, collectionId)
+    syncFeedAutoRefreshSchedule()
   },
 
   async closeFeedFocusMode(target) {
@@ -1088,6 +1347,7 @@ export const moduleCrudActions = {
     if (!moduleSyncId || !collectionId) return
     closeFeedFocusState(moduleSyncId, collectionId)
     await refreshFeedCollectionView(moduleSyncId, collectionId)
+    syncFeedAutoRefreshSchedule()
   },
 
   async toggleFeedItem(target) {
@@ -1131,28 +1391,9 @@ export const moduleCrudActions = {
   async refreshAllFeeds(target) {
     const context = getFeedCollectionContext(target)
     if (!context) return
-    const sources = await loadFeedSourcesByCollectionId(context.collectionId)
-    setFeedRefreshingState(context.moduleSyncId, context.collectionId, true)
-    await refreshFeedCollectionView(context.moduleSyncId, context.collectionId)
-    try {
-      for (const source of sources) {
-        setFeedSourceLoadingState(context.moduleSyncId, context.collectionId, source.id)
-        await refreshFeedCollectionView(context.moduleSyncId, context.collectionId)
-        const insertedItemIds = await refreshFeedSourceRecord(source)
-        if (insertedItemIds.length) {
-          addFeedLatestItems(context.moduleSyncId, context.collectionId, insertedItemIds)
-        }
-        setFeedSourceLoadingState(context.moduleSyncId, context.collectionId, null)
-        await refreshFeedCollectionView(context.moduleSyncId, context.collectionId)
-      }
-      setFeedSourceLoadingState(context.moduleSyncId, context.collectionId, null)
-      const cutoff = Date.now() - (90 * 24 * 60 * 60 * 1000)
-      await db.feed_items.where('fetched_at').below(cutoff).delete()
-    } finally {
-      setFeedSourceLoadingState(context.moduleSyncId, context.collectionId, null)
-      setFeedRefreshingState(context.moduleSyncId, context.collectionId, false)
-      await refreshFeedCollectionView(context.moduleSyncId, context.collectionId)
-    }
+    feedAutoRefreshStartedAt.set(`${context.moduleSyncId}:${context.collectionId}`, Date.now())
+    await refreshAllFeedSources(context.moduleSyncId, context.collectionId)
+    syncFeedAutoRefreshSchedule()
   },
 
   async clearModuleFeedItems(target) {
@@ -1165,13 +1406,15 @@ export const moduleCrudActions = {
     const scope = t('feeds.clearLoadedAll')
     if (!confirm(t('feeds.clearLoadedConfirm', {scope}))) return
 
-    const sourceIds = (await loadFeedSourcesByCollectionId(currentTab.tabId))
+    const sources = await loadFeedSourcesByCollectionId(currentTab.tabId)
+    const sourceIds = sources
       .map((source) => source.id)
       .filter((id) => typeof id === 'number')
 
     if (!sourceIds.length) return
 
     await clearFeedItemsBySourceIds(sourceIds)
+    await Promise.all(sourceIds.map((sourceId) => saveFeedSourceData(sourceId, {last_fetched_at: null})))
     await refreshFeedCollectionView(moduleSyncId, currentTab.tabId)
   },
 
@@ -1355,6 +1598,61 @@ export const moduleCrudActions = {
       await rerenderAndReopen('feed-source', record?.sync_id ?? '', context.moduleSyncId)
       return
     }
+  },
+
+  async moduleCrudImport(target) {
+    const form = target?.matches?.('[data-module-crud-import]') ? target : target?.closest?.('[data-module-crud-import]')
+    if (!(form instanceof HTMLFormElement)) return
+    const collectionId = parseInt(form.dataset.recordId ?? '', 10)
+    const moduleSyncId = form.dataset.moduleSyncId || ''
+    const moduleType = form.dataset.moduleType || ''
+    const recordSyncId = form.dataset.recordSyncId || ''
+    if (!collectionId || !moduleSyncId || !recordSyncId) return
+    let importedRecords
+    try {
+      importedRecords = readCollectionImport(form, moduleType)
+    } catch (error) {
+      const code = error instanceof Error ? error.message : 'invalid-json'
+      showToast({tone: 'danger', message: t(`moduleCrud.import.${code}`)})
+      return
+    }
+    if (!importedRecords.length) {
+      showToast({tone: 'danger', message: t('moduleCrud.import.empty-import')})
+      return
+    }
+    await importCollectionRecords(moduleType, collectionId, importedRecords)
+    await rerenderAndReopen('tab', recordSyncId, moduleSyncId)
+  },
+
+  async collectionImportFileChange(target) {
+    if (!(target instanceof HTMLInputElement)) return
+    const file = target.files?.[0]
+    const form = target.closest('[data-module-crud-import]')
+    const textarea = form?.querySelector('[name="collection-import-json"]')
+    if (!file || !(textarea instanceof HTMLTextAreaElement)) return
+    try {
+      textarea.value = await file.text()
+    } catch {
+      showToast({tone: 'danger', message: t('moduleCrud.import.fileReadError')})
+    } finally {
+      target.value = ''
+    }
+  },
+
+  async downloadModuleTabContent(target) {
+    const collectionId = parseInt(target.dataset.recordId ?? '', 10)
+    const moduleSyncId = target.dataset.moduleSyncId || ''
+    const moduleType = target.dataset.moduleType || ''
+    if (!collectionId || !moduleSyncId || !getCollectionImportKind(moduleType)) return
+    const [tab, module, rows] = await Promise.all([
+      loadModuleTabById(collectionId),
+      loadModuleBySyncId(moduleSyncId),
+      loadCollectionContent(moduleType, collectionId),
+    ])
+    if (!tab || !module || !rows.length) return
+    const page = await db.pages.get(module.page_id)
+    const filename = `Speedtab-${filenamePart(page?.title)}-${filenamePart(module.title)}-${filenamePart(tab.title)}-All.json`
+    downloadJson(filename, exportCollectionRows(moduleType, rows))
   },
 
   async moduleCrudDelete(target) {

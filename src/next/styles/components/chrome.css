@@ -109,7 +109,7 @@ body[data-sidepanel-active] #app {
   }
 
   .st-app-empty-card {
-    width: min(740px, 100%);
+    width: min(680px, 100%);
     padding: 34px 44px;
     background: rgba(41, 35, 35, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -209,8 +209,12 @@ body[data-sidepanel-active] #app {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 4px;
       flex-wrap: wrap;
+
+      button {
+        min-width: 140px;
+      }
     }
   }
   .st-app-card-select-locale-container {
@@ -225,6 +229,7 @@ body[data-sidepanel-active] #app {
     display: flex;
     align-items: center;
     gap: 4px;
+    flex-wrap: wrap;
 
     button {
       display: inline-flex;
@@ -252,6 +257,7 @@ body[data-sidepanel-active] #app {
       border: 1px solid rgba(255, 255, 255, 0.06);
       color: rgba(255, 255, 255, 0.8);
       width: auto;
+      max-width: fit-content;
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
@@ -577,7 +583,11 @@ html.light .st-app-empty :is(.st-app-empty-actions, .st-app-empty-theme-actions)
   [data-orphan-row] {
     display: block;
   }
-
+  .st-app-empty {
+    .st-app-empty-card.st-main-card {
+      padding: 32px 20px;
+    }
+  }
   [data-orphans-page-header] > button,
   [data-orphan-row] > button {
     margin-top: 10px;
@@ -609,7 +619,6 @@ html.light .st-app-empty :is(.st-app-empty-actions, .st-app-empty-theme-actions)
 
   .st-app-empty {
     padding: 32px 16px 48px;
-    text-align: left;
     align-items: stretch;
 
     h1 {
@@ -619,12 +628,11 @@ html.light .st-app-empty :is(.st-app-empty-actions, .st-app-empty-theme-actions)
 
   .st-app-empty-actions {
     display: flex;
-    flex-direction: column;
     align-items: stretch;
 
     .st-btn,
     button {
-      width: 100%;
+      flex: auto;
     }
   }
 
@@ -680,20 +688,6 @@ html.light .st-app-empty :is(.st-app-empty-actions, .st-app-empty-theme-actions)
     }
   }
 
-  /* [data-app-header-actions] [data-dropdown],
-  [data-app-header-actions] [data-speedtab-search] {
-    width: 100%;
-  }
-
-  [data-app-header-actions] [data-dropdown-trigger],
-  [data-app-header-actions] [data-search-trigger],
-  [data-app-header-actions] [data-search-input-wrap],
-  [data-app-header-actions] [data-search-input-wrap] input[type="search"] {
-    width: 100%;
-    min-height: var(--yai-tabs-button-min-height);
-    height: var(--yai-tabs-button-min-height);
-  } */
-
   [data-app-header-actions] {
     width: 100%;
     margin-inline-start: 0;
@@ -706,9 +700,7 @@ html.light .st-app-empty :is(.st-app-empty-actions, .st-app-empty-theme-actions)
       flex: 1 1 33%;
       min-width: 0;
     }
-    button {
-      width: 100%;
-    }
+
     [data-dropdown],
     [data-speedtab-search] {
       width: 100%;
@@ -799,12 +791,16 @@ html.light .st-app-empty :is(.st-app-empty-actions, .st-app-empty-theme-actions)
     gap: var(--st-dropdown-list-gap);
   }
 
-  [data-click="addModuleBookmark"],
-  [data-click="addModuleNote"],
-  [data-click="addModuleFeed"] {
+  [data-click] {
     display: flex;
     gap: 8px;
     align-items: center;
+  }
+
+  [data-quick-setting-columns-grid] {
+    [data-click] {
+      justify-content: center;
+    }
   }
 
   li {
@@ -844,6 +840,12 @@ html.light .st-app-empty :is(.st-app-empty-actions, .st-app-empty-theme-actions)
 
   [data-dropdown-submenu] {
     position: relative;
+
+    &:focus,
+    &:hover {
+      color: var(--st-dropdown-panel-button-color-hover);
+      background-color: var(--st-dropdown-panel-button-background-color-hover);
+    }
   }
 
   [data-dropdown-submenu-trigger] {
@@ -881,8 +883,10 @@ html.light .st-app-empty :is(.st-app-empty-actions, .st-app-empty-theme-actions)
   [data-dropdown-submenu-panel] {
     position: absolute;
     top: -7px;
-    inset-inline-start: calc(100% - 1px);
+    margin-top: -50%;
+    inset-inline-start: calc(100% - 6px);
     min-width: 14.5rem;
+    min-height: 150px;
     padding: 6px 0;
     border: 1px solid var(--st-dropdown-border-color);
     box-shadow: 0 1px 5px 1px var(--st-dropdown-border-color);
@@ -890,26 +894,36 @@ html.light .st-app-empty :is(.st-app-empty-actions, .st-app-empty-theme-actions)
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity .2s ease-out .4s, visibility 0s linear .7s;
+    transition: opacity .16s ease-out .12s, visibility 0s linear .28s, pointer-events 0s linear .28s;
     z-index: 1;
   }
 
   &[data-align="right"] [data-dropdown-submenu-panel] {
     inset-inline-start: auto;
-    inset-inline-end: calc(100% - 1px);
+    inset-inline-end: calc(100% - 6px);
   }
 
   [data-dropdown-submenu]:is(:hover, :focus-within) [data-dropdown-submenu-panel] {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
-    transition: opacity 0.15s ease-out, visibility 0s linear 0s;
+    transition: opacity .15s ease-out, visibility 0s linear 0s, pointer-events 0s linear 0s;
   }
 
   [data-quick-setting-active] {
     color: #fff !important;
     background-color: color-mix(in srgb, var(--st-dropdown-panel-button-background-color-hover) 72%, #1b6ac1 28%) !important;
     box-shadow: inset 2px 0 0 0 var(--yai-tabs-color-secondary) !important;
+  }
+
+  [data-feed-clear-loaded] {
+    color: #fff;
+    background-color: color-mix(in srgb, var(--st-color-warning) 52%, var(--st-dropdown-background-color));
+
+    &:is(:focus, :hover, :active) {
+      color: #fff;
+      background-color: color-mix(in srgb, var(--st-color-warning) 68%, var(--st-dropdown-background-color));
+    }
   }
 
   [data-quick-setting-columns] {
@@ -1040,10 +1054,6 @@ html.light .st-app-empty :is(.st-app-empty-actions, .st-app-empty-theme-actions)
     margin: 0 4px 0 0;
     padding: 0 2px 0 0;
   }
-
-/*   [data-sidepanel-close] {
-    font-size: 18px;
-  } */
 
   [data-sidepanel-body] {
     flex: 1;

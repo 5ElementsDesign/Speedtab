@@ -19,6 +19,12 @@ const nl = {
     current: 'Huidige',
     customize: 'Aanpassen',
     appearance: 'Uiterlijk',
+    pictureInPicture: 'Beeld-in-beeld',
+  },
+  todo: {
+    tiles: 'Taken als tegels weergeven',
+    created: 'Aangemaakt', updated: 'Bijgewerkt', finished: 'Voltooid',
+    moduleType: 'Taken', add: 'Taak toevoegen', addPlaceholder: 'Een taak toevoegen…', empty: 'Nog geen taken.', untitled: 'Naamloze taak', edit: 'Taak bewerken', dueAt: 'Vervaldatum en -tijd', completed: 'Voltooid', note: 'Notitie', markComplete: 'Markeren als voltooid', markIncomplete: 'Markeren als niet voltooid', confirmDelete: 'Deze taak verwijderen?', priority: {label: 'Prioriteit', none: 'Geen', low: 'Laag', medium: 'Gemiddeld', high: 'Hoog'},
   },
   app: {
     title: 'Speedtab',
@@ -307,7 +313,6 @@ const nl = {
     showHoverActions: 'Visuele bladwijzer zweefactieknoppen tonen',
     quicklinksMode: 'Snelkoppelingenmodus',
     forceFavicon: 'Favicon forceren',
-    showTitleBelow: 'Grote tegels modus',
     layoutGrid: 'Layoutraster',
     bookmarkOpenBehavior: 'Openingsgedrag visuele bladwijzer',
     visibleFeedItems: 'Zichtbare feed-items',
@@ -364,6 +369,12 @@ const nl = {
     sections: {
       context: 'Context',
       identity: 'Identiteit',
+      import: 'Importeren',
+    },
+    import: {
+      bookmark: 'JSON voor visuele bladwijzers', note: 'JSON voor notities', todo: 'JSON voor taken',
+      help: 'Plak een JSON-array of kies een JSON-bestand. De items worden aan dit tabblad toegevoegd.',
+      chooseFile: 'JSON-bestand kiezen', import: 'Importeren', download: 'Downloaden als JSON', invalidJson: 'De import bevat geen geldige JSON.', 'invalid-json': 'De import bevat geen geldige JSON.', 'empty-import': 'Voeg minstens één item toe om te importeren.', 'invalid-item': 'Een of meer importitems zijn ongeldig.', fileReadError: 'Het JSON-bestand kon niet worden gelezen.',
     },
     fields: {
       url: 'URL',
@@ -466,6 +477,7 @@ const nl = {
     sections: {
       behavior: 'Gedrag',
       layout: 'Indeling',
+      utilities: 'Hulpmiddelen',
       appearance: 'Uiterlijk',
       background: 'Achtergrond',
     },
@@ -1153,6 +1165,11 @@ const nl = {
     },
   },
   feeds: {
+    autoRefresh: 'Automatisch vernieuwen',
+    skipImages: 'Afbeeldingen niet downloaden',
+    fetchItemLimit: 'Totaal opgehaalde items',
+    autoRefreshOff: 'Uit',
+    autoRefreshMinutes: '{minutes} min',
     feedSourcesAria: 'Feedbronnen',
     clearLoadedForSource: 'de geladen feed-items voor "{title}"',
     clearLoadedNew: 'de nieuw opgehaalde geladen items op dit tabblad',

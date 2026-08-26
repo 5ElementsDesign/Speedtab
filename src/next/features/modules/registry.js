@@ -5,6 +5,7 @@ import {t} from '../../utils/i18n.js'
 import {renderNotesModule} from '../pages/modules/notes/render.js'
 import {renderSpeedDialModule} from '../pages/modules/speed-dial/render.js'
 import {renderTabsModule} from '../pages/modules/tabs/render.js'
+import {renderTodoModule} from '../pages/modules/todo/render.js'
 import {renderFeedsModule} from './feeds.js'
 
 const BOOKMARK_ACTION_ITEMS = [
@@ -29,8 +30,13 @@ const MODULE_ACTION_ITEMS = {
     {labelKey: 'modules.actions.addTab', action: 'addModuleTab'},
     {labelKey: 'modules.actions.editTab', action: 'editCurrentModuleTab'},
     {labelKey: 'modules.actions.addSource', action: 'addModuleFeed', dividerTop: true, icon: 'plus'},
-    {labelKey: 'feeds.archivedFeedItemsTitle', action: 'openArchivedFeedItems'},
-    {labelKey: 'feeds.clearLoaded', action: 'clearModuleFeedItems', dividerTop: true},
+    {labelKey: 'common.customize', action: 'openCustomizer', dividerTop: true},
+    {labelKey: 'modules.actions.quickSettings', submenu: 'moduleQuickSettings', dividerTop: true},
+  ],
+  todo: [
+    {labelKey: 'modules.actions.addTab', action: 'addModuleTab'},
+    {labelKey: 'modules.actions.editTab', action: 'editCurrentModuleTab'},
+    {labelKey: 'todo.add', action: 'focusTodoAdd', dividerTop: true, icon: 'plus'},
     {labelKey: 'common.customize', action: 'openCustomizer', dividerTop: true},
     {labelKey: 'modules.actions.quickSettings', submenu: 'moduleQuickSettings', dividerTop: true},
   ],
@@ -70,6 +76,18 @@ function buildModuleQuickSettings(viewModel) {
 
   const items = []
 
+  if (viewModel.type === 'feeds') {
+    items.push({
+      label: t('feeds.clearLoaded'),
+      action: 'clearModuleFeedItems',
+      dividerBottom: true,
+      attributes: {
+        ...sharedAttributes,
+        'data-feed-clear-loaded': '',
+      },
+    })
+  }
+
   if (!isSpeedDialModuleType(viewModel.type)) {
     items.push({
       label: t('customizer.fields.moduleHideHeader'),
@@ -100,14 +118,6 @@ function buildModuleQuickSettings(viewModel) {
           'data-quick-setting-key': 'module-tabs-quicklinks',
         },
       },
-      {
-        label: t('moduleForm.showTitleBelow'),
-        action: 'toggleQuickModuleSetting',
-        attributes: {
-          ...sharedAttributes,
-          'data-quick-setting-key': 'module-tabs-show-title-below',
-        },
-      },
     )
   }
 
@@ -118,6 +128,28 @@ function buildModuleQuickSettings(viewModel) {
       attributes: {
         ...sharedAttributes,
         'data-quick-setting-key': 'module-tabs-show-add-tile',
+      },
+    })
+  }
+
+  if (viewModel.type === 'todo') {
+    items.push({
+      label: t('todo.tiles'),
+      action: 'toggleQuickModuleSetting',
+      attributes: {
+        ...sharedAttributes,
+        'data-quick-setting-key': 'todo-show-tiles',
+      },
+    })
+  }
+
+  if (viewModel.type === 'feeds') {
+    items.push({
+      label: t('feeds.skipImages'),
+      action: 'toggleFeedSkipImages',
+      attributes: {
+        ...sharedAttributes,
+        'data-quick-setting-key': 'feed-skip-images',
       },
     })
   }
@@ -239,6 +271,21 @@ const MODULE_DEFINITIONS = {
     },
     renderBody(viewModel) {
       return renderNotesModule(viewModel.tabs, buildModuleActions(viewModel), viewModel.moduleId, viewModel.syncId, viewModel.config)
+    },
+  },
+  todo: {
+    async enrich(module, context) {
+      const tabs = await context.loadTabsByModuleId(module.id)
+      const tabsWithTodos = await Promise.all(
+        tabs.map(async (tab) => ({...tab, todos: await context.loadTodosByCollectionId(tab.id)})),
+      )
+      return {...module, tabs: tabsWithTodos}
+    },
+    adapt(module) {
+      return createBaseViewModel(module)
+    },
+    renderBody(viewModel) {
+      return renderTodoModule(viewModel.tabs, buildModuleActions(viewModel), viewModel.moduleId, viewModel.syncId)
     },
   },
   feeds: {

@@ -127,6 +127,16 @@ describe('useSanitize – allowlist preservation', () => {
     expect(out).toContain('<div data-tab="2">Content B</div>')
   })
 
+  it('keeps valid data-url values for YaiTabs dynamic content', () => {
+    const out = sanitizeHtml('<button data-tab-action="open" data-url="https://example.com/content.html">Load</button>')
+    expect(out).toContain('data-url="https://example.com/content.html"')
+  })
+
+  it('removes unsafe data-url values', () => {
+    const out = sanitizeHtml('<button data-url="javascript:alert(1)">Load</button>')
+    expect(out).not.toContain('data-url=')
+  })
+
   it('keeps YaiTabs header and footer wrappers with data attributes', () => {
     const html = `
       <div data-yai-tabs>

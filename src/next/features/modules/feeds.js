@@ -3,6 +3,7 @@ import {getCachedAppSettings} from '../../data/app-settings.js'
 import {initFavicons} from '../../utils/favicon.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
+import {getFeedAutoRefreshInterval, getFeedSkipImages} from './feed-auto-refresh.js'
 
 const feedUiStateByKey = new Map()
 const FEED_FOCUS_STORAGE_KEY = 'speedtab.next.feed.focus'
@@ -51,14 +52,15 @@ function createDefaultState(key = '') {
 }
 
 function parseFeedModuleConfig(configJson) {
-  if (!configJson) return {feedItemLimit: 0}
+  if (!configJson) return {feedItemLimit: 0, skipImages: true}
   try {
     const parsed = JSON.parse(configJson)
     return {
       feedItemLimit: typeof parsed.feed_item_limit === 'number' ? parsed.feed_item_limit : 0,
+      skipImages: getFeedSkipImages(configJson),
     }
   } catch {
-    return {feedItemLimit: 0}
+    return {feedItemLimit: 0, skipImages: true}
   }
 }
 
@@ -262,6 +264,17 @@ export function renderFeedFocusControls(moduleSyncId, collectionId, state) {
           title="${escapeHtml(t('feeds.focusQuickTitle', {width: quickWidth === 'max' ? t('feeds.focusMax') : quickWidth}))}"
         >${escapeHtml(quickWidth === 'max' ? t('feeds.focusMax') : quickWidth)}</button>
       ` : ''}
+      <button
+        type="button"
+        class="st-module-feed-toolbar-button"
+        data-click="openInPip"
+        data-pip-trigger
+        data-pip-target="${escapeHtml(`[data-module-card][data-sync-id=\"${moduleSyncId}\"]`)}"
+        data-pip-width="1040"
+        data-pip-height="800"
+        title="${escapeHtml(t('common.pictureInPicture'))}"
+        aria-label="${escapeHtml(t('common.pictureInPicture'))}"
+      ><i data-icon="external" aria-hidden="true"></i></button>
       ${state.focusOpen ? `
         <button
           type="button"
@@ -315,16 +328,44 @@ function formatCompactNumber(value) {
 
 function decorateFeedContentMedia(html) {
   if (!html) return ''
-  const withClasses = html
-    .replace(/<img\b(?![^>]*\bclass=)([^>]*)>/gi, '<img class="fade-in-up show"$1>')
-    .replace(/<img\b([^>]*?)\bclass=(["'])([^"']*)\2([^>]*)>/gi, (_match, before, quote, classes, after) => {
-      const nextClasses = classes.includes('fade-in-up') ? classes : `${classes} fade-in-up show`.trim()
-      return `<img${before}class=${quote}${nextClasses}${quote}${after}>`
-    })
-  return withClasses.replace(/(<img\b[^>]*>)/gi, '<span data-feed-img>$1</span>')
+  return html.replace(/(<img\b[^>]*>)/gi, '<span data-feed-img>$1</span>')
 }
 
-function renderYoutubeExtras(item) {
+function collapseFeedLineBreaks(html) {
+  if (!html) return ''
+  const template = document.createElement('template')
+  template.innerHTML = html
+  template.content.querySelectorAll('br').forEach((lineBreak) => {
+    let previous = lineBreak.previousSibling
+    while (previous?.nodeType === Node.TEXT_NODE && !previous.textContent?.trim()) {
+      const before = previous.previousSibling
+      previous.remove()
+      previous = before
+    }
+    if (previous instanceof HTMLBRElement) lineBreak.remove()
+  })
+  return template.innerHTML
+}
+
+function withoutFeedContentImages(html) {
+  if (!html) return ''
+  const template = document.createElement('template')
+  template.innerHTML = html
+  template.content.querySelectorAll('img, picture').forEach((element) => element.remove())
+  return template.innerHTML
+}
+
+function renderFeedItemMedia(payload, title, itemUrl, skipImages) {
+  const imageUrl = payload?.kind === 'media' && typeof payload.image_url === 'string' ? payload.image_url : ''
+  if (skipImages || !imageUrl) return ''
+  return `
+    <a href="${escapeHtml(itemUrl || imageUrl)}" target="_blank" rel="noopener noreferrer" class="st-module-feed-youtube-thumb-link" data-feed-media-link>
+      <span data-feed-img><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(title)}" class="st-module-feed-youtube-thumb" draggable="false"></span>
+    </a>
+  `
+}
+
+function renderYoutubeExtras(item, skipImages) {
   const payload = parseFeedPayload(item.payload_json)
   if (payload?.kind !== 'youtube') return ''
 
@@ -333,11 +374,11 @@ function renderYoutubeExtras(item) {
   const views = formatCompactNumber(payload.view_count)
   const stars = formatCompactNumber(payload.star_count)
 
-  if (!thumbnailUrl && !description && !views && !stars) return ''
+  if ((!thumbnailUrl || skipImages) && !description && !views && !stars) return ''
 
   return `
     <div class="st-module-feed-youtube">
-      ${thumbnailUrl ? `
+      ${thumbnailUrl && !skipImages ? `
         <a
           href="${escapeHtml(item.url ?? '#')}"
           target="_blank"
@@ -349,7 +390,7 @@ function renderYoutubeExtras(item) {
             <img
               src="${escapeHtml(thumbnailUrl)}"
               alt="${escapeHtml(item.title)}"
-              class="st-module-feed-youtube-thumb fade-in-up show"
+              class="st-module-feed-youtube-thumb"
               draggable="false"
             >
           </span>
@@ -377,14 +418,16 @@ function renderYoutubeExtras(item) {
   `
 }
 
-export function renderFeedItemBody(item, sourceTitle, moduleSyncId, collectionId, isArchived = false) {
+export function renderFeedItemBody(item, sourceTitle, moduleSyncId, collectionId, isArchived = false, skipImages = true) {
   const payload = parseFeedPayload(item.payload_json)
   const isYoutubeItem = payload?.kind === 'youtube'
   const content = item.content ?? item.summary ?? ''
-  const contentHtml = content ? decorateFeedContentMedia(sanitizeHtml(content)) : ''
+  const sanitizedContent = content ? collapseFeedLineBreaks(sanitizeHtml(content)) : ''
+  const contentHtml = sanitizedContent ? (skipImages ? withoutFeedContentImages(sanitizedContent) : decorateFeedContentMedia(sanitizedContent)) : ''
   const longDate = formatFeedLongDate(item)
   const searchUrl = buildSearchUrl(item.title)
-  const youtubeExtras = renderYoutubeExtras(item)
+  const youtubeExtras = renderYoutubeExtras(item, skipImages)
+  const itemMedia = renderFeedItemMedia(payload, item.title, item.url, skipImages)
 
   return `
     <div class="st-module-feed-item-body">
@@ -397,6 +440,7 @@ export function renderFeedItemBody(item, sourceTitle, moduleSyncId, collectionId
       </div>
 
       ${youtubeExtras}
+      ${itemMedia}
 
       ${contentHtml
         ? `<div class="st-module-feed-item-copy">${contentHtml}</div>`
@@ -444,7 +488,7 @@ export function renderFeedItemBody(item, sourceTitle, moduleSyncId, collectionId
   `
 }
 
-export function renderFeedItem(item, source, moduleSyncId, collectionId, state, isArchived = false) {
+export function renderFeedItem(item, source, moduleSyncId, collectionId, state, isArchived = false, skipImages = true) {
   const itemId = typeof item.id === 'number' ? item.id : null
   const expanded = itemId != null && state.expandedItemIds.includes(itemId)
   const read = item.read_at != null
@@ -500,7 +544,7 @@ export function renderFeedItem(item, source, moduleSyncId, collectionId, state, 
         >${escapeHtml(isArchived ? t('feedItem.archived') : t('feedItem.save'))}</button>
       </div>
 
-      ${expanded ? renderFeedItemBody(item, sourceTitle, moduleSyncId, collectionId, isArchived) : ''}
+      ${expanded ? renderFeedItemBody(item, sourceTitle, moduleSyncId, collectionId, isArchived, skipImages) : ''}
     </article>
   `
 }
@@ -541,6 +585,7 @@ export function computeFeedCollectionViewModel(collection, moduleSyncId, moduleC
   const showLoadedItemsButton = !state.showLoadedItems && feedItemCount > 0
   const hasUnreadItems = items.some((item) => item.read_at == null)
   const shouldLazyLoadItems = state.showLoadedItems && !itemsLoaded && feedItemCount > 0
+  const skipImages = moduleConfig.skipImages !== false
 
   return {
     sources,
@@ -556,6 +601,7 @@ export function computeFeedCollectionViewModel(collection, moduleSyncId, moduleC
     showLoadedItemsButton,
     hasUnreadItems,
     shouldLazyLoadItems,
+    skipImages,
   }
 }
 
@@ -632,7 +678,7 @@ export function renderFeedSidebarFooter(moduleSyncId, collectionId, state) {
  * Used by the patcher to replace the content zone when filter state changes.
  */
 export function renderFeedContentZone(moduleSyncId, collectionId, vm) {
-  const {state, visibleItems, sourceById, savedFeedItems, showLoadedItemsButton, shouldLazyLoadItems, sources} = vm
+  const {state, visibleItems, sourceById, savedFeedItems, showLoadedItemsButton, shouldLazyLoadItems, sources, skipImages} = vm
   if (shouldLazyLoadItems) {
     return `
       <div class="st-module-feed-empty" data-feed-items-pending>
@@ -668,6 +714,7 @@ export function renderFeedContentZone(moduleSyncId, collectionId, vm) {
             collectionId,
             state,
             isArchivedFeedItem(item, savedFeedItems),
+            skipImages,
           )).join('')}
         </div>
       </div>
@@ -710,8 +757,9 @@ export function renderFeedContentZone(moduleSyncId, collectionId, vm) {
 
 export function renderFeedCollection(collection, moduleSyncId, moduleConfig = {}) {
   const collectionId = collection.id ?? 0
+  const autoRefreshInterval = getFeedAutoRefreshInterval(collection.config_json)
   const vm = computeFeedCollectionViewModel(collection, moduleSyncId, moduleConfig)
-  const {sources, state, itemsLoaded, feedItemCount} = vm
+  const {sources, state, itemsLoaded, feedItemCount, skipImages} = vm
   const setFocusWidth = state.focusOpen ? `data-focus-width="${escapeHtml(state.focusWidth)}"` : ``
 
   return `
@@ -719,6 +767,8 @@ export function renderFeedCollection(collection, moduleSyncId, moduleConfig = {}
       data-feed-collection-id="${escapeHtml(String(collectionId))}"
       data-feed-collection-title="${escapeHtml(collection.title ?? '')}"
       data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
+      data-feed-auto-refresh-interval="${escapeHtml(String(autoRefreshInterval ?? ''))}"
+      data-feed-skip-images="${skipImages ? 'true' : 'false'}"
       data-feed-items-loaded="${itemsLoaded ? 'true' : 'false'}"
       data-feed-refreshing="${state.refreshing ? 'true' : 'false'}"
       data-feed-item-count="${escapeHtml(String(feedItemCount))}"${state.focusOpen ? ' data-feed-focus-open' : ''}
@@ -735,7 +785,7 @@ export function renderFeedCollection(collection, moduleSyncId, moduleConfig = {}
                 isLoading ? 'is-loading' : '',
               ].filter(Boolean).join(' ')
               return `
-                <div class="${rowClass}" data-feed-source-id="${escapeHtml(String(source.id ?? ''))}">
+                <div class="${rowClass}" data-feed-source-id="${escapeHtml(String(source.id ?? ''))}"${source.last_fetched_at != null ? ' data-feed-source-loaded' : ''}>
                   <button
                     type="button"
                     data-click="toggleFeedSource"
@@ -810,6 +860,7 @@ export function renderFeedsModule(tabs = [], actionsHtml = '', moduleId = null, 
   const panels = tabs.map((tab) => `
     <div
       data-tab="tab-${tab.id}"
+      class="${getFeedAutoRefreshInterval(tab.config_json) ? 'auto-refresh-active' : ''}"
       data-tab-id="${escapeHtml(String(tab.id ?? ''))}"
       data-tab-sync-id="${escapeHtml(tab.sync_id ?? '')}"
       data-spaceless
@@ -821,7 +872,7 @@ export function renderFeedsModule(tabs = [], actionsHtml = '', moduleId = null, 
   const refPath = moduleId != null ? ` data-ref-path="${refPathName}"` : ''
 
   return `
-    <div data-module-tabs-shell data-swipe-ignore>
+    <div data-module-tabs-shell data-swipe-ignore data-feed-skip-images="${moduleConfig.skipImages ? 'true' : 'false'}">
       <div data-yai-tabs data-behavior="fade"${refPath}>
         <nav data-controller>${navBtns}</nav>
         ${actions}
@@ -831,12 +882,20 @@ export function renderFeedsModule(tabs = [], actionsHtml = '', moduleId = null, 
   `
 }
 
-export function initFeedFavicons(container) {
+export function initFeedFavicons(container, options = {}) {
   if (!(container instanceof HTMLElement)) return
   container.querySelectorAll('.st-module-feed-item-body a').forEach((link) => {
     if (!(link instanceof HTMLAnchorElement)) return
     if (!link.querySelector('img')) return
     link.setAttribute('data-feed-media-link', '')
   })
-  initFavicons(container)
+  initFavicons(container, options)
+}
+
+export function queueFeedFavicons(container) {
+  if (!(container instanceof HTMLElement)) return
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (!container.isConnected) return
+    initFeedFavicons(container, {force: true})
+  }))
 }

@@ -6,23 +6,25 @@ Build custom startpages for different contexts, split them into modular grids, a
 
 Speedtab is designed for structure, speed, and complete ownership over your data:
 
-- no account required
-- no Speedtab backend service
-- no cloud account required
-- true local-first storage inside the browser
-- portable export/import for complete data freedom
+• no account required
+• no Speedtab backend service
+• no cloud account required
+• true local-first storage inside the browser
+• portable export/import for complete data freedom
 
 What you can do with Speedtab:
 
-- organize bookmarks into pages, modules, and custom tabs
-- enjoy a classic, high-performance Speed Dial experience tailored to your workflows
-- upload local preview images and custom favicons for your bookmarks
-- create text, code, link, custom HTML, and encrypted notes
-- build infinite, deeply nested tab structures inside your HTML notes powered by YaiTabs
-- read RSS/Atom feeds directly inside your new tab startpage
-- track read/unread states and archive interesting feed items with comments
-- customize the visual theme, grid layouts, and CSS backgrounds
-- move your workspace between browser profiles with seamless export/import
+• organize bookmarks into pages, modules, and custom tabs
+• enjoy a classic, high-performance Speed Dial experience tailored to your workflows
+• upload local preview images and custom favicons for your bookmarks
+• manage tasks and to-dos with priorities, due dates, notes, and visual status indicators
+• create text, code, link, custom HTML, and encrypted notes
+• build infinite, deeply nested tab structures inside your HTML notes powered by YaiTabs
+• pop notes and feed modules into floating Document Picture-in-Picture (PiP) windows
+• read RSS/Atom feeds directly on your startpage with per-tab auto-refresh intervals
+• track read/unread states and archive interesting feed items with comments
+• customize the visual theme, grid layouts, and CSS backgrounds
+• export and import full workspaces or individual bookmark, note, and ToDo collections via JSON
 
 Speedtab is fully local-first. Application data is safely stored in IndexedDB inside your browser profile. Feed fetching is handled entirely by the extension itself through its background service worker. Encrypted notes are protected client-side using AES-GCM and PBKDF2-SHA256. Your passphrases never leave your machine.
 
@@ -68,6 +70,12 @@ SPEED DIAL MODULE
 • Dedicated local Speed Dial image assets with per-image padding.
 • Favicon-derived tile colors create cohesive visuals without external screenshot or image services.
 
+TODO MODULE
+• Dedicated task management module integrated directly into your workspace grid.
+• Flexible task options: priorities, optional color indicators, notes, due date/time support, and compact metadata display.
+• Clear visual status labels and color coding for open, completed-on-time, completed-late, and overdue tasks.
+• Tile view layout mode, standard module tabs, and shared quick-setting controls.
+
 NOTES & INTERACTIVE NOTE ENGINE
 • Five note content types:
   - HTML Notes:
@@ -83,7 +91,7 @@ NOTES & INTERACTIVE NOTE ENGINE
   - Default split-view editor with toggleable live preview for HTML notes.
   - Flying Config: Edit deeply nested HTML-note tab content from a dedicated, focused configuration surface. No more hunting through nested tabs to find the right content.
   - Local Quicknote Scratchpad: Header-accessible local scratchpad stored independently from workspace exports.
-• Floating Window System: Notes can be popped out into draggable, resizable, focus-stacked windows that persist state, position, and dimensions across browser reloads.
+• Floating Window System & Picture-in-Picture: Notes can be popped out into draggable, resizable, focus-stacked windows, or detached into native Document Picture-in-Picture (PiP) windows with live content syncing.
 
 FEED READER MODULE
 • Integrated RSS/Atom feed reader module deployable directly inside any page module grid.
@@ -93,13 +101,15 @@ FEED READER MODULE
   - Read and unread item state tracking with bulk mark-as-read/unread actions.
   - Item archive manager to save articles locally with optional user comments.
   - Expanded Reader View: Maximize feed modules into a dedicated full-width reading view with adjustable reading column width selectors.
+  - Document Picture-in-Picture (PiP) support: Pop feed modules into desktop floating windows with preserved scroll position and live content updates.
   - In-feed local text filter input to search loaded articles in real time.
-  - Optional per-module auto-refresh loop while the active tab is visible.
+  - Per-feed-tab auto-refresh with configurable intervals while the tab is open.
   - Cross-origin feed fetching executed safely by the background service worker.
 
 WIDGET RAIL & UTILITY TOOLS
 • Modular widget rail positioned above or below main workspace pages.
 • Clock & Time Utilities:
+  - Shared central App Clock scheduler driving synchronized clock displays and task timers.
   - Toggleable Digital or Analog clock display modes.
   - Localized date/time string formatting, token insertion helpers, custom font sizing, alignment, and per-part element colors.
   - Local-first Stopwatch and Multi-Timer tools running on a zero-churn real-DOM render loop.
@@ -117,6 +127,7 @@ DATA OWNERSHIP, STORAGE & REMOTE SYNC
 • 100% Local-First Storage: All application state, module structures, and binary assets stored inside client-side IndexedDB via Dexie.
 • Portable JSON Data Exchange:
   - Checksum-verified JSON export files (speedtab-export-<checksum>.json).
+  - Compact JSON collection import and export for visual bookmarks, notes, and ToDo tabs.
   - Identity-aware record merge engine to transfer workspaces between browser profiles without record duplication.
   - Isolated import/export utility surface (import-export.html).
 • Optional Remote Cloud Synchronization:
@@ -136,7 +147,7 @@ INTERNATIONALIZATION & NATIVE LOCALIZATION
 PERFORMANCE & SIZE
 ----------------------------------------
 
-• Zipped extension size: ~650 KB
+• Zipped extension size: ~710 KB
 • Chrome Task Manager
   - Memory: ~50 MB total memory / ~5 MB live JavaScript heap
   - CPU usage: 1-10% during active use

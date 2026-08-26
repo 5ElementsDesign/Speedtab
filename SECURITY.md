@@ -1,6 +1,6 @@
 # Security Policy
 
-Last updated: 2026-05-22
+Last updated: 2026-08-25
 
 ## Overview
 
@@ -43,6 +43,7 @@ Other Speedtab data is not globally encrypted by default, including:
 - code notes
 - HTML notes
 - link notes
+- tasks and to-do items
 - bookmarks
 - feed source definitions
 - feed cache
@@ -119,11 +120,8 @@ When reporting a vulnerability, include:
 - proof of concept if relevant
 - severity assessment if you have one
 
-If the repository becomes public, add a preferred reporting path here, for example:
-
-- security email address
-- private issue intake address
-- repository issue instructions if private reporting is not available
+Security reports can be submitted privately via GitHub Security Advisories or opened as an issue on the public repository:
+[https://github.com/5ElementsDesign/Speedtab/security/advisories](https://github.com/5ElementsDesign/Speedtab/security/advisories)
 
 ## Disclosure Expectations
 

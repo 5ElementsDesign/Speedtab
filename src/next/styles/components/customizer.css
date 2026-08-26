@@ -626,8 +626,10 @@
 
 [data-form-actions] {
   --st-form-elements-min-height: 30px;
+  --st-border-color: #252525;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 8px;
 
   button {

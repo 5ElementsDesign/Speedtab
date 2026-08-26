@@ -19,6 +19,7 @@ export function createImportExportState() {
       collections: 0,
       tabs: 0,
       notes: 0,
+      todos: 0,
       feedSources: 0,
       savedFeedItems: 0,
       assets: 0,

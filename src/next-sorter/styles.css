@@ -291,19 +291,23 @@ select {
 
 [data-module-type="tabs"] [data-sorter-module-card],
 [data-sorter-module-card][data-module-type="tabs"] {
-  border-color: rgba(0, 210, 255, 0.58);
+  border-color: #00d2ff94;
 }
 
 [data-sorter-module-card][data-module-type="speed-dial"] {
-  border-color: rgba(170, 140, 255, 0.58);
+  border-color: #aa8cff94;
 }
 
 [data-sorter-module-card][data-module-type="notes"] {
-  border-color: rgba(255, 196, 87, 0.58);
+  border-color: #ffc45794;
 }
 
 [data-sorter-module-card][data-module-type="feeds"] {
-  border-color: rgba(0, 209, 178, 0.58);
+  border-color: #ff7bdec8;
+}
+
+[data-sorter-module-card][data-module-type="todo"] {
+  border-color: #51eb84a8;
 }
 
 [data-sorter-module-card][data-module-type="tabs"] [data-sorter-module-type] {
@@ -311,7 +315,7 @@ select {
 }
 
 [data-sorter-module-card][data-module-type="speed-dial"] [data-sorter-module-type] {
-  color: #b9a4ff;
+  color: #a78ef9;
 }
 
 [data-sorter-module-card][data-module-type="notes"] [data-sorter-module-type] {
@@ -319,7 +323,11 @@ select {
 }
 
 [data-sorter-module-card][data-module-type="feeds"] [data-sorter-module-type] {
-  color: #6ad7bc;
+  color: #f05ebd;
+}
+
+[data-sorter-module-card][data-module-type="todo"] [data-sorter-module-type] {
+  color: #64faaf;
 }
 
 [data-sorter-module-header] {

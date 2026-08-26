@@ -19,6 +19,12 @@ const zh_CN = {
     current: '当前',
     customize: '自定义',
     appearance: '外观',
+    pictureInPicture: '画中画',
+  },
+  todo: {
+    tiles: '以卡片形式显示任务',
+    created: '创建时间', updated: '更新时间', finished: '完成时间',
+    moduleType: '待办事项', add: '添加任务', addPlaceholder: '添加任务…', empty: '暂无任务。', untitled: '未命名任务', edit: '编辑任务', dueAt: '截止日期和时间', completed: '已完成', note: '备注', markComplete: '标记为已完成', markIncomplete: '标记为未完成', confirmDelete: '删除此任务？', priority: {label: '优先级', none: '无', low: '低', medium: '中', high: '高'},
   },
   app: {
     title: 'Speedtab',
@@ -308,7 +314,6 @@ const zh_CN = {
     showHoverActions: '悬停时显示视觉书签操作按钮',
     quicklinksMode: '快捷链接模式',
     forceFavicon: '强制显示 Favicon',
-    showTitleBelow: '大卡片模式',
     layoutGrid: '网格布局',
     bookmarkOpenBehavior: '书签打开方式',
     visibleFeedItems: '显示文章数量',
@@ -365,6 +370,12 @@ const zh_CN = {
     sections: {
       context: '上下文',
       identity: '标识',
+      import: '导入',
+    },
+    import: {
+      bookmark: '视觉书签 JSON', note: '笔记 JSON', todo: '待办事项 JSON',
+      help: '粘贴 JSON 数组或选择 JSON 文件。项目将添加到此标签页。',
+      chooseFile: '选择 JSON 文件', import: '导入', download: '下载为 JSON', invalidJson: '导入内容不是有效的 JSON。', 'invalid-json': '导入内容不是有效的 JSON。', 'empty-import': '请至少添加一个要导入的项目。', 'invalid-item': '一个或多个导入项目无效。', fileReadError: '无法读取 JSON 文件。',
     },
     fields: {
       url: '网址',
@@ -467,6 +478,7 @@ const zh_CN = {
     sections: {
       behavior: '行为',
       layout: '布局',
+      utilities: '工具',
       appearance: '外观',
       background: '背景',
     },
@@ -1154,6 +1166,11 @@ const zh_CN = {
     },
   },
   feeds: {
+    autoRefresh: '自动刷新',
+    skipImages: '跳过下载图片',
+    fetchItemLimit: '获取项目总数',
+    autoRefreshOff: '关闭',
+    autoRefreshMinutes: '{minutes} 分钟',
     feedSourcesAria: '订阅源',
     clearLoadedForSource: '"{title}" 已加载的文章',
     clearLoadedNew: '此标签页中最新获取的文章',

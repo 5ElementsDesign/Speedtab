@@ -240,10 +240,6 @@ html.light {
       text-transform: uppercase;
       letter-spacing: 0.08em;
 
-      /* color: rgba(255, 255, 255, 0.7);
-      background: transparent; */
-      /* border: 0 none;  */
-
       &:hover,
       &:focus {
         color: rgba(255, 255, 255, 1);

@@ -10,6 +10,7 @@ import type {
   Module,
   NextUiConfig,
   Note,
+  Todo,
   Page,
   SavedFeedItem,
   Tab,
@@ -60,6 +61,7 @@ export type ExportedModuleV2 = Omit<Module, 'id' | 'page_id'> & { page_sync_id: 
 export type ExportedCollectionV2 = Omit<Collection, 'id' | 'module_id'> & { module_sync_id: string; original_id?: number }
 export type ExportedTabV2 = Omit<Tab, 'id' | 'collection_id'> & { collection_sync_id: string; original_id?: number }
 export type ExportedNoteV2 = Omit<Note, 'id' | 'collection_id'> & { collection_sync_id: string; original_id?: number }
+export type ExportedTodoV2 = Omit<Todo, 'id' | 'collection_id'> & { collection_sync_id: string; original_id?: number }
 export type ExportedFeedSourceV2 = Omit<FeedSource, 'id' | 'collection_id'> & { collection_sync_id: string; original_id?: number }
 export type ExportedSavedFeedItemV2 = Omit<SavedFeedItem, 'id' | 'collection_id'> & { collection_sync_id: string; original_id?: number }
 export interface ExportedNextUiConfigV2 {
@@ -80,6 +82,7 @@ export interface BackupManifestV2 {
   collections:  ExportedCollectionV2[]
   tabs:         ExportedTabV2[]
   notes:        ExportedNoteV2[]
+  todos?:       ExportedTodoV2[]
   feed_sources: ExportedFeedSourceV2[]
   saved_feed_items: ExportedSavedFeedItemV2[]
   assets:       SerializedAsset[]
@@ -257,6 +260,7 @@ function repairManifestV2StructuralOrphans(obj: unknown): unknown {
     collections,
     tabs: filterCollectionChildren(manifest.tabs),
     notes: filterCollectionChildren(manifest.notes),
+    todos: Array.isArray(manifest.todos) ? filterCollectionChildren(manifest.todos) : [],
     feed_sources: filterCollectionChildren(manifest.feed_sources),
     saved_feed_items: filterCollectionChildren(manifest.saved_feed_items),
   }
@@ -285,6 +289,7 @@ function validateManifestV1(obj: unknown): asserts obj is BackupManifestV1 {
   checkFk(manifest.collections, 'module_id', manifest.modules, 'collections → modules')
   checkFk(manifest.tabs, 'collection_id', manifest.collections, 'tabs → collections')
   checkFk(manifest.notes, 'collection_id', manifest.collections, 'notes → collections')
+  if (manifest.todos != null) checkFk(manifest.todos, 'collection_id', manifest.collections, 'todos → collections')
   checkFk(manifest.feed_sources, 'collection_id', manifest.collections, 'feed_sources → collections')
   checkFk(manifest.feed_items, 'feed_source_id', manifest.feed_sources, 'feed_items → feed_sources')
   checkFk(manifest.saved_feed_items, 'collection_id', manifest.collections, 'saved_feed_items → collections')
@@ -306,6 +311,7 @@ function validateManifestV2(obj: unknown): asserts obj is BackupManifestV2 {
     ['collections', manifest.collections as Array<Record<string, unknown>>],
     ['tabs', manifest.tabs as Array<Record<string, unknown>>],
     ['notes', manifest.notes as Array<Record<string, unknown>>],
+    ['todos', (manifest.todos ?? []) as Array<Record<string, unknown>>],
     ['feed_sources', manifest.feed_sources as Array<Record<string, unknown>>],
     ['saved_feed_items', manifest.saved_feed_items as Array<Record<string, unknown>>],
   ]
@@ -324,6 +330,7 @@ function validateManifestV2(obj: unknown): asserts obj is BackupManifestV2 {
     ['collections', manifest.collections as Array<Record<string, unknown>>, 'module_sync_id'],
     ['tabs', manifest.tabs as Array<Record<string, unknown>>, 'collection_sync_id'],
     ['notes', manifest.notes as Array<Record<string, unknown>>, 'collection_sync_id'],
+    ['todos', (manifest.todos ?? []) as Array<Record<string, unknown>>, 'collection_sync_id'],
     ['feed_sources', manifest.feed_sources as Array<Record<string, unknown>>, 'collection_sync_id'],
     ['saved_feed_items', manifest.saved_feed_items as Array<Record<string, unknown>>, 'collection_sync_id'],
   ]
@@ -408,14 +415,15 @@ function throwExportIntegrityError(orphanCounts: Record<string, number>): never 
 export async function exportAll(database: SpeedtabDB = defaultDb): Promise<BackupManifestV2> {
   await ensureSyncMetadataMigration(database, { force: true })
 
-  const [rawPages, rawModules, rawCollections, rawTabs, rawNotes, rawFeedSources, rawSavedFeedItems, assets, uiContext, allNextUiConfig]:
-  [Page[], Module[], Collection[], Tab[], Note[], FeedSource[], SavedFeedItem[], Asset[], {workspace_id: string, device_id: string}, NextUiConfig[]] =
+  const [rawPages, rawModules, rawCollections, rawTabs, rawNotes, rawTodos, rawFeedSources, rawSavedFeedItems, assets, uiContext, allNextUiConfig]:
+  [Page[], Module[], Collection[], Tab[], Note[], Todo[], FeedSource[], SavedFeedItem[], Asset[], {workspace_id: string, device_id: string}, NextUiConfig[]] =
     await Promise.all([
       database.pages.filter(isActiveRecord).toArray(),
       database.modules.filter(isActiveRecord).toArray(),
       database.collections.filter(isActiveRecord).toArray(),
       database.tabs.filter(isActiveRecord).toArray(),
       database.notes.filter(isActiveRecord).toArray(),
+      database.todos.filter(isActiveRecord).toArray(),
       database.feed_sources.filter(isActiveRecord).toArray(),
       database.saved_feed_items.filter(isActiveRecord).toArray(),
       database.assets.toArray(),
@@ -437,6 +445,8 @@ export async function exportAll(database: SpeedtabDB = defaultDb): Promise<Backu
   const tabs = rawTabs.filter((row) => collectionIdSet.has(row.collection_id))
   const orphanNotes = rawNotes.filter((row) => !collectionIdSet.has(row.collection_id))
   const notes = rawNotes.filter((row) => collectionIdSet.has(row.collection_id))
+  const orphanTodos = rawTodos.filter((row) => !collectionIdSet.has(row.collection_id))
+  const todos = rawTodos.filter((row) => collectionIdSet.has(row.collection_id))
   const orphanFeedSources = rawFeedSources.filter((row) => !collectionIdSet.has(row.collection_id))
   const feedSources = rawFeedSources.filter((row) => collectionIdSet.has(row.collection_id))
   const orphanSavedFeedItems = rawSavedFeedItems.filter((row) => !collectionIdSet.has(row.collection_id))
@@ -447,6 +457,7 @@ export async function exportAll(database: SpeedtabDB = defaultDb): Promise<Backu
     orphanCollections.length ||
     orphanTabs.length ||
     orphanNotes.length ||
+    orphanTodos.length ||
     orphanFeedSources.length ||
     orphanSavedFeedItems.length
   ) {
@@ -455,6 +466,7 @@ export async function exportAll(database: SpeedtabDB = defaultDb): Promise<Backu
       collections: orphanCollections.length,
       tabs: orphanTabs.length,
       notes: orphanNotes.length,
+      todos: orphanTodos.length,
       feed_sources: orphanFeedSources.length,
       saved_feed_items: orphanSavedFeedItems.length,
     })
@@ -508,6 +520,11 @@ export async function exportAll(database: SpeedtabDB = defaultDb): Promise<Backu
       original_id: _id,
     })),
     notes: notes.map(({ id: _id, collection_id, ...rest }) => ({
+      ...rest,
+      collection_sync_id: collectionSyncById.get(collection_id)!,
+      original_id: _id,
+    })),
+    todos: todos.map(({ id: _id, collection_id, ...rest }) => ({
       ...rest,
       collection_sync_id: collectionSyncById.get(collection_id)!,
       original_id: _id,
@@ -576,9 +593,9 @@ function canonicalizeManifest(manifest: BackupManifest): BackupManifest {
       tabs: sortRows(manifest.tabs, (left, right) =>
         compareScalars(left.collection_id, right.collection_id) ||
         compareScalars(left.original_id, right.original_id)),
-      notes: sortRows(manifest.notes, (left, right) =>
-        compareScalars(left.collection_id, right.collection_id) ||
-        compareScalars(left.original_id, right.original_id)),
+    notes: sortRows(manifest.notes, (left, right) =>
+      compareScalars(left.collection_id, right.collection_id) ||
+      compareScalars(left.original_id, right.original_id)),
       feed_sources: sortRows(manifest.feed_sources, (left, right) =>
         compareScalars(left.collection_id, right.collection_id) ||
         compareScalars(left.original_id, right.original_id)),
@@ -608,6 +625,9 @@ function canonicalizeManifest(manifest: BackupManifest): BackupManifest {
       compareScalars(left.collection_sync_id, right.collection_sync_id) ||
       compareScalars(left.sync_id, right.sync_id)),
     notes: sortRows(manifest.notes, (left, right) =>
+      compareScalars(left.collection_sync_id, right.collection_sync_id) ||
+      compareScalars(left.sync_id, right.sync_id)),
+    todos: sortRows(manifest.todos ?? [], (left, right) =>
       compareScalars(left.collection_sync_id, right.collection_sync_id) ||
       compareScalars(left.sync_id, right.sync_id)),
     feed_sources: sortRows(manifest.feed_sources, (left, right) =>
@@ -700,6 +720,7 @@ function buildChecksumPayload(manifest: BackupManifest): JsonLike {
       content: normalizeNoteContent(content, type),
       type,
     })),
+    todos: (canonical.todos ?? []).map(({ original_id: _originalId, ...row }) => row),
     feed_sources: canonical.feed_sources.map(({ original_id: _originalId, ...row }) => row),
     saved_feed_items: canonical.saved_feed_items.map(({ original_id: _originalId, ...row }) => row),
     assets: canonical.assets.map(({ original_id: _originalId, ...row }) => row),
@@ -738,6 +759,7 @@ export interface ImportReport {
   collections: number
   tabs: number
   notes: number
+  todos: number
   feed_sources: number
   feed_items: number
   saved_feed_items: number
@@ -755,6 +777,8 @@ export interface ImportReport {
   tabs_updated?: number
   notes_inserted?: number
   notes_updated?: number
+  todos_inserted?: number
+  todos_updated?: number
   feed_sources_inserted?: number
   feed_sources_updated?: number
   saved_feed_items_inserted?: number
@@ -826,7 +850,7 @@ async function importLegacyManifest(
   database: SpeedtabDB,
 ): Promise<ImportReport> {
   const report: ImportReport = {
-    pages: 0, modules: 0, collections: 0, tabs: 0, notes: 0,
+    pages: 0, modules: 0, collections: 0, tabs: 0, notes: 0, todos: 0,
     feed_sources: 0, feed_items: 0, saved_feed_items: 0, assets: 0, assets_deduped: 0,
     dry_run: !!options.dryRun,
     manifest_version: LEGACY_BACKUP_VERSION,
@@ -849,7 +873,7 @@ async function importLegacyManifest(
     'rw',
     [
       database.pages, database.modules, database.collections,
-      database.tabs, database.notes, database.feed_sources,
+      database.tabs, database.notes, database.todos, database.feed_sources,
       database.feed_items, database.saved_feed_items, database.assets,
       database.app_settings,
     ],
@@ -937,6 +961,8 @@ async function importLegacyManifest(
         report.notes++
       }
 
+      // Legacy manifests predate Todos, so there is nothing to import here.
+
       for (const fs of manifest.feed_sources) {
         const { original_id: _original_id, id: _id, ...rest } = fs
         await database.feed_sources.add({
@@ -974,7 +1000,7 @@ async function importManifestV2(
   database: SpeedtabDB,
 ): Promise<ImportReport> {
   const report: ImportReport = {
-    pages: 0, modules: 0, collections: 0, tabs: 0, notes: 0,
+    pages: 0, modules: 0, collections: 0, tabs: 0, notes: 0, todos: 0,
     feed_sources: 0, feed_items: 0, saved_feed_items: 0, assets: 0, assets_deduped: 0,
     dry_run: !!options.dryRun,
     manifest_version: BACKUP_VERSION,
@@ -988,6 +1014,8 @@ async function importManifestV2(
     tabs_updated: 0,
     notes_inserted: 0,
     notes_updated: 0,
+    todos_inserted: 0,
+    todos_updated: 0,
     feed_sources_inserted: 0,
     feed_sources_updated: 0,
     saved_feed_items_inserted: 0,
@@ -1002,6 +1030,7 @@ async function importManifestV2(
     report.collections = manifest.collections.length
     report.tabs = manifest.tabs.length
     report.notes = manifest.notes.length
+    report.todos = manifest.todos?.length ?? 0
     report.feed_sources = manifest.feed_sources.length
     report.saved_feed_items = manifest.saved_feed_items.length
     report.assets = manifest.assets.length
@@ -1012,7 +1041,7 @@ async function importManifestV2(
     'rw',
     [
       database.pages, database.modules, database.collections,
-      database.tabs, database.notes, database.feed_sources,
+      database.tabs, database.notes, database.todos, database.feed_sources,
       database.saved_feed_items, database.assets, database.app_settings,
       database.next_ui_config,
       database.bg_archive,
@@ -1216,6 +1245,32 @@ async function importManifestV2(
         updateCounters: () => { report.notes++; },
         updateInserted: () => { report.notes_inserted!++; },
         updateUpdated: () => { report.notes_updated!++; },
+        report,
+      })
+
+      await importChildRowsV2(manifest.todos ?? [], {
+        table: database.todos,
+        map: new Map((await database.todos.toArray()).map((row) => [row.sync_id, row] as const)),
+        resolveParent: (row) => collectionsBySync.get(row.collection_sync_id),
+        makeInsert: (row, parentId) => ({
+          ...row,
+          collection_id: parentId,
+          deleted_at: null,
+        } as Todo),
+        makeUpdate: (row, _existing, parentId) => ({
+          collection_id: parentId,
+          title: row.title,
+          note: row.note ?? null,
+          completed_at: row.completed_at,
+          due_at: row.due_at,
+          priority: row.priority,
+          color_scheme: row.color_scheme ?? null,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+        }),
+        updateCounters: () => { report.todos++; },
+        updateInserted: () => { report.todos_inserted!++; },
+        updateUpdated: () => { report.todos_updated!++; },
         report,
       })
 

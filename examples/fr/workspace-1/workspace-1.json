@@ -17,23 +17,16 @@
           "column_span": 6,
           "tabs": [
             {
-              "title": "Applications",
-              "bookmarks": [
-                {"title": "Google", "url": "https://www.google.com/"},
-                {"title": "Gemini", "url": "https://gemini.google.com/"},
-                {"title": "Google Maps", "url": "https://maps.google.com/"},
-                {"title": "Google Traduction", "url": "https://translate.google.com/"},
-                {"title": "YouTube", "url": "https://www.youtube.com/"}
-              ]
+              "title": "Apps",
+              "bookmarks": []
             },
             {
-              "title": "Communication",
-              "bookmarks": [
-                {"title": "WhatsApp", "url": "https://www.whatsapp.com/"},
-                {"title": "Telegram", "url": "https://web.telegram.org/"},
-                {"title": "Discord", "url": "https://discord.com/app"},
-                {"title": "Slack", "url": "https://app.slack.com/"}
-              ]
+              "title": "Com",
+              "bookmarks": []
+            },
+            {
+              "title": "IA",
+              "bookmarks": []
             }
           ]
         },
@@ -48,24 +41,17 @@
           ]
         },
         {
-          "title": "qbox",
-          "type": "tabs",
+          "title": "À faire",
+          "type": "todo",
           "column_span": 4,
-          "config": {
-            "quicklinks": true
-          },
           "tabs": [
             {
-              "title": "IA",
-              "bookmarks": [
-                {"title": "ChatGPT", "url": "https://chatgpt.com/"},
-                {"title": "Claude", "url": "https://claude.ai/"},
-                {"title": "Kimi", "url": "https://www.kimi.com/"},
-                {"title": "Grok", "url": "https://grok.com/"},
-                {"title": "Qwen", "url": "https://qwen.ai/"},
-                {"title": "Duck.ai", "url": "https://duck.ai/"}
+              "title": "Tâches",
+              "todos": [
+                {"title": "Une tâche pour le plaisir de la tâche", "color_scheme": "success"}
               ]
-            }
+            },
+            {"title": "Ensuite"}
           ]
         },
         {
@@ -100,17 +86,7 @@
           "title": "Travail",
           "type": "tabs",
           "column_span": 8,
-          "tabs": [
-            {
-              "title": "Entreprise",
-              "bookmarks": [
-                {"title": "GitHub", "url": "https://github.com/"},
-                {"title": "GitLab", "url": "https://gitlab.com/"},
-                {"title": "Atlassian", "url": "https://www.atlassian.com/"},
-                {"title": "Notion", "url": "https://www.notion.so/"}
-              ]
-            }
-          ]
+          "tabs": []
         },
         {
           "title": "todo",

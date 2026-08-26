@@ -2,6 +2,7 @@ import {fetchOpenMeteoWeather, isWeatherCacheUsable, makeWeatherLocationKey} fro
 import {getWeatherCodeMeta} from '../../../composables/useWeatherCodes.ts'
 import {clearWeatherWidgetCache, getWeatherWidgetCache, setWeatherWidgetCache} from '../../../composables/useWeatherWidgetLocal.ts'
 import {dispatch} from '../../app/dispatch.js'
+import {subscribeToAppClock} from '../../app/clock.js'
 import {openModal, isModalOpen} from '../../components/modal.js'
 import {createDefaultClockToolsState, getStopwatchElapsedMs, hasRunningClockTools, loadClockToolsState, normalizeClockToolsState, saveClockToolsState} from '../../data/clock-tools.js'
 import {patchHost, patchInner} from '../../utils/dom-patch.js'
@@ -23,7 +24,7 @@ let fetchedAt = null
 let usingCachedData = false
 let refreshController = null
 let refreshIntervalHandle = null
-let clockTickHandle = null
+let unsubscribeWidgetClock = null
 let clockToolsLoopHandle = null
 let clockToolsWatchHandle = null
 let clockTimerDraftLoopHandle = null
@@ -53,10 +54,9 @@ function stopRefreshLoop() {
 }
 
 function stopClockLoop() {
-  if (clockTickHandle !== null) {
-    window.clearTimeout(clockTickHandle)
-    clockTickHandle = null
-  }
+  if (!unsubscribeWidgetClock) return
+  unsubscribeWidgetClock()
+  unsubscribeWidgetClock = null
 }
 
 function stopClockToolsLoop() {
@@ -144,24 +144,6 @@ function getClockTickUnit() {
   if (source.includes('{minute}')) return 'minute'
   if (source.includes('{hour}')) return 'hour'
   return null
-}
-
-function getClockTickDelay(unit) {
-  const now = new Date()
-  const ms = now.getMilliseconds()
-  const sec = now.getSeconds()
-  const min = now.getMinutes()
-
-  if (unit === 'second') {
-    return Math.max(1, 1000 - ms)
-  }
-  if (unit === 'minute') {
-    return Math.max(1, 60_000 - ((sec * 1000) + ms))
-  }
-  if (unit === 'hour') {
-    return Math.max(1, 3_600_000 - ((min * 60_000) + (sec * 1000) + ms))
-  }
-  return 0
 }
 
 function getClockDate() {
@@ -899,11 +881,7 @@ function queueClockRender() {
   if (!(widgetSettings?.rail_enabled && clock?.enabled)) return
   const unit = getClockTickUnit()
   if (!unit) return
-  const interval = getClockTickDelay(unit)
-  clockTickHandle = window.setTimeout(() => {
-    updateClockText()
-    queueClockRender()
-  }, interval)
+  unsubscribeWidgetClock = subscribeToAppClock(updateClockText, unit)
 }
 
 async function hydrateFromCache() {

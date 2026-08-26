@@ -359,13 +359,6 @@ export const UI_CONFIG_SPEC = {
           target: 'tabs-root',
           applyAs: {type: 'attribute', name: 'data-bookmarks-force-favicon', trueValue: ''},
         },
-        'module-tabs-show-title-below': {
-          valueType: 'boolean',
-          validate: isBoolean,
-          defaultValue: false,
-          target: 'tabs-root',
-          applyAs: {type: 'attribute', name: 'data-bookmarks-show-title-below', trueValue: ''},
-        },
         'module-tabs-show-add-tile': {
           valueType: 'boolean',
           validate: isBoolean,
@@ -573,9 +566,28 @@ export const UI_CONFIG_SPEC = {
           },
         },
         ...MODULE_MIN_HEIGHT_FIELD,
-        ...MODULE_CONTENT_GAP_FIELD,
       },
     },
+  },
+}
+
+// Todo uses the same module chrome and geometry contract as Notes. Keeping the
+// spec shared prevents identical Behavior/Layout controls drifting apart.
+const {['module-tabs-show-add-tile']: _todoInlineAddTile, ...TODO_BEHAVIOR_SPEC} = UI_CONFIG_SPEC.module.notes.behavior
+const {['module-content-gap-px']: _todoContentGap, ...TODO_LAYOUT_SPEC} = UI_CONFIG_SPEC.module.notes.layout
+UI_CONFIG_SPEC.module.todo = {
+  behavior: {
+    ...TODO_BEHAVIOR_SPEC,
+    'todo-show-tiles': {
+      valueType: 'boolean',
+      validate: isBoolean,
+      defaultValue: false,
+      target: 'module-root',
+      applyAs: {type: 'attribute', name: 'data-todo-tiles', trueValue: ''},
+    },
+  },
+  layout: {
+    ...TODO_LAYOUT_SPEC,
   },
 }
 

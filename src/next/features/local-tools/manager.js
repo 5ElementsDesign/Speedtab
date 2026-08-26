@@ -3,6 +3,7 @@ import {highlightCode} from '../../../composables/useHighlight.ts'
 import {renderNoteHtmlWithAssets} from '../../../composables/useNoteImages.ts'
 import {loadLocalToolsState, normalizeLocalToolsState, saveLocalToolsState} from '../../data/local-tools.js'
 import {loadNoteById, loadNotesByIds, saveNoteData} from '../../data/notes.js'
+import {syncPictureInPicture} from '../../actions/picture-in-picture.js'
 import {initFavicons} from '../../utils/favicon.js'
 import {t} from '../../utils/i18n.js'
 import {initFormDirtyState} from '../forms/actions.js'
@@ -712,6 +713,7 @@ async function hydrateNoteHtmlRenders(container) {
     }
     syncNestedTabsInFloatingWindows(el)
     initFavicons(el, {force: true})
+    syncPictureInPicture()
   }))
 }
 
@@ -947,6 +949,7 @@ async function mountSingleFloatingNoteWindow(noteId) {
   initFavicons(windowEl)
   await hydrateNoteHtmlRenders(windowEl)
   await hydrateNoteCodeBlocks(windowEl)
+  syncPictureInPicture()
   autoFitSingleNoteWindow(noteId)
   syncZTracker()
   syncOpenNotePreviewState()

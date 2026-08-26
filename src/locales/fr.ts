@@ -19,6 +19,12 @@ const fr = {
     current: 'Actuel',
     customize: 'Personnaliser',
     appearance: 'Apparence',
+    pictureInPicture: 'Image dans l’image',
+  },
+  todo: {
+    tiles: 'Afficher les tâches sous forme de cartes',
+    created: 'Créée', updated: 'Mise à jour', finished: 'Terminée',
+    moduleType: 'Tâches', add: 'Ajouter une tâche', addPlaceholder: 'Ajouter une tâche…', empty: 'Aucune tâche pour le moment.', untitled: 'Tâche sans titre', edit: 'Modifier la tâche', dueAt: 'Date et heure d’échéance', completed: 'Terminée', note: 'Note', markComplete: 'Marquer comme terminée', markIncomplete: 'Marquer comme non terminée', confirmDelete: 'Supprimer cette tâche ?', priority: {label: 'Priorité', none: 'Aucune', low: 'Basse', medium: 'Moyenne', high: 'Haute'},
   },
   app: {
     title: 'Speedtab',
@@ -307,7 +313,6 @@ const fr = {
     showHoverActions: 'Afficher les actions au survol des favoris visuels',
     quicklinksMode: 'Mode liens rapides',
     forceFavicon: 'Forcer le favicon',
-    showTitleBelow: 'Mode grands pavés',
     layoutGrid: 'Grille de mise en page',
     bookmarkOpenBehavior: 'Comportement d\'ouverture des favoris visuels',
     visibleFeedItems: 'Éléments de flux visibles',
@@ -364,6 +369,12 @@ const fr = {
     sections: {
       context: 'Contexte',
       identity: 'Identité',
+      import: 'Importer',
+    },
+    import: {
+      bookmark: 'JSON des marque-pages visuels', note: 'JSON des notes', todo: 'JSON des tâches',
+      help: 'Collez un tableau JSON ou choisissez un fichier JSON. Les éléments seront ajoutés à cet onglet.',
+      chooseFile: 'Choisir un fichier JSON', import: 'Importer', download: 'Télécharger en JSON', invalidJson: 'L’importation ne contient pas de JSON valide.', 'invalid-json': 'L’importation ne contient pas de JSON valide.', 'empty-import': 'Ajoutez au moins un élément à importer.', 'invalid-item': 'Un ou plusieurs éléments importés sont invalides.', fileReadError: 'Le fichier JSON n’a pas pu être lu.',
     },
     fields: {
       url: 'URL',
@@ -466,6 +477,7 @@ const fr = {
     sections: {
       behavior: 'Comportement',
       layout: 'Mise en page',
+      utilities: 'Outils',
       appearance: 'Apparence',
       background: 'Arrière-plan',
     },
@@ -1153,6 +1165,11 @@ const fr = {
     },
   },
   feeds: {
+    autoRefresh: 'Actualisation automatique',
+    skipImages: 'Ne pas télécharger les images',
+    fetchItemLimit: 'Total d’éléments récupérés',
+    autoRefreshOff: 'Désactivée',
+    autoRefreshMinutes: '{minutes} min',
     feedSourcesAria: 'Flux RSS',
     clearLoadedForSource: 'les éléments chargés pour "{title}"',
     clearLoadedNew: 'les éléments nouvellement chargés dans cet onglet',

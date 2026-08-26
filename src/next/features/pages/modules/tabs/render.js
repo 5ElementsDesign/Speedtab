@@ -1,5 +1,5 @@
-import {TILE_H, TILE_W} from '../../../../data/assets.js';
 import {normalizeSpeedDialImagePadding} from '../../../../config/speed-dial.js';
+import {TILE_H, TILE_W} from '../../../../data/assets.js';
 import {escapeHtml} from '../../../../utils/html.js';
 import {t} from '../../../../utils/i18n.js';
 
@@ -7,7 +7,6 @@ function getModuleBookmarkFlags(config = {}) {
   return {
     forceFavicon: config?.behavior?.['module-tabs-force-favicon'] === true,
     quicklinks: config?.behavior?.['module-tabs-quicklinks'] === true,
-    showTitleBelow: config?.behavior?.['module-tabs-show-title-below'] === true,
   }
 }
 
@@ -73,6 +72,7 @@ function renderBookmarkTile(bookmark, moduleSyncId = '', config = {}) {
         data-bookmark-id="${escapeHtml(bookmark.id)}"
         data-bookmark-sync-id="${escapeHtml(bookmark.sync_id ?? '')}"
         data-bookmark-link
+        inert
       >
         <span data-title>${title}</span>
       </a>
@@ -193,11 +193,10 @@ export function renderModuleTabs(
 }
 
 export function renderTabsModule(tabs = [], actionsHtml = '', moduleId = null, moduleSyncId = '', config = {}) {
-  const {forceFavicon, quicklinks, showTitleBelow} = getModuleBookmarkFlags(config)
+  const {forceFavicon, quicklinks} = getModuleBookmarkFlags(config)
   const tabsAttrs = [
     quicklinks ? 'data-bookmarks-quicklinks' : '',
     forceFavicon ? 'data-bookmarks-force-favicon' : '',
-    showTitleBelow ? 'data-bookmarks-show-title-below' : '',
   ].filter(Boolean).map((attribute) => ` ${attribute}`).join('')
 
   return renderModuleTabs(

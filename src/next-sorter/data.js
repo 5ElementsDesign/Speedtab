@@ -3,6 +3,7 @@ import {loadUiConfigsByEntitySyncIds, upsertUiConfig} from '../next/data/ui-conf
 import {softDeleteBookmark} from '../next/data/bookmarks.js'
 import {clearFeedItemsBySourceIds, softDeleteFeedSource} from '../next/data/feeds.js'
 import {softDeleteNote} from '../next/data/notes.js'
+import {softDeleteTodo} from '../next/data/todos.js'
 import {softDeleteModuleTab} from '../next/data/tabs.js'
 
 function clampColumnSpan(value) {
@@ -70,6 +71,7 @@ function buildModulesByPage(modules, uiConfigMap, tabsByModuleId) {
 function getCollectionContentTable(moduleType) {
   if (moduleType === 'tabs' || moduleType === 'speed-dial') return db.tabs
   if (moduleType === 'notes') return db.notes
+  if (moduleType === 'todo') return db.todos
   if (moduleType === 'feeds') return db.feed_sources
   return null
 }
@@ -95,6 +97,17 @@ function mapCollectionContentRecord(moduleType, record) {
       collectionId: record.collection_id,
       title: record.title || 'Note',
       subtitle: record.type || '',
+      sortOrder: record.sort_order ?? 0,
+    }
+  }
+
+  if (moduleType === 'todo') {
+    return {
+      id: record.id,
+      syncId: record.sync_id,
+      collectionId: record.collection_id,
+      title: record.title || 'Todo',
+      subtitle: record.completed_at != null ? 'Completed' : '',
       sortOrder: record.sort_order ?? 0,
     }
   }
@@ -173,19 +186,23 @@ export async function softDeleteCollectionContent(moduleType, contentId) {
   if (!contentId) return
   if (moduleType === 'tabs') return softDeleteBookmark(contentId)
   if (moduleType === 'notes') return softDeleteNote(contentId)
+  if (moduleType === 'todo') return softDeleteTodo(contentId)
   if (moduleType === 'feeds') return softDeleteFeedSource(contentId)
 }
 
 export async function softDeleteModuleTabCascade(tabId, moduleType) {
   if (!tabId) return
 
-  await db.transaction('rw', db.collections, db.tabs, db.notes, db.feed_sources, db.feed_items, async () => {
+  await db.transaction('rw', db.collections, db.tabs, db.notes, db.todos, db.feed_sources, db.feed_items, async () => {
     if (moduleType === 'tabs') {
       const rows = await loadActiveCollectionContents('tabs', tabId)
       await Promise.all(rows.map((row) => softDeleteBookmark(row.id)))
     } else if (moduleType === 'notes') {
       const rows = await loadActiveCollectionContents('notes', tabId)
       await Promise.all(rows.map((row) => softDeleteNote(row.id)))
+    } else if (moduleType === 'todo') {
+      const rows = await loadActiveCollectionContents('todo', tabId)
+      await Promise.all(rows.map((row) => softDeleteTodo(row.id)))
     } else if (moduleType === 'feeds') {
       const rows = await loadActiveCollectionContents('feeds', tabId)
       const sourceIds = rows.map((row) => row.id).filter(Boolean)

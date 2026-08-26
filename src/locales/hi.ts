@@ -19,6 +19,12 @@ const hi = {
     current: 'वर्तमान',
     customize: 'अनुकूलित करें',
     appearance: 'रूप',
+    pictureInPicture: 'पिक्चर-इन-पिक्चर',
+  },
+  todo: {
+    tiles: 'कार्यों को टाइल के रूप में दिखाएँ',
+    created: 'बनाया गया', updated: 'अपडेट किया गया', finished: 'पूर्ण हुआ',
+    moduleType: 'कार्य', add: 'कार्य जोड़ें', addPlaceholder: 'कार्य जोड़ें…', empty: 'अभी कोई कार्य नहीं है।', untitled: 'बिना शीर्षक का कार्य', edit: 'कार्य संपादित करें', dueAt: 'नियत तारीख और समय', completed: 'पूर्ण', note: 'नोट', markComplete: 'पूर्ण के रूप में चिह्नित करें', markIncomplete: 'अपूर्ण के रूप में चिह्नित करें', confirmDelete: 'क्या यह कार्य हटाना है?', priority: {label: 'प्राथमिकता', none: 'कोई नहीं', low: 'कम', medium: 'मध्यम', high: 'उच्च'},
   },
   app: {
     title: 'Speedtab',
@@ -307,7 +313,6 @@ const hi = {
     showHoverActions: 'विज़ुअल बुकमार्क होवर क्रिया बटन दिखाएँ',
     quicklinksMode: 'त्वरित लिंक मोड',
     forceFavicon: 'Favicon बलपूर्वक',
-    showTitleBelow: 'शीर्षक को थंबनेल के नीचे दिखाएँ',
     layoutGrid: 'लेआउट ग्रिड',
     bookmarkOpenBehavior: 'विज़ुअल बुकमार्क खोलने का व्यवहार',
     visibleFeedItems: 'दृश्य फ़ीड आइटम',
@@ -364,6 +369,12 @@ const hi = {
     sections: {
       context: 'संदर्भ',
       identity: 'पहचान',
+      import: 'आयात करें',
+    },
+    import: {
+      bookmark: 'विज़ुअल बुकमार्क JSON', note: 'नोट्स JSON', todo: 'कार्यों का JSON',
+      help: 'JSON ऐरे चिपकाएँ या JSON फ़ाइल चुनें। आइटम इस टैब में जोड़े जाएँगे।',
+      chooseFile: 'JSON फ़ाइल चुनें', import: 'आयात करें', download: 'JSON के रूप में डाउनलोड करें', invalidJson: 'आयात में मान्य JSON नहीं है।', 'invalid-json': 'आयात में मान्य JSON नहीं है।', 'empty-import': 'आयात के लिए कम से कम एक आइटम जोड़ें।', 'invalid-item': 'एक या अधिक आयात आइटम अमान्य हैं।', fileReadError: 'JSON फ़ाइल पढ़ी नहीं जा सकी।',
     },
     fields: {
       url: 'URL',
@@ -466,6 +477,7 @@ const hi = {
     sections: {
       behavior: 'व्यवहार',
       layout: 'लेआउट',
+      utilities: 'उपकरण',
       appearance: 'दिखावट',
       background: 'पृष्ठभूमि',
     },
@@ -1153,6 +1165,11 @@ const hi = {
     },
   },
   feeds: {
+    autoRefresh: 'स्वतः रीफ़्रेश',
+    skipImages: 'छवियां डाउनलोड न करें',
+    fetchItemLimit: 'कुल प्राप्त आइटम',
+    autoRefreshOff: 'बंद',
+    autoRefreshMinutes: '{minutes} मिनट',
     feedSourcesAria: 'फ़ीड स्रोत',
     clearLoadedForSource: '"{title}" के लिए लोड किए फ़ीड आइटम',
     clearLoadedNew: 'इस टैब में नए प्राप्त लोड आइटम',

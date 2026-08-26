@@ -23,8 +23,8 @@
               "bookmarks": [
                 {"title": "Google", "url": "https://www.google.com/"},
                 {"title": "Gemini", "url": "https://gemini.google.com/"},
-                {"title": "Google Maps", "url": "https://maps.google.com/"},
-                {"title": "Google Translate", "url": "https://translate.google.com/"},
+                {"title": "Maps", "url": "https://maps.google.com/"},
+                {"title": "Translate", "url": "https://translate.google.com/"},
                 {"title": "YouTube", "url": "https://www.youtube.com/"}
               ]
             },
@@ -35,6 +35,17 @@
                 {"title": "Telegram", "url": "https://web.telegram.org/"},
                 {"title": "Discord", "url": "https://discord.com/app"},
                 {"title": "Slack", "url": "https://app.slack.com/"}
+              ]
+            },
+            {
+              "title": "AI",
+              "bookmarks": [
+                {"title": "ChatGPT", "url": "https://chatgpt.com/"},
+                {"title": "Claude", "url": "https://claude.ai/"},
+                {"title": "Kimi", "url": "https://www.kimi.com/"},
+                {"title": "Grok", "url": "https://grok.com/"},
+                {"title": "Qwen", "url": "https://qwen.ai/"},
+                {"title": "Duck.ai", "url": "https://duck.ai/"}
               ]
             }
           ]
@@ -50,24 +61,17 @@
           ]
         },
         {
-          "title": "qbox",
-          "type": "tabs",
+          "title": "ToDo",
+          "type": "todo",
           "column_span": 4,
-          "config": {
-            "quicklinks": true
-          },
           "tabs": [
             {
-              "title": "AI",
-              "bookmarks": [
-                {"title": "ChatGPT", "url": "https://chatgpt.com/"},
-                {"title": "Claude", "url": "https://claude.ai/"},
-                {"title": "Kimi", "url": "https://www.kimi.com/"},
-                {"title": "Grok", "url": "https://grok.com/"},
-                {"title": "Qwen", "url": "https://qwen.ai/"},
-                {"title": "Duck.ai", "url": "https://duck.ai/"}
+              "title": "ToDo",
+              "todos": [
+                {"title": "Task for the task's sake", "color_scheme": "success"}
               ]
-            }
+            },
+            {"title": "Next"}
           ]
         },
         {
@@ -161,7 +165,7 @@
           "column_span": 8,
           "tabs": [
             {
-              "title": "Company",
+              "title": "Cloud",
               "bookmarks": [
                 {"title": "GitHub", "url": "https://github.com/"},
                 {"title": "GitLab", "url": "https://gitlab.com/"},

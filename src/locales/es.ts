@@ -19,6 +19,12 @@ const es = {
     current: 'Actual',
     customize: 'Personalizar',
     appearance: 'Apariencia',
+    pictureInPicture: 'Imagen en imagen',
+  },
+  todo: {
+    tiles: 'Mostrar tareas como tarjetas',
+    created: 'Creado', updated: 'Actualizado', finished: 'Finalizado',
+    moduleType: 'Tareas', add: 'Añadir tarea', addPlaceholder: 'Añadir una tarea…', empty: 'Aún no hay tareas.', untitled: 'Tarea sin título', edit: 'Editar tarea', dueAt: 'Fecha y hora de vencimiento', completed: 'Completada', note: 'Nota', markComplete: 'Marcar como completada', markIncomplete: 'Marcar como no completada', confirmDelete: '¿Eliminar esta tarea?', priority: {label: 'Prioridad', none: 'Ninguna', low: 'Baja', medium: 'Media', high: 'Alta'},
   },
   app: {
     title: 'Speedtab',
@@ -307,7 +313,6 @@ const es = {
     showHoverActions: 'Mostrar botones de acción al pasar el cursor sobre marcadores visuales',
     quicklinksMode: 'Modo enlaces rápidos',
     forceFavicon: 'Forzar Favicon',
-    showTitleBelow: 'Modo mosaicos grandes',
     layoutGrid: 'Cuadrícula de diseño',
     bookmarkOpenBehavior: 'Comportamiento de apertura de marcadores visuales',
     visibleFeedItems: 'Elementos de fuentes visibles',
@@ -364,6 +369,12 @@ const es = {
     sections: {
       context: 'Contexto',
       identity: 'Identidad',
+      import: 'Importar',
+    },
+    import: {
+      bookmark: 'JSON de marcadores visuales', note: 'JSON de notas', todo: 'JSON de tareas',
+      help: 'Pega una matriz JSON o elige un archivo JSON. Los elementos se añadirán a esta pestaña.',
+      chooseFile: 'Elegir archivo JSON', import: 'Importar', download: 'Descargar como JSON', invalidJson: 'La importación no contiene JSON válido.', 'invalid-json': 'La importación no contiene JSON válido.', 'empty-import': 'Añade al menos un elemento para importar.', 'invalid-item': 'Uno o más elementos importados no son válidos.', fileReadError: 'No se pudo leer el archivo JSON.',
     },
     fields: {
       url: 'URL',
@@ -466,6 +477,7 @@ const es = {
     sections: {
       behavior: 'Comportamiento',
       layout: 'Diseño',
+      utilities: 'Herramientas',
       appearance: 'Apariencia',
       background: 'Fondo',
     },
@@ -1153,6 +1165,11 @@ const es = {
     },
   },
   feeds: {
+    autoRefresh: 'Actualización automática',
+    skipImages: 'No descargar imágenes',
+    fetchItemLimit: 'Total de elementos obtenidos',
+    autoRefreshOff: 'Desactivada',
+    autoRefreshMinutes: '{minutes} min',
     feedSourcesAria: 'Fuentes RSS',
     clearLoadedForSource: 'los elementos cargados para "{title}"',
     clearLoadedNew: 'los elementos recién cargados en esta pestaña',

@@ -19,6 +19,12 @@ const ru = {
     current: 'Текущий',
     customize: 'Настроить',
     appearance: 'Внешний вид',
+    pictureInPicture: 'Картинка в картинке',
+  },
+  todo: {
+    tiles: 'Показывать задачи плитками',
+    created: 'Создано', updated: 'Обновлено', finished: 'Завершено',
+    moduleType: 'Задачи', add: 'Добавить задачу', addPlaceholder: 'Добавить задачу…', empty: 'Задач пока нет.', untitled: 'Задача без названия', edit: 'Редактировать задачу', dueAt: 'Дата и время выполнения', completed: 'Выполнено', note: 'Заметка', markComplete: 'Отметить как выполненную', markIncomplete: 'Отметить как невыполненную', confirmDelete: 'Удалить эту задачу?', priority: {label: 'Приоритет', none: 'Нет', low: 'Низкий', medium: 'Средний', high: 'Высокий'},
   },
   app: {
     title: 'Speedtab',
@@ -307,7 +313,6 @@ const ru = {
     showHoverActions: 'Показывать кнопки действий при наведении на закладку',
     quicklinksMode: 'Режим быстрых ссылок',
     forceFavicon: 'Принудительный favicon',
-    showTitleBelow: 'Режим больших плиток',
     layoutGrid: 'Сетка макета',
     bookmarkOpenBehavior: 'Поведение открытия закладок',
     visibleFeedItems: 'Видимые элементы ленты',
@@ -364,6 +369,12 @@ const ru = {
     sections: {
       context: 'Контекст',
       identity: 'Идентификация',
+      import: 'Импорт',
+    },
+    import: {
+      bookmark: 'JSON визуальных закладок', note: 'JSON заметок', todo: 'JSON задач',
+      help: 'Вставьте массив JSON или выберите файл JSON. Элементы будут добавлены в эту вкладку.',
+      chooseFile: 'Выбрать файл JSON', import: 'Импортировать', download: 'Скачать как JSON', invalidJson: 'Импорт не содержит корректный JSON.', 'invalid-json': 'Импорт не содержит корректный JSON.', 'empty-import': 'Добавьте хотя бы один элемент для импорта.', 'invalid-item': 'Один или несколько импортируемых элементов недействительны.', fileReadError: 'Не удалось прочитать файл JSON.',
     },
     fields: {
       url: 'URL',
@@ -466,6 +477,7 @@ const ru = {
     sections: {
       behavior: 'Поведение',
       layout: 'Макет',
+      utilities: 'Инструменты',
       appearance: 'Внешний вид',
       background: 'Фон',
     },
@@ -1153,6 +1165,11 @@ const ru = {
     },
   },
   feeds: {
+    autoRefresh: 'Автообновление',
+    skipImages: 'Не загружать изображения',
+    fetchItemLimit: 'Всего загружаемых элементов',
+    autoRefreshOff: 'Выключено',
+    autoRefreshMinutes: '{minutes} мин.',
     feedSourcesAria: 'Источники лент',
     clearLoadedForSource: 'загруженные публикации для "{title}"',
     clearLoadedNew: 'вновь полученные загруженные элементы этой вкладки',

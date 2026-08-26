@@ -625,8 +625,6 @@ async function handleFetchFeed(url: string): Promise<FetchFeedResponse> {
     }
 
     const xml = await decodeResponseText(response, response.headers.get('content-type') ?? '')
-    // DEBUG: temporary diagnostic — please remove after verifying the fix
-    console.log('[Speedtab SW DEBUG] handleFetchFeed url=', url, ' sniffed charset=', (response as any).__sniffedCharset, ' first 200 chars:', xml.slice(0, 200))
     return { ok: true, xml }
   } catch (err: unknown) {
     if (err instanceof Error) {

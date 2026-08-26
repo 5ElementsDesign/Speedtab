@@ -40,15 +40,14 @@ button, .button {
   transition: var(--st-interactive-transition, background var(--st-form-transition));
 }
 
-input:is(
-  [type="text"],
-  [type="email"],
-  [type="url"],
-  [type="password"],
-  [type="search"],
-  [type="number"],
-  [type="tel"]
-),
+input[type="text"],
+input[type="email"],
+input[type="url"],
+input[type="password"],
+input[type="search"],
+input[type="number"],
+input[type="tel"],
+input[type="datetime-local"],
 select,
 textarea {
   background-color: var(--st-form-elements-bg-color);
@@ -69,15 +68,14 @@ textarea {
   }
 }
 
-input:is(
-  [type="text"],
-  [type="email"],
-  [type="url"],
-  [type="password"],
-  [type="search"],
-  [type="number"],
-  [type="tel"]
-),
+input[type="text"],
+input[type="email"],
+input[type="url"],
+input[type="password"],
+input[type="search"],
+input[type="number"],
+input[type="tel"],
+input[type="datetime-local"],
 select,
 button,
 .button {

@@ -5,6 +5,7 @@ import type {
   Collection,
   Tab,
   Note,
+  Todo,
   FeedSource,
   FeedItem,
   SavedFeedItem,
@@ -44,6 +45,7 @@ export class SpeedtabDB extends Dexie {
   collections!:  Table<Collection>
   tabs!:         Table<Tab>
   notes!:        Table<Note>
+  todos!:        Table<Todo>
   feed_sources!: Table<FeedSource>
   feed_items!:   Table<FeedItem>
   saved_feed_items!: Table<SavedFeedItem>
@@ -205,6 +207,23 @@ export class SpeedtabDB extends Dexie {
       }
       if (toDelete.length) await tx.table('next_ui_config').bulkDelete(toDelete)
     })
+
+    this.version(10).stores({
+      pages:            '++id, &slug, &sync_id, sort_order, is_home, updated_at, deleted_at',
+      modules:          '++id, &sync_id, page_id, type, sort_order, updated_at, deleted_at',
+      collections:      '++id, &sync_id, module_id, sort_order, updated_at, deleted_at',
+      tabs:             '++id, &sync_id, collection_id, url, sort_order, updated_at, deleted_at',
+      notes:            '++id, &sync_id, collection_id, type, sort_order, updated_at, deleted_at',
+      todos:            '++id, &sync_id, collection_id, completed_at, due_at, sort_order, updated_at, deleted_at',
+      feed_sources:     '++id, &sync_id, collection_id, sort_order, last_fetched_at, updated_at, deleted_at',
+      feed_items:       '++id, feed_source_id, fetched_at, published_at, [feed_source_id+external_id]',
+      saved_feed_items: '++id, &sync_id, collection_id, saved_at, sort_order, updated_at, deleted_at',
+      assets:           '++id, &checksum, kind',
+      app_settings:     '&key, updated_at',
+      capture_inbox:    '++id, &external_hash, kind, created_at',
+      bg_archive:       '++id, created_at',
+      next_ui_config:   '++id, [workspace_id+entity_sync_id], entity_type, entity_subtype, device_id, updated_at',
+    })
   }
 }
 
@@ -239,6 +258,7 @@ type PortableTableName =
   | 'collections'
   | 'tabs'
   | 'notes'
+  | 'todos'
   | 'feed_sources'
   | 'saved_feed_items'
 
@@ -248,6 +268,7 @@ const PORTABLE_TABLES: PortableTableName[] = [
   'collections',
   'tabs',
   'notes',
+  'todos',
   'feed_sources',
   'saved_feed_items',
 ]

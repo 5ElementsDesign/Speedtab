@@ -2,6 +2,8 @@ import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 import {renderFormActions} from '../forms/actions.js'
 import {customizerDivider, customizerField, customizerSection, textarea} from '../../ui/primitives.js'
+import {getCollectionImportExample, getCollectionImportKind} from './collection-import.js'
+import {FEED_AUTO_REFRESH_INTERVALS, getFeedAutoRefreshInterval} from './feed-auto-refresh.js'
 
 function getFormTitleKey(entityType, record) {
   if (entityType === 'tab') return record?.id ? 'moduleCrud.editTab' : 'moduleCrud.newTab'
@@ -15,13 +17,69 @@ export function getCrudPanelTitle(entityType, record) {
   return t(getFormTitleKey(entityType, record))
 }
 
+function renderCollectionImport({moduleType, record, hasContent, moduleSyncId}) {
+  const kind = getCollectionImportKind(moduleType)
+  if (!kind || !record?.id) return ''
+  const fileId = `module-collection-import-file-${kind}`
+  return `
+    ${customizerDivider()}
+    <form
+      data-module-crud-import
+      data-submit="moduleCrudImport"
+      data-record-id="${escapeHtml(String(record.id))}"
+      data-record-sync-id="${escapeHtml(record.sync_id ?? '')}"
+      data-module-sync-id="${escapeHtml(moduleSyncId)}"
+      data-module-type="${escapeHtml(moduleType)}"
+    >
+      ${customizerSection({
+        title: t('moduleCrud.sections.import'),
+        section: 'import',
+        children: `
+          ${customizerField({
+            label: t(`moduleCrud.import.${kind}`),
+            layout: 'stack',
+            control: textarea({
+              name: 'collection-import-json',
+              rows: 8,
+              attrs: {placeholder: getCollectionImportExample(kind), spellcheck: 'false'},
+            }),
+          })}
+          <p data-settings-hint>${escapeHtml(t('moduleCrud.import.help'))}</p>
+          <div data-form-actions>
+            <label for="${escapeHtml(fileId)}" class="st-btn" data-btn="ghost">${escapeHtml(t('moduleCrud.import.chooseFile'))}</label>
+            ${hasContent ? `<button type="button" data-btn="ghost" data-click="downloadModuleTabContent" data-record-id="${escapeHtml(String(record.id))}" data-record-sync-id="${escapeHtml(record.sync_id ?? '')}" data-module-sync-id="${escapeHtml(moduleSyncId)}" data-module-type="${escapeHtml(moduleType)}">${escapeHtml(t('moduleCrud.import.download'))}</button>` : ''}
+          </div>
+          <input id="${escapeHtml(fileId)}" type="file" accept="application/json,.json" hidden data-change="collectionImportFileChange">
+          <div data-form-actions><button type="submit" data-btn="primary">${escapeHtml(t('moduleCrud.import.import'))}</button></div>
+        `,
+      })}
+    </form>
+  `
+}
+
+function renderFeedAutoRefresh(record, moduleType, moduleSyncId) {
+  if (moduleType !== 'feeds' || !record?.id) return ''
+  const value = getFeedAutoRefreshInterval(record.config_json)
+  return `
+    ${customizerDivider()}
+    <label data-customizer-field>
+      <span data-customizer-field-label>${escapeHtml(t('feeds.autoRefresh'))}</span>
+      <select data-change="changeFeedAutoRefresh" data-record-id="${escapeHtml(String(record.id))}" data-record-sync-id="${escapeHtml(record.sync_id ?? '')}" data-module-sync-id="${escapeHtml(moduleSyncId)}">
+        <option value="">${escapeHtml(t('feeds.autoRefreshOff'))}</option>
+        ${FEED_AUTO_REFRESH_INTERVALS.map((interval) => `<option value="${interval}"${value === interval ? ' selected' : ''}>${escapeHtml(t('feeds.autoRefreshMinutes', {minutes: interval}))}</option>`).join('')}
+      </select>
+    </label>
+  `
+}
+
 export function renderModuleCrudForm({
   entityType,
   record = null,
   moduleSyncId = '',
+  moduleType = '',
   parentId = '',
   parentSyncId = '',
-  parentTitle = '',
+  hasContent = false,
 }) {
   const title = record?.title ?? ''
   const description = record?.description ?? ''
@@ -38,23 +96,16 @@ export function renderModuleCrudForm({
       data-record-id="${escapeHtml(String(record?.id ?? ''))}"
       data-record-sync-id="${escapeHtml(record?.sync_id ?? '')}"
       data-module-sync-id="${escapeHtml(moduleSyncId)}"
+      data-module-type="${escapeHtml(moduleType)}"
       data-parent-id="${escapeHtml(String(parentId ?? ''))}"
       data-parent-sync-id="${escapeHtml(parentSyncId)}"
     >
-      ${parentTitle ? `
-        <div data-customizer-section data-section="context">
-          <p data-customizer-section-title>${t('moduleCrud.sections.context')}</p>
-          <p data-module-crud-parent>${escapeHtml(parentTitle)}</p>
-        </div>
-        ${customizerDivider()}
-      ` : ''}
-
       ${customizerSection({
         title: t('moduleCrud.sections.identity'),
         section: 'identity',
         children: `
           ${customizerField({
-            label: entityType === 'feed-source' ? t('feedForm.displayTitle') : t('moduleForm.title'),
+            label: entityType === 'feed-source' ? t('feedForm.displayTitle') : entityType === 'tab' ? t('noteForm.title') : t('moduleForm.title'),
             control: `<input type="text" name="title" value="${escapeHtml(title)}" required autocomplete="off"${entityType === 'feed-source' ? ` placeholder="${escapeHtml(t('feedForm.displayTitlePlaceholder'))}"` : ''}>`,
           })}
           ${entityType === 'bookmark' ? customizerField({
@@ -83,9 +134,9 @@ export function renderModuleCrudForm({
         `,
       })}
 
-      ${customizerDivider()}
-
       ${renderFormActions()}
     </form>
+    ${entityType === 'tab' ? renderFeedAutoRefresh(record, moduleType, moduleSyncId) : ''}
+    ${entityType === 'tab' ? renderCollectionImport({moduleType, record, hasContent, moduleSyncId}) : ''}
   `
 }

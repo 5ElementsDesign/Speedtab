@@ -1,6 +1,6 @@
 // ─── Shared enums ─────────────────────────────────────────────────────────────
 
-export type ModuleType = 'tabs' | 'speed-dial' | 'notes' | 'feeds'
+export type ModuleType = 'tabs' | 'speed-dial' | 'notes' | 'feeds' | 'todo'
 export type NoteType   = 'text' | 'code' | 'links' | 'crypt' | 'html'
 export type AssetKind  = 'favicon' | 'preview' | 'background' | 'note_image'
 export type NavGroup   = 'main' | 'overflow'
@@ -72,6 +72,18 @@ export interface Note extends SyncMetadata {
   style_token:   string | null
   sort_order:    number
   meta_json:     string | null
+}
+
+export interface Todo extends SyncMetadata {
+  id?:           number
+  collection_id: number
+  title:         string
+  note:          string | null
+  completed_at:  number | null
+  due_at:        number | null
+  priority:      'low' | 'medium' | 'high' | null
+  color_scheme:  'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'dark' | 'light' | null
+  sort_order:    number
 }
 
 /**

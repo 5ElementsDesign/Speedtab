@@ -1,5 +1,5 @@
 import {YEH} from '../../lib/yai/yeh.js'
-import {closeAll, getOpenDropdownTrigger, isDropdownOpen, positionPanel, toggle} from '../components/dropdown.js'
+import {closeAll, getOpenDropdownTrigger, isDropdownOpen, positionPanel, syncOpenQuickSettingState, toggle} from '../components/dropdown.js'
 import {closeModal, isModalOpen} from '../components/modal.js'
 import {closeSidepanel, isSidepanelOpen} from '../components/sidepanel.js'
 import {updateFormDirtyState} from '../features/forms/actions.js'
@@ -74,7 +74,12 @@ export function createHandler(appActions = {}) {
           if (isDropdownOpen() && !keepDropdownOpen) closeAll()
           event.__dropdownTrigger = originTrigger
           const fn = appActions[action]
-          if (typeof fn === 'function') fn(clickable, event)
+          if (typeof fn === 'function') {
+            const result = fn(clickable, event)
+            if (keepDropdownOpen) {
+              Promise.resolve(result).then(syncOpenQuickSettingState, syncOpenQuickSettingState)
+            }
+          }
           return
         }
 

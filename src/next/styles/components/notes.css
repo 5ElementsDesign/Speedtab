@@ -820,7 +820,7 @@
       line-height: 1.4;
       border-bottom: 1px solid color-mix(in srgb, var(--st-note-window-accent-color) 18%, transparent);
 
-      strong {
+      strong, b {
         white-space: nowrap;
       }
       &.vertical-align-middle {
@@ -1412,10 +1412,13 @@
   --st-content-font-size: 15px;
   --yai-tabs-color-background: rgba(245, 245, 245, .9);
   --yai-tabs-content-inactive-background: var(--yai-tabs-color-background);
+
+  &[data-module-in-pip] {
+    display: none;
+  }
 }
 
 /** Additional CSS for Tabs in Notes */
-
 [data-floating-windows] {
   /* Reset default box-shadows */
   [data-note-html-subtype="tabs"] {

@@ -483,8 +483,6 @@ export function renderBookmarkCrudForm(state) {
         children: `<div data-bookmark-form-preview-wrap>${renderPreviewSelection(state)}</div>`,
       }).replace('<p data-customizer-section-title>', `<p data-customizer-section-title title="${escapeHtml(t('tabForm.previewImageMeta', getPreviewSpec(state)))}">`)}
 
-      ${customizerDivider()}
-
       ${renderFormActions()}
     </form>
   `

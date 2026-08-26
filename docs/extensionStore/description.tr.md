@@ -6,23 +6,25 @@ Farklı bağlamlar için özel başlangıç sayfaları oluşturun, bunları mod�
 
 Speedtab yapı, hız ve verileriniz üzerinde tam mülkiyet için tasarlanmıştır:
 
-- hesap gerekmez
-- arka plan sunucu hizmeti yok
-- bulut bağımlılığı yok
-- tarayıcı içinde gerçek yerel depolama (local-first)
-- tam veri özgürlüğü için taşınabilir dışa/içe aktarma
+• hesap gerekmez
+• arka plan sunucu hizmeti yok
+• bulut bağımlılığı yok
+• tarayıcı içinde gerçek yerel depolama (local-first)
+• tam veri özgürlüğü için taşınabilir dışa/içe aktarma
 
 Speedtab ile yapabilecekleriniz:
 
-- yer imlerini sayfalar, modüller ve özel sekmeler halinde düzenleyin
-- iş akışlarınıza göre uyarlanmış klasik, yüksek performanslı bir Hızlı Erişim deneyiminin keyfini çıkarın
-- yer imleriniz için yerel önizleme görselleri ve özel favicon'lar yükleyin
-- metin, kod, bağlantı, özel HTML ve şifrelenmiş notlar oluşturun
-- YaiTabs altyapısıyla HTML notlarınızın içinde sonsuz, derinlemesine iç içe geçmiş sekme yapıları oluşturun
-- RSS/Atom beslemelerini doğrudan başlangıç sayfanızda okuyun
-- okundu/okunmadı durumlarını takip edin ve ilgilendiğiniz besleme ögelerini yorumlarla arşivleyin
-- görsel temayı, ızgara düzenlerini ve CSS arka planlarını özelleştirin
-- çalışma alanınızı kesintisiz dışa/içe aktarma ile tarayıcı profilleri arasında taşıyın
+• yer imlerini sayfalar, modüller ve özel sekmeler halinde düzenleyin
+• iş akışlarınıza göre uyarlanmış klasik, yüksek performanslı bir Hızlı Erişim deneyiminin keyfini çıkarın
+• yer imleriniz için yerel önizleme görselleri ve özel favicon'lar yükleyin
+• öncelikler, son tarihler, notlar ve görsel durum göstergeleri ile görevleri ve yapılacakları (ToDo) yönetin
+• metin, kod, bağlantı, özel HTML ve şifrelenmiş notlar oluşturun
+• YaiTabs altyapısıyla HTML notlarınızın içinde sonsuz, derinlemesine iç içe geçmiş sekme yapıları oluşturun
+• notları ve besleme modüllerini kayan Document Picture-in-Picture (PiP) pencerelerine dönüştürün
+• RSS/Atom beslemelerini doğrudan başlangıç sayfanızda sekme bazlı otomatik yenileme aralıklarıyla okuyun
+• okundu/okunmadı durumlarını takip edin ve ilgilendiğiniz besleme ögelerini yorumlarla arşivleyin
+• görsel temayı, ızgara düzenlerini ve CSS arka planlarını özelleştirin
+• tüm çalışma alanlarını veya bireysel yer imi, not ve ToDo koleksiyonlarını JSON ile dışa ve içe aktarın
 
 Speedtab tamamen yerel çalışır. Uygulama verileri tarayıcı profilinizdeki IndexedDB içinde güvenle saklanır. Besleme çekme işlemleri uzaktaki bir sunucu tarafından değil, eklentinin kendi arka plan servis çalıştırıcısı (service worker) tarafından yürütülür. Şifrelenmiş notlar AES-GCM ve PBKDF2-SHA256 kullanılarak istemci tarafında korunur. Parolalarınız asla cihazınızdan dışarı çıkmaz.
 
@@ -68,6 +70,12 @@ SPEED DIAL MODÜLÜ
 • Görsel başına ayarlanabilir boşluğa sahip yerel Speed Dial görsel varlıkları.
 • Favicon renklerinden türetilen karo görselleri, harici ekran görüntüsü veya görsel hizmeti gerektirmez.
 
+TODO (YAPILACAKLAR) MODÜLÜ
+• Doğrudan çalışma alanı ızgaranıza entegre edilmiş özel görev yönetim modülü.
+• Esnek görev seçenekleri: öncelikler, isteğe bağlı renk göstergeleri, notlar, son tarih/saat desteği ve kompakt meta veri ekranı.
+• Açık, zamanında tamamlanan, geç tamamlanan ve süresi geçmiş görevler için net görsel durum etiketleri ve renk kodlaması.
+• Karo görünüm modu, standart modül sekmeleri ve ortak hızlı ayar kontrolleri.
+
 NOTLAR VE ETKİLEŞİMLİ NOT MOTORU
 • Beş not içerik türü:
   - HTML Notları:
@@ -83,7 +91,7 @@ NOTLAR VE ETKİLEŞİMLİ NOT MOTORU
   - HTML notları için açılıp kapatılabilir canlı önizlemeli varsayılan bölünmüş görünüm (split-view) düzenleyicisi.
   - Uçar Yapılandırma (Flying Config): Derinlemesine iç içe geçmiş HTML notu sekme içeriklerini odaklanmış özel bir yapılandırma yüzeyinden düzenleyin. Doğru içeriği bulmak için artık iç içe geçmiş sekmeler arasında gezinmeye son.
   - Yerel Hızlı Not Not Defteri (Scratchpad): Çalışma alanı dışa aktarmalarından bağımsız olarak saklanan, başlık üzerinden erişilebilir yerel not defteri.
-• Yüzen Pencere Sistemi: Notlar, sürüklenebilir, boyutu yeniden adlandırılabilir ve odaklaması katmanlanabilir yüzen pencerelere dönüştürülebilir ve tarayıcı yeniden başlatmalarında durumlarını, konumlarını ve boyutlarını korurlar.
+• Yüzen Pencere Sistemi ve Picture-in-Picture: Notlar sürüklenebilir, boyutu yeniden adlandırılabilir pencerelere dönüştürülebilir veya canlı içerik eşitlemeli yerel Document Picture-in-Picture (PiP) pencerelerinde açılabilir.
 
 BESLEME (RSS/ATOM) OKUYUCU MODÜLÜ
 • Herhangi bir sayfa modülü ızgarasına doğrudan yerleştirilebilir entegre RSS/Atom besleme okuyucu modülü.
@@ -93,13 +101,15 @@ BESLEME (RSS/ATOM) OKUYUCU MODÜLÜ
   - Toplu işaretleme eylemleriyle okundu ve okunmadı ögesi durumu takibi.
   - Makaleleri isteğe bağlı kullanıcı yorumlarıyla yerel olarak kaydetmek için öge arşiv yöneticisi.
   - Genişletilmiş Okuyucu Görünümü: Ayarlanabilir okuma sütunu genişlik seçicileriyle besleme modüllerini özel bir tam genişlikte okuma görünümüne büyütün.
+  - Document Picture-in-Picture (PiP) desteği: Kaydırma konumunu ve canlı içerik güncellemelerini koruyarak besleme modüllerini masaüstü kayan pencerelerine dönüştürün.
   - Yüklenen makaleleri gerçek zamanlı olarak aramak için modül içi yerel metin filtresi girişi.
-  - Sekme etkinken isteğe bağlı modül başına otomatik yenileme döngüsü.
+  - Sekme açık olduğu sürece yapılandırılabilir aralıklarla sekme bazlı otomatik yenileme.
   - Çapraz kaynaklı (cross-origin) besleme çekme işlemleri arka plan servis çalıştırıcısı tarafından güvenle yürütülür.
 
 WIDGET ÇUBUĞU VE YARDIMCI ARAÇLAR
 • Ana çalışma alanı sayfalarının üstüne veya altına yerleştirilebilen modüler widget çubuğu.
 • Saat ve Zaman Araçları:
+  - Eşitlenmiş saat ekranlarını ve görev zamanlayıcılarını çalıştıran ortak merkezi App Clock zamanlayıcısı.
   - Açılıp kapatılabilir Dijital veya Analog saat görüntüleme modları.
   - Yerelleştirilmiş tarih/saat dizesi biçimlendirmesi, belirteç ekleme yardımcıları, özel yazı tipi boyutlandırma, hizalama ve parça başına öge renkleri.
   - Sıfır kayıplı gerçek DOM işleme döngüsünde çalışan yerel Kronometre ve Çoklu Zamanlayıcı araçları.
@@ -117,6 +127,7 @@ VERİ MÜLKİYETİ, DEPOLAMA VE UZAKTAN EŞİTLEME
 • %100 Yerel Öncelikli Depolama: Tüm uygulama durumu, modül yapıları ve ikili varlıklar Dexie aracılığıyla istemci tarafındaki IndexedDB içinde saklanır.
 • Taşınabilir JSON Veri Değişimi:
   - Doğrulanmış JSON dışa aktarma dosyaları (speedtab-export-<checksum>.json).
+  - Görsel yer imleri, notlar ve ToDo sekmeleri için kompakt JSON koleksiyonu içe ve dışa aktarma.
   - Çalışma alanlarını kayıt tekrarı olmadan tarayıcı profilleri arasında taşımak için kimlik farkındalığına sahip kayıt birleştirme motoru.
   - Yalıtılmış içe/dışa aktarma yardımcı yüzeyi (import-export.html).
 • İsteğe Bağlı Uzaktan Bulut Eşitlemesi:
@@ -136,7 +147,7 @@ ULUSLARARASI LAŞTIRMA VE YEREL DİL DESTEĞİ
 PERFORMANS VE BOYUT
 ----------------------------------------
 
-• Sıkıştırılmış eklenti boyutu: ~650 KB
+• Sıkıştırılmış eklenti boyutu: ~710 KB
 • Chrome Görev Yöneticisi:
   - Bellek: ~50 MB toplam bellek / ~5 MB canlı JavaScript yığını
   - CPU kullanımı: Etkin kullanım sırasında %1-10

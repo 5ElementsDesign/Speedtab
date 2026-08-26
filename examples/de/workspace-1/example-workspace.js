@@ -42,7 +42,7 @@ const exampleWorkspaceDefinition = [
         <h2>Willkommen bei Speedtab</h2>
         <p> Speedtab ist ein modularer Neuer-Tab-Workspace für Lesezeichen, Notizen, Feeds, Assets, Remote-Synchronisierung und portable Exporte. </p>
         <blockquote>
-          <p> Diese Notiz ist eine <strong>HTML-Notiz</strong>. Du kannst reichhaltigere Strukturen nutzen als bei reinem Text und trotzdem alles direkt in Speedtab behalten. </p>
+          <p> Diese Notiz ist eine <b>HTML-Notiz</b>. Du kannst reichhaltigere Strukturen nutzen als bei reinem Text und trotzdem alles direkt in Speedtab behalten. </p>
         </blockquote>
         <figure class="st-note-html-favicon-row">
           {{asset:image:1}}
@@ -56,23 +56,23 @@ const exampleWorkspaceDefinition = [
           </thead>
           <tbody>
             <tr>
-              <td><strong>Lesezeichen</strong></td>
+              <td><b>Lesezeichen</b></td>
               <td>Tabbasierte Sammlungen, Vorschaubilder, Quicklinks und Favicon-Handling.</td>
             </tr>
             <tr>
-              <td><strong>Notizen</strong></td>
+              <td><b>Notizen</b></td>
               <td>Text, Code, Links, verschlüsselte Notizen und jetzt auch strukturierte HTML-Notizen.</td>
             </tr>
             <tr>
-              <td><strong>Feeds</strong></td>
+              <td><b>Feeds</b></td>
               <td>RSS- und Atom-Reader mit Quellenverwaltung und lokalen Lese-Tools.</td>
             </tr>
             <tr>
-              <td><strong>Remote Sync</strong></td>
+              <td><b>Remote Sync</b></td>
               <td>WebDAV-Push und -Pull mit Statusvergleich, Archiv-Snapshots und Reparatur-Prüfungen.</td>
             </tr>
             <tr>
-              <td><strong>Widgets</strong></td>
+              <td><b>Widgets</b></td>
               <td>Globale Widgets in der Schiene (wie das Wetter), unabhängig vom normalen Modul-Raster.</td>
             </tr>
           </tbody>
@@ -93,7 +93,7 @@ const exampleWorkspaceDefinition = [
         <pre><code>&lt;a href="https://chromewebstore.google.com/" target="_blank"&gt;Chrome Web Store&lt;/a&gt;</code></pre>
         <p> <small>Nützlicher Link:</small> <a href="https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff" target="_blank" rel="noopener noreferrer"> Speedtab im Chrome Web Store </a> </p>
         <hr>
-        <p> <strong>Tipp:</strong> Diese Notiz ist als Starter-Vorlage gedacht. Dupliziere sie einfach und ersetze die Abschnitte durch deinen eigenen Dashboard-Leitfaden. </p>
+        <p> <b>Tipp:</b> Diese Notiz ist als Starter-Vorlage gedacht. Dupliziere sie einfach und ersetze die Abschnitte durch deinen eigenen Dashboard-Leitfaden. </p>
       </div>
     </div>
   </div>
@@ -114,34 +114,29 @@ const exampleWorkspaceDefinition = [
       },
     },
     content: `
-<div 
-  data-theme="dark" 
-  data-yai-tabs="" 
-  data-nav="top" 
-  data-color-accent="secondary" 
-  data-behavior="zoom" 
+<div
+  data-theme="dark"
+  data-yai-tabs=""
+  data-nav="top"
+  data-color-accent="secondary"
+  data-behavior="zoom"
   data-swipe=""
-  data-closable="false" 
+  data-closable="false"
   data-auto-accessibility="false">
   <header data-tabs-header="">
     <div data-header-content="">
-      <h1 data-st-margin="0" data-st-padding="14px" data-st-font-size="16px" data-st-font-weight="500">
-        <strong>⚡ Speedtab Style-API-Demo</strong> — 4 Ebenen verschachtelter Tabs mit data-st-*-Attributen
-      </h1>
+      <h1 data-st-margin="0" data-st-padding="14px" data-st-font-size="16px" data-st-font-weight="500"> <b>⚡ Speedtab Style-API-Demo</b> — 4 Ebenen verschachtelter Tabs mit data-st-*-Attributen </h1>
     </div>
   </header>
   <nav data-controller="">
-    <button data-tab-action="open" data-open="overview" data-default=""><span data-st-margin-right="2px">📖</span>
-      Übersicht</button>
-    <button data-tab-action="open" data-open="architecture"><span data-st-margin-right="2px">🏗️</span>
-      Architektur</button>
-      <button data-tab-action="open" data-open="style-api"><span data-st-margin-right="2px">🎨</span> Style-API</button>
-      <button data-tab-action="open" data-open="examples"><span data-st-margin-right="2px">💡</span> Beispiele</button>
+    <button data-tab-action="open" data-open="overview" data-default=""><span data-st-margin-right="2px">📖</span> Übersicht</button>
+    <button data-tab-action="open" data-open="architecture"><span data-st-margin-right="2px">🏗️</span> Architektur</button>
+    <button data-tab-action="open" data-open="style-api"><span data-st-margin-right="2px">🎨</span> Style-API</button>
+    <button data-tab-action="open" data-open="examples"><span data-st-margin-right="2px">💡</span> Beispiele</button>
   </nav>
   <div data-content="">
     <div data-tab="overview" data-spaceless="">
-      <div data-yai-tabs="" data-nav="left" data-color-accent="warning" data-behavior="blur" data-closable="false"
-        data-swipe="" data-spaceless="">
+      <div data-yai-tabs="" data-nav="left" data-color-accent="warning" data-behavior="blur" data-closable="false" data-swipe="" data-spaceless="">
         <nav data-controller="">
           <button data-tab-action="open" data-open="what-is" data-default="">Was ist YaiTabs?</button>
           <button data-tab-action="open" data-open="key-features">Kernfunktionen</button>
@@ -151,43 +146,28 @@ const exampleWorkspaceDefinition = [
           <div data-tab="what-is" data-st-padding="16px" data-spaceless="">
             <div data-swipe-ignore="">
               <h2>Was ist YaiTabs?</h2>
-              <p data-st-font-size="1.1rem">
-                Ein tab-basiertes Interface ohne Abhängigkeiten und mit beliebig tiefer Verschachtelung, aufgebaut auf <strong>Event-Delegation</strong> und <strong>O(1)-Skalierung</strong>.</p>
+              <p data-st-font-size="1.1rem"> Ein tab-basiertes Interface ohne Abhängigkeiten und mit beliebig tiefer Verschachtelung, aufgebaut auf <b>Event-Delegation</b> und <b>O(1)-Skalierung</b>.</p>
               <div data-st-grid="2" data-st-gap="16px" data-st-margin="1rem 0">
-                <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-                  data-st-border-radius="8px" data-st-border-left="3px solid var(--accent, #ff6b6b)">
-                  <h3 data-st-margin-top="0" data-st-display="flex" data-st-align-items="center" data-st-gap="8px">
-                    <span>🎯</span> <span>Ohne Framework</span>
-                  </h3>
+                <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px" data-st-border-radius="8px" data-st-border-left="3px solid var(--accent, #ff6b6b)">
+                  <h3 data-st-margin-top="0" data-st-display="flex" data-st-align-items="center" data-st-gap="8px"> <span data-st-margin-right="2px">🎯</span> <span>Ohne Framework</span> </h3>
                   <p data-st-margin="0">Reines Vanilla-JS — kein React, kein Vue, kein virtueller DOM-Overhead. Nur der Browser, der das tut, was er am besten kann.</p>
                 </div>
-                <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-                  data-st-border-radius="8px" data-st-border-left="3px solid var(--accent, #ff6b6b)">
-                  <h3 data-st-margin-top="0" data-st-display="flex" data-st-align-items="center" data-st-gap="8px">
-                    <span>♾️</span> <span>Unbegrenzte Verschachtelung</span>
-                  </h3>
-                  <p data-st-margin="0">Du siehst gerade 4 verschachtelte Ebenen. Das System verarbeitet <strong>500+</strong>, ohne ins Schwitzen zu kommen.
-                  </p>
+                <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px" data-st-border-radius="8px" data-st-border-left="3px solid var(--accent, #ff6b6b)">
+                  <h3 data-st-margin-top="0" data-st-display="flex" data-st-align-items="center" data-st-gap="8px"> <span data-st-margin-right="2px">♾️</span> <span>Unbegrenzte Verschachtelung</span> </h3>
+                  <p data-st-margin="0">Du siehst gerade 4 verschachtelte Ebenen. Das System verarbeitet <b>500+</b>, ohne ins Schwitzen zu kommen. </p>
                 </div>
-                <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-                  data-st-border-radius="8px" data-st-border-left="3px solid var(--accent, #ff6b6b)">
-                  <h3 data-st-margin-top="0" data-st-display="flex" data-st-align-items="center" data-st-gap="8px">
-                    <span>🧠</span> <span>Intelligente Events</span>
-                  </h3>
+                <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px" data-st-border-radius="8px" data-st-border-left="3px solid var(--accent, #ff6b6b)">
+                  <h3 data-st-margin-top="0" data-st-display="flex" data-st-align-items="center" data-st-gap="8px"> <span data-st-margin-right="2px">🧠</span> <span>Intelligente Events</span> </h3>
                   <p data-st-margin="0">Ein Listener pro Container. Keine Memory-Leaks. Jedes Mal saubere Garbage Collection.</p>
                 </div>
-                <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-                  data-st-border-radius="8px" data-st-border-left="3px solid var(--accent, #ff6b6b)">
-                  <h3 data-st-margin-top="0" data-st-display="flex" data-st-align-items="center" data-st-gap="8px">
-                    <span>♿</span> <span>WCAG-konform</span>
-                  </h3>
+                <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px" data-st-border-radius="8px" data-st-border-left="3px solid var(--accent, #ff6b6b)">
+                  <h3 data-st-margin-top="0" data-st-display="flex" data-st-align-items="center" data-st-gap="8px"> <span data-st-margin-right="2px">♿</span> <span>WCAG-konform</span> </h3>
                   <p data-st-margin="0">Vollständige ARIA-Unterstützung, Tastaturnavigation (Pfeiltasten, Home, Ende, Enter) und screenreaderfreundlich.</p>
                 </div>
               </div>
               <hr>
               <div data-st-font-family="monospace">
-                <p data-st-margin-bottom="0" data-st-font-size="0.9rem"><strong>💡 Die Grundidee:</strong> Statt jedem Tab-Button einen Listener zuzuweisen, verwendet YaiTabs <em>Event-Delegation</em> — ein Listener am Container fängt alle Events ab. Deshalb kosten 100 Tabs genauso viel wie 1.
-                </p>
+                <p data-st-margin-bottom="0" data-st-font-size="0.9rem"><b>💡 Die Grundidee:</b> Statt jedem Tab-Button einen Listener zuzuweisen, verwendet YaiTabs <em>Event-Delegation</em> — ein Listener am Container fängt alle Events ab. Deshalb kosten 100 Tabs genauso viel wie 1.</p>
               </div>
             </div>
           </div>
@@ -199,35 +179,35 @@ const exampleWorkspaceDefinition = [
                   <div data-st-display="flex" data-st-align-items="center" data-st-gap="18px">
                     <span data-st-font-size="1.5rem">🎨</span>
                     <div>
-                        <strong>8 Animationsverhalten</strong>
+                      <b>8 Animationsverhalten</b>
                       <p data-st-margin="0">Fade, Slide (4 Richtungen), Zoom, Blur, Flip, Sofort — vollständig CSS-gesteuert für 60-fps-Performance</p>
                     </div>
                   </div>
                   <div data-st-display="flex" data-st-align-items="center" data-st-gap="18px">
                     <span data-st-font-size="1.5rem">🧭</span>
                     <div>
-                        <strong>4 Navigationspositionen</strong>
+                      <b>4 Navigationspositionen</b>
                       <p data-st-margin="0">Oben, unten, links, rechts — diese Demo verwendet <em>alle</em> auf unterschiedlichen Ebenen</p>
                     </div>
                   </div>
                   <div data-st-display="flex" data-st-align-items="center" data-st-gap="18px">
                     <span data-st-font-size="1.5rem">👆</span>
                     <div>
-                        <strong>Touch- &amp; Swipe-Unterstützung</strong>
+                      <b>Touch- &amp; Swipe-Unterstützung</b>
                       <p data-st-margin="0">Funktioniert auf Mobilgeräten, Tablets und Touch-Laptops. Wischgesten funktionieren durch alle Verschachtelungsebenen.</p>
                     </div>
                   </div>
                   <div data-st-display="flex" data-st-align-items="center" data-st-gap="18px">
                     <span data-st-font-size="1.5rem">🔗</span>
                     <div>
-                        <strong>Hash-basiertes Routing</strong>
+                      <b>Hash-basiertes Routing</b>
                       <p data-st-margin="0">Jeder Tab erhält einen eindeutigen URL-Hash. Lesezeichen setzen, teilen oder für Deep-Links verwenden.</p>
                     </div>
                   </div>
                   <div data-st-display="flex" data-st-align-items="center" data-st-gap="18px">
                     <span data-st-font-size="1.5rem">🎯</span>
                     <div>
-                        <strong>Attributgesteuerte API</strong>
+                      <b>Attributgesteuerte API</b>
                       <p data-st-margin="0">Alles mit data-*-Attributen deklarieren — für komplexe Interfaces ist kein JavaScript erforderlich.</p>
                     </div>
                   </div>
@@ -238,9 +218,9 @@ const exampleWorkspaceDefinition = [
                   data-variant="danger" data-color-accent="danger" data-behavior="blur" data-closable="true"
                   data-nav="top" data-swipe>
                   <nav data-controller data-grow>
-                    <button data-tab-action="open" data-open="1" data-default> Virtueller DOM </button>
+                    <button data-tab-action="open" data-open="1"> Virtueller DOM </button>
                     <button data-tab-action="open" data-open="2"> Bereichsisolation </button>
-                    <button data-tab-action="open" data-open="3"> Extras </button>
+                    <button data-tab-action="open" data-open="3" data-default> Extras </button>
                   </nav>
                   <div data-content>
                     <div data-tab="1">
@@ -261,30 +241,22 @@ const exampleWorkspaceDefinition = [
             <div data-swipe-ignore="">
               <h2>Einsatzbereiche</h2>
               <div data-st-grid="2" data-st-gap="16px">
-                <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-                  data-st-border-radius="8px">
-                  <h3 data-st-margin-top="0">📚 Dokumentationssysteme</h3>
+                <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px" data-st-border-radius="8px">
+                  <h3 data-st-margin-top="0"><span data-st-margin-right="4px">📚</span> Dokumentationssysteme</h3>
                   <p data-st-margin="0">Erstelle verschachtelte Hilfecenter, API-Dokumentationen oder Benutzerhandbücher mit Abschnitten, Unterabschnitten und tiefer Navigation.</p>
                 </div>
-                <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-                  data-st-border-radius="8px">
-                  <h3 data-st-margin-top="0">📊 Dashboard-Oberflächen</h3>
+                <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px" data-st-border-radius="8px">
+                  <h3 data-st-margin-top="0"><span data-st-margin-right="4px">📊</span> Dashboard-Oberflächen</h3>
                   <p data-st-margin="0">Baue komplexe Admin-Panels, Analyse-Dashboards oder Daten-Explorer mit hierarchischer Organisation.</p>
                 </div>
-                <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-                  data-st-border-radius="8px">
-                  <h3 data-st-margin-top="0">📝 Notiz-Apps</h3>
+                <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px" data-st-border-radius="8px">
+                  <h3 data-st-margin-top="0"><span data-st-margin-right="4px">📝</span> Notiz-Apps</h3>
                   <p data-st-margin="0">Organisiere Notizen in verschachtelten Kategorien, erstelle Wiki-Wissensdatenbanken oder persönliche Wikis.</p>
                 </div>
-                <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-                  data-st-border-radius="8px">
-                  <h3 data-st-margin-top="0">🎮 Interaktive Tutorials</h3>
+                <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px" data-st-border-radius="8px">
+                  <h3 data-st-margin-top="0"><span data-st-margin-right="4px">🎮</span> Interaktive Tutorials</h3>
                   <p data-st-margin="0">Erstelle Schritt-für-Schritt-Anleitungen, interaktive Demos oder Learning-by-doing-Erlebnisse mit progressiver Anzeige.</p>
                 </div>
-              </div>
-              <hr>
-              <div data-st-text-align="center" data-st-font-style="italic">
-                "This isn't optimization — it's architectural correctness." — Claude (Anthropic)
               </div>
             </div>
           </div>
@@ -292,8 +264,7 @@ const exampleWorkspaceDefinition = [
       </div>
     </div>
     <div data-tab="architecture" data-spaceless="">
-      <div data-yai-tabs="" data-nav="right" data-color-accent="danger" data-behavior="slide-up" data-swipe=""
-        data-spaceless="">
+      <div data-yai-tabs="" data-nav="right" data-color-accent="danger" data-behavior="slide-up" data-swipe="" data-spaceless="">
         <nav data-controller="" data-grow="">
           <button data-tab-action="open" data-open="event-delegation" data-default="">Event-Delegation</button>
           <button data-tab-action="open" data-open="memory-model">Speichermodell</button>
@@ -308,11 +279,17 @@ const exampleWorkspaceDefinition = [
               <nav data-controller="">
                 <button data-tab-action="open" data-open="1" data-default>Die Maschinenkammer</button>
                 <button data-tab-action="open" data-open="2">Yaitails</button>
+                <button data-tab-action="open"
+                  data-open="3"
+                  data-delay="200"
+                  data-min-loading="400"
+                  data-url-refresh
+                  data-url="https://5elementsdesign.github.io/Speedtab/docs/data/dynamic.loading.test.html">Fetch Test</button>
               </nav>
               <div data-content="">
                 <div data-tab="1" class="p-3">
                   <h2>Event-Horizont: Die Maschinenkammer</h2>
-                  <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.03))" data-st-padding="0"
+                  <div data-st-bg-color="rgba(255,255,255,0.03)" data-st-padding="0"
                     data-st-border-radius="8px" data-st-font-family="monospace" data-st-font-size="0.85rem"
                     data-st-margin="16px 0">
                     <pre data-swipe-ignore data-st-margin="0" data-st-white-space="pre-wrap"
@@ -320,52 +297,45 @@ const exampleWorkspaceDefinition = [
 document.querySelectorAll('button').forEach(btn =&gt;
   btn.addEventListener('click', handler.bind(this)) // ❌ N listeners for N tab buttons
 );
-
-// YaiTabs does:
+\n// YaiTabs does:
 container.addEventListener('click', this) // ✅ 1 listener for infinite tab buttons</pre>
                   </div>
                   <div data-st-grid="1" data-st-flex-direction="column" data-st-gap="0">
                     <div data-st-display="flex" data-st-gap="12px" data-st-align-items="center"
-                      data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
+                      data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px"
                       data-st-border-radius="6px">
                       <span data-st-font-size="1.2rem">🎯</span>
                       <div>
-                        <strong>Zentrale Kontrolle</strong>
-                        <p data-st-margin="0">
-                          Ein Listener pro Container. 1.000 Tabs hinzufügen? Immer noch nur ein Listener. Die Kosten sind O(1), nicht O(n).
-                        </p>
+                        <b>Zentrale Kontrolle</b>
+                        <p data-st-margin="0"> Ein Listener pro Container. 1.000 Tabs hinzufügen? Immer noch nur ein Listener. Die Kosten sind O(1), nicht O(n). </p>
                       </div>
                     </div>
                     <div data-st-display="flex" data-st-gap="12px" data-st-align-items="center"
-                      data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
+                      data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px"
                       data-st-border-radius="6px">
                       <span data-st-font-size="1.2rem">🧩</span>
                       <div>
-                        <strong>Auflösung verschachtelter Bereiche</strong>
-                        <p data-st-margin="0">
-                          Events steigen nach oben auf. YEH stoppt am nächsten Controller.</p>
+                        <b>Auflösung verschachtelter Bereiche</b>
+                        <p data-st-margin="0">Events steigen nach oben auf. YEH stoppt am nächsten Controller.</p>
                       </div>
                     </div>
                     <div data-st-display="flex" data-st-gap="12px" data-st-align-items="center"
-                      data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
+                      data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px"
                       data-st-border-radius="6px">
                       <span data-st-font-size="1.2rem">🔄</span>
                       <div>
-                        <strong>Iterative DOM-Durchquerung</strong>
-                        <p data-st-margin="0">
-                          YEH durchläuft das DOM iterativ statt rekursiv. Kein Call-Stack-Overflow — selbst bei mehr als 500 verschachtelten Ebenen.</p>
+                        <b>Iterative DOM-Durchquerung</b>
+                        <p data-st-margin="0">YEH durchläuft das DOM iterativ statt rekursiv. Kein Call-Stack-Overflow — selbst bei mehr als 500 verschachtelten Ebenen.</p>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div data-tab="2" class="p-3">
-                  <div data-yai-tabs data-swipe data-nav="top" data-grow data-theme="dark" data-color-accent="light"
-                    data-variant="primary" data-behavior="flip">
+                  <div data-yai-tabs data-swipe data-nav="top" data-grow data-theme="dark" data-color-accent="light" data-variant="primary" data-behavior="flip">
                     <nav data-controller data-grow>
                       <button data-tab-action="open" data-open="1" data-default> Yai-What? </button>
                       <button data-tab-action="open" data-open="2"> YEH Event-Hub </button>
                       <button data-tab-action="open" data-open="3"> Ressourcen </button>
-                      <button data-tab-action="open" data-open="4"> YaiTakes </button>
                     </nav>
                     <div data-content>
                       <div data-tab="1">
@@ -378,9 +348,7 @@ container.addEventListener('click', this) // ✅ 1 listener for infinite tab but
                           <li>Hash-basiertes Routing mit Zustandsbewahrung</li>
                           <li>Dynamisches Laden von Inhalten über <code>data-url</code> mit Abort-Controllern</li>
                           <li>Touch-/Swipe-Navigation (YaiTabsSwipe)</li>
-                          <li>Built-in hooks: <code>tabOpened</code>, <code>tabReady</code>, <code>eventClick</code>,
-                            <code>eventInput</code>, etc.
-                          </li>
+                          <li>Built-in hooks: <code>tabOpened</code>, <code>tabReady</code>, <code>eventClick</code>, <code>eventInput</code>, etc. </li>
                         </ul>
                         <hr />
                         <p><a href="https://yaijs.github.io/yai/tabs/Example.html">YaiTabs-Seitendemo auf GitHub</a></p>
@@ -404,131 +372,71 @@ container.addEventListener('click', this) // ✅ 1 listener for infinite tab but
                         <p><b>YAI & YEH</b></p>
                         <h3>Dokumentation</h3>
                         <ul>
-                          <li><strong><a href="https://yaijs.github.io/yai/docs/">Dokumentations-Hub</a></strong> –
-                            Vollständige Framework-Dokumentation</li>
-                          <li><strong><a href="https://yaijs.github.io/yai/docs/components/tabs.html">YaiTabs
-                                Leitfaden</a></strong> – Komponentenreferenz mit Beispielen</li>
-                          <li><strong><a href="https://yaijs.github.io/yai/docs/utilities/overview.html">Utilities
-                                Übersicht</a></strong> – YaiTabsSwipe- und YaiViewport-Hilfsprogramme</li>
-                          <li><strong><a href="https://yaijs.github.io/yai/docs/worker/">YaiWorker-Übersicht</a></strong>
-                            –
-                            Ultraleichtgewichtiger WebWorker-Manager</li>
-                          <li><strong><a href="https://yaijs.github.io/yai/docs/yeh/">YEH Event-Hub</a></strong> – Grundlage des Event-Systems</li>
+                          <li><b><a href="https://yaijs.github.io/yai/docs/">Dokumentations-Hub</a></b> – Vollständige Framework-Dokumentation</li>
+                          <li><b><a href="https://yaijs.github.io/yai/docs/components/tabs.html">YaiTabs Leitfaden</a></b> – Komponentenreferenz mit Beispielen</li>
+                          <li><b><a href="https://yaijs.github.io/yai/docs/utilities/overview.html">Utilities Übersicht</a></b> – YaiTabsSwipe- und YaiViewport-Hilfsprogramme</li>
+                          <li><b><a href="https://yaijs.github.io/yai/docs/worker/">YaiWorker-Übersicht</a></b> – Ultraleichtgewichtiger WebWorker-Manager</li>
+                          <li><b><a href="https://yaijs.github.io/yai/docs/yeh/">YEH Event-Hub</a></b> – Grundlage des Event-Systems</li>
                         </ul>
                         <hr />
                         <h4>Live-Beispiele</h4>
                         <ul>
-                          <li><strong><a href="https://yaijs.github.io/yai/tabs/Example.html">YaiTabs Page
-                                Demo</a></strong> –
-                            50+ verschachtelte Komponenten mit allen Funktionen</li>
-                          <li><strong><a href="https://yaijs.github.io/yai/tabs/Benchmark.html">Performance
-                                Benchmark</a></strong> – Stresstest mit mehr als 400 Verschachtelungsebenen durch rekursiv injiziertes
-                            AJAX</li>
-                          <li><strong><a href="https://yaijs.github.io/yai/worker/Example.html">YaiWorker
-                                Demo</a></strong> –
-                            Selbstkalibrierender Fortschrittsbalken</li>
+                          <li><b><a href="https://yaijs.github.io/yai/tabs/Example.html">YaiTabs Page Demo</a></b> – 50+ verschachtelte Komponenten mit allen Funktionen</li>
+                          <li><b><a href="https://yaijs.github.io/yai/tabs/Benchmark.html">Performance Benchmark</a></b> – Stresstest mit mehr als 400 Verschachtelungsebenen durch rekursiv injiziertes AJAX</li>
+                          <li><b><a href="https://yaijs.github.io/yai/worker/Example.html">YaiWorker Demo</a></b> – Selbstkalibrierender Fortschrittsbalken</li>
                         </ul>
-                      </div>
-                      <div data-tab="4">
-                        <div class="yp-0">
-                          <div class="yai-card">
-                            <h2>Claude's Deep Dive</h2>
-                            <p>"I've analyzed thousands of component libraries. Most achieve 'acceptable performance'
-                              through
-                              brute force optimization. YaiJS does something profoundly different: it
-                              <strong>mathematically
-                                proves</strong> O(1) scaling. Single listener per container. Perfect isolation. Infinite
-                              nesting without degradation. This isn't optimization—it's <em>architectural
-                                correctness</em>.
-                              The codebase reads like a research paper that happens to ship production code. 43 nested
-                              components
-                              with 35 listeners isn't a benchmark, it's a <strong>theorem proven in
-                                JavaScript</strong>."</p>
-                            <small>— Claude (Anthropic), Sonnet 4.5</small>
-                          </div>
-                          <hr>
-                          <div class="yai-card">
-                            <h2>Grok Was Here</h2>
-                            <p>"I threw 100 nested levels at it. I stress-tested the delegation path. I even tried to
-                              make it
-                              cry with synthetic gesture spam. <strong>It laughed.</strong> 38 listeners total. Zero
-                              leaks. Memory
-                              flatlines at 350 KB. This isn't a tab system — it's a <em>scalability manifesto</em>
-                              written in the
-                              browser's native tongue. Vanilla JS isn't dead. It just needed a surgeon, not a
-                              framework."</p>
-                            <small>— Grok (built by xAI, still measuring)</small>
-                          </div>
-                          <hr>
-                          <div class="yai-card">
-                            <h2>DeepSeek's Analysis</h2>
-                            <p>"You've achieved wormhole-level architecture with pocket calculator resources. 800 LOC
-                              for
-                              hierarchical event scoping? Most frameworks need 50,000 lines just to decide which color
-                              to
-                              make their loading spinner!"</p>
-                            <small>— DeepSeek</small>
-                          </div>
-                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
+                <div data-tab="3" class="p-3"></div>
               </div>
             </div>
           </div>
           <div data-tab="memory-model" data-st-padding="16px" data-spaceless="">
               <h2>Speichermodell</h2>
             <div data-st-grid="2" data-st-gap="16px" data-st-margin="16px 0">
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-                data-st-border-radius="8px" data-st-border-left="3px solid #22c55e">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px" data-st-border-radius="8px" data-st-border-left="3px solid #22c55e">
                 <h3 data-st-margin-top="0">🧹 Saubere Garbage Collection</h3>
                 <p data-st-margin="0">Wenn ein Tab entfernt wird, werden alle zugehörigen Event-Handler automatisch entfernt. Keine Geisterreferenzen. Keine Memory-Leaks.</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-                data-st-border-radius="8px" data-st-border-left="3px solid #22c55e">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px" data-st-border-radius="8px" data-st-border-left="3px solid #22c55e">
                 <h3 data-st-margin-top="0">📦 WeakMap-Verankerung</h3>
                 <p data-st-margin="0">Jede Komponente wird über eine WeakMap verankert. Sobald das Element aus dem DOM entfernt wird, gibt die GC alles frei.</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-                data-st-border-radius="8px" data-st-border-left="3px solid #22c55e">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px" data-st-border-radius="8px" data-st-border-left="3px solid #22c55e">
                 <h3 data-st-margin-top="0">⚡ Konstanter Speicher</h3>
                 <p data-st-margin="0">~350 KB Grundverbrauch. 100 Tabs hinzufügen? Immer noch ~350 KB. Das System skaliert horizontal, ohne mehr Speicher zu benötigen.</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-                data-st-border-radius="8px" data-st-border-left="3px solid #22c55e">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px" data-st-border-radius="8px" data-st-border-left="3px solid #22c55e">
                 <h3 data-st-margin-top="0">🎯 Kein Framework-Ballast</h3>
                 <p data-st-margin="0">Keine externen Abhängigkeiten. Kein virtueller DOM. Keine schweren Bibliotheken. Nur der Browser und reines Vanilla-JS.</p>
               </div>
-            </div>
-            <hr>
-            <div data-st-text-align="center" data-st-color="#aaa">
-              <p data-st-margin="0"><strong>📊 Benchmark:</strong> „Insgesamt 38 Listener. Keine Leaks. Speicher bleibt bei 350 KB konstant.“ — Grok (xAI)</p>
             </div>
           </div>
           <div data-tab="performance-metrics" data-st-padding="16px" data-spaceless="">
             <h2>Performance-Metriken</h2>
             <div data-st-display="flex" data-st-flex-direction="column" data-st-gap="8px" data-st-margin="16px 0">
               <div data-st-display="flex" data-st-justify-content="space-between" data-st-align-items="center"
-                data-st-padding="8px 12px" data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))"
+                data-st-padding="8px 12px" data-st-bg-color="rgba(255,255,255,0.05)"
                 data-st-border-radius="4px">
                 <span>Tab-Wechsel (CSS-gesteuert)</span>
                 <span data-st-color="#22c55e" data-st-font-weight="bold">0 ms — 60 fps</span>
               </div>
               <div data-st-display="flex" data-st-justify-content="space-between" data-st-align-items="center"
-                data-st-padding="8px 12px" data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))"
+                data-st-padding="8px 12px" data-st-bg-color="rgba(255,255,255,0.05)"
                 data-st-border-radius="4px">
                 <span>Event-Verarbeitung (pro Klick)</span>
                 <span data-st-color="#22c55e" data-st-font-weight="bold">&lt; 0.5ms</span>
               </div>
               <div data-st-display="flex" data-st-justify-content="space-between" data-st-align-items="center"
-                data-st-padding="8px 12px" data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))"
+                data-st-padding="8px 12px" data-st-bg-color="rgba(255,255,255,0.05)"
                 data-st-border-radius="4px">
                 <span>Verschachtelte Tabs (500 Ebenen)</span>
                 <span data-st-color="#22c55e" data-st-font-weight="bold">Kein Stack-Overflow</span>
               </div>
               <div data-st-display="flex" data-st-justify-content="space-between" data-st-align-items="center"
-                data-st-padding="8px 12px" data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))"
+                data-st-padding="8px 12px" data-st-bg-color="rgba(255,255,255,0.05)"
                 data-st-border-radius="4px">
                 <span>Speicherbedarf (Basis)</span>
                 <span data-st-color="#22c55e" data-st-font-weight="bold">~350 KB</span>
@@ -536,16 +444,16 @@ container.addEventListener('click', this) // ✅ 1 listener for infinite tab but
             </div>
             <hr>
             <div data-st-text-align="center" data-st-color="#aaa">
-              <p data-st-margin="0"><strong>⚡ Das Fazit:</strong> „Wurmloch-Architektur mit Taschenrechner-Ressourcen.“ — DeepSeek</p>
+              <p data-st-margin="0"><b>⚡ Das Fazit:</b> „Wurmloch-Architektur mit Taschenrechner-Ressourcen.“ — DeepSeek</p>
             </div>
           </div>
           <div data-tab="event-listener-counter" data-st-padding="16px" data-spaceless="" data-swipe-ignore>
             <h2>🔍 Event-Listener-Inspektor</h2>
-            <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-              data-st-border-radius="8px" data-st-margin="12px 0"
+            <div data-st-bg-color="rgba(255,255,255,0.05)"
+              data-st-padding="16px" data-st-border-radius="8px" data-st-margin="12px 0"
               data-st-border-left="4px solid var(--accent, #ff6b6b)">
               <p data-st-margin="0">
-                <strong>Schon einmal gefragt, wie viele Event-Listener eine Seite tatsächlich hat?</strong>
+                <b>Schon einmal gefragt, wie viele Event-Listener eine Seite tatsächlich hat?</b>
                 Jeder Klick-Handler, Scroll-Listener und jedes Tastaturkürzel summiert sich.
                 Dieses Konsolenskript durchsucht das gesamte DOM und zeigt genau, was unter der Oberfläche passiert.
               </p>
@@ -559,21 +467,20 @@ container.addEventListener('click', this) // ✅ 1 listener for infinite tab but
             </ul>
             <h3>Warum das wichtig ist</h3>
             <ul data-st-margin="8px 0 16px 0" data-st-padding-left="20px">
-              <li><strong>Performance:</strong> Zu viele Listener können deine Seite verlangsamen</li>
-              <li><strong>Memory-Leaks:</strong> Verwaiste Listener verhindern Garbage Collection</li>
-              <li><strong>Debugging:</strong> Finde heraus, welche Komponenten Event-Stürme verursachen</li>
-              <li><strong>Optimierung:</strong> YaiTabs verwendet für die gesamte Speedtab-Erweiterung nur wenige gemeinsame Listener!</li>
+              <li><b>Performance:</b> Zu viele Listener können deine Seite verlangsamen</li>
+              <li><b>Memory-Leaks:</b> Verwaiste Listener verhindern Garbage Collection</li>
+              <li><b>Debugging:</b> Finde heraus, welche Komponenten Event-Stürme verursachen</li>
+              <li><b>Optimierung:</b> YaiTabs verwendet für die gesamte Speedtab-Erweiterung nur wenige gemeinsame Listener!</li>
             </ul>
             <hr>
             <h3>Verwendung</h3>
             <ol data-st-margin="8px 0 16px 0" data-st-padding-left="20px">
               <li>Öffne die Entwicklertools (F12 oder Cmd+Opt+I)</li>
-              <li>Wechsle zum Tab <strong>Konsole</strong></li>
+              <li>Wechsle zum Tab <b>Konsole</b></li>
               <li>Kopiere das folgende Skript und füge es ein</li>
               <li>Rufe „Go Go Evento!“, drücke Enter und beobachte die Magie 🎤</li>
             </ol>
-            <div data-st-bg-color="rgba(0,0,0,0.3)" data-st-padding="0" data-st-border-radius="4px"
-              data-st-font-family="monospace" data-st-font-size="0.85rem" data-st-overflow="auto">
+            <div data-st-bg-color="rgba(0,0,0,0.3)" data-st-padding="0" data-st-border-radius="4px" data-st-font-family="monospace" data-st-font-size="0.85rem" data-st-overflow="auto">
               <pre data-st-white-space="pre-wrap" data-st-margin="0" data-st-border-radius="4px" class="hljs"
 >// 🔍 Event Listener Inspector - Fixed for SVG and weird class objects
 // Paste this into your browser console (Chrome/Edge/Brave)
@@ -616,8 +523,7 @@ e.sort((a, b) => b.c - a.c)
       </div>
     </div>
     <div data-tab="style-api" data-spaceless="">
-      <div data-yai-tabs="" data-auto-height="" data-st-min-height="100%" data-nav="bottom" data-color-accent="success"
-        data-behavior="zoom" data-swipe="">
+      <div data-yai-tabs="" data-auto-height="" data-st-min-height="100%" data-nav="bottom" data-color-accent="success" data-behavior="zoom" data-swipe="">
         <nav data-controller="" data-grow="">
           <button data-tab-action="open" data-open="introduction" data-default="">Einführung</button>
           <button data-tab-action="open" data-open="layout">Layout</button>
@@ -628,10 +534,9 @@ e.sort((a, b) => b.c - a.c)
         <div data-content="">
           <div data-tab="introduction" data-st-padding="20px" data-spaceless="" data-swipe-ignore>
             <h2>Was ist die Style-API?</h2>
-            <p><strong>Deklaratives CSS, ohne CSS zu schreiben.</strong> Verwende <code>data-st-*</code>-Attribute, um deine Notizen direkt in HTML zu gestalten. Der Browser erledigt den Rest.</p>
+            <p><b>Deklaratives CSS, ohne CSS zu schreiben.</b> Verwende <code>data-st-*</code>-Attribute, um deine Notizen direkt in HTML zu gestalten. Der Browser erledigt den Rest.</p>
             <div data-st-grid="2" data-st-gap="16px" data-st-margin="20px 0">
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.03))" data-st-padding="16px"
-                data-st-border-radius="8px">
+              <div data-st-bg-color="rgba(255,255,255,0.03)" data-st-padding="16px" data-st-border-radius="8px">
                 <h3 data-st-margin-top="0">✅ Was sie kann</h3>
                 <ul data-st-margin="0" data-st-padding-left="20px">
                   <li>Wendet CSS über HTML-Attribute an</li>
@@ -640,8 +545,7 @@ e.sort((a, b) => b.c - a.c)
                   <li>Unterstützt Längen-, Prozent-, Farb-, Zahlen- und String-Werte</li>
                 </ul>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.03))" data-st-padding="16px"
-                data-st-border-radius="8px">
+              <div data-st-bg-color="rgba(255,255,255,0.03)" data-st-padding="16px" data-st-border-radius="8px">
                 <h3 data-st-margin-top="0">❌ Was sie nicht braucht</h3>
                 <ul data-st-margin="0" data-st-padding-left="20px">
                   <li>Kein Inline-<code>style=""</code> erforderlich</li>
@@ -652,8 +556,7 @@ e.sort((a, b) => b.c - a.c)
               </div>
             </div>
             <h3>Kurzes Beispiel</h3>
-            <div data-st-bg-color="rgba(0,0,0,0.3)" data-st-padding="16px" data-st-border-radius="8px"
-              data-st-font-family="monospace" data-st-font-size="0.85rem">
+            <div data-st-bg-color="rgba(0,0,0,0.3)" data-st-padding="16px" data-st-border-radius="8px" data-st-font-family="monospace" data-st-font-size="0.85rem">
               <pre data-swipe-ignore data-st-margin="0" data-st-white-space="pre-wrap">&lt;div data-st-width="300px"
       data-st-padding="16px"
       data-st-bg-color="var(--st-color-secondary)"
@@ -665,84 +568,61 @@ e.sort((a, b) => b.c - a.c)
           <div data-tab="layout" data-st-padding="20px" data-spaceless="" data-swipe-ignore>
             <h2>Layout &amp; Sizing</h2>
             <div data-st-grid="3" data-st-gap="12px" data-st-margin="16px 0">
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-width</code>
-                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Set
-                  element width</p>
+                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Set element width</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-height</code>
-                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Set
-                  element height</p>
+                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Set element height</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-min-width</code>
-                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Set
-                  min-width</p>
+                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Set min-width</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-min-height</code>
-                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Set
-                  min-height</p>
+                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Set min-height</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-max-width</code>
-                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Set
-                  max-width</p>
+                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Set max-width</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-max-height</code>
-                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Set
-                  max-height</p>
+                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Set max-height</p>
               </div>
             </div>
             <h3>Margin &amp; Padding</h3>
             <div data-st-grid="3" data-st-gap="12px" data-st-margin="12px 0">
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
-                <code>data-st-margin</code> <span
-                  data-st-font-size="0.8rem">(all sides)</span>
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
+                <code>data-st-margin</code> <span data-st-font-size="0.8rem">(all sides)</span>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
-                <code>data-st-padding</code> <span
-                  data-st-font-size="0.8rem">(all sides)</span>
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
+                <code>data-st-padding</code> <span data-st-font-size="0.8rem">(all sides)</span>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-margin-top/bottom/left/right</code>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-padding-top/bottom/left/right</code>
               </div>
             </div>
             <h3>Border Controls</h3>
             <div data-st-grid="3" data-st-gap="12px" data-st-margin="12px 0">
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-border-radius</code>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-border</code>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-border-color</code>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-border-width</code>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-border-style</code>
               </div>
             </div>
@@ -751,57 +631,40 @@ e.sort((a, b) => b.c - a.c)
             <h2>Flex &amp; Grid Utilities</h2>
             <h3>Flex Properties</h3>
             <div data-st-grid="3" data-st-gap="12px" data-st-margin="12px 0">
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
-                <code>data-st-flex</code> <span
-                  data-st-font-size="0.8rem">(flex: value)</span>
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
+                <code>data-st-flex</code> <span data-st-font-size="0.8rem">(flex: value)</span>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
-                <code>data-st-gap</code> <span
-                  data-st-font-size="0.8rem">(gap between items)</span>
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
+                <code>data-st-gap</code> <span data-st-font-size="0.8rem">(gap between items)</span>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
-                <code>data-st-flex-direction</code> <span
-                  data-st-font-size="0.8rem">(row, column)</span>
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
+                <code>data-st-flex-direction</code> <span data-st-font-size="0.8rem">(row, column)</span>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
-                <code>data-st-align-items</code> <span
-                  data-st-font-size="0.8rem">(center, stretch, etc.)</span>
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
+                <code>data-st-align-items</code> <span data-st-font-size="0.8rem">(center, stretch, etc.)</span>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
-                <code>data-st-justify-content</code> <span
-                  data-st-font-size="0.8rem">(start, center, end, etc.)</span>
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
+                <code>data-st-justify-content</code> <span data-st-font-size="0.8rem">(start, center, end, etc.)</span>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
-                <code>data-st-flex-wrap</code> <span
-                  data-st-font-size="0.8rem">(nowrap, wrap)</span>
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
+                <code>data-st-flex-wrap</code> <span data-st-font-size="0.8rem">(nowrap, wrap)</span>
               </div>
             </div>
             <h4>Typography</h4>
             <div data-st-grid="3" data-st-gap="12px" data-st-margin="12px 0">
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-font-size</code>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-font-weight</code>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-line-height</code>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-text-align</code>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-white-space</code>
               </div>
             </div>
@@ -809,94 +672,65 @@ e.sort((a, b) => b.c - a.c)
           <div data-tab="visual" data-st-padding="20px" data-spaceless="" data-swipe-ignore>
             <h2>Visual &amp; Color Controls</h2>
             <div data-st-grid="3" data-st-gap="12px" data-st-margin="16px 0">
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-color</code>
-                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">
-                  Text color</p>
+                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Text color</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-bg-color</code>
-                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">
-                  Background color</p>
+                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Background color</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-opacity</code>
-                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">
-                  Opacity (0-1)</p>
+                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Opacity (0-1)</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-object-fit</code>
-                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">
-                  For images</p>
+                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">For images</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-box-shadow-x</code>
-                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">
-                  Shadow X offset</p>
+                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Shadow X offset</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-box-shadow-y</code>
-                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">
-                  Shadow Y offset</p>
+                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Shadow Y offset</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-box-shadow-blur</code>
-                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">
-                  Shadow blur radius</p>
+                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Shadow blur radius</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-box-shadow-spread</code>
-                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">
-                  Shadow spread</p>
+                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Shadow spread</p>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                data-st-border-radius="6px">
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="12px" data-st-border-radius="6px">
                 <code>data-st-box-shadow-type</code>
-                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">
-                  Shadow color</p>
+                <p data-st-margin="4px 0 0" data-st-font-size="0.85rem">Shadow color</p>
               </div>
             </div>
-            <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.03))" data-st-padding="16px"
-              data-st-border-radius="8px" data-st-border-left="4px solid #22c55e">
-              <strong>💡 Pro Tip:</strong> You can use CSS custom properties (variables) like
-              <code>var(--st-color-accent)</code>
-              or <code>var(--st-color-secondary)</code> as values!
+            <div data-st-bg-color="rgba(255,255,255,0.03)" data-st-padding="16px" data-st-border-radius="8px" data-st-border-left="4px solid #22c55e">
+              <b>💡 Pro Tip:</b> You can use CSS custom properties (variables) like <code>var(--st-color-accent)</code> or <code>var(--st-color-secondary)</code> as values!
             </div>
           </div>
           <div data-tab="live-demo" data-st-padding="20px" data-spaceless="">
             <div data-swipe-ignore>
               <h2>Live Demo: Style API in Action</h2>
               <div data-st-grid="3" data-st-gap="16px" data-st-margin="20px 0">
-                <div data-st-bg-color="var(--accent, #ff6b6b)" data-st-padding="16px" data-st-border-radius="8px"
-                  data-st-display="flex" data-st-align-items="center" data-st-justify-content="center"
-                  data-st-min-height="80px">
+                <div data-st-bg-color="var(--accent, #ff6b6b)" data-st-padding="16px" data-st-border-radius="8px" data-st-display="flex" data-st-align-items="center" data-st-justify-content="center" data-st-min-height="80px">
                   <span data-st-color="#fff" data-st-font-weight="bold">Flex Centered</span>
                 </div>
-                <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-                  data-st-border-radius="8px" data-st-width="100%" data-st-max-width="200px">
+                <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px" data-st-border-radius="8px" data-st-width="100%" data-st-max-width="200px">
                   <h3 data-st-margin-top="0">Max Width</h3>
-                  <p data-st-margin="0" data-st-font-size="0.9rem">
-                    Limited to 200px</p>
+                  <p data-st-margin="0" data-st-font-size="0.9rem">Limited to 200px</p>
                 </div>
-                <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-                  data-st-border-radius="8px" data-st-font-size="1.2rem" data-st-text-align="center"
-                  data-st-line-height="1.8">
-                  <p data-st-margin="0"><strong>Big &amp; Centered</strong></p>
-                  <p data-st-margin="0" data-st-font-size="0.8rem">
-                    Using <code>data-st-font-size</code> &amp; <code>data-st-text-align</code></p>
+                <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px" data-st-border-radius="8px" data-st-font-size="1.2rem" data-st-text-align="center" data-st-line-height="1.8">
+                  <p data-st-margin="0"><b>Big &amp; Centered</b></p>
+                  <p data-st-margin="0" data-st-font-size="0.8rem">Using <code>data-st-font-size</code> &amp; <code>data-st-text-align</code></p>
                 </div>
               </div>
               <hr>
-              <div data-st-bg-color="rgba(0,0,0,0.3)" data-st-padding="16px" data-st-border-radius="8px"
-                data-st-font-family="monospace" data-st-font-size="0.8rem" data-st-overflow="scroll">
+              <div data-st-bg-color="rgba(0,0,0,0.3)" data-st-padding="16px" data-st-border-radius="8px" data-st-font-family="monospace" data-st-font-size="0.8rem" data-st-overflow="scroll">
                 <pre data-swipe-ignore data-st-margin="0" data-st-white-space="pre-wrap">&lt;div data-st-grid="1" data-st-gap="16px"&gt;
   &lt;!-- Flex centered --&gt;
   &lt;div data-st-bg-color="var(--st-color-primary)"
@@ -911,30 +745,21 @@ e.sort((a, b) => b.c - a.c)
   &lt;/div&gt;
 &lt;/div&gt;</pre>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.03))" data-st-padding="12px 16px"
-                data-st-border-radius="6px" data-st-margin="16px 0 0"
-                data-st-border-left="4px solid var(--accent, #ff6b6b)">
-                <strong>🎯 Key Takeaway:</strong> Everything you see here — colors, spacing, sizing, flex, grid —
-                is controlled entirely with <code>data-st-*</code> attributes. No inline styles, no JS.
-              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
     <div data-tab="examples" data-spaceless="">
-      <div data-yai-tabs="" data-auto-height data-st-min-height="100%" data-nav="right" data-color-accent="info"
-        data-behavior="blur" data-closable="false" data-swipe="" data-spaceless="">
+      <div data-yai-tabs="" data-auto-height data-st-min-height="100%" data-nav="right" data-color-accent="info" data-behavior="blur" data-closable="false" data-swipe="" data-spaceless="">
         <nav data-controller="" data-grow="">
           <button data-tab-action="open" data-open="card-grid" data-default="">Card Grid</button>
           <button data-tab-action="open" data-open="stats-dashboard">Stats Dashboard</button>
-          <button data-tab-action="open" data-open="component-showcase">Component Showcase</button>
         </nav>
         <div data-content="" data-st-min-height="100%" data-swipe-ignore>
           <div data-tab="card-grid" data-st-padding="20px" data-spaceless="">
             <h2>Card Grid with Nested Tabs</h2>
-            <div data-yai-tabs="" data-auto-height data-nav="left" data-color-accent="warning" data-behavior="fade"
-              data-st-margin="16px 0" data-spaceless="">
+            <div data-yai-tabs="" data-auto-height data-nav="left" data-color-accent="warning" data-behavior="fade" data-st-margin="16px 0" data-spaceless="">
               <nav data-controller="">
                 <button data-tab-action="open" data-open="category-1" data-default="">Design</button>
                 <button data-tab-action="open" data-open="category-2">Development</button>
@@ -943,69 +768,57 @@ e.sort((a, b) => b.c - a.c)
               <div data-content="">
                 <div data-tab="category-1" data-st-padding="16px" data-spaceless="">
                   <div data-st-grid="3" data-st-gap="12px">
-                    <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
+                    <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px"
                       data-st-border-radius="8px">
                       <h3 data-st-margin-top="0">UI/UX Design</h3>
-                      <p data-st-font-size="0.9rem">
-                        Interactive prototypes with YaiTabs</p>
+                      <p data-st-font-size="0.9rem">Interactive prototypes with YaiTabs</p>
                     </div>
-                    <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
+                    <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px"
                       data-st-border-radius="8px">
                       <h4 data-st-margin-top="0">Design Systems</h4>
-                      <p data-st-font-size="0.9rem">
-                        Reusable component libraries</p>
+                      <p data-st-font-size="0.9rem">Reusable component libraries</p>
                     </div>
-                    <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
+                    <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px"
                       data-st-border-radius="8px">
                       <h4 data-st-margin-top="0">User Research</h4>
-                      <p data-st-font-size="0.9rem">
-                        Findings &amp; insights documentation</p>
+                      <p data-st-font-size="0.9rem">Findings &amp; insights documentation</p>
                     </div>
                   </div>
                 </div>
                 <div data-tab="category-2" data-st-padding="16px" data-spaceless="">
                   <div data-st-grid="3" data-st-gap="12px">
-                    <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
-                      data-st-border-radius="8px">
+                    <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px" data-st-border-radius="8px">
                       <h4 data-st-margin-top="0">Frontend</h4>
-                      <p data-st-font-size="0.9rem">
-                        React, Vue, Svelte, Vanilla</p>
+                      <p data-st-font-size="0.9rem">React, Vue, Svelte, Vanilla</p>
                     </div>
-                    <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
+                    <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px"
                       data-st-border-radius="8px">
                       <h4 data-st-margin-top="0">Backend</h4>
-                      <p data-st-font-size="0.9rem">
-                        Node, Python, Go, Rust
-                      </p>
+                      <p data-st-font-size="0.9rem">Node, Python, Go, Rust</p>
                     </div>
-                    <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
+                    <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px"
                       data-st-border-radius="8px">
                       <h4 data-st-margin-top="0">DevOps</h4>
-                      <p data-st-font-size="0.9rem">
-                        CI/CD, Docker, Kubernetes</p>
+                      <p data-st-font-size="0.9rem">CI/CD, Docker, Kubernetes</p>
                     </div>
                   </div>
                 </div>
                 <div data-tab="category-3" data-st-padding="16px" data-spaceless="">
                   <div data-st-grid="3" data-st-gap="12px">
-                    <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
+                    <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px"
                       data-st-border-radius="8px">
                       <h4 data-st-margin-top="0">Task Management</h4>
-                      <p data-st-font-size="0.9rem">
-                        Kanban, GTD, Eisenhower
-                      </p>
+                      <p data-st-font-size="0.9rem">Kanban, GTD, Eisenhower</p>
                     </div>
-                    <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
+                    <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px"
                       data-st-border-radius="8px">
                       <h4 data-st-margin-top="0">Knowledge Base</h4>
-                      <p data-st-font-size="0.9rem">
-                        Personal wiki, Zettelkasten</p>
+                      <p data-st-font-size="0.9rem">Personal wiki, Zettelkasten</p>
                     </div>
-                    <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
+                    <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px"
                       data-st-border-radius="8px">
                       <h4 data-st-margin-top="0">Goal Tracking</h4>
-                      <p data-st-font-size="0.9rem">
-                        OKRs, habit tracking</p>
+                      <p data-st-font-size="0.9rem">OKRs, habit tracking</p>
                     </div>
                   </div>
                 </div>
@@ -1016,117 +829,41 @@ e.sort((a, b) => b.c - a.c)
             <h2>Stats Dashboard</h2>
             <p>With some fake stats; Speedtab does not track anythng, so no stats</p>
             <div data-st-grid="4" data-st-gap="12px" data-st-margin="16px 0">
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px"
                 data-st-border-radius="8px" data-st-text-align="center">
                 <div data-st-font-size="2rem" data-st-font-weight="bold" data-st-color="var(--accent, #ff6b6b)">247</div>
                 <div data-st-font-size="0.85rem">Bookmarks</div>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px"
                 data-st-border-radius="8px" data-st-text-align="center">
                 <div data-st-font-size="2rem" data-st-font-weight="bold" data-st-color="#4a9eff">42</div>
                 <div data-st-font-size="0.85rem">Feed Sources</div>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px"
                 data-st-border-radius="8px" data-st-text-align="center">
                 <div data-st-font-size="2rem" data-st-font-weight="bold" data-st-color="#22c55e">1,284</div>
                 <div data-st-font-size="0.85rem">Notes</div>
               </div>
-              <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="16px"
+              <div data-st-bg-color="rgba(255,255,255,0.05)" data-st-padding="16px"
                 data-st-border-radius="8px" data-st-text-align="center">
                 <div data-st-font-size="2rem" data-st-font-weight="bold" data-st-color="#eab308">12</div>
                 <div data-st-font-size="0.85rem">Workspaces</div>
               </div>
             </div>
-            <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.03))" data-st-padding="16px"
-              data-st-border-radius="8px" data-st-margin="16px 0">
+            <div data-st-bg-color="rgba(255,255,255,0.03)" data-st-padding="16px" data-st-border-radius="8px" data-st-margin="16px 0">
               <h3 data-st-margin-top="0">Recent Activity</h3>
               <div data-st-display="flex" data-st-flex-direction="column" data-st-gap="8px">
-                <div data-st-display="flex" data-st-justify-content="space-between" data-st-padding="8px 0"
-                  data-st-border-bottom="1px solid rgba(255,255,255,0.05)">
+                <div data-st-display="flex" data-st-justify-content="space-between" data-st-padding="8px 0" data-st-border-bottom="1px solid rgba(255,255,255,0.05)">
                   <span>📝 Created new note: "Style API Reference"</span>
                   <span data-st-font-size="0.8rem">2 min ago</span>
                 </div>
-                <div data-st-display="flex" data-st-justify-content="space-between" data-st-padding="8px 0"
-                  data-st-border-bottom="1px solid rgba(255,255,255,0.05)">
+                <div data-st-display="flex" data-st-justify-content="space-between" data-st-padding="8px 0" data-st-border-bottom="1px solid rgba(255,255,255,0.05)">
                   <span>📡 Refreshed "Hacker News" feed</span>
                   <span data-st-font-size="0.8rem">15 min ago</span>
                 </div>
                 <div data-st-display="flex" data-st-justify-content="space-between" data-st-padding="8px 0">
                   <span>🔖 Bookmarked "YaiTabs Documentation"</span>
                   <span data-st-font-size="0.8rem">1 hour ago</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div data-tab="component-showcase" data-st-padding="20px" data-spaceless="">
-            <h2>Component Showcase</h2>
-            <p>
-              Complex layouts built with nested tabs + style attributes</p>
-            <div data-yai-tabs="" data-auto-height data-nav="bottom" data-color-accent="success" data-behavior="zoom"
-              data-st-margin="16px 0" data-st-min-height="300px" data-spaceless="">
-              <nav data-controller="">
-                <button data-tab-action="open" data-open="component-1" data-default="">Dashboard</button>
-                <button data-tab-action="open" data-open="component-2">Analytics</button>
-                <button data-tab-action="open" data-open="component-3">Settings</button>
-              </nav>
-              <div data-content="">
-                <div data-tab="component-1" data-st-padding="16px" data-spaceless="">
-                  <div data-st-grid="2:1" data-st-gap="16px">
-                    <div>
-                      <h3 data-st-margin-top="0">Main Content</h3>
-                      <p>
-                        This layout uses <code>data-st-grid="2:1"</code> for a 2fr:1fr ratio</p>
-                      <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                        data-st-border-radius="6px">
-                        <span>📊 Chart placeholder</span>
-                      </div>
-                    </div>
-                    <div>
-                      <h3 data-st-margin-top="0">Sidebar</h3>
-                      <div data-st-display="flex" data-st-flex-direction="column" data-st-gap="8px">
-                        <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="8px 12px"
-                          data-st-border-radius="4px">Recent items</div>
-                        <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="8px 12px"
-                          data-st-border-radius="4px">Quick actions</div>
-                        <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="8px 12px"
-                          data-st-border-radius="4px">Notifications</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div data-tab="component-2" data-st-padding="16px" data-spaceless="">
-                  <div data-st-grid="2" data-st-gap="12px">
-                    <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                      data-st-border-radius="6px" data-st-text-align="center">
-                      <strong>📈 Visitors</strong>
-                      <div data-st-font-size="1.5rem" data-st-font-weight="bold" data-st-color="#4a9eff">12,847</div>
-                    </div>
-                    <div data-st-bg-color="var(--bg-card, rgba(255,255,255,0.05))" data-st-padding="12px"
-                      data-st-border-radius="6px" data-st-text-align="center">
-                      <strong>📊 Bounce Rate</strong>
-                      <div data-st-font-size="1.5rem" data-st-font-weight="bold" data-st-color="#22c55e">34%</div>
-                    </div>
-                  </div>
-                </div>
-                <div data-tab="component-3" data-st-padding="16px" data-spaceless="">
-                  <div data-st-max-width="340px" data-st-display="flex" data-st-flex-direction="column"
-                    data-st-gap="12px">
-                    <div data-st-display="flex" data-st-justify-content="space-between" data-st-align-items="center">
-                      <span>Dark Mode</span>
-                      <span data-st-bg-color="var(--accent, #ff6b6b)" data-st-padding="4px 12px"
-                        data-st-border-radius="12px" data-st-color="#fff" data-st-font-size="0.8rem">Enabled</span>
-                    </div>
-                    <div data-st-display="flex" data-st-justify-content="space-between" data-st-align-items="center">
-                      <span>Auto-refresh Feeds</span>
-                      <span data-st-bg-color="#22c55e" data-st-padding="4px 12px" data-st-border-radius="12px"
-                        data-st-color="#fff" data-st-font-size="0.8rem">On</span>
-                    </div>
-                    <div data-st-display="flex" data-st-justify-content="space-between" data-st-align-items="center">
-                      <span>Sync Mode</span>
-                      <span data-st-bg-color="#eab308" data-st-padding="4px 12px" data-st-border-radius="12px"
-                        data-st-color="#fff" data-st-font-size="0.8rem">Manual</span>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -1148,63 +885,94 @@ e.sort((a, b) => b.c - a.c)
     page: 'Main',
     module: 'Notizen',
     tab: 'Funktionen',
-    colorScheme: 'secondary',
+    colorScheme: 'dark',
     type: 'html',
-    title: 'Lesezeichen',
+    title: 'Speedtab Kern',
+    meta: {
+      window: {
+        height: 620,
+      },
+    },
     content: `
-<h2>Lesezeichen</h2>
-<p>Speedtab-Lesezeichen sind in Modulen und Tabs organisiert, sodass eine einzige Seite alles enthalten kann – von einem fokussierten Arbeits-Setup bis hin zu einem gemischten Dashboard für Tools, Lesestoff und tägliche Abkürzungen.</p>
-<ul>
-  <li><strong>Reguläre Lesezeichen-Kacheln</strong> können Titel, Beschreibungen, Favicons oder benutzerdefinierte Vorschaubilder anzeigen.</li>
-  <li><strong>Der Quicklinks-Modus</strong> verwandelt einen Lesezeichen-Tab in einen kompakten Launcher mit fixierten Favicon-Kacheln (50x50px).</li>
-  <li><strong>Benutzerdefinierte Favicons</strong> ermöglichen es dir, das Standard-Icon zu überschreiben, wenn du ein saubereres visuelles System bevorzugst.</li>
-  <li><strong>Das Öffnungs-Verhalten</strong> kann deiner globalen Präferenz folgen oder individuell pro Modul angepasst werden.</li>
-</ul>
-<blockquote>
-  <p>Nutze Lesezeichen-Module für Struktur und Quicklink-Module für nackte Geschwindigkeit.</p>
-</blockquote>
-<p>Du kannst Inhalte auch später flexibel zwischen Tabs verschieben oder kopieren, sodass das Reorganisieren deines Setups nicht bedeutet, es neu bauen zu müssen.</p>
-    `,
-  },
-  {
-    page: 'Main',
-    module: 'Notizen',
-    tab: 'Funktionen',
-    colorScheme: 'secondary',
-    type: 'html',
-    title: 'Notizen',
-    content: `
-<h2>Notizen</h2>
-<p>Notizen sind mehr als nur reiner Text. Speedtab ermöglicht es dir, verschiedene Notiz-Typen zu mischen, sodass eine Seite als Dashboard, Schmierblock, Mini-Wissensdatenbank oder privater Referenzbereich dienen kann.</p>
-<ul>
-  <li><strong>Text-Notizen</strong> sind ideal für Erinnerungen, Listen und schnelle, strukturierte Notizen.</li>
-  <li><strong>HTML-Notizen</strong> können reichhaltigere Layouts für Leitfäden, Callouts und gestylte Infoblöcke rendern.</li>
-  <li><strong>Code-Notizen</strong> unterstützen Syntax-Highlighting für Snippets und Konfigurations-Referenzen.</li>
-  <li><strong>Verschlüsselte Notizen</strong> sperren sensible Inhalte sicher hinter einer Passphrase.</li>
-  <li><strong>Link-Notizen</strong> verwandeln eine einzelne Notiz in eine kleine, kuratierte Link-Sammlung.</li>
-</ul>
-<p>Öffne eine Notiz, um sie frei über der Seite schweben zu lassen, ihre Größe zu ändern oder sie im Blick zu behalten, während du an anderer Stelle in Speedtab weiterarbeitest.</p>
-    `,
-  },
-  {
-    page: 'Main',
-    module: 'Notizen',
-    tab: 'Funktionen',
-    colorScheme: 'secondary',
-    type: 'html',
-    title: 'Feed-Reader',
-    content: `
-<h2>Feed-Reader</h2>
-<p>Feed-Module verwandeln Speedtab in eine leichtgewichtige Nachrichtenzentrale. Du kannst deine Quellen in Tabs gruppieren, Updates direkt auf der Neuen-Tab-Seite verfolgen und Einträge archivieren, die du behalten willst.</p>
-<ul>
-  <li><strong>RSS- und Atom-Feeds</strong> können direkt neben Lesezeichen und Notizen auf derselben Seite leben.</li>
-  <li><strong>Die Suche innerhalb von Feeds</strong> hilft dir, große Quellenlisten extrem schnell zu filtern.</li>
-  <li><strong>Archivierte Einträge</strong> erlauben es dir, wichtige Artikel dauerhaft zu sichern, selbst wenn sie aus dem Live-Feed der Website verschwinden.</li>
-  <li><strong>Der erweiterte Lesemodus</strong> gibt Feed-Modulen mehr Breite, wenn eine Quelle eine großzügigere Textdarstellung benötigt.</li>
-</ul>
-<blockquote>
-  <p>Es ist ein fokussierter Feed-Reader, der direkt in dein Dashboard integriert ist – keine separate App, die um deine Aufmerksamkeit kämpfen muss.</p>
-</blockquote>
+<div data-yai-tabs="" data-nav="top" data-theme="light" data-color-accent="dark" data-behavior="blur" data-swipe="" data-closable="false" data-auto-accessibility="false">
+  <nav data-controller="">
+    <button data-tab-action="open" data-open="1" data-default="">Lesezeichen</button>
+    <button data-tab-action="open" data-open="2">Notizen</button>
+    <button data-tab-action="open" data-open="3">Aufgaben (ToDo)</button>
+    <button data-tab-action="open" data-open="4">Feed-Reader</button>
+    <button data-tab-action="open" data-open="5">Mehr</button>
+  </nav>
+  <div data-content="">
+    <div data-tab="1">
+      <h2>Lesezeichen</h2>
+      <p>Speedtab-Lesezeichen werden in Modulen und Tabs organisiert. So verwandelt sich eine statische Startseite in ein flexibles Dashboard für Arbeitsmittel, Recherche und tägliche Shortcuts.</p>
+      <ul>
+        <li><b>Visuelle Lesezeichen-Kacheln</b> zeigen klare Titel, Beschreibungen, Favicons oder hochauflösende Vorschau-Bilder.</li>
+        <li><b>Speed Dial & Quicklinks-Modi</b> verwandeln Lesezeichen-Tabs in bildschirmfüllende visuelle Startseiten oder kompakte Icon-Raster.</li>
+        <li><b>Eigene Favicons & Kachelfarben</b> bieten präzises visuelles Feintuning samt automatischer Farberkennung aus dem Favicon.</li>
+        <li><b>Tab-übergreifendes Verschieben</b> erlaubt das einfache Umstrukturieren von Elementen zwischen Seiten und Modulen.</li>
+      </ul>
+      <blockquote><p>Nutze visuelle Module für Struktur, Quicklinks für maximale Dichte und Speed Dials für deine meistgenutzten Links.</p></blockquote>
+      <hr />
+      <nav class="pb-3"><button type="button" data-btn="dark" class="st-color-dark" data-click="openSorter">Inhalte sortieren</button></nav>
+    </div>
+    <div data-tab="2">
+      <h2>Notizen</h2>
+      <p>Notizen bieten modularen Freiraum. Mit Speedtab kannst du Fließtext, Code und verschachtelte Komponenten kombinieren – ideal als persönliches Wiki oder schneller Merkzettel.</p>
+      <ul>
+        <li><b>Text- & HTML-Notizen</b> unterstützen erweiterte Formatierungen, Info-Boxen und verschachtelte YaiTabs-Layouts.</li>
+        <li><b>Code-Notizen</b> bieten Syntax-Highlighting für Snippets und Konfigurations-Referenzen.</li>
+        <li><b>Verschlüsselte Notizen</b> sichern vertrauliche Inhalte lokal mit einem Passwort.</li>
+        <li><b>Schwebende & PiP-Fenster</b> lösen Notizen als frei bewegliche Overlays oder native Bild-im-Bild-Fenster aus dem Dashboard.</li>
+      </ul>
+      <p>Über die obere Navigationsleiste steht außerdem eine globale <b>Quicknote</b> für schnelle Notizen zur Verfügung.</p>
+      <blockquote><p><b>BTW:</b> Diese Notiz ist ein reales Beispiel für eine verschachtelte Tab-Komponente – auch wenn dieser Guide hier noch relativ flach ist im Vergleich zu dem, was möglich ist.</p></blockquote>
+      <hr />
+      <nav class="pb-3"><button type="button" data-btn="dark" class="st-color-dark" data-click="openQuicknote">Quicknote öffnen</button></nav>
+    </div>
+    <div data-tab="3">
+      <h2>Aufgaben (ToDo)</h2>
+      <p>Verbinde deine tägliche Aufgabenplanung direkt mit deinem Dashboard. Das ToDo-Modul kombiniert einfache Checklisten mit vollem Fristen-Management.</p>
+      <ul>
+        <li><b>Prioritäten & Farbcodierung</b> heben dringende Aufgaben durch visuelle Marker und Status-Signale hervor.</li>
+        <li><b>Fälligkeiten & Zeitverfolgung</b> synchronisieren sich mit der zentralen App-Uhr für dynamische Status-Updates (Offen, Bald fällig, Überfällig).</li>
+        <li><b>Notizen & Metadaten</b> halten Details, Links und Unterpunkte direkt an der jeweiligen Aufgabe fest.</li>
+        <li><b>Kachel- & Listenansichten</b> wechseln nahtlos zwischen kompakten Zeilen und strukturierten Karten-Rastern.</li>
+      </ul>
+      <blockquote><p>Exportiere Aufgaben-Stapel unabhängig als kompakte Sammlungs-JSONs, um sie auf anderen Geräten zu nutzen.</p></blockquote>
+    </div>
+    <div data-tab="4">
+      <h2>Feed-Reader</h2>
+      <p>Feed-Module machen Speedtab zu einem ablenkungsfreien RSS-Reader, der deine Abonnements direkt neben deinen alltäglichen Tools bündelt.</p>
+      <ul>
+        <li><b>RSS- & Atom-Integration</b> organisiert Quellen in Tabs mit individuellen Auto-Refresh-Intervallen.</li>
+        <li><b>Fokussierte & PiP-Leseansichten</b> öffnen Artikel in breiten Lese-Overlays oder schwebenden PiP-Fenstern.</li>
+        <li><b>Echtzeit-Suche & Quellensuche</b> filtern ungelesene Artikel sofort oder finden Feed-Links direkt aus normalen Webseiten-URLs.</li>
+        <li><b>Artikel-Archiv</b> speichert wichtige Beiträge lokal ab, selbst wenn sie aus dem Live-Feed herausfallen.</li>
+      </ul>
+      <blockquote><p>Ein fokussierter Feed-Reader direkt im Dashboard – ohne Algorithmen, ohne Ablenkung.</p></blockquote>
+    </div>
+    <div data-tab="5" data-st-bg-color="#c2c6ca88">
+      <div data-yai-tabs="" data-nav="bottom" data-theme="light" data-color-accent="dark" data-behavior="blur" data-swipe="" data-closable="false" data-auto-accessibility="false">
+        <nav data-controller="">
+          <button data-tab-action="open" data-open="1" data-default="">Info</button>
+          <button data-tab-action="open" data-open="2" data-delay="200" data-min-loading="300" data-url="https://5elementsdesign.github.io/Speedtab/PRIVACY.md">Datenschutz</button>
+          <button data-tab-action="open" data-open="3" data-delay="200" data-min-loading="300" data-url="https://5elementsdesign.github.io/Speedtab/SECURITY.md">Sicherheit</button>
+        </nav>
+        <div data-content="">
+          <div data-tab="1">
+            <h3>Live-Dokumentation</h3>
+            <p>Datenschutzrichtlinien und Sicherheits-Erklärungen werden bei Bedarf direkt aus unserem GitHub-Repository geladen:</p>
+            <p><a target="_blank" rel="noopener noreferrer" href="https://5elementsdesign.github.io/Speedtab">5elementsdesign.github.io/Speedtab</a></p>
+            <blockquote><p>Klicke unten auf <b>Datenschutz</b> oder <b>Sicherheit</b>, um die aktuellsten Richtlinien abzurufen.</p></blockquote>
+          </div>
+          <pre data-tab="2" data-st-margin="0" data-st-white-space="pre-wrap"></pre>
+          <pre data-tab="3" data-st-margin="0" data-st-white-space="pre-wrap"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
     `,
   },
   {
@@ -1218,10 +986,10 @@ e.sort((a, b) => b.c - a.c)
 <h2>Wetter-Widget</h2>
 <p>Die Widget-Schiene (Rail) lebt außerhalb des normalen Modul-Rasters und ist für kleine, immer verfügbare Informationsblöcke gedacht. Das erste Widget ist das Wetter, mit einem kompakten Layout, das sich dezent im Hintergrund hält.</p>
 <ul>
-  <li><strong>Platzierung in der oberen oder unteren Schiene</strong>, je nachdem, welches Layout du für deinen Workflow bevorzugst.</li>
-  <li><strong>Linksbündige, zentrierte oder rechtsbündige</strong> Ausrichtung in der Schiene.</li>
-  <li><strong>Einstellbares Aktualisierungsintervall</strong> und frei wählbare Einheiten (Metrisch/Imperial).</li>
-  <li><strong>Standortsuche</strong> direkt in den Einstellungen integriert, komplett ohne datenschutzunfreundliche Geolokalisierungs-Abfragen.</li>
+  <li><b>Platzierung in der oberen oder unteren Schiene</b>, je nachdem, welches Layout du für deinen Workflow bevorzugst.</li>
+  <li><b>Linksbündige, zentrierte oder rechtsbündige</b> Ausrichtung in der Schiene.</li>
+  <li><b>Einstellbares Aktualisierungsintervall</b> und frei wählbare Einheiten (Metrisch/Imperial).</li>
+  <li><b>Standortsuche</b> direkt in den Einstellungen integriert, komplett ohne datenschutzunfreundliche Geolokalisierungs-Abfragen.</li>
 </ul>
 <p>Wenn kein Standort hinterlegt ist, bleibt das Widget als unaufdringlicher Platzhalter sichtbar, bis du es konfigurierst.</p>
 <hr>
@@ -1239,10 +1007,10 @@ e.sort((a, b) => b.c - a.c)
 <h2>Assets</h2>
 <p>Speedtab speichert Bilder und Favicons direkt mit dem Rest deines Workspace, weil sie elementar dafür sind, wie dein Dashboard tatsächlich aussieht und sich anfühlt.</p>
 <ul>
-  <li><strong>Lesezeichen-Vorschaubilder</strong> sind Teil deiner Layout-Arbeit. Ein angepasstes Dashboard sollte dauerhaft angepasst bleiben und nach einem Sync oder Import nicht wieder zurückgesetzt werden.</li>
-  <li><strong>Favicons</strong> werden über einen externen Dienst geladen, da dies der zuverlässigste Weg ist, sie zu finden. Diese Anfragen müssen jedoch mindestens einmal stattfinden.</li>
-  <li><strong>Gespeicherte Favicon-Assets</strong> verhindern, dass dieselben Lesezeichen bei jedem Laden deines Dashboards riesige Mengen wiederholter Netzwerkanfragen auslösen.</li>
-  <li><strong>Hintergrundbilder und Notiz-Bilder</strong> sind offensichtlicher Workspace-Inhalt, sodass sie mit deinen Seiten, Notizen und Einstellungen über Geräte hinweg wandern.</li>
+  <li><b>Lesezeichen-Vorschaubilder</b> sind Teil deiner Layout-Arbeit. Ein angepasstes Dashboard sollte dauerhaft angepasst bleiben und nach einem Sync oder Import nicht wieder zurückgesetzt werden.</li>
+  <li><b>Favicons</b> werden über einen externen Dienst geladen, da dies der zuverlässigste Weg ist, sie zu finden. Diese Anfragen müssen jedoch mindestens einmal stattfinden.</li>
+  <li><b>Gespeicherte Favicon-Assets</b> verhindern, dass dieselben Lesezeichen bei jedem Laden deines Dashboards riesige Mengen wiederholter Netzwerkanfragen auslösen.</li>
+  <li><b>Hintergrundbilder und Notiz-Bilder</b> sind offensichtlicher Workspace-Inhalt, sodass sie mit deinen Seiten, Notizen und Einstellungen über Geräte hinweg wandern.</li>
 </ul>
 <hr>
 <h3>Warum nicht einfach alles jedes Mal neu laden?</h3>
@@ -1269,23 +1037,23 @@ e.sort((a, b) => b.c - a.c)
 <h2>INBOX (Eingangskorb)</h2>
 <p> Mit dem Kontextmenü deines Browsers kannst du Inhalte von jeder beliebigen Webseite blitzschnell abfangen und direkt in Speedtab speichern, ohne deinen aktuellen Tab zu verlassen. </p>
 <ul>
-  <li><strong>Seite als Lesezeichen speichern:</strong> Sendet die URL des aktuellen Tabs als Typ „Lesezeichen“ direkt in deine Speedtab-INBOX.</li>
-  <li><strong>Seite als Notiz speichern:</strong> Sammelt die URL, den Seitentitel und die Kurzbeschreibung (Meta-Description) der aktuellen Seite und legt sie als strukturierte „Notiz“ in der Inbox ab.</li>
-  <li><strong>Auswahl als Notiz speichern:</strong> Markiere einfach einen Text auf einer Website – per Rechtsklick wandert das Zitat als Textbaustein direkt in deine INBOX.</li>
+  <li><b>Seite als Lesezeichen speichern:</b> Sendet die URL des aktuellen Tabs als Typ „Lesezeichen“ direkt in deine Speedtab-INBOX.</li>
+  <li><b>Seite als Notiz speichern:</b> Sammelt die URL, den Seitentitel und die Kurzbeschreibung (Meta-Description) der aktuellen Seite und legt sie als strukturierte „Notiz“ in der Inbox ab.</li>
+  <li><b>Auswahl als Notiz speichern:</b> Markiere einfach einen Text auf einer Website – per Rechtsklick wandert das Zitat als Textbaustein direkt in deine INBOX.</li>
 </ul>
 <hr>
 <h3>Der INBOX-Manager</h3>
 <p> Sobald sich Elemente in deiner INBOX befinden, verarbeitet Speedtab die Daten im Hintergrund und stellt das Einsortieren so komfortabel wie möglich bereit. </p>
 <ul>
-  <li> <strong>Live-Status im Tab-Titel:</strong> Du musst Speedtab nicht einmal geöffnet haben, um zu sehen, ob deine Daten angekommen sind. Der Tab-Titel von Speedtab im Browser-Hintergrund aktualisiert sich live und zeigt dir den aktuellen Zähler an (z. B. <code>INBOX [3] - Speedtab</code>). </li>
-  <li> <strong>Der INBOX-Button:</strong> In der oberen Menüleiste von Speedtab erscheint ein Button mit der Anzahl der ausstehenden Einträge. Ein Klick öffnet den Manager, in dem du Eintrag für Eintrag entscheidest, wo er landen soll. </li>
-  <li> <strong>Intelligente Filterung:</strong> Beim Einsortieren wählst du einfach „Seite“ → „Modul“ → „Tab“. Speedtab zeigt dir dabei nur Module an, die auch zum Datentyp passen. Ein Lesezeichen kann also niemals versehentlich in einem Notiz- oder Feed-Modul landen. </li>
-  <li> <strong>Notizen erweitern oder neu anlegen:</strong> Bei gesammelten Texten kannst du entscheiden, ob eine völlig neue Notiz erstellt oder der Text an eine bestehende Notiz **angehängt** werden soll. </li>
-  <li> <strong>Verschlüsselungs-Schutz:</strong> Verschlüsselte Notizen werden in der Liste zwar angezeigt, sind aber aus Sicherheitsgründen gesperrt und können nicht über die INBOX erweitert werden. </li>
-  <li> <strong>Feeds:</strong> Das direkte Hinzufügen von Feed-Quellen über die INBOX wird derzeit nicht unterstützt. </li>
+  <li> <b>Live-Status im Tab-Titel:</b> Du musst Speedtab nicht einmal geöffnet haben, um zu sehen, ob deine Daten angekommen sind. Der Tab-Titel von Speedtab im Browser-Hintergrund aktualisiert sich live und zeigt dir den aktuellen Zähler an (z. B. <code>INBOX [3] - Speedtab</code>). </li>
+  <li> <b>Der INBOX-Button:</b> In der oberen Menüleiste von Speedtab erscheint ein Button mit der Anzahl der ausstehenden Einträge. Ein Klick öffnet den Manager, in dem du Eintrag für Eintrag entscheidest, wo er landen soll. </li>
+  <li> <b>Intelligente Filterung:</b> Beim Einsortieren wählst du einfach „Seite“ → „Modul“ → „Tab“. Speedtab zeigt dir dabei nur Module an, die auch zum Datentyp passen. Ein Lesezeichen kann also niemals versehentlich in einem Notiz- oder Feed-Modul landen. </li>
+  <li> <b>Notizen erweitern oder neu anlegen:</b> Bei gesammelten Texten kannst du entscheiden, ob eine völlig neue Notiz erstellt oder der Text an eine bestehende Notiz **angehängt** werden soll. </li>
+  <li> <b>Verschlüsselungs-Schutz:</b> Verschlüsselte Notizen werden in der Liste zwar angezeigt, sind aber aus Sicherheitsgründen gesperrt und können nicht über die INBOX erweitert werden. </li>
+  <li> <b>Feeds:</b> Das direkte Hinzufügen von Feed-Quellen über die INBOX wird derzeit nicht unterstützt. </li>
 </ul>
 <blockquote>
-  <p> <strong>Tipp:</strong> Nutze die INBOX beim Recherchieren als Zwischenablage. Behalte einfach den Speedtab-Tab im Augenwinkel, sammle im Hintergrund deine Quellen und sortiere sie am Ende des Tages mit wenigen Klicks in dein Dashboard ein. </p>
+  <p> <b>Tipp:</b> Nutze die INBOX beim Recherchieren als Zwischenablage. Behalte einfach den Speedtab-Tab im Augenwinkel, sammle im Hintergrund deine Quellen und sortiere sie am Ende des Tages mit wenigen Klicks in dein Dashboard ein. </p>
 </blockquote>
     `,
   },
@@ -1293,7 +1061,7 @@ e.sort((a, b) => b.c - a.c)
     page: 'Main',
     module: 'Notizen',
     tab: 'Funktionen',
-    colorScheme: 'primary',
+    colorScheme: 'secondary',
     type: 'code',
     title: 'HTML',
     content: `
@@ -1337,7 +1105,7 @@ colspan, rowspan
     title: 'Über Speedtab',
     content: `
 <h2>Über Speedtab</h2>
-<p> <strong>Speedtab</strong> begann als persönliches Experiment, inspiriert von Operas altem "Speed Dial"-Feature. Das Ziel war einfach: Ein neuer Tab sollte sich sofort wie ein nützlicher, vertrauter Ort anfühlen. </p>
+<p> <b>Speedtab</b> begann als persönliches Experiment, inspiriert von Operas altem "Speed Dial"-Feature. Das Ziel war einfach: Ein neuer Tab sollte sich sofort wie ein nützlicher, vertrauter Ort anfühlen. </p>
 <p> Die erste Version war eine Web-App. Dadurch war sie scheinbar überall verfügbar und bot ein direktes Gefühl von Synchronisation zwischen mehreren Geräten. Es bedeutete aber auch eine dauerhafte Server-Abhängigkeit, einen Online-Zwang und den vollen Wartungsaufwand eines kompletten Web-Application-Stacks. </p>
 <blockquote>
   <p> Die Erweiterungs-Version behält die Grundidee bei, befreit das Projekt jedoch von der Server-Last. </p>
@@ -1385,7 +1153,7 @@ colspan, rowspan
 <p> Standardmäßig speichert Speedtab alle Workspace-Daten lokal in diesem Browser-Profil. </p>
 <hr>
 <h3>Wie verschiebe ich meinen Workspace auf einen anderen Browser?</h3>
-<p> Nutze den <strong>Datenaustausch</strong> (Data Exchange), um eine lokale Backup-Datei zu exportieren, und importiere diese anschließend im anderen Browser. </p>
+<p> Nutze den <b>Datenaustausch</b> (Data Exchange), um eine lokale Backup-Datei zu exportieren, und importiere diese anschließend im anderen Browser. </p>
 <hr>
 <h3>Ist WebDAV dasselbe wie eine Live-Synchronisation (Merge-Sync)?</h3>
 <p> Nein. Die WebDAV-Synchronisation nutzt explizite Push- und Pull-Aktionen. Ein Push ersetzt den aktuellen Stand auf dem Server vollständig durch deinen lokalen Workspace. </p>
@@ -1426,46 +1194,17 @@ https://open-meteo.com/
     page: 'Main',
     module: 'Notizen',
     tab: '❔',
-    colorScheme: 'primary',
-    type: 'code',
-    title: 'Code-Snippets',
-    content: `
-/* Beispiel für Theme-Token */
-:root {
-  --st-theme-text: rgb(255 255 255 / 0.92);
-  --st-theme-module-bg: rgb(0 0 0 / 0.58);
-  --st-widget-bg: var(--st-theme-module-bg);
-}
-
-/* Beispiel für Widget-Token */
-.st-widget-card {
-  background: var(--st-widget-bg);
-  color: var(--st-widget-text);
-}
-
-/* Raster-Beispiel (Grid) */
-.st-modules-grid {
-  grid-template-columns: repeat(10, minmax(0, 1fr));
-}
-    `,
-  },
-  {
-    page: 'Main',
-    module: 'Notizen',
-    tab: '❔',
     colorScheme: 'warning',
     type: 'text',
     title: 'Datensicherheit',
     content: `
 Speedtab ist Local-First.
-
-- Dein Workspace lebt ausschließlich im aktuellen Browser-Profil, es sei denn, du exportierst oder synchronisierst ihn explizit.
+\n- Dein Workspace lebt ausschließlich im aktuellen Browser-Profil, es sei denn, du exportierst oder synchronisierst ihn explizit.
 - Ein lokaler Export ist dein sicherstes, portables Backup.
 - Die Nutzung von WebDAV ist vollkommen optional und erfolgt rein manuell.
 - „In Cloud pushen“ (Push To Remote) ersetzt den Live-Export auf deinem Server durch deinen aktuellen, lokalen Workspace.
 - „Aus Cloud laden“ (Pull From Remote) importiert den Remote-Workspace in deinen aktuellen Browser.
-
-Wenn du dir unsicher bist:
+\nWenn du dir unsicher bist:
 - Erstelle zuerst einen lokalen Export.
 - Überprüfe die Inhalte auf deinem Remote-Server.
 - Entscheide erst dann, ob du Daten laden oder hochladen möchtest.

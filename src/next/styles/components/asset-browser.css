@@ -207,7 +207,7 @@
     display: grid;
     gap: 2px;
 
-    strong {
+    strong, b {
       font-size: 12px;
       color: var(--yai-tabs-color-text);
     }
@@ -239,6 +239,11 @@
     overflow: auto;
     white-space: pre-line;
     word-break: break-word;
+  }
+
+  [data-asset-browser-ref-list] {
+    padding: 0 8px;
+    line-height: 1;
   }
 
   [data-asset-browser-block] pre {

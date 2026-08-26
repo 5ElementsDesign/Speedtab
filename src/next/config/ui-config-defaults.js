@@ -90,6 +90,23 @@ export const UI_CONFIG_DEFAULTS = {
       },
       appearance: {},
     },
+    todo: {
+      behavior: {
+        'module-tabs-color-accent': 'secondary',
+        'module-tabs-variant': null,
+        'module-tabs-behavior': 'zoom',
+        'module-tabs-swipe-enabled': true,
+        'module-tabs-grow': false,
+        'module-tabs-align': null,
+        'module-hide-header': false,
+        'todo-show-tiles': false,
+      },
+      layout: {
+        'module-column-span': 6,
+        'module-min-height-px': null,
+      },
+      appearance: {},
+    },
     feeds: {
       behavior: {
         'module-tabs-color-accent': 'secondary',
