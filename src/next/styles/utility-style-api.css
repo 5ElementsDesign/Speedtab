@@ -266,8 +266,8 @@
   background: var(--st-bg) !important;
 }
 [data-st-bg-color] {
-  --st-bg-color: attr(data-st-bg-color type(<color>), transparent);
-  background-color: var(--st-bg-color) !important;
+  --st-bg-color: attr(data-st-bg-color type(<color> | <image>), transparent);
+  background: var(--st-bg-color) !important;
 }
 [data-st-bg-image] {
   background-image: attr(data-st-bg-image, none) !important;

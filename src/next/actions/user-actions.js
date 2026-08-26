@@ -1,6 +1,6 @@
 import {saveAppSetting} from '../data/app-settings.js'
 import {convertImageBlobToWebp, storeOrGetAsset} from '../data/assets.js'
-import {applyWorkspaceBackground} from '../utils/workspace-background.js'
+import {applyWorkspaceBackground, isValidBackground} from '../utils/workspace-background.js'
 
 const WALLPAPER_META_ATTRIBUTES = {
   source_title: 'data-source-title',
@@ -40,6 +40,15 @@ export const userActions = {
       const url = new URL(target.dataset.href)
       if (url.protocol === 'http:' || url.protocol === 'https:') window.open(url.href, '_blank', 'noopener,noreferrer')
     } catch {}
+  },
+
+  async usrCaptureCssAsBg(target) {
+    const background = target.dataset.bgColor?.trim()
+    if (!background || !isValidBackground(background)) return
+
+    await saveAppSetting('background_asset_id', null)
+    await saveAppSetting('background_properties', background)
+    await applyWorkspaceBackground()
   },
 
   async usrCaptureImageAsWallpaper(target) {

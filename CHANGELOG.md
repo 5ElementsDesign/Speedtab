@@ -10,6 +10,7 @@ All notable changes to Speedtab will be documented in this file.
 - Added compact JSON collection import/export for visual bookmarks, notes, and ToDo tabs.
 - Added per-feed-tab auto-refresh while the tab is open, with configurable intervals.
 - Added Document Picture-in-Picture support for floating notes and Feed modules, including delegated interactions, async content syncing, and preserved Feed scroll position.
+- Added declarative user actions for cloud-hosted wallpaper galleries: remote images are stored as WebP background assets, while CSS colors and gradients can be applied directly as the App Shell background.
 
 ### Changed
 - Refined Feed rendering and focused-view behavior during automatic refreshes.

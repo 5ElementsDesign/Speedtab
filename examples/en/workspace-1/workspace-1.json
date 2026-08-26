@@ -47,6 +47,14 @@
                 {"title": "Qwen", "url": "https://qwen.ai/"},
                 {"title": "Duck.ai", "url": "https://duck.ai/"}
               ]
+            },
+            {
+              "title": "🔍",
+              "bookmarks": [
+                {"title": "DuckDuckGo", "url": "https://duckduckgo.com/"},
+                {"title": "Bing", "url": "https://www.bing.com/"},
+                {"title": "Brave", "url": "https://search.brave.com/"}
+              ]
             }
           ]
         },

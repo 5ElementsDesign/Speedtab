@@ -104,6 +104,36 @@ const exampleWorkspaceDefinition = [
     page: 'Main',
     module: 'Notizen',
     tab: 'Start',
+    colorScheme: 'light',
+    type: 'html',
+    title: 'Wallspeed',
+    meta: {
+      window: {
+        width: 1000,
+        height: 740,
+      },
+    },
+    content: `
+<div data-yai-tabs="" data-theme="light" data-color-accent="dark" data-auto-accessibility="false">
+  <nav data-controller="">
+    <button
+      data-tab-action="open" data-open="1" data-delay="100" data-min-loading="400" data-default
+      data-url="https://5elementsdesign.github.io/Speedtab/ext/st/wallpaper/bg-color.html">Colors</button>
+    <button
+      data-tab-action="open" data-open="2" data-delay="100" data-min-loading="400"
+      data-url="https://5elementsdesign.github.io/Speedtab/ext/st/wallpaper/list.html">Gallerie</button>
+  </nav>
+  <div data-content="" data-st-bg-color="#353535">
+    <div data-tab="1" data-spaceless="" class="p-4 h-auto" data-st-bg-color="#353535"></div>
+    <div data-tab="2" data-spaceless="" class="p-4 h-auto" data-st-bg-color="#353535"></div>
+  </div>
+</div>
+    `,
+  },
+  {
+    page: 'Main',
+    module: 'Notizen',
+    tab: 'Start',
     type: 'html',
     colorScheme: 'dark',
     title: 'Tabby Tabs',
