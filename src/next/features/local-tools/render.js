@@ -46,8 +46,8 @@ export function renderLocalToolsRoot(state = {}) {
 export function renderLocalToolsDropdownTrigger() {
   return `
     <span data-app-brand>
-      <span data-st-icon aria-hidden="true">⚡</span>
-      <span>${escapeHtml(t('app.title'))}</span>
+      <img data-app-brand-logo src="/icons/icon48.png" width="22" height="22" alt="Speedtab Logo"/>
+      <span data-app-brand-name>${escapeHtml(t('app.title'))}</span>
     </span>
   `
 }

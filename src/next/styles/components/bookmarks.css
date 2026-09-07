@@ -249,6 +249,12 @@
   gap: 8px;
 }
 
+[data-bookmark-form-preview-buttons],
+[data-bookmark-form-crop-actions],
+[data-bookmark-form-preview-wrap] {
+  margin-bottom: 4px;
+}
+
 [data-bookmark-form-picker-btn],
 [data-bookmark-form-link-btn],
 [data-bookmark-form-upload-btn],

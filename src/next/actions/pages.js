@@ -1,7 +1,8 @@
+import {cleanupOrphans, deleteCollectionTree, deleteModuleTree, deletePageTree} from '../../composables/useMaintenance.ts'
+import {db} from '../../db/db.ts'
 import {closeModal, openModal} from '../components/modal.js'
 import {closeSidepanel, onSidepanelClose, openSidepanel} from '../components/sidepanel.js'
-import {db} from '../../db/db.ts'
-import {cleanupOrphans, deleteCollectionTree, deleteModuleTree, deletePageTree} from '../../composables/useMaintenance.ts'
+import {getModuleTypeMessageKey} from '../config/module-types.js'
 import {
   archiveBgItem,
   deletePageBackgroundOverride,
@@ -15,9 +16,7 @@ import {createModuleData, loadModulesByPageId} from '../data/modules.js'
 import {createPageData, loadPageBySyncId, savePageData} from '../data/pages.js'
 import {createModuleTab} from '../data/tabs.js'
 import {upsertUiConfig} from '../data/ui-config.js'
-import {getModuleTypeMessageKey} from '../config/module-types.js'
-import {renderSidepanelDeleteFooter} from '../features/forms/actions.js'
-import {initFormDirtyState} from '../features/forms/actions.js'
+import {initFormDirtyState, renderSidepanelDeleteFooter} from '../features/forms/actions.js'
 import {
   renderModuleCreateForm,
   renderPageBgArchiveSwatches,
@@ -186,6 +185,7 @@ function getCurrentRestoreUrl() {
 }
 
 function renderCopyUrlModal(url) {
+  const hasTabState = Boolean(window.location.hash)
   return `
     <div data-copy-url-modal>
       <label for="st-copy-url-input" data-copy-url-description>${escapeHtml(t('app.copyUrlDescription'))}</label>
@@ -194,14 +194,14 @@ function renderCopyUrlModal(url) {
         id="st-copy-url-input"
         name="copy-url"
         value="${escapeHtml(url)}"
-        readonly
         spellcheck="false"
         autocomplete="off"
         data-copy-url-input
       >
       <div data-copy-url-actions>
         <div data-copy-url-actions-left>
-          <button type="button" class="st-btn" data-click="openCopiedUrlInNewTab">${escapeHtml(t('app.openInNewTab'))}</button>
+          <button type="button" class="st-btn" data-click="openCopiedUrlInNewTab" title="${escapeHtml(t('app.openInNewTab'))}"><i data-icon="external" aria-hidden="true"></i></button>
+          ${hasTabState ? `<button type="button" class="st-btn" data-click="resetCurrentTabState">${escapeHtml(t('app.resetTabState'))}</button>` : ''}
         </div>
         <div data-copy-url-actions-right>
           <button type="button" class="st-btn" data-modal-close>${escapeHtml(t('common.close'))}</button>
@@ -480,6 +480,14 @@ export const pageActions = {
     const url = input instanceof HTMLInputElement ? input.value.trim() : ''
     if (!url) return
     window.open(url, '_blank', 'noopener,noreferrer')
+  },
+
+  resetCurrentTabState() {
+    if (!window.location.hash) return
+    const cleanUrl = new URL(window.location.href)
+    cleanUrl.hash = ''
+    history.replaceState(null, '', cleanUrl.href)
+    window.location.reload()
   },
 
   async copyCurrentRestoreUrl() {

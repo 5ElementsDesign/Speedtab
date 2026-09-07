@@ -2,7 +2,7 @@ import defaultWallpaperUrl from '../../assets/wallpaper-y-tree.webp'
 import {getCachedAppSettings, loadAppSettings, loadBgArchive, loadPageBackgroundOverride} from '../data/app-settings.js'
 import {loadAssetObjectUrl, loadBgAssets} from '../data/assets.js'
 
-const DEFAULT_BACKGROUND = `url('${defaultWallpaperUrl}') center/cover no-repeat fixed`
+export const DEFAULT_BACKGROUND = `url('${defaultWallpaperUrl}') center/cover no-repeat fixed`
 const BACKGROUND_TRANSITION_MS = 220
 const backgroundAssetUrls = new Map()
 const backgroundAssetDecodes = new Map()
@@ -24,6 +24,11 @@ export function sanitizeBackgroundValue(raw) {
 export function isValidBackground(value) {
   if (!value) return true
   return CSS.supports('background', value) || CSS.supports('background-image', value)
+}
+
+export function getBackgroundValue(settings = getCachedAppSettings()) {
+  if (settings?.background_asset_id) return settings.background_source_url || ''
+  return settings?.background_properties || 'default'
 }
 
 function toBackgroundColorValue(raw) {

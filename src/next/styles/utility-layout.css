@@ -21,6 +21,9 @@
 
 .rotate-top-to-left { transform: rotate(270deg); }
 .rotate-top-to-bottom { transform: rotate(180deg); }
+.mirror { display: inline-block; transform: scaleX(-1); }
+
+.scrollbar-gutter-stable { scrollbar-gutter: stable; }
 
 .position-relative { position: relative; }
 .pe-none { pointer-events: none; }
@@ -275,10 +278,16 @@
 .mt-5 { margin-top: var(--st-margin-5); }
 .mb-5 { margin-bottom: var(--st-margin-5); }
 .ml-5 { margin-left: var(--st-margin-5); }
-.ml-auto { margin-left: auto; }
 .mr-5 { margin-right: var(--st-margin-5); }
 .mx-5 { margin-left: var(--st-margin-5); margin-right: var(--st-margin-5); }
 .my-5 { margin-top: var(--st-margin-5); margin-bottom: var(--st-margin-5); }
+.m-auto { margin: auto; }
+.ml-auto { margin-left: auto; }
+.mr-auto { margin-right: auto; }
+.mt-auto { margin-top: auto; }
+.mb-auto { margin-bottom: auto; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.my-auto { margin-top: auto; margin-bottom: auto; }
 
 .p-0  { padding: var(--st-margin-0); }
 .pt-0 { padding-top: var(--st-margin-0); }

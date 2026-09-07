@@ -56,7 +56,7 @@ import {
   testFeedSourceUrl,
   useDiscoveredFeedUrl,
 } from '../features/modules/feed-form.js'
-import {addFeedLatestItems, closeFeedFocusState, computeFeedCollectionViewModel, getFeedUiState, initFeedFavicons, openFeedFocusState, queueFeedFavicons, renderFeedCollection, renderFeedContentZone, renderFeedFocusControls, renderFeedItem, renderFeedItemBody, setFeedFocusWidth, setFeedRefreshingState, setFeedSourceLoadingState, toggleFeedItemExpansionState, toggleFeedLatestState, toggleFeedLoadedState, toggleFeedSourceState, toggleFeedUnreadState} from '../features/modules/feeds.js'
+import {addFeedLatestItems, closeFeedFocusState, computeFeedCollectionViewModel, FEED_OPEN_BATCH_SIZE, getFeedUiState, initFeedFavicons, openFeedFocusState, queueFeedFavicons, renderFeedCollection, renderFeedContentZone, renderFeedFocusControls, renderFeedItem, renderFeedItemBody, setFeedFocusWidth, setFeedRefreshingState, setFeedSourceLoadingState, toggleFeedItemExpansionState, toggleFeedLatestState, toggleFeedLoadedState, toggleFeedSourceState, toggleFeedUnreadState} from '../features/modules/feeds.js'
 import {
   afterNoteFormRender,
   buildNoteSavePayload,
@@ -261,10 +261,12 @@ function getCurrentModuleTabContext(moduleSyncId) {
 }
 
 function getFeedCollectionContext(target) {
-  const collectionRoot = target?.closest?.('[data-feed-collection-id]') || document.querySelector('[data-feed-collection-id]')
-  const collectionId = parseInt(collectionRoot?.dataset?.feedCollectionId ?? '', 10)
-  const moduleSyncId = collectionRoot?.dataset?.feedModuleSyncId ?? target?.dataset?.feedModuleSyncId ?? ''
-  const collectionTitle = collectionRoot?.dataset?.feedCollectionTitle ?? ''
+  const collectionTarget = target?.closest?.('[data-feed-collection-id]') || document.querySelector('[data-feed-collection-id]')
+  const collectionId = parseInt(collectionTarget?.dataset?.feedCollectionId ?? '', 10)
+  const moduleSyncId = collectionTarget?.dataset?.feedModuleSyncId ?? target?.dataset?.feedModuleSyncId ?? ''
+  const collectionRoot = target?.closest?.('.st-module-feed[data-feed-collection-id]')
+    || document.querySelector(`.st-module-feed[data-feed-collection-id="${CSS.escape(String(collectionId))}"][data-feed-module-sync-id="${CSS.escape(moduleSyncId)}"]`)
+  const collectionTitle = collectionRoot?.dataset?.feedCollectionTitle ?? collectionTarget?.dataset?.feedCollectionTitle ?? ''
   if (!collectionId || !moduleSyncId) return null
   return {collectionId, moduleSyncId, collectionRoot, collectionTitle}
 }
@@ -707,9 +709,9 @@ async function refreshFeedCollectionView(moduleSyncId, collectionId, options = {
         skipImages: getFeedSkipImages(module.config_json),
       }
     } catch {
-      return {feedItemLimit: 0, skipImages: true}
+      return {feedItemLimit: 0, skipImages: false}
     }
-  })() : {feedItemLimit: 0, skipImages: true}
+  })() : {feedItemLimit: 0, skipImages: false}
 
   const collectionData = {
     ...tab,
@@ -783,7 +785,7 @@ async function refreshFeedCollectionView(moduleSyncId, collectionId, options = {
   syncPictureInPicture()
 }
 
-function updateFeedItemDom(article, item, context) {
+function updateFeedItemDom(article, item, context, {syncPip = true} = {}) {
   if (!(article instanceof HTMLElement) || !item) return
 
   const nextState = toggleFeedItemExpansionState(context.moduleSyncId, context.collectionId, item.id)
@@ -812,11 +814,11 @@ function updateFeedItemDom(article, item, context) {
 
   if (!expanded) {
     existingBody?.remove()
-    syncPictureInPicture()
+    if (syncPip) syncPictureInPicture()
     return
   }
 
-  const skipImages = article.closest('[data-feed-skip-images]')?.getAttribute('data-feed-skip-images') !== 'false'
+  const skipImages = article.closest('[data-feed-skip-images]')?.getAttribute('data-feed-skip-images') === 'true'
   const bodyHtml = renderFeedItemBody(
     item.read_at == null ? {...item, read_at: Date.now()} : item,
     sourceTitle,
@@ -828,12 +830,12 @@ function updateFeedItemDom(article, item, context) {
 
   if (existingBody) {
     existingBody.outerHTML = bodyHtml
-    syncPictureInPicture()
+    if (syncPip) syncPictureInPicture()
     return
   }
 
   header?.insertAdjacentHTML('afterend', bodyHtml)
-  syncPictureInPicture()
+  if (syncPip) syncPictureInPicture()
 }
 
 export async function ensureFeedCollectionLoaded(moduleSyncId, collectionId) {
@@ -1361,6 +1363,39 @@ export const moduleCrudActions = {
     if (item.read_at == null) {
       await db.feed_items.update(itemId, {read_at: Date.now()})
     }
+  },
+
+  async openNextFeedItems(target) {
+    const context = getFeedCollectionContext(target)
+    if (!context?.collectionRoot) return
+
+    const rows = [...context.collectionRoot.querySelectorAll('.st-module-feed-item[data-feed-item-id]')]
+    const lastOpenIndex = rows.reduce((lastIndex, row, index) => (
+      row.dataset.expanded === 'true' ? index : lastIndex
+    ), -1)
+    const unreadItemIds = []
+    let opened = 0
+
+    for (let index = lastOpenIndex + 1; index < rows.length && opened < FEED_OPEN_BATCH_SIZE; index++) {
+      const article = rows[index]
+      const itemId = parseInt(article.dataset.feedItemId ?? '', 10)
+      if (!itemId || article.dataset.expanded === 'true') continue
+      const item = await loadFeedItemById(itemId)
+      if (!item) continue
+      updateFeedItemDom(article, item, context, {syncPip: false})
+      if (item.read_at == null) unreadItemIds.push(itemId)
+      opened++
+    }
+
+    if (unreadItemIds.length) {
+      const now = Date.now()
+      await db.transaction('rw', db.feed_items, async () => {
+        for (const itemId of unreadItemIds) {
+          await db.feed_items.update(itemId, {read_at: now})
+        }
+      })
+    }
+    if (opened) syncPictureInPicture()
   },
 
   async markAllAsRead(target) {

@@ -119,15 +119,16 @@
   --st-fb: attr(data-st-flex-basis type(<length-percentage>), auto);
   flex-basis: var(--st-fb) !important;
 }
-[data-st-flex-wrap] {
-  flex-wrap: attr(data-st-flex-wrap, nowrap) !important;
-}
 [data-st-order] {
   --st-order: attr(data-st-order type(<integer>), 0);
   order: var(--st-order) !important;
 }
 
 /* Flex value presets - using attribute selectors for reliability */
+[data-st-flex-wrap="wrap"] { flex-wrap: wrap !important; }
+[data-st-flex-wrap="wrap-reverse"] { flex-wrap: wrap-reverse !important; }
+[data-st-flex-wrap="nowrap"] { flex-wrap: nowrap !important; }
+
 [data-st-flex-direction="row"] { flex-direction: row !important; }
 [data-st-flex-direction="row-reverse"] { flex-direction: row-reverse !important; }
 [data-st-flex-direction="column"] { flex-direction: column !important; }
@@ -270,7 +271,8 @@
   background: var(--st-bg-color) !important;
 }
 [data-st-bg-image] {
-  background-image: attr(data-st-bg-image, none) !important;
+  --st-bg-image: attr(data-st-bg-image type(<image>), none);
+  background-image: var(--st-bg-image) !important;
 }
 [data-st-bg-size] {
   background-size: attr(data-st-bg-size, auto) !important;

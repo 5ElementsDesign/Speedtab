@@ -1,4 +1,3 @@
-import defaultWallpaperUrl from '../../assets/wallpaper-y-tree.webp'
 import {searchOpenMeteoLocations} from '../../composables/useOpenMeteoWeather.ts'
 import {getWidgetSettings, saveWidgetSettings} from '../../composables/useWidgetSettings.ts'
 import {YEH} from '../../lib/yai/yeh.js'
@@ -35,6 +34,7 @@ import {patchInner, replaceNode} from '../utils/dom-patch.js'
 import {t} from '../utils/i18n.js'
 import {
   addBgSet,
+  DEFAULT_BACKGROUND,
   isValidBackground,
   loadBackgroundAssetsForEditor,
   releaseBackgroundAssetUrl,
@@ -356,6 +356,7 @@ export const settingsActions = {
       syncBgInputs(value, target)
       applyBg(value)
       await saveAppSetting('background_asset_id', null)
+      await saveAppSetting('background_source_url', null)
     }
   },
 
@@ -638,9 +639,10 @@ export const settingsActions = {
 
   clearBgProperty() {
     syncBgInputs('')
-    applyBg('')
+    applyBg(DEFAULT_BACKGROUND)
     saveAppSetting('background_properties', null)
     saveAppSetting('background_asset_id', null)
+    saveAppSetting('background_source_url', null)
   },
 
   async loadBgArchiveItem(target) {
@@ -648,6 +650,7 @@ export const settingsActions = {
     if (!value || !isValidBackground(value)) return
     await saveAppSetting('background_properties', value)
     await saveAppSetting('background_asset_id', null)
+    await saveAppSetting('background_source_url', null)
     syncBgInputs(value)
     applyBg(value)
   },
@@ -678,6 +681,7 @@ export const settingsActions = {
     const {blob, width, height} = await normalizeImageBlob(file)
     const assetId = await storeOrGetAsset(blob, 'background', width, height)
     await saveAppSetting('background_asset_id', assetId)
+    await saveAppSetting('background_source_url', null)
     await saveAppSetting('background_properties', null)
 
     const objUrl = URL.createObjectURL(blob)
@@ -696,6 +700,7 @@ export const settingsActions = {
     if (!objUrl) return
     applyBg(`url('${objUrl}') center/cover no-repeat`)
     await saveAppSetting('background_asset_id', assetId)
+    await saveAppSetting('background_source_url', null)
     await saveAppSetting('background_properties', null)
     syncBgInputs('')
   },

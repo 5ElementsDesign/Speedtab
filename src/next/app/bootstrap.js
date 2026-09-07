@@ -7,15 +7,14 @@ import {captureActions} from '../actions/capture.js'
 import {customizerActions} from '../actions/customizer.js'
 import {localToolsActions} from '../actions/local-tools.js'
 import {ensureFeedCollectionLoaded, moduleCrudActions, syncFeedAutoRefreshSchedule} from '../actions/module-crud.js'
-import {rebindOpenDropdown} from '../components/dropdown.js'
 import {pageActions, syncOpenPageEditorActiveHint} from '../actions/pages.js'
 import {pictureInPictureActions, syncPictureInPicture} from '../actions/picture-in-picture.js'
 import {searchActions} from '../actions/search.js'
 import {settingsActions} from '../actions/settings.js'
 import {syncTodoClockSubscription, todoActions} from '../actions/todos.js'
-import {userActions} from '../actions/user-actions.js'
+import {syncWallspeedActiveWallpaper, userActions} from '../actions/user-actions.js'
 import {workspaceActions} from '../actions/workspace.js'
-import {closeAll, closeDropdown} from '../components/dropdown.js'
+import {closeAll, closeDropdown, rebindOpenDropdown} from '../components/dropdown.js'
 import {dismissToast, initToastEvents} from '../components/toast.js'
 import {getCachedAppSettings, loadAppSettings, saveAppSetting} from '../data/app-settings.js'
 import {loadCaptureInboxCount} from '../data/capture-inbox.js'
@@ -77,46 +76,6 @@ function renderExampleWorkspaceLocaleSelect() {
       </select>
       <small>${t('app.onboardingLanguageDescription')}</small>
     </label>
-  `
-}
-
-function renderEmptyStateThemeSelect(appSettings = null) {
-  const uiTheme = appSettings?.ui_theme === 'light' ? 'light' : 'dark'
-  const isBackgroundActive = appSettings?.background_properties !== 'none'
-  const backgroundLabel = isBackgroundActive
-    ? t('customizer.removeBackgroundShort')
-    : t('customizer.speedtabBackgroundShort')
-
-  return `
-    <div class="st-app-empty-card st-app-empty-theme-card">
-      <div class="st-app-empty-theme-actions">
-        <button
-          type="button"
-          class="st-btn"
-          data-btn="ghost"
-          data-click="toggleEmptyStateBackground"
-          aria-pressed="${isBackgroundActive ? 'true' : 'false'}"
-          title="${backgroundLabel}"
-          aria-label="${backgroundLabel}"
-        ><i data-icon="image" aria-hidden="true"></i> ${backgroundLabel}</button>
-        <button
-          type="button"
-          class="st-btn"
-          data-btn="dark"
-          data-click="setEmptyStateThemePreset"
-          data-theme-value="dark"
-          aria-pressed="${uiTheme === 'dark' ? 'true' : 'false'}"
-        ><i data-icon="moon" aria-hidden="true"></i> ${t('customizer.options.dark')}</button>
-        <button
-          type="button"
-          class="st-btn"
-          data-btn="light"
-          data-click="setEmptyStateThemePreset"
-          data-theme-value="light"
-          aria-pressed="${uiTheme === 'light' ? 'true' : 'false'}"
-        ><i data-icon="sun" aria-hidden="true"></i> ${t('customizer.options.light')}</button>
-      </div>
-    </div>
   `
 }
 
@@ -415,7 +374,7 @@ export function initializeNextTabs(mount, pages) {
     autoFocusNested: false,
     autoFocus: false,
     closable: false,
-    methodsFirst: false,
+    methodsFirst: true,
     enableStats: false,
     enableConfigValidation: false,
     enableHandlerValidation: false,
@@ -464,6 +423,7 @@ export function initializeNextTabs(mount, pages) {
           hydrateModuleTabBookmarks(content, container, context)
           hydrateVisibleFeedCollections(content)
           syncTodoClockSubscription()
+          if (content?.closest?.('[data-st-wallspeed]')) syncWallspeedActiveWallpaper()
           return
         }
 
@@ -486,8 +446,9 @@ export function initializeNextTabs(mount, pages) {
     },
   })
 
-  tabs.hook('contentReady', () => {
+  tabs.hook('contentLoaded', () => {
     syncPictureInPicture()
+    syncWallspeedActiveWallpaper()
   })
 
   mount.__flyingConfigCleanup = installFlyingConfig(tabs, ({target}) => openFlyingConfig(target))
@@ -728,9 +689,8 @@ export async function renderNextRoot() {
   } else {
     mount.innerHTML = `
       <div class="st-app-empty">
-        ${renderEmptyStateThemeSelect(appSettings)}
         <div class="st-app-empty-card st-main-card">
-          <h1><span>${t('app.title')}</span></h1>
+          <h1><img data-app-brand-logo="" src="/icons/icon48.png" width="48" height="48" alt="Speedtab Logo"><span>${t('app.title')}</span></h1>
           <p>${t('app.noPagesTitle')}</p>
           <p>${t('app.noPagesDescription')}</p>
           <div class="st-app-empty-actions">

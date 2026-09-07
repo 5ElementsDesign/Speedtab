@@ -95,12 +95,16 @@ html.light {
   --yai-tabs-color-text-muted: color-mix(in srgb, var(--st-modal-title-color) 68%, transparent);
   --st-color-text: var(--st-modal-title-color);
   --st-color-text-muted: color-mix(in srgb, var(--st-modal-title-color) 68%, transparent);
+  --st-form-elements-bg-color: #20202099;
+  --st-form-elements-border-color: rgba(255, 255, 255, 0.14);
+  --st-form-elements-border-hover: rgba(255, 255, 255, 0.24);
+  --st-color-focus: #53ffc4;
+  --st-color-focus-ring: rgba(2, 255, 178, 0.3);
   --st-widget-text: var(--st-modal-title-color);
-
   color: var(--st-widget-text);
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 121;
   display: none;
 
   &[data-modal-open] {
@@ -165,7 +169,7 @@ html.light {
 [data-floating-windows] {
   position: fixed;
   inset: 0;
-  z-index: 1201;
+  z-index: 110;
   pointer-events: none;
 }
 

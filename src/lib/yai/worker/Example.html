@@ -578,14 +578,13 @@
                     <strong>💪 You switched colors ${colorCount} times during computation!</strong><br>
                     <strong>💪 You created ${domCount} DOM nodes during computation!</strong>
                 `;
-
                 addLog(`✅ Task completed in ${formatTime(result.totalTimeMs)}! You clicked ${clickCount} times during computation.`, 'success');
             } catch (error) {
                 console.error('Worker error:', error);
                 resultDiv.style.display = 'block';
                 resultDiv.className = 'result error';
                 resultDiv.innerHTML = `
-                <strong>❌ Error</strong><br>
+                <strong><i data-icon="cross-mark"></i> Error</strong><br>
                 ${error.message}
             `;
                 addLog(`❌ Error: ${error.message}`, 'error');

@@ -16,7 +16,7 @@ export function renderSettingsFooter() {
   return `
     <div data-settings-footer>
       <span>v${escapeHtml(version)}</span>
-      <button type="button" data-click="openFeedbackModal" class="feedback-link">Feedback &amp; Bugs</button>
+      <button data-click="openFeedbackModal" class="feedback-link">${escapeHtml(t('settings.feedbackTitle'))}</button>
     </div>
   `
 }
@@ -26,15 +26,49 @@ export function renderFeedbackModal() {
   const subject = encodeURIComponent(`Speedtab Feedback v${version}`)
   const body = encodeURIComponent('Hi! I have some feedback about Speedtab:\n\n')
   return `
-    <p>${escapeHtml(t('settings.feedbackVersion', {version}))}</p>
-    <hr>
+    <h2 class="mb-2">${escapeHtml(t('settings.feedbackVersion', {version}))}</h2>
     <p>${escapeHtml(t('settings.feedbackPrompt'))}</p>
     <p>${escapeHtml(t('settings.feedbackFeaturePrompt'))}</p>
     <hr>
-    <ul class="m-0">
-      <li><a href="mailto:5.smart.mailbot@gmail.com?subject=${subject}&amp;body=${body}" class="feedback-link">${escapeHtml(t('settings.feedbackEmail'))}</a></li>
-      <li><a href="https://github.com/5ElementsDesign/Speedtab/issues" target="_blank" rel="noopener noreferrer" class="feedback-link">${escapeHtml(t('settings.feedbackGithub'))}</a></li>
-    </ul>
+    <div data-st-display="flex" data-st-flex-wrap="wrap" data-st-gap="8px">
+      <button
+        data-click="goToHref"
+        data-btn="ghost"
+        data-st-display="flex"
+        data-st-flex="1"
+        data-st-gap="8px"
+        data-st-align-items="center"
+        data-href="mailto:speedtab.next@gmail.com?subject=${subject}&amp;body=${body}">
+        <i data-icon="mail" aria-hidden="true"></i> E-Mail senden
+      </button>
+      <button
+        data-click="goToHref"
+        data-btn="ghost"
+        data-st-display="flex"
+        data-st-flex="1"
+        data-st-gap="8px"
+        data-st-align-items="center"
+        data-href="https://github.com/5ElementsDesign/Speedtab/issues">
+        <i data-icon="github" aria-hidden="true"></i> GitHub Issues
+      </button>
+    </div>
+    <hr>
+    <h2 class="mb-2">${escapeHtml(t('settings.reviewTitle'))}</h2>
+    <p>${escapeHtml(t('settings.reviewCopy'))}</p>
+    <button
+      data-click="goToHref"
+      data-btn="primary"
+      data-href="https://chromewebstore.google.com/detail/speedtab-local-speed-dial/adkjbdepojalajhfkoobiedddlnoamff/reviews"
+    ><i data-icon="star" aria-hidden="true"></i> ${escapeHtml(t('settings.writeReview'))}</button>
+    <hr>
+    <div data-st-display="flex" data-st-flex-wrap="wrap" data-st-gap="8px" data-st-justify-content="flex-end">
+      <button title="Speedtab is on X" data-click="goToHref" data-btn="link" data-href="https://x.com/SpeedtabNext" data-st-display="flex" data-st-align-items="center" data-st-gap="8px">
+        Speedtab on <span>X</span>
+      </button>
+      <button data-click="goToHref" data-btn="link" data-href="https://5-elements.cloud" data-st-display="flex" data-st-align-items="center" data-st-gap="8px">
+        5 Elements Design
+      </button>
+    </div>
   `
 }
 
@@ -122,7 +156,6 @@ export function renderWeatherLocationSearchState(location = null, weatherState =
               name="weather_current_location"
               value="${escapeHtml(displayLabel || formatWeatherLocationLabel(location))}"
               spellcheck="false"
-              autocomplete="off"
               data-settings-current-location-input
               data-change="changeWidgetSetting"
               data-widget-path="weather.display_label"
@@ -275,7 +308,6 @@ function renderWeatherSettingsSection(widgetSettings = {}, weatherState = {}) {
           ${weatherEnabled ? 'checked' : ''}
         />
       </label>
-
       ${weatherEnabled ? `
         <div data-customizer-field data-customizer-field-layout="stack" data-customizer-gap="sm">
           <span data-customizer-field-label>${escapeHtml(t('settings.weatherLocation'))}</span>
@@ -809,7 +841,6 @@ export function renderWidgetSettingsPanel(widgetSettings = {}, weatherState = {}
     ? widgetSettings.rail_align
     : 'left'
   const railIgnoreMaxWidth = widgetSettings?.rail_ignore_max_width === true
-
   return `
     <div data-settings-form data-customizer-form>
       <p data-settings-hint>${escapeHtml(t('settings.widgetsHelp'))}</p>
@@ -821,21 +852,18 @@ export function renderWidgetSettingsPanel(widgetSettings = {}, weatherState = {}
               id="widget_rail_position"
               name="widget_rail_position"
               data-change="changeWidgetSetting"
-              data-widget-path="rail_position"
-            >
+              data-widget-path="rail_position">
               <option value="top"${railPosition === 'top' ? ' selected' : ''}>${escapeHtml(t('settings.top'))}</option>
               <option value="bottom"${railPosition === 'bottom' ? ' selected' : ''}>${escapeHtml(t('settings.bottom'))}</option>
             </select>
           </div>
-
           <div data-customizer-field>
             <span data-customizer-field-label>${t('settings.railAlignment')}</span>
             <select
               id="widget_rail_align"
               name="widget_rail_align"
               data-change="changeWidgetSetting"
-              data-widget-path="rail_align"
-            >
+              data-widget-path="rail_align">
               <option value="left"${railAlign === 'left' ? ' selected' : ''}>${escapeHtml(t('settings.left'))}</option>
               <option value="center"${railAlign === 'center' ? ' selected' : ''}>${escapeHtml(t('settings.center'))}</option>
               <option value="right"${railAlign === 'right' ? ' selected' : ''}>${escapeHtml(t('settings.right'))}</option>
@@ -855,7 +883,6 @@ export function renderWidgetSettingsPanel(widgetSettings = {}, weatherState = {}
               ${railIgnoreMaxWidth ? 'checked' : ''}
             />
           </label>
-
           <div data-customizer-divider aria-hidden="true"></div>
         </div>
       ` : ''}

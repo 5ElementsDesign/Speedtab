@@ -6,6 +6,7 @@ export const APP_SETTING_DEFAULTS = {
   bookmarks_open_in_new_tab: true,
   background_properties:     null,
   background_asset_id:       null,
+  background_source_url:     null,
   feed_search_url_template:  'https://www.google.com/search?q=%s',
   feed_content_scale:        1,
   note_content_scale:        1,

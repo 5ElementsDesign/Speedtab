@@ -189,12 +189,6 @@
   }
 }
 
-[data-note-html-subtype="tabs"] {
-  >[data-yai-tabs] {
-    scrollbar-gutter: stable;
-  }
-}
-
 [data-yai-tabs] [data-live-switch],
 [data-app] .dragging {
   overflow: hidden !important;
@@ -495,7 +489,7 @@
 [data-swipe] {
   [data-tab].dragging {
     cursor: grab;
-    z-index: 1000;
+    z-index: 102;
     user-select: none;
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
@@ -610,6 +604,7 @@ button.yai-loading::after {
       flex-direction: column;
       justify-content: start;
       gap: 2px;
+      overflow: auto;
     }
     &[data-nav] [data-controller] {
       background: var(--yai-tabs-content-inactive-background);

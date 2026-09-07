@@ -24,6 +24,7 @@ Lo que puedes hacer con Speedtab:
 • leer fuentes RSS/Atom directamente en tu página de inicio con intervalos de actualización automática por pestaña
 • realizar un seguimiento del estado de leído/no leído y archivar elementos de fuentes interesantes con comentarios
 • personalizar el tema visual, los diseños de cuadrícula y los fondos CSS
+• usar Wallspeed, el espacio de apariencia integrado de Speedtab, para elegir fondos de pantalla o aplicar colores y degradados CSS
 • exportar e importar espacios de trabajo completos o colecciones individuales de marcadores, notas y tareas (ToDo) en JSON
 
 Speedtab funciona completamente de forma local. Los datos de la aplicación se guardan de forma segura en IndexedDB dentro del perfil de tu navegador. La obtención de fuentes RSS la gestiona íntegramente la propia extensión a través del service worker en segundo plano. Las notas cifradas se protegen en el cliente mediante AES-GCM y PBKDF2-SHA256. Tus frases de paso nunca salen de tu dispositivo.

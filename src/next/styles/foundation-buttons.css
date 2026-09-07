@@ -89,9 +89,9 @@
 
 [data-btn="dark"],
 [data-ui-btn="dark"] {
-  background: var(--st-color-dark-contrast);
-  color: var(--st-color-dark);
-  border-color: var(--st-color-dark-contrast);
+  background: var(--st-color-dark);
+  color: var(--st-color-dark-contrast);
+  border-color: var(--st-color-dark);
 
   &[data-outline] {
     background: var(--st-color-dark);
@@ -208,9 +208,11 @@
   color: color-mix(in srgb, var(--st-color-text) 88%, white 12%);
 }
 
-[data-btn="ghost"]:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--st-form-elements-border-color) 88%, transparent);
-  border-color: var(--st-form-elements-border-color);
+[data-btn="ghost"] {
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--st-form-elements-border-color) 88%, transparent);
+    border-color: var(--st-form-elements-border-color);
+  }
 }
 
 [data-btn="outline"] {
@@ -223,18 +225,21 @@
 }
 
 [data-btn="link"] {
+  padding: 0 1px;
+  margin: 0 2px;
+  min-height: 0;
   background: transparent;
-  border-color: transparent;
   color: var(--yai-tabs-nav-button-color, var(--yai-tabs-color-text-muted));
   text-decoration: none;
+  border: 0 dashed #888777;
+  border-width: 0 0 1px 0;
 }
 
 [data-btn="link"]:is(:hover, :focus-visible, .active) {
   background: transparent;
   border-color: transparent;
   color: var(--yai-tabs-nav-button-active-color, var(--yai-tabs-color-accent));
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
+  border-bottom: 1px solid;
 }
 
 [data-bookmark-inline-add],

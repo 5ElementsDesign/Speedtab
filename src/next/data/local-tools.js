@@ -70,14 +70,22 @@ function normalizeNoteLayoutState(source = {}) {
   const noteId = toFiniteNumber(source.noteId, null)
   if (!Number.isInteger(noteId) || noteId <= 0) return null
 
-  return {
-    noteId,
-    x: Math.max(0, toFiniteNumber(source.x, DEFAULT_NOTE_WINDOW_STATE.x)),
-    y: Math.max(0, toFiniteNumber(source.y, DEFAULT_NOTE_WINDOW_STATE.y)),
-    width: Math.max(280, toFiniteNumber(source.width, DEFAULT_NOTE_WINDOW_STATE.width)),
-    height: Math.max(NOTE_MIN_HEIGHT, toFiniteNumber(source.height, DEFAULT_NOTE_WINDOW_STATE.height)),
-    z: Math.max(1, toFiniteNumber(source.z, DEFAULT_NOTE_WINDOW_STATE.z)),
-  }
+  const layout = {noteId}
+  const x = Number(source.x)
+  const y = Number(source.y)
+  const width = Number(source.width)
+  const height = Number(source.height)
+  const z = Number(source.z)
+
+  if (Number.isFinite(x) && x >= 0) layout.x = x
+  if (Number.isFinite(y) && y >= 0) layout.y = y
+  if (Number.isFinite(width) && width >= 280) layout.width = width
+  if (Number.isFinite(height) && height >= NOTE_MIN_HEIGHT) layout.height = height
+  if (Number.isFinite(z) && z >= 1) layout.z = z
+
+  return ('x' in layout || 'y' in layout || 'width' in layout || 'height' in layout)
+    ? layout
+    : null
 }
 
 function normalizeNoteTabEntry(source = {}) {

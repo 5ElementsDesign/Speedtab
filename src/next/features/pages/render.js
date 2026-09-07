@@ -139,7 +139,7 @@ export function renderRootShell({
         ${renderCaptureInboxButton(captureInboxCount)}
         ${renderSearchChrome()}
         ${buildDropdown({
-    trigger: `${escapeHtml(t('nav.pages'))} <i data-icon="chevron" aria-hidden="true"></i>`,
+          trigger: `${escapeHtml(t('nav.pages'))} <i data-icon="chevron" aria-hidden="true"></i>`,
           ariaLabel: t('nav.pageActions'),
           triggerClass: 'st-app-header-action',
           items: [
@@ -150,12 +150,13 @@ export function renderRootShell({
           ],
         })}
         ${buildDropdown({
-    trigger: '<i data-icon="cog" aria-hidden="true"></i>',
+          trigger: '<i data-icon="cog" aria-hidden="true"></i>',
           ariaLabel: t('common.settings'),
           triggerClass: 'st-app-header-action',
           items: [
             {label: t('common.customize'), action: 'openCustomizerList'},
             {label: t('common.settings'), action: 'openSettings'},
+            {label: t('nav.actions.wallspeed'), action: 'openWallspeed', class: 'flex-between-center', trailingIcon: 'dashboard', dividerTop: true},
             {label: t('assets.title'), action: 'openAssetBrowser', dividerTop: true},
             {label: t('nav.actions.sortContents'), action: 'openSorter', dividerTop: true},
             {label: t('settings.importExportTitle'), action: 'openImportExport', dividerTop: true},

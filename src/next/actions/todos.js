@@ -50,7 +50,7 @@ function renderTodoDates(todo) {
     ...(todo?.completed_at ? [[t('todo.finished'), todo.completed_at]] : []),
   ].filter(([, value]) => Boolean(value))
   if (!items.length) return ''
-  return `<div data-todo-dates>${items.map(([label, value]) => `<span><small>${escapeHtml(label)}</small>${escapeHtml(formatTodoDate(value))}</span>`).join('')}</div>`
+  return `<div data-todo-dates>${items.map(([label, value]) => `<span data-todo-date-state="${escapeHtml(label).toLowerCase()}"><small>${escapeHtml(label)}</small>${escapeHtml(formatTodoDate(value))}</span>`).join('')}</div>`
 }
 
 function renderTodoEditor(todo, moduleSyncId) {
@@ -58,8 +58,9 @@ function renderTodoEditor(todo, moduleSyncId) {
   const colorScheme = todo?.color_scheme ?? ''
   const completed = todo?.completed_at != null
   return `
-    <form data-todo-editor data-submit="saveTodo" data-todo-id="${escapeHtml(String(todo?.id ?? ''))}" data-module-sync-id="${escapeHtml(moduleSyncId)}">
+    <form data-todo-editor data-submit="saveTodo" data-todo-id="${escapeHtml(String(todo?.id ?? ''))}" data-module-sync-id="${escapeHtml(moduleSyncId)}"${completed ? ' data-todo-is-completed' : ''}>
       <label data-customizer-field><span data-customizer-field-label>${escapeHtml(t('todo.completed'))}</span><input name="todo-completed" type="checkbox"${completed ? ' checked' : ''}></label>
+      <div data-customizer-divider="" aria-hidden="true"></div>
       <label data-customizer-field><span data-customizer-field-label>${escapeHtml(t('noteForm.title'))}</span><input name="todo-title" type="text" maxlength="240" required autocomplete="off" value="${escapeHtml(todo?.title ?? '')}"></label>
       <label data-customizer-field data-customizer-field-layout="stack"><textarea name="todo-note" rows="4" maxlength="4000" placeholder="${escapeHtml(t('todo.note'))}" aria-label="${escapeHtml(t('todo.note'))}">${escapeHtml(todo?.note ?? '')}</textarea></label>
       <div data-customizer-divider="" aria-hidden="true"></div>

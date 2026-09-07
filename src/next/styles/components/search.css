@@ -82,6 +82,9 @@ html.light {
   [data-search-panel][hidden] {
     top: calc(var(--st-app-header-height) + 90px);
   }
+  [data-search-input-wrap] {
+    min-width: 100px;
+  }
 }
 
 [data-search-panel-header] {

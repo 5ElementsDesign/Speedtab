@@ -19,11 +19,11 @@ describe('feed auto-refresh settings', () => {
     expect(withFeedAutoRefreshInterval('{"feed_auto_refresh_interval":10}', '')).toBeNull()
   })
 
-  it('skips feed images by default without storing a redundant setting', () => {
-    expect(getFeedSkipImages(null)).toBe(true)
-    expect(withFeedSkipImages('{"display":"compact"}', true)).toBe('{"display":"compact"}')
-    expect(withFeedSkipImages('{"display":"compact"}', false)).toBe('{"display":"compact","feed_skip_images":false}')
-    expect(getFeedSkipImages('{"feed_skip_images":false}')).toBe(false)
+  it('loads feed images by default and stores only an explicit skip setting', () => {
+    expect(getFeedSkipImages(null)).toBe(false)
+    expect(withFeedSkipImages('{"display":"compact"}', false)).toBe('{"display":"compact"}')
+    expect(withFeedSkipImages('{"display":"compact"}', true)).toBe('{"display":"compact","feed_skip_images":true}')
+    expect(getFeedSkipImages('{"feed_skip_images":true}')).toBe(true)
   })
 
   it('limits fetched feed items to a module-wide value between one and 100', () => {

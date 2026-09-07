@@ -703,18 +703,6 @@ select {
   font-size: 13px;
 }
 
-html.light {
-  [data-sorter-eyebrow] {
-    color: #2563eb;
-  }
-
-  [data-sorter-app-title],
-  [data-sorter-page-title],
-  [data-sorter-link]:not([data-btn]) {
-    color: #1e293b;
-  }
-}
-
 @media (max-width: 900px) {
   [data-sorter-app] {
     width: min(100%, calc(100% - 16px));

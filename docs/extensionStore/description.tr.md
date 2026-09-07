@@ -24,6 +24,7 @@ Speedtab ile yapabilecekleriniz:
 • RSS/Atom beslemelerini doğrudan başlangıç sayfanızda sekme bazlı otomatik yenileme aralıklarıyla okuyun
 • okundu/okunmadı durumlarını takip edin ve ilgilendiğiniz besleme ögelerini yorumlarla arşivleyin
 • görsel temayı, ızgara düzenlerini ve CSS arka planlarını özelleştirin
+• duvar kağıdı seçmek veya CSS renkleri ve gradyanları uygulamak için Speedtab’in yerleşik görünüm alanı Wallspeed’i kullanın
 • tüm çalışma alanlarını veya bireysel yer imi, not ve ToDo koleksiyonlarını JSON ile dışa ve içe aktarın
 
 Speedtab tamamen yerel çalışır. Uygulama verileri tarayıcı profilinizdeki IndexedDB içinde güvenle saklanır. Besleme çekme işlemleri uzaktaki bir sunucu tarafından değil, eklentinin kendi arka plan servis çalıştırıcısı (service worker) tarafından yürütülür. Şifrelenmiş notlar AES-GCM ve PBKDF2-SHA256 kullanılarak istemci tarafında korunur. Parolalarınız asla cihazınızdan dışarı çıkmaz.

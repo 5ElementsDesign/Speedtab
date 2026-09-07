@@ -619,9 +619,9 @@ export function updateContrastBadgeDOM(groupId, appearanceValues) {
   if (newBadge) badge.replaceWith(newBadge)
 }
 
-export function renderCustomizerList(pages, moduleCards, shellHasConfig = false, showResetOptions = false) {
+export function renderCustomizerList(pages, moduleCards, shellHasConfig = false, showResetOptions = false, activePageSyncId = '') {
   const renderListRow = ({action, label, type, syncId = '', moduleType = '', pageSyncIdValue = '', showReset = false}) => `
-    <div data-customizer-list-row>
+    <div data-customizer-list-row${pageSyncIdValue && pageSyncIdValue === activePageSyncId ? ' data-customizer-list-page-active' : ''}>
       <button
         type="button"
         data-click="${escapeHtml(action)}"
@@ -753,7 +753,7 @@ function renderAppearanceLauncherSection(bgData = null) {
             data-click="toggleShellWallpaper"
             title="${escapeHtml(backgroundToggleLabel)}"
             aria-label="${escapeHtml(backgroundToggleLabel)}"
-          >❌ ${escapeHtml(backgroundToggleLabel)}</button>
+          ><i data-icon="cross-mark" aria-hidden="true"></i> ${escapeHtml(backgroundToggleLabel)}</button>
         </div>
       </div>
     </div>

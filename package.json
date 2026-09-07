@@ -1,6 +1,6 @@
 {
   "name": "speedtab",
-  "version": "1.5.6",
+  "version": "1.5.7",
   "private": true,
   "type": "module",
   "description": "Local-first browser new-tab dashboard – Chrome Extension",
@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "wallpapers:build": "node scripts/build-wallpapers.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "type-check": "tsc --noEmit"

@@ -8,6 +8,7 @@ import {getFeedAutoRefreshInterval, getFeedSkipImages} from './feed-auto-refresh
 const feedUiStateByKey = new Map()
 const FEED_FOCUS_STORAGE_KEY = 'speedtab.next.feed.focus'
 const FEED_FOCUS_WIDTH_VALUES = ['320', '480', '740', '940', '1240', '1540', 'max']
+export const FEED_OPEN_BATCH_SIZE = 10
 
 function makeStateKey(moduleSyncId, collectionId) {
   return `${moduleSyncId || 'module'}::${collectionId || 'collection'}`
@@ -52,7 +53,7 @@ function createDefaultState(key = '') {
 }
 
 function parseFeedModuleConfig(configJson) {
-  if (!configJson) return {feedItemLimit: 0, skipImages: true}
+  if (!configJson) return {feedItemLimit: 0, skipImages: false}
   try {
     const parsed = JSON.parse(configJson)
     return {
@@ -60,7 +61,7 @@ function parseFeedModuleConfig(configJson) {
       skipImages: getFeedSkipImages(configJson),
     }
   } catch {
-    return {feedItemLimit: 0, skipImages: true}
+    return {feedItemLimit: 0, skipImages: false}
   }
 }
 
@@ -418,7 +419,7 @@ function renderYoutubeExtras(item, skipImages) {
   `
 }
 
-export function renderFeedItemBody(item, sourceTitle, moduleSyncId, collectionId, isArchived = false, skipImages = true) {
+export function renderFeedItemBody(item, sourceTitle, moduleSyncId, collectionId, isArchived = false, skipImages = false) {
   const payload = parseFeedPayload(item.payload_json)
   const isYoutubeItem = payload?.kind === 'youtube'
   const content = item.content ?? item.summary ?? ''
@@ -488,7 +489,7 @@ export function renderFeedItemBody(item, sourceTitle, moduleSyncId, collectionId
   `
 }
 
-export function renderFeedItem(item, source, moduleSyncId, collectionId, state, isArchived = false, skipImages = true) {
+export function renderFeedItem(item, source, moduleSyncId, collectionId, state, isArchived = false, skipImages = false) {
   const itemId = typeof item.id === 'number' ? item.id : null
   const expanded = itemId != null && state.expandedItemIds.includes(itemId)
   const read = item.read_at != null
@@ -585,7 +586,7 @@ export function computeFeedCollectionViewModel(collection, moduleSyncId, moduleC
   const showLoadedItemsButton = !state.showLoadedItems && feedItemCount > 0
   const hasUnreadItems = items.some((item) => item.read_at == null)
   const shouldLazyLoadItems = state.showLoadedItems && !itemsLoaded && feedItemCount > 0
-  const skipImages = moduleConfig.skipImages !== false
+  const skipImages = moduleConfig.skipImages === true
 
   return {
     sources,
@@ -613,6 +614,15 @@ export function renderFeedToolbar(moduleSyncId, collectionId, vm) {
   return `
     <div class="st-module-feed-toolbar">
       <div class="st-module-feed-meta">
+        <button
+          type="button"
+          data-click="openNextFeedItems"
+          data-feed-collection-id="${escapeHtml(String(collectionId))}"
+          data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
+          class="st-module-feed-toolbar-button"
+          title="${escapeHtml(t('feeds.openNextItems', {count: FEED_OPEN_BATCH_SIZE}))}"
+          aria-label="${escapeHtml(t('feeds.openNextItems', {count: FEED_OPEN_BATCH_SIZE}))}"
+        ><i data-icon="arrow" aria-hidden="true" class="rotate-top-to-bottom"></i></button>
         <button
           type="button"
           data-click="toggleLoadedItemsVisibility"

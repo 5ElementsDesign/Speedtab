@@ -30,4 +30,14 @@ describe('Customize sidepanel list', () => {
     expect(html).toContain('data-page-sync-id="empty-page"')
     expect(html).toContain('data-page-sync-id="other-page"')
   })
+
+  it('marks the active page row', () => {
+    const html = renderCustomizerList([
+      {sync_id: 'page-one', title: 'Page One'},
+      {sync_id: 'page-two', title: 'Page Two'},
+    ], [], false, false, 'page-two')
+
+    expect(html).toMatch(/data-customizer-list-row data-customizer-list-page-active>[\s\S]*data-page-sync-id="page-two"/)
+    expect(html).not.toMatch(/data-customizer-list-row data-customizer-list-page-active>[\s\S]*data-page-sync-id="page-one"/)
+  })
 })

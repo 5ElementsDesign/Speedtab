@@ -30,7 +30,6 @@ import {db, isActiveRecord} from '../db/db.ts'
 import YaiWorker from '../lib/yai/worker/yai-worker.js'
 import {YEH} from '../lib/yai/yeh.js'
 import '../next/styles/foundation.css'
-import {loadAndApplyDocumentTheme} from '../next/utils/document-theme.js'
 import {initI18n, t} from '../next/utils/i18n.js'
 import {applyWorkspaceBackground} from '../next/utils/workspace-background.js'
 import {DEFAULT_REMOTE_LOCAL_SETTINGS} from '../types/remote.ts'
@@ -1560,7 +1559,6 @@ async function pruneRemoteArchives() {
 }
 
 async function boot() {
-  await loadAndApplyDocumentTheme()
   await initI18n()
   await hydrate()
   render()

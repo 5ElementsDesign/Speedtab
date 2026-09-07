@@ -210,23 +210,16 @@ function getDefaultNoteWindowMeta(note = {}) {
   }
 }
 
-function saveNoteLayout(windowState) {
-  if (!windowState?.noteId) return
-  if (windowState.transientInitialLayout === true) return
-  const layout = {
-    noteId: windowState.noteId,
-    x: windowState.x,
-    y: windowState.y,
-    width: windowState.width,
-    height: windowState.height,
-    z: windowState.z,
-  }
-  const existingIndex = state.noteLayouts.findIndex((entry) => entry.noteId === windowState.noteId)
+function saveNoteLayout(layout) {
+  if (!layout?.noteId) return
+  const existingIndex = state.noteLayouts.findIndex((entry) => entry.noteId === layout.noteId)
   if (existingIndex === -1) {
     state.noteLayouts = [...state.noteLayouts, layout]
     return
   }
-  state.noteLayouts = state.noteLayouts.map((entry, index) => (index === existingIndex ? layout : entry))
+  state.noteLayouts = state.noteLayouts.map((entry, index) => (
+    index === existingIndex ? {...entry, ...layout} : entry
+  ))
 }
 
 function hasUserAdjustedNoteLayout(windowState) {
@@ -240,15 +233,9 @@ function isNoteWindowInEditMode(windowId) {
 
 function saveNoteLayoutPatch(windowState, patch = {}) {
   if (!windowState?.noteId) return
-  const existing = getSavedNoteLayout(windowState.noteId)
   saveNoteLayout({
     noteId: windowState.noteId,
-    x: patch.x ?? existing?.x ?? DEFAULT_NOTE_LAYOUT.x,
-    y: patch.y ?? existing?.y ?? DEFAULT_NOTE_LAYOUT.y,
-    width: patch.width ?? existing?.width ?? DEFAULT_NOTE_LAYOUT.width,
-    height: patch.height ?? existing?.height ?? DEFAULT_NOTE_LAYOUT.height,
-    z: patch.z ?? existing?.z ?? DEFAULT_NOTE_LAYOUT.z,
-    transientInitialLayout: false,
+    ...patch,
   })
 }
 
@@ -1246,6 +1233,8 @@ export function openFloatingNote(noteId, options = {}) {
   if (enteringWindowIds.has(windowId)) return
 
   const savedLayout = getSavedNoteLayout(parsedNoteId)
+  const hasSavedWidth = Number.isFinite(savedLayout?.width)
+  const hasSavedHeight = Number.isFinite(savedLayout?.height)
   enteringWindowIds.add(windowId)
   void (async () => {
     const note = await loadNoteById(parsedNoteId)
@@ -1265,20 +1254,20 @@ export function openFloatingNote(noteId, options = {}) {
         noteId: parsedNoteId,
         x: savedLayout?.x ?? (40 + offset),
         y: savedLayout?.y ?? (72 + offset),
-        width: savedLayout?.width ?? (
+        width: hasSavedWidth ? savedLayout.width : (
           hasTransientWidth
             ? transientWidth
             : (defaultMetaWindow.width ?? defaultWidth)
         ),
-        height: savedLayout?.height ?? (
+        height: hasSavedHeight ? savedLayout.height : (
           hasTransientHeight
             ? transientHeight
             : (defaultMetaWindow.height ?? 320)
         ),
         z: nextZ,
-        autoHeight: !savedLayout && !hasTransientHeight && !defaultMetaWindow.height,
-        autoWidth: note.type !== 'crypt' && !savedLayout && !hasTransientWidth && !defaultMetaWindow.width,
-        transientInitialLayout: !savedLayout && (hasTransientWidth || hasTransientHeight || !!defaultMetaWindow.width || !!defaultMetaWindow.height),
+        autoHeight: !hasSavedHeight && !hasTransientHeight && !defaultMetaWindow.height,
+        autoWidth: note.type !== 'crypt' && !hasSavedWidth && !hasTransientWidth && !defaultMetaWindow.width,
+        transientInitialLayout: !hasSavedWidth && !hasSavedHeight && (hasTransientWidth || hasTransientHeight || !!defaultMetaWindow.width || !!defaultMetaWindow.height),
       },
     ]
     await mountSingleFloatingNoteWindow(parsedNoteId)

@@ -93,6 +93,7 @@ async function renderCustomizerListBody(body, showResetOptions = false) {
   // DO NOT ROUTE SIMPLE FIELD OR TOGGLE STATE THROUGH A LIST REBUILD.
   clearCustomizerFocus()
   const activePanel = getActivePagePanel()
+  const activePageSyncId = activePanel?.querySelector('[data-app-tab-shell]')?.dataset?.pageSyncId ?? ''
   const moduleCards = [...(activePanel ?? document).querySelectorAll('[data-module-card][data-sync-id]')]
   const [pages, shellConfigMap] = await Promise.all([
     loadPages(),
@@ -100,7 +101,7 @@ async function renderCustomizerListBody(body, showResetOptions = false) {
   ])
   const shellConfig = shellConfigMap.get(SHELL_SYNC_ID)
   const shellHasConfig = hasCustomUiConfig('shell', 'app', shellConfig)
-  patchInner(body, renderCustomizerList(pages, moduleCards, shellHasConfig, showResetOptions))
+  patchInner(body, renderCustomizerList(pages, moduleCards, shellHasConfig, showResetOptions, activePageSyncId))
 }
 
 function colorToHex(value = '') {

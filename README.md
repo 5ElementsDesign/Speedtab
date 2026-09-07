@@ -23,6 +23,7 @@ Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/a
 - Fully keyboard-navigable tabbed interfaces with nested YaiTabs components
 - Google Drive and WebDAV remote-sync flows, plus checksum-based local export/import
 - Global default wallpaper plus background overrides
+- Wallspeed: a focused wallpaper space with cloud-hosted galleries, CSS background presets, reset, and Picture-in-Picture viewing
 - Expanded appearance controls for shell, bookmarks, and notes
 - Visual bookmark tiles with preview images and favicons
 - Optional bookmark titles below full-size tiles
@@ -42,9 +43,13 @@ Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/a
 
 ## Screenshots
 
-### Speedtab - Speed Dial 4.0
+### Speed Dial 4.0
 
 ![Speedtab start page](screenshots/1-speedtab-start.1.png)
+
+### Wallspeed
+
+![Speedtab Wallspeed](screenshots/7-speedtab-wallspeed.1.png)
 
 ### Notes Viewer
 
@@ -66,9 +71,6 @@ Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/a
 
 ![Speedtab Sorter](screenshots/5-speedtab-manage-content.1.jpg)
 
-### Custom Speedtab
-
-![Speedtab Custom](screenshots/4-speedtab-theme-customizable.1.jpg)
 
 ## Privacy
 
@@ -173,6 +175,7 @@ Speedtab does not currently export feed cache responses. Feed items fetched from
 ### Appearance
 
 - Upload a default background image globally
+- Use Wallspeed for cloud-hosted wallpaper galleries, CSS background presets, reset, and PiP viewing
 - Override backgrounds per page
 - Customize shell, bookmark, and note appearance with CSS variable-driven controls
 - Configure widget rail placement, analog/digital clock mode, colors, and formatting
@@ -181,14 +184,14 @@ Speedtab does not currently export feed cache responses. Feed items fetched from
 
 ### Languages
 
-- English 
-- German 
+- English
+- German
 - Spanish
 - French
-- Netherlands 
-- Turkish 
-- Hindi 
-- Russian 
+- Netherlands
+- Turkish
+- Hindi
+- Russian
 - Chinese (simplified)
 
 ## Tech Stack

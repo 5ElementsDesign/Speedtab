@@ -56,8 +56,9 @@ table {
   overflow: hidden;
 
   thead {
-    background-color: var(--st-html-layer-bg-color);
     border-bottom: 1px solid var(--st-html-border-color);
+    background-color: var(--st-html-layer-bg-color);
+    color: var(--st-color-text);
   }
 
   tbody tr:last-child td {
@@ -139,6 +140,7 @@ blockquote {
   padding: var(--st-blockquote-padding);
   border-left: var(--st-blockquote-border-left) var(--st-html-border-color);
   background: var(--st-html-layer-bg-color);
+  color: var(--st-color-text);
 }
 
 blockquote p:last-child {

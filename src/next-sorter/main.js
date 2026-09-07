@@ -2,7 +2,6 @@ import {YEH} from '../lib/yai/yeh.js'
 import '../next/styles/foundation.css'
 import '../next/styles/components/icons.css'
 import {escapeHtml} from '../next/utils/html.js'
-import {loadAndApplyDocumentTheme} from '../next/utils/document-theme.js'
 import {initI18n, t} from '../next/utils/i18n.js'
 import {applyWorkspaceBackground} from '../next/utils/workspace-background.js'
 import {buildSorterState, loadModuleContentsForSorter, moveCollectionContent, moveModule, moveModuleTab, movePage, softDeleteCollectionContent, softDeleteModuleTabCascade, updateCollectionContentTitle, updateModuleColumnSpan, updateModuleTabTitle, updateModuleTitle} from './data.js'
@@ -210,7 +209,6 @@ async function refreshState() {
 }
 
 async function boot() {
-  await loadAndApplyDocumentTheme()
   await initI18n()
   await refreshState()
   setSorterStatus(state, t('sorter.ready'), 'idle')

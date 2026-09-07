@@ -152,8 +152,8 @@
 
   [data-page-icon-btn] {
     width: auto;
-    height: 38px;
-    font-size: 1.15rem;
+    height: 42px;
+    font-size: 1.25rem;
     display: flex;
     flex: 1;
     align-items: center;
@@ -339,6 +339,21 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+
+  [data-customizer-list-page-active] {
+    [data-customizer-list-item-label] {
+      &::after {
+        content: "";
+        margin-left: 8px;
+        line-height: 1;
+        width: 6px;
+        height: 6px;
+        background: var(--st-color-success);
+        border-radius: 50%;
+        opacity: .8;
+      }
+    }
+  }
 }
 
 [data-customizer-list-section] {
@@ -357,12 +372,12 @@
   justify-content: space-between;
   gap: 0.5rem;
   width: 100%;
-  padding: 7px 10px;
   border: 0 none;
   background: rgba(255, 255, 255, 0.04);
   color: var(--st-sidepanel-text-color);
   cursor: pointer;
-  text-align: left;
+  padding: 0 10px;
+  min-height: 34px;
 
   [data-customizer-list-item-label] {
     font-size: 0.875rem;
@@ -371,6 +386,9 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
   }
 
   [data-customizer-list-item-type] {
@@ -457,7 +475,7 @@
 }
 
 [data-bg-asset-list] {
-  max-height: 180px;
+  max-height: 248px;
 }
 
 [data-bg-asset-card],
@@ -628,7 +646,6 @@
   --st-form-elements-min-height: 30px;
   --st-border-color: #252525;
   display: flex;
-  flex-direction: row;
   flex-wrap: wrap;
   gap: 8px;
 
@@ -636,7 +653,31 @@
     width: 100%;
     min-height: 30px;
     font-size: 14px;
-    line-height: 1cap;
+  }
+  button,
+  label {
+    flex: 1;
+  }
+}
+
+[data-todo-editor] {
+  margin: -14px;
+  padding: 14px;
+
+  &[data-todo-is-completed] {
+    [data-customizer-field]:first-of-type {
+      background-color: var(--st-color-success);
+      color: var(--st-color-success-contrast);
+      padding-left: 6px;
+    }
+  }
+  [data-form-actions] {
+    flex-flow: row;
+    justify-content: space-between;
+
+    button {
+      width: fit-content;
+    }
   }
 }
 
@@ -722,7 +763,6 @@ form[data-submit]:invalid [data-form-save-btn] {
 
   button {
     min-height: 24px;
-    line-height: 1;
   }
 }
 
@@ -816,7 +856,6 @@ form[data-submit]:invalid [data-form-save-btn] {
     min-height: 24px;
     padding: 4px 8px;
     font-size: 12px;
-    line-height: 1;
   }
 }
 

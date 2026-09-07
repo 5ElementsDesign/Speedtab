@@ -91,9 +91,9 @@
   --st-clock-widget-bg: var(--st-clock-widget-theme-bg, var(--st-widget-bg));
   --st-clock-widget-shadow: var(--st-clock-widget-theme-shadow, var(--st-widget-shadow, rgb(0 0 0 / 0.22)));
   --st-clock-widget-dial-color: var(--st-clock-widget-theme-dial-color, var(--st-widget-text-muted));
-  --st-clock-widget-date-color: var(--st-clock-widget-theme-date-color, var(--st-widget-text-muted));
+  --st-clock-widget-date-color: var(--st-clock-widget-theme-date-color, var(--st-widget-text));
   --st-clock-widget-time-color: var(--st-clock-widget-theme-time-color, var(--st-widget-text));
-  --st-clock-widget-date-size: 12px;
+  --st-clock-widget-date-size: 16px;
   --st-clock-widget-time-size: 20px;
   --st-clock-widget-analog-size: 72px;
   --st-clock-widget-align: attr(data-widget-align type(<custom-ident>), left);
@@ -118,7 +118,7 @@
     text-align: center;
   }
   &.is-analog {
-    padding: 4px 8px;
+    padding: 2px 8px;
   }
   &.is-analog .st-clock-widget-body {
     display: flex;
@@ -127,8 +127,8 @@
     gap: 8px;
   }
   &.is-analog.is-two-row .st-clock-widget-body {
-    flex-direction: column-reverse;
-    gap: 6px;
+    flex-direction: column;
+    gap: 2px;
   }
 }
 
@@ -166,6 +166,7 @@
   font-size: var(--st-clock-widget-time-size);
   line-height: 1;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .st-clock-widget-analog {
@@ -560,7 +561,7 @@
   flex-wrap: wrap;
   align-items: end;
   justify-content: space-between;
-  gap: 4px 12px;
+  gap: 0 12px;
   margin-top: 4px;
 }
 
@@ -787,6 +788,9 @@
   }
   .st-weather-forecast-legend {
     gap: 10px;
+  }
+  .st-weather-widget-secondary {
+    display: none;
   }
 }
 

@@ -109,6 +109,14 @@ describe('normalizeLocalToolsState', () => {
     expect(state.noteLayouts).toHaveLength(1)
     expect(state.noteLayouts[0].noteId).toBe(7)
   })
+
+  it('preserves partial note layouts without inventing a size', () => {
+    const state = normalizeLocalToolsState({
+      noteLayouts: [{noteId: 7, x: 80, y: 120, z: 221}],
+    })
+
+    expect(state.noteLayouts).toEqual([{noteId: 7, x: 80, y: 120, z: 221}])
+  })
 })
 
 describe('loadLocalToolsState', () => {

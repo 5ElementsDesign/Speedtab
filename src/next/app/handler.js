@@ -39,13 +39,7 @@ export function createHandler(appActions = {}) {
   }
 
   return new YEH({
-    body: [
-      'click',
-      'keydown',
-      'submit',
-      'input',
-      'change',
-    ],
+    body: ['click', 'keydown', 'submit', 'input', 'change'],
     window: [
       {type: 'resize', throttle: RESIZE_THROTTLE_MS},
       {type: 'scroll', throttle: SCROLL_THROTTLE_MS},
@@ -54,7 +48,7 @@ export function createHandler(appActions = {}) {
     enableStats: false,
     enableConfigValidation: false,
     enableHandlerValidation: false,
-    methodsFirst: false,
+    methodsFirst: true,
     methods: {
       handleClick(event, target) {
         // Any actionable target outside [data-yai-tabs] reaches here (those inside are handled by YaiTabs)

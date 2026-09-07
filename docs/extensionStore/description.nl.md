@@ -24,6 +24,7 @@ Wat je kunt doen met Speedtab:
 • lees RSS/Atom-feeds rechtstreeks op je startpagina met automatische vernieuwingsintervallen per tabblad
 • houd de status van gelezen/ongelezen items bij en archiveer interessante feed-items met opmerkingen
 • pas het visuele thema, de roosterindelingen en CSS-achtergronden aan
+• gebruik Wallspeed, de ingebouwde ruimte voor uiterlijk, om achtergronden te kiezen of CSS-kleuren en -verlopen toe te passen
 • exporteer en importeer volledige werkruimten of individuele bladwijzer-, notitie- en ToDo-verzamelingen via JSON
 
 Speedtab is volledig lokaal-eerst. Toepassingsgegevens worden veilig opgeslagen in IndexedDB binnen je browserprofiel. Het ophalen van feeds wordt volledig door de extensie zelf afgehandeld via de achtergrond-serviceworker. Versleutelde notities worden aan de clientzijde beschermd met AES-GCM en PBKDF2-SHA256. Je wachtzinnen verlaten nooit je apparaat.
@@ -153,4 +154,3 @@ PRESTATIES & GROOTTE
   - CPU-gebruik: 1-10% tijdens actief gebruik
   - ~40 totale event listeners voor de gehele extensie
   - Responsieve UI met nul virtuele DOM-overhead
-  

@@ -900,9 +900,11 @@ class YaiCore {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const html = await response.text();
+            const documentContent = new DOMParser().parseFromString(html, 'text/html');
 
-            // Sanitize HTML before injecting
-            const sanitizedHtml = this._sanitizeHtml(html);
+            // Dynamic tabs render document bodies only. A fetched document's head must
+            // never add styles, links, metadata, or other document-level markup here.
+            const sanitizedHtml = this._sanitizeHtml(documentContent.body?.innerHTML || '');
 
             if (append) {
                 content.insertAdjacentHTML('beforeend', sanitizedHtml);
@@ -951,7 +953,7 @@ class YaiCore {
             console.warn('Failed to load content:', error);
             const errorText = this.createErrorMessage(this.config.errorPlaceholder);
 
-            content.innerHTML = `<div class="alert alert-danger yp-3">${errorText}</div>`;
+            content.innerHTML = `<div class="alert alert-danger m-3 p-4">${errorText}</div>`;
             content.classList.add('error-occurred');
             content.classList.add('active');
 

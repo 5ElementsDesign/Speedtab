@@ -35,12 +35,12 @@ export function getFeedAutoRefreshDelay(interval) {
 }
 
 export function getFeedSkipImages(configJson) {
-  if (!configJson) return true
+  if (!configJson) return false
   try {
     const config = JSON.parse(configJson)
-    return config?.feed_skip_images !== false
+    return config?.feed_skip_images === true
   } catch {
-    return true
+    return false
   }
 }
 
@@ -52,8 +52,8 @@ export function withFeedSkipImages(configJson, skipImages) {
   } catch {
     // Replace malformed configuration with the selected feed setting.
   }
-  if (skipImages) delete config.feed_skip_images
-  else config.feed_skip_images = false
+  if (skipImages) config.feed_skip_images = true
+  else delete config.feed_skip_images
   return Object.keys(config).length ? JSON.stringify(config) : null
 }
 

@@ -4,6 +4,9 @@
       --yai-tabs-content-padding: 0;
     }
   }
+  [data-module-card-title] {
+    display: none;
+  }
 }
 
 [data-todo-list] {
@@ -23,7 +26,7 @@
   max-height: 195px;
   overflow: auto;
   align-content: baseline;
-  
+
   &[hidden] {
     display: none;
   }

@@ -24,6 +24,7 @@ What you can do with Speedtab:
 • read RSS/Atom feeds directly on your startpage with per-tab auto-refresh intervals
 • track read/unread states and archive interesting feed items with comments
 • customize the visual theme, grid layouts, and CSS backgrounds
+• use Wallspeed, Speedtab’s built-in appearance space, to choose wallpapers or apply CSS colors and gradients
 • export and import full workspaces or individual bookmark, note, and ToDo collections via JSON
 
 Speedtab is fully local-first. Application data is safely stored in IndexedDB inside your browser profile. Feed fetching is handled entirely by the extension itself through its background service worker. Encrypted notes are protected client-side using AES-GCM and PBKDF2-SHA256. Your passphrases never leave your machine.

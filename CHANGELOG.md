@@ -2,6 +2,20 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.5.7]
+
+### Added
+- Added Wallspeed: a focused wallpaper space launched from the main settings menu, with remotely hosted galleries, local image-wallpaper capture, CSS color/gradient/pattern backgrounds, reset, and Picture-in-Picture viewing.
+
+### Changed
+- Extended the declarative wallpaper action surface with loading feedback while images download, convert, and save as local background assets.
+- Added active-wallpaper feedback to Wallspeed galleries and made App Shell background reset return to the default Speedtab wallpaper.
+
+### Fixed
+- Fixed Document Picture-in-Picture synchronization after URL-backed tabs and asynchronous wallpaper actions finish loading.
+- Fixed the shared close icon path and PiP scrolling for overflow content.
+- Fixed dynamic YaiTabs URL content so only the fetched document body is inserted; head-level stylesheets, styles, and metadata can no longer leak into the workspace.
+
 ## [1.5.6]
 
 ### Added

@@ -68,7 +68,7 @@
     {
       "title": "工作",
       "slug": "work",
-      "icon": "💼",
+      "icon": "🔰",
       "nav_group": "main",
       "is_home": false,
       "config": {

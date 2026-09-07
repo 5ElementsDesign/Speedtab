@@ -67,7 +67,7 @@
     {
       "title": "Arbeit",
       "slug": "work",
-      "icon": "💼",
+      "icon": "🔰",
       "nav_group": "main",
       "is_home": false,
       "config": {

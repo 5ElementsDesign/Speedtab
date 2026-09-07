@@ -6,7 +6,7 @@ import {renderBackgroundSettingsSection, renderBgArchiveSwatches, renderBgAssetT
 import {getModuleColumnSpan, getPageGridDefaultSpan} from './modules/render.js'
 
 const PRESET_PAGE_ICONS = [
-  '⭕', '⚡', '🏠', '⭐', '📁', '📌', '🧩', '📝', '📚', '📰',
+  '⭕', '⚡', '🔰', '🏠', '⭐', '📁', '📌', '🧩', '📝', '📚', '📰',
   '📡', '🧠', '💼', '📊', '📈', '🛠️', '🔧', '🎯', '🚀', '🌐',
   '🧭', '🗂️', '📂', '💡', '🔒', '🔖', '🗞️', '🧪', '🎨', '🧵',
   '📷', '🎵', '🎬', '🛒', '💳', '🏦', '🧾', '🧰', '🖥️', '📱',
@@ -95,6 +95,7 @@ export function renderPageForm(page, options = {}) {
           <div data-icon-picker hidden>
             <div data-icon-picker-grid>
               ${iconPickerGrid}
+              <button data-btn="dark" data-click="goToHref" data-href="https://yaijs.github.io/ycons/example/" title="Ycons, because Yconsny?">Ycons</button>
             </div>
           </div>
 

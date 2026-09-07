@@ -49,7 +49,7 @@ export function renderTodoRow(todo, moduleSyncId = '', now = Date.now()) {
         data-todo-id="${escapeHtml(id)}"
         data-module-sync-id="${escapeHtml(moduleSyncId)}"
       ><span data-todo-title>${escapeHtml(title)}</span>${renderTodoDue(todo, now)}</button>
-      ${priority || colorScheme ? `<div class="todo-custom-indicator">${priority ? `<span data-todo-priority-label>${escapeHtml(t(`todo.priority.${priority}`))}</span>` : ''}${colorScheme ? `<span data-todo-color-scheme="${escapeHtml(colorScheme)}" aria-label="${escapeHtml(t(`customizer.options.${colorScheme}`))}"></span>` : ''}</div>` : ''}
+      ${priority || colorScheme ? `<div class="todo-custom-indicator">${priority ? `<span data-todo-priority-label>${escapeHtml(t(`todo.priority.${priority}`))}</span>` : ''}${colorScheme ? `<span data-todo-color-scheme="${escapeHtml(colorScheme)}" role="img" aria-label="${escapeHtml(t(`customizer.options.${colorScheme}`))}"></span>` : ''}</div>` : ''}
     </li>
   `
 }

@@ -64,7 +64,7 @@
   --yai-tabs-color-background:            var(--st-ws-module-background-color, linear-gradient(180deg, #090b0d, #0d1116 40%, #0b0e12));
   --yai-tabs-color-surface:               #1c1c1d;
   --yai-tabs-color-surface-alt:           #252526;
-  --yai-tabs-content-inactive-background: #0e0e0f05;
+  --yai-tabs-content-inactive-background: #0e0e0f22;
   --yai-tabs-content-inactive-color-muted:#c7ccd3;
 
   /* Brand / semantic palette */
@@ -192,7 +192,7 @@
   --st-widget-backdrop-blur: 14px;
   --st-widget-text: var(--yai-tabs-color-text);
   --st-widget-text-muted: var(--yai-tabs-color-text-muted);
-  --st-weather-widget-theme-bg: var(--st-widget-bg);
+  --st-weather-widget-theme-bg: rgba(0, 0, 0, .25);
   --st-weather-widget-theme-shadow: var(--st-widget-shadow);
   --st-weather-widget-theme-location-color: #d4d1d1;
   --st-weather-widget-theme-temp-color: #d4d1d1;
@@ -201,7 +201,7 @@
   --st-widget-button-bg-hover: rgba(255, 255, 255, 0.12);
   --st-widget-button-text: var(--yai-tabs-color-text);
   --st-sidepanel-width: 360px;
-  --st-sidepanel-background-color: rgba(10, 10, 10, .97);
+  --st-sidepanel-background-color: rgba(10, 10, 10, .94);
   --st-sidepanel-border-color: rgba(64, 63, 63, .4);
   --st-sidepanel-header-padding: 8px 12px;
   --st-sidepanel-body-padding: 12px 6px 12px 12px;
@@ -372,6 +372,7 @@ html.light {
   --st-weather-widget-theme-location-color: #38414dd4;
   --st-weather-widget-theme-temp-color: #38414dd4;
   --st-weather-widget-theme-muted-color: var(--st-widget-text-muted);
+  --st-sidepanel-background-color: rgba(10, 10, 10, .98);
 
   /* Notes */
   --st-notes-preview-content-bg: #ffffff;
@@ -383,7 +384,7 @@ html.light {
   --yai-tabs-color-text: #2c3440;
   --yai-tabs-color-text-muted: #afb3ba;
 
-  --yai-tabs-content-inactive-background: rgba(248, 250, 252, 0.85);
+  --yai-tabs-content-inactive-background: rgba(248, 250, 252, 0.2);
   --yai-tabs-content-inactive-color-muted: #64748b;
 
   --yai-tabs-shadow-accent: rgba(37, 99, 235, 0.14);
@@ -393,6 +394,9 @@ html.light {
   --yai-tabs-shadow-subtle-color: rgba(15, 23, 42, 0.04);
   --yai-tabs-shadow-medium-color: rgba(15, 23, 42, 0.08);
 
+  --st-form-elements-bg-color: #eee;
+  --st-form-disabled-bg-color: #e2e8f0;
+
   /* --- 4. Brand & Semantic Palette (Optimierte Lesbarkeit auf hellen Flächen) --- */
   --yai-tabs-color-primary: #2563eb;
   --yai-tabs-color-secondary: #09dcc3;
@@ -401,6 +405,7 @@ html.light {
   --yai-tabs-color-dark: #eff1f5;
   --yai-tabs-color-dark-contrast: #181e2c;
 
+  --st-color-text: #232323;
   --st-dropdown-trigger-button-color: #858688;
   --st-dropdown-trigger-button-background-color: rgb(255 255 255 / 0.72);
   --st-dropdown-trigger-button-color-active: #0f172a;
@@ -462,10 +467,24 @@ html.light {
   --yai-tabs-shadow-nav-top: 0 1px 6px 1px;
 }
 
+[data-yai-tabs][data-theme="dark"] {
+  --st-color-text: #eef1f4;
+  --st-color-text-muted: #c3c6c9;
+  --st-form-elements-bg-color: #20202099;
+  --st-form-elements-border-color: rgba(255, 255, 255, 0.14);
+  --st-form-elements-border-hover: rgba(255, 255, 255, 0.24);
+  --st-form-disabled-bg-color: #252526;
+  --st-color-focus: #53ffc4;
+  --st-color-focus-ring: rgba(2, 255, 178, 0.3);
+}
+
 /*
   Color schemes for YaiTabs in notes, default is light
  */
+[data-st-wallspeed],
 [data-floating-windows] {
+  --st-note-tabs-nav-button-height: 44px;
+
   [data-note-style-token="light"] {
     --st-color-text: #334155;
     --st-form-elements-bg-color: #ffffff;
@@ -487,7 +506,6 @@ html.light {
 
   [data-yai-tabs] {
     --yai-tabs-button-padding: 0 16px;
-    --st-note-tabs-nav-button-height: 44px;
     --st-note-tabs-nav-flex: 1 25%;
     --st-note-tabs-content-flex: 1 75%;
   }
@@ -510,6 +528,11 @@ html.light {
     --st-note-window-accent-color: #64748b;
     --st-notes-open-link-color: #2563eb;
     --yai-tabs-content-inactive-color-muted: #444;
+    --st-color-text: #232323;
+
+    &[data-color-accent="dark"] {
+      --yai-tabs-nav-button-active-color: #151515 !important;
+    }
   }
   [data-theme="dark"] {
     --st-note-tabs-bg: #1e1e1e;
@@ -528,6 +551,12 @@ html.light {
     --st-note-window-content-text-color: #aaaaaa;
     --st-note-window-accent-color: #eee;
     --st-notes-open-link-color: rgba(87, 151, 255, 1);
+
+    &[data-color-accent="light"] {
+      >[data-controller] {
+        --yai-tabs-nav-button-active-color: #fff;
+      }
+    }
   }
 }
 

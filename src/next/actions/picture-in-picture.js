@@ -2,6 +2,12 @@ let activePipWindow = null
 let activePipReplacement = null
 let pipSessionCounter = 0
 
+function clearActivePipWindow() {
+  document.body.removeAttribute('data-pip-window-active')
+  activePipReplacement = null
+  activePipWindow = null
+}
+
 function copyDocumentStyles(targetDocument) {
   const base = targetDocument.createElement('base')
   base.href = document.baseURI
@@ -27,7 +33,7 @@ function applyPipDocumentChrome(pipDocument) {
   pipDocument.documentElement.className = document.documentElement.className
   pipDocument.body.className = document.body.className
   pipDocument.body.setAttribute('data-picture-in-picture', '')
-  pipDocument.body.style.cssText = 'margin:0; min-width:0; min-height:100vh; overflow:hidden;'
+  pipDocument.body.style.cssText = 'margin:0; min-width:0; min-height:100vh;'
   pipDocument.body.innerHTML = '<div data-pip-loading aria-live="polite">Loading…</div>'
 
   const style = pipDocument.createElement('style')
@@ -82,6 +88,13 @@ function markPipBridgeNodes(root) {
   })
 }
 
+function clearPipBridgeNodes(root) {
+  root.querySelectorAll('[data-pip-action-id], [data-pip-scope-id]').forEach((element) => {
+    element.removeAttribute('data-pip-action-id')
+    element.removeAttribute('data-pip-scope-id')
+  })
+}
+
 function syncPipContent(pipDocument, replacement) {
   const pipContent = pipDocument.querySelector('[data-pip-content]')
   if (!pipContent) return
@@ -104,7 +117,10 @@ function syncPipContent(pipDocument, replacement) {
 }
 
 export function syncPictureInPicture() {
-  if (!activePipWindow || activePipWindow.closed || !activePipReplacement?.isConnected) return
+  if (!activePipWindow || activePipWindow.closed || !activePipReplacement?.isConnected) {
+    if (activePipWindow || activePipReplacement) clearActivePipWindow()
+    return
+  }
   syncPipContent(activePipWindow.document, activePipReplacement)
 }
 
@@ -159,6 +175,7 @@ export const pictureInPictureActions = {
       const pipWindow = await documentPictureInPicture.requestWindow({
         width: getDimension(trigger, 'Width', 720),
         height: getDimension(trigger, 'Height', 520),
+        disallowReturnToOpener: true,
       })
       activePipWindow = pipWindow
       const stylesReady = copyDocumentStyles(pipWindow.document)
@@ -183,14 +200,15 @@ export const pictureInPictureActions = {
       }
       mount.append(target)
       bindPipInteractionBridge(pipWindow.document, replacement)
+      document.body.setAttribute('data-pip-window-active', '')
 
       pipWindow.addEventListener('pagehide', () => {
+        clearPipBridgeNodes(replacement)
         replacement.removeAttribute('data-module-in-pip')
-        activePipReplacement = null
-        activePipWindow = null
+        clearActivePipWindow()
       }, {once: true})
     } catch (error) {
-      activePipWindow = null
+      clearActivePipWindow()
       console.warn('[Speedtab PiP] Unable to open picture-in-picture.', error)
     }
   },

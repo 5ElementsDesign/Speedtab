@@ -24,6 +24,7 @@ Was du mit Speedtab tun kannst:
 • RSS/Atom-Feeds direkt auf deiner Startseite mit individuellen Tab-Aktualisierungsintervallen lesen
 • Gelesen/Ungelesen-Status verfolgen und interessante Feed-Einträge mit Kommentaren archivieren
 • das visuelle Theme, Raster-Layouts und CSS-Hintergründe anpassen
+• Wallspeed, den integrierten Bereich für Erscheinungsbild, nutzen, um Wallpaper auszuwählen oder CSS-Farben und -Verläufe anzuwenden
 • vollständige Workspaces oder einzelne Lesezeichen-, Notiz- und ToDo-Sammlungen via JSON exportieren und importieren
 
 Speedtab arbeitet vollständig lokal. Anwendungsdaten werden sicher in IndexedDB innerhalb deines Browserprofils gespeichert. Das Abrufen von Feeds erfolgt direkt über den Hintergrund-Service-Worker der Extension. Verschlüsselte Notizen werden clientseitig mit AES-GCM und PBKDF2-SHA256 geschützt. Deine Passphrasen verlassen niemals deinen Rechner.

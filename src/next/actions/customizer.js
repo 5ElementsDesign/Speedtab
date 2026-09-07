@@ -1,17 +1,19 @@
+import {YEH} from '../../lib/yai/yeh.js'
 import {closeSidepanel, getSidepanelState} from '../components/sidepanel.js'
-import {getCachedAppSettings, saveAppSetting} from '../data/app-settings.js'
+import {deleteModuleTree} from '../../composables/useMaintenance.ts'
 import {getUiConfigSpec} from '../config/ui-config-spec.js'
-import {loadModuleBySyncId, saveModuleData, softDeleteModule} from '../data/modules.js'
+import {getCachedAppSettings, loadPageBackgroundOverride, saveAppSetting} from '../data/app-settings.js'
+import {loadModuleBySyncId, saveModuleData} from '../data/modules.js'
 import {deleteUiConfig, upsertUiConfig} from '../data/ui-config.js'
 import {applyModuleUiConfig, applyShellUiConfig} from '../features/customizer/apply.js'
 import {contrastRatio, getGroupForKey, GROUP_PAIR_KEYS} from '../features/customizer/contrast.js'
+import {openCustomizerAppearancePanel, openCustomizerFormPanel, openCustomizerListPanel, refreshCustomizerListIfOpen} from '../features/customizer/panel.js'
 import {INLINE_COLOR_FIELD_PAIRS, INLINE_COLOR_FIELD_SECONDARIES, SHELL_SYNC_ID, updateContrastBadgeDOM} from '../features/customizer/render.js'
-import {initCustomizerListeners, openCustomizerAppearancePanel, openCustomizerFormPanel, openCustomizerListPanel, refreshCustomizerListIfOpen} from '../features/customizer/panel.js'
 import {getVisibleBookmarkMediaScope, initBookmarkMedia} from '../utils/bookmark-media.js'
 import {applyDocumentTheme, normalizeDocumentTheme} from '../utils/document-theme.js'
+import {escapeHtml} from '../utils/html.js'
 import {t} from '../utils/i18n.js'
-import {applyWorkspaceBackground, removeBgSet} from '../utils/workspace-background.js'
-import {YEH} from '../../lib/yai/yeh.js'
+import {applyWorkspaceBackground, getBackgroundValue, removeBgSet} from '../utils/workspace-background.js'
 
 export {initCustomizerListeners} from '../features/customizer/panel.js'
 
@@ -38,6 +40,60 @@ function renderShellWallpaperToggleContent(isBackgroundRemoved) {
     label,
     html: `<i data-icon="image" aria-hidden="true"></i> ${label}`,
   }
+}
+
+function getActivePageBackgroundOverride() {
+  const activeButton = document.querySelector('[data-controller] [data-tab-action="open"][aria-selected="true"]')
+  const activeSlug = activeButton?.dataset?.open
+  const pageSyncId = activeSlug
+    ? document.querySelector(`[data-page-slug="${CSS.escape(activeSlug)}"]`)?.closest('[data-app-tab-shell]')?.dataset?.pageSyncId
+    : null
+  return pageSyncId ? loadPageBackgroundOverride(pageSyncId) : Promise.resolve(null)
+}
+
+async function renderWallspeedMarkup() {
+  const backgroundSettings = await getActivePageBackgroundOverride() ?? getCachedAppSettings()
+  const backgroundValue = getBackgroundValue(backgroundSettings)
+  return `
+  <div data-st-wallspeed data-current-wallpaper="${escapeHtml(backgroundValue)}" class="fade-in is-visible">
+    <div data-yai-tabs data-theme="dark" data-color-accent="light" data-auto-accessibility="false">
+      <nav data-controller>
+        <button
+          data-tab-action="open"
+          data-open="ws-help"
+          data-delay="100"
+          data-min-loading="250"
+          data-url="https://5elementsdesign.github.io/Speedtab/ext/st/en/wallspeed-help.html"
+        >WS</button>
+        <button
+          data-tab-action="open"
+          data-open="ws"
+          data-default
+          data-delay="100"
+          data-min-loading="400"
+          data-url="https://5elementsdesign.github.io/Speedtab/ext/st/en/wallspeed.html"
+        >Wallpaper</button>
+      </nav>
+      <div data-module-actions data-swipe-ignore>
+        <button
+          type="button"
+          data-click="openInPip"
+          data-pip-trigger
+          data-pip-target="[data-st-wallspeed]"
+          data-pip-width="1040"
+          data-pip-height="800"
+          title="${escapeHtml(t('common.pictureInPicture'))}"
+          aria-label="${escapeHtml(t('common.pictureInPicture'))}"
+        ><i data-icon="external" aria-hidden="true"></i></button>
+        <button data-click="closeWallspeed" title="${escapeHtml(t('common.close'))}"><i data-icon="x" aria-hidden="true"></i></button>
+      </div>
+      <div data-content class="scrollbar-gutter-stable">
+        <div data-tab="ws-help" class="h-auto"></div>
+        <div data-tab="ws" data-spaceless class="h-auto"></div>
+      </div>
+    </div>
+  </div>
+`
 }
 
 // ─── Core persist ────────────────────────────────────────────────────────────
@@ -236,6 +292,36 @@ function persistCustomizerValue({syncId, moduleType, section, key, value}) {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export const customizerActions = {
+  async openWallspeed() {
+    const content = document.querySelector('#app [data-app] main[data-app-content]')
+    if (!(content instanceof HTMLElement)) return
+
+    document.querySelector('[data-st-wallspeed]')?.remove()
+    content.insertAdjacentHTML('afterbegin', await renderWallspeedMarkup())
+    const wallspeed = content.querySelector(':scope > [data-st-wallspeed]')
+    const container = wallspeed?.querySelector(':scope > [data-yai-tabs]')
+    const defaultButton = container?.querySelector(':scope > [data-controller] [data-default]')
+    const tabs = document.querySelector('#app')?.__nextTabsInstance
+    if (container && defaultButton) tabs?.openTab?.(defaultButton, null, container, true)
+    document.body.classList.add('st-wallspeed-active')
+    closeSidepanel()
+  },
+
+  closeWallspeed() {
+    const wallspeed = document.querySelector('[data-st-wallspeed]')
+    if (!wallspeed) {
+      document.body.classList.remove('st-wallspeed-active')
+      return
+    }
+    wallspeed.classList.remove('fade-in', 'is-visible')
+    wallspeed.classList.add('fade-out', 'is-hidden')
+    setTimeout(() => {
+      wallspeed.remove()
+      document.getElementById('highlight-active-wallpaper')?.remove()
+      document.body.classList.remove('st-wallspeed-active')
+    }, 200)
+  },
+
   async openCustomizer(target, event) {
     const moduleCard = target.closest('[data-module-card]')
     if (!moduleCard) return
@@ -278,10 +364,12 @@ export const customizerActions = {
     if (isBackgroundRemoved) {
       await saveAppSetting('background_properties', null)
       await saveAppSetting('background_asset_id', null)
+      await saveAppSetting('background_source_url', null)
       await applyWorkspaceBackground()
     } else {
       await saveAppSetting('background_properties', 'none')
       await saveAppSetting('background_asset_id', null)
+      await saveAppSetting('background_source_url', null)
       removeBgSet()
     }
 
@@ -388,6 +476,7 @@ export const customizerActions = {
       applyDocumentTheme('dark')
       await saveAppSetting('background_properties', null)
       await saveAppSetting('background_asset_id', null)
+      await saveAppSetting('background_source_url', null)
       const shellRoot = document.querySelector('[data-app]')
       if (shellRoot) shellRoot.style.background = ''
       applyShellUiConfig(effectiveConfig)
@@ -410,7 +499,12 @@ export const customizerActions = {
     if (!module?.id) return
     const moduleTitle = module?.title?.trim() || t('modules.untitled')
     if (!confirm(t('app.confirms.deleteModule'))) return
-    await softDeleteModule(module.id)
+    await deleteModuleTree(module.id)
+    await deleteUiConfig({
+      entityType: 'module',
+      entitySubtype: module.type,
+      entitySyncId: module.sync_id,
+    })
     closeSidepanel()
     const {refreshPageContent} = await import('../app/bootstrap.js')
     await refreshPageContent({pageId: module.page_id})

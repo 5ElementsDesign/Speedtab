@@ -4,9 +4,10 @@ import {readQuickModuleSettingValue} from '../utils/module-quick-settings.js'
 const OPEN = 'data-dropdown-open'
 
 function buildMenuItem(item) {
-  const {label, action, href, attributes, submenu, icon} = item
+  const {label, action, href, attributes, submenu, icon, trailingIcon, class: className = ''} = item
   if (item.content) return item.content
   const attrs = buildAttributes(attributes)
+  const classAttribute = className ? ` class="${escapeHtml(className)}"` : ''
   if (Array.isArray(submenu) && submenu.length) {
     return `
       <div data-dropdown-submenu>
@@ -38,9 +39,9 @@ function buildMenuItem(item) {
   }
 
   if (href) {
-    return `<a role="menuitem" href="${escapeHtml(href)}"${attrs}>${escapeHtml(label)}</a>`
+    return `<a role="menuitem" href="${escapeHtml(href)}"${classAttribute}${attrs}>${escapeHtml(label)}${trailingIcon ? `<i data-icon="${escapeHtml(trailingIcon)}" aria-hidden="true"></i>` : ''}</a>`
   }
-  return `<button type="button" role="menuitem" data-click="${escapeHtml(action)}"${attrs}>${icon ? `<i data-icon="${escapeHtml(icon)}" aria-hidden="true"></i>` : ''}${escapeHtml(label)}</button>`
+  return `<button type="button" role="menuitem" data-click="${escapeHtml(action)}"${classAttribute}${attrs}>${icon ? `<i data-icon="${escapeHtml(icon)}" aria-hidden="true"></i>` : ''}${escapeHtml(label)}${trailingIcon ? `<i data-icon="${escapeHtml(trailingIcon)}" aria-hidden="true"></i>` : ''}</button>`
 }
 
 // items: [{ label, action, href, divider, attributes }] — `divider` draws a separator above the item,

@@ -11,3 +11,4 @@ IMPLEMENTATION.content-mover.md
 .vscode/
 node_modules/
 archive/
+ext_dev/

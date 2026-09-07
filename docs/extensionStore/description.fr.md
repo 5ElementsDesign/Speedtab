@@ -24,6 +24,7 @@ Ce que vous pouvez faire avec Speedtab :
 • lire des flux RSS/Atom directement sur votre page d'accueil avec des intervalles de rafraîchissement automatique par onglet
 • suivre l'état lu/non lu et archiver des éléments de flux intéressants avec des commentaires
 • personnaliser le thème visuel, les dispositions de grille et les arrière-plans CSS
+• utiliser Wallspeed, l’espace d’apparence intégré de Speedtab, pour choisir des fonds d’écran ou appliquer des couleurs et dégradés CSS
 • exporter et importer des espaces de travail complets ou des collections individuelles de favoris, notes et ToDo en JSON
 
 Speedtab fonctionne entièrement en local. Les données de l'application sont enregistrées en toute sécurité dans IndexedDB au sein du profil de votre navigateur. La récupération des flux RSS est gérée intégralement par l'extension via le service worker en arrière-plan. Les notes chiffrées sont protégées côté client avec AES-GCM et PBKDF2-SHA256. Vos phrases secrètes ne quittent jamais votre appareil.
