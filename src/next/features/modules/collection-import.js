@@ -13,7 +13,7 @@ export function getCollectionImportKind(moduleType = '') {
 }
 
 export function getCollectionImportExample(kind = '') {
-  if (kind === 'bookmark') return '[\n  {"title": "Discord", "url": "https://discord.com/app"}\n]'
+  if (kind === 'bookmark') return '[\n  {\n    "title": "Discord",\n    "url": "https://discord.com/app"\n  }\n]'
   if (kind === 'note') return '[\n  {"title": "Idea", "content": "Write it down."}\n]'
   if (kind === 'todo') return '[\n  {"title": "Reply to email", "priority": "medium"}\n]'
   return '[]'

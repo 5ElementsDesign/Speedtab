@@ -39,7 +39,9 @@ import {
   loadBackgroundAssetsForEditor,
   releaseBackgroundAssetUrl,
   sanitizeBackgroundValue,
+  syncBackgroundSelection,
   syncBackgroundInputs,
+  transitionWorkspaceBackground,
 } from '../utils/workspace-background.js'
 
 const weatherSearchState = {
@@ -56,6 +58,8 @@ function getBackgroundListRenderContext(target, listSelector, selectSelector) {
     options: {
       selectAction: list?.querySelector(selectSelector)?.dataset?.click,
       deleteAction: target.dataset.click,
+      activeAssetId: list?.dataset.bgActiveAssetId,
+      activeValue: list?.dataset.bgActiveValue,
     },
   }
 }
@@ -63,8 +67,9 @@ function getBackgroundListRenderContext(target, listSelector, selectSelector) {
 let weatherSearchController = null
 let liveWidgetSettings = null
 
-function applyBg(value) {
-  addBgSet(value || 'none')
+function applyBg(value, {transition = false} = {}) {
+  const background = value || 'none'
+  return transition ? transitionWorkspaceBackground(background) : addBgSet(background)
 }
 
 function getBgTextInput() {
@@ -239,6 +244,7 @@ function applyWidgetRailAlignment(settings) {
   const railHost = document.querySelector('[data-widget-rail-host]')
   if (railHost instanceof HTMLElement) {
     railHost.setAttribute('data-widget-rail-align', settings?.rail_align || 'left')
+    railHost.setAttribute('data-widget-item-align', settings?.item_align || 'center')
   }
 }
 
@@ -624,6 +630,7 @@ export const settingsActions = {
   previewBgProperty(target) {
     const value = sanitizeBackgroundValue(target.value)
     syncBgInputs(value, target)
+    syncBackgroundSelection(document, {value})
     applyBg(isValidBackground(value) ? value : '')
   },
 
@@ -633,16 +640,21 @@ export const settingsActions = {
     const result = await archiveBgItem(value)
     const items = await loadBgArchive()
     const list  = document.querySelector('[data-bg-archive-list]')
-    if (list) list.innerHTML = renderBgArchiveSwatches(items)
+    if (list) {
+      list.innerHTML = renderBgArchiveSwatches(items, {activeValue: list.dataset.bgActiveValue})
+    }
     if (result?.item?.value) flashBgArchiveSwatch(result.item.value)
   },
 
-  clearBgProperty() {
+  async clearBgProperty() {
     syncBgInputs('')
-    applyBg(DEFAULT_BACKGROUND)
-    saveAppSetting('background_properties', null)
-    saveAppSetting('background_asset_id', null)
-    saveAppSetting('background_source_url', null)
+    await Promise.all([
+      saveAppSetting('background_properties', null),
+      saveAppSetting('background_asset_id', null),
+      saveAppSetting('background_source_url', null),
+    ])
+    await applyBg(DEFAULT_BACKGROUND, {transition: true})
+    syncBackgroundSelection(document)
   },
 
   async loadBgArchiveItem(target) {
@@ -652,7 +664,8 @@ export const settingsActions = {
     await saveAppSetting('background_asset_id', null)
     await saveAppSetting('background_source_url', null)
     syncBgInputs(value)
-    applyBg(value)
+    await applyBg(value, {transition: true})
+    syncBackgroundSelection(document, {value})
   },
 
   async deleteBgArchiveItem(target) {
@@ -685,12 +698,13 @@ export const settingsActions = {
     await saveAppSetting('background_properties', null)
 
     const objUrl = URL.createObjectURL(blob)
-    applyBg(`url('${objUrl}') center/cover no-repeat`)
+    await applyBg(`url('${objUrl}') center/cover no-repeat`, {transition: true})
     syncBgInputs('')
 
     const bgAssets = await loadBackgroundAssetsForEditor()
     const list = document.querySelector('[data-bg-asset-list]')
-    if (list) list.innerHTML = renderBgAssetThumbs(bgAssets)
+    if (list) list.innerHTML = renderBgAssetThumbs(bgAssets, {activeAssetId: assetId})
+    syncBackgroundSelection(document, {assetId})
   },
 
   async loadBgAsset(target) {
@@ -698,11 +712,12 @@ export const settingsActions = {
     if (!assetId) return
     const objUrl = await loadAssetObjectUrl(assetId)
     if (!objUrl) return
-    applyBg(`url('${objUrl}') center/cover no-repeat`)
+    await applyBg(`url('${objUrl}') center/cover no-repeat`, {transition: true})
     await saveAppSetting('background_asset_id', assetId)
     await saveAppSetting('background_source_url', null)
     await saveAppSetting('background_properties', null)
     syncBgInputs('')
+    syncBackgroundSelection(document, {assetId})
   },
 
   async deleteBgAsset(target) {
@@ -717,6 +732,9 @@ export const settingsActions = {
     releaseBackgroundAssetUrl(assetId)
     const bgAssets = await loadBackgroundAssetsForEditor()
     if (list) patchInner(list, renderBgAssetThumbs(bgAssets, options))
+    syncBackgroundSelection(list?.closest('[data-page-form]') ?? document, {
+      value: list?.dataset.bgActiveValue,
+    })
   },
 
   openImportExport() {

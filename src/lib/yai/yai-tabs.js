@@ -196,6 +196,8 @@ class YaiTabs extends YaiCore {
         const containers = Array.from(this.findAll(this.config.rootSelector, rootElement, {}));
         if (!containers.length) return;
 
+        this._applyHashRoutesToContainers(containers);
+
         if (staticDefaults) {
             this._materializeDefaultTabs(containers);
         }
@@ -1148,29 +1150,36 @@ class YaiTabs extends YaiCore {
      */
     processHashBeforeInit() {
         const hashParams = this.parseHash();
+        const containers = Object.keys(hashParams)
+            .map(refPath => this.$(`${this.config.rootSelector}[data-ref-path="${refPath}"]`))
+            .filter(Boolean);
 
-        // Remove data-default attributes only from containers that participate in hash routing
-        Object.keys(hashParams).forEach(refPath => {
-            const container = this.$(`${this.config.rootSelector}[data-ref-path="${refPath}"]`);
-            if (container) {
-                const defaultElements = container.querySelectorAll('[data-default]');
-                defaultElements.forEach(element => {
-                    element.removeAttribute('data-default');
-                });
-            }
+        this._applyHashRoutesToContainers(containers, hashParams);
+    }
+
+    /**
+     * Apply matching hash routes to containers before their defaults initialize.
+     * This also covers components mounted after the initial document boot.
+     */
+    _applyHashRoutesToContainers(containers = [], hashParams = this.parseHash()) {
+        containers.forEach(container => {
+            const refPath = container.dataset.refPath;
+            const tabId = refPath ? hashParams[refPath] : null;
+            if (!tabId) return;
+
+            const controller = this.find(':scope > [data-controller]', container);
+            const hashTarget = Array.from(controller?.querySelectorAll(`button[${this.tabOpenAttribute}]`) ?? [])
+                .find(button => button.getAttribute(this.tabOpenAttribute) === tabId);
+            if (!hashTarget) return;
+
+            // A hash entry owns only its container's direct navigation.
+            // Descendant components may have independent defaults.
+            controller.querySelectorAll('[data-default]').forEach(element => {
+                element.removeAttribute('data-default');
+            });
+            hashTarget.setAttribute('data-default', '');
+            this.routeMap.set(refPath, tabId);
         });
-
-        for (const [refPath, tabId] of Object.entries(hashParams)) {
-            const container = this.$(`${this.config.rootSelector}[data-ref-path="${refPath}"]`);
-            if (!container) continue;
-
-            // Set hash target as new default (data-default attributes already cleared above)
-            const hashTarget = this.find(`button[${this.tabOpenAttribute}="${tabId}"]`, container);
-            if (hashTarget) {
-                hashTarget.setAttribute('data-default', '');
-                this.routeMap.set(refPath, tabId);
-            }
-        }
     }
 
     _setLastActiveTab(container) {

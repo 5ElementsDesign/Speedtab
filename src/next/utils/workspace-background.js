@@ -1,4 +1,4 @@
-import defaultWallpaperUrl from '../../assets/wallpaper-y-tree.webp'
+import defaultWallpaperUrl from '../../assets/1-app-wally-dark.webp'
 import {getCachedAppSettings, loadAppSettings, loadBgArchive, loadPageBackgroundOverride} from '../data/app-settings.js'
 import {loadAssetObjectUrl, loadBgAssets} from '../data/assets.js'
 
@@ -54,6 +54,38 @@ export function syncBackgroundInputs(scope, value, source = null) {
     colorInput.value = colorValue
     const clrField = colorInput.closest('.clr-field')
     if (clrField) clrField.style.color = colorValue || ''
+  }
+}
+
+export function syncBackgroundSelection(scope, {assetId = null, value = ''} = {}) {
+  const root = scope instanceof Element ? scope : document
+  const requestedAssetId = Number(assetId)
+  const activeValue = sanitizeBackgroundValue(value)
+  const assetList = root.querySelector('[data-bg-asset-list]')
+  const archiveList = root.querySelector('[data-bg-archive-list]')
+
+  if (assetList instanceof HTMLElement) {
+    const cards = [...assetList.querySelectorAll('[data-bg-asset-card]')]
+    const hasRequestedAsset = cards.some((card) => (
+      Number(card.querySelector('[data-bg-asset-thumb]')?.dataset.assetId) === requestedAssetId
+    ))
+    const activeAssetId = hasRequestedAsset
+      ? requestedAssetId
+      : null
+
+    assetList.dataset.bgActiveAssetId = activeAssetId == null ? '' : String(activeAssetId)
+    cards.forEach((card) => {
+      const candidateId = Number(card.querySelector('[data-bg-asset-thumb]')?.dataset.assetId)
+      card.toggleAttribute('data-bg-active', candidateId === activeAssetId)
+    })
+  }
+
+  if (archiveList instanceof HTMLElement) {
+    archiveList.dataset.bgActiveValue = activeValue
+    archiveList.querySelectorAll('[data-bg-archive-card]').forEach((card) => {
+      const candidateValue = card.querySelector('[data-bg-archive-swatch]')?.dataset.bgValue ?? ''
+      card.toggleAttribute('data-bg-active', Boolean(activeValue) && candidateValue === activeValue)
+    })
   }
 }
 
@@ -224,11 +256,7 @@ export async function applyWorkspaceBackground(target, appSettings = null) {
 
   document.documentElement.style.background = ''
   document.documentElement.style.backgroundAttachment = ''
-  if (background === 'none') {
-    removeBgSet()
-  } else {
-    addBgSet(background)
-  }
+  await transitionWorkspaceBackground(background)
 
   if (root) {
     root.style.background = ''

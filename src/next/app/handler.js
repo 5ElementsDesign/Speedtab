@@ -4,6 +4,7 @@ import {closeModal, isModalOpen} from '../components/modal.js'
 import {closeSidepanel, isSidepanelOpen} from '../components/sidepanel.js'
 import {updateFormDirtyState} from '../features/forms/actions.js'
 import {handleOutsideSearchClick, isSearchOpen} from '../features/search/manager.js'
+import {syncZoomGridLayout} from './zoom.js'
 
 export function createHandler(appActions = {}) {
   const INPUT_DEBOUNCE_MS = 150
@@ -11,6 +12,8 @@ export function createHandler(appActions = {}) {
   const FORM_STATE_DEBOUNCE_MS = 500
   const RESIZE_THROTTLE_MS = 100
   const SCROLL_THROTTLE_MS = 60
+
+  void syncZoomGridLayout()
 
   function getActionTargetKey(target) {
     if (!target) return 'unknown'
@@ -50,6 +53,7 @@ export function createHandler(appActions = {}) {
     enableHandlerValidation: false,
     methodsFirst: true,
     methods: {
+
       handleClick(event, target) {
         // Any actionable target outside [data-yai-tabs] reaches here (those inside are handled by YaiTabs)
         // Use closest() so clicking a child (SVG, span) of an actionable element still fires correctly
@@ -64,7 +68,9 @@ export function createHandler(appActions = {}) {
           const originTrigger = target?.closest?.('[data-dropdown-panel]')
             ? getOpenDropdownTrigger()
             : null
+          const closesNoteOptions = clickable.matches?.('[data-pip-trigger], [data-flying-config-trigger], [data-click="resetFloatingNoteWindowLayout"], [data-click="closeFloatingNote"]')
           const keepDropdownOpen = clickable.closest?.('[data-quick-setting-key]')
+            || (!closesNoteOptions && clickable.closest?.('[data-dropdown-panel][data-dropdown-keep-open]'))
           if (isDropdownOpen() && !keepDropdownOpen) closeAll()
           event.__dropdownTrigger = originTrigger
           const fn = appActions[action]
@@ -189,6 +195,7 @@ export function createHandler(appActions = {}) {
       },
 
       handleResize() {
+        void syncZoomGridLayout()
         if (!isDropdownOpen()) return
         document.querySelectorAll('[data-dropdown][data-dropdown-open]').forEach(positionPanel)
       },

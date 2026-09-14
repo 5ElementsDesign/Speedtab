@@ -1,0 +1,117 @@
+[data-tip] {
+  position: relative;
+  cursor: pointer;
+}
+[data-tip]::before,
+[data-tip]::after {
+  position: absolute;
+  z-index: 999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+[data-tip]::before {
+  font-weight: 900;
+  font-size: 14px;
+  color: #353535;
+  content: "";
+  line-height: 1;
+}
+[data-tip]::after {
+  content: attr(aria-label);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  color: #f5f5f5;
+  background: #353535;
+  border-radius: 4px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .2);
+}
+[data-tip]:hover::before,
+[data-tip]:hover::after,
+[data-tip]:focus::before,
+[data-tip]:focus::after {
+  opacity: 1;
+  transition-delay: 0.3s;
+}
+[data-tip][data-pos="top"]::before,
+[data-tip]:not([data-pos])::before {
+  content: "\f0d7";
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+[data-tip][data-pos="top"]::after,
+[data-tip]:not([data-pos])::after {
+  bottom: calc(100% + 8px + 6px + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+[data-tip][data-pos="bottom"]::before {
+  content: "\f0d8";
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+[data-tip][data-pos="bottom"]::after {
+  top: calc(100% + 8px + 6px + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+[data-tip][data-pos="right"]::before {
+  content: "\f0d9";
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+[data-tip][data-pos="right"]::after {
+  left: calc(100% + 8px + 6px + 2px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+[data-tip][data-pos="left"]::before {
+  content: "\f0da";
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+[data-tip][data-pos="left"]::after {
+  right: calc(100% + 8px + 6px + 2px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+[data-tip].inverted::before {
+  color: #f5f5f5;
+}
+[data-tip].inverted::after {
+  color: #353535;
+  background: #f5f5f5;
+}
+[data-tip][data-visible]:before,
+[data-tip][data-visible]::after {
+  opacity: 1;
+  transition-delay: 0s;
+}
+[data-tip][data-pre]::after {
+  white-space: pre;
+  text-align: left;
+}
+
+button[data-tip-on-parent] {
+  position: static;
+
+  &::after {
+    bottom: calc(100% + 16px);
+    left: 0;
+    transform: translate(0);
+  }
+}
+
+[data-sidepanel] button[data-tip-on-parent]::after {
+  bottom: calc(100% + 4px);
+  left: 0;
+  transform: translate(0);
+  min-width: 100%;
+  display: flex;
+  white-space: normal;
+}

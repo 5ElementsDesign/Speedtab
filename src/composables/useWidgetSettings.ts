@@ -98,6 +98,9 @@ function normalizeClockConfig(value: unknown): ClockWidgetConfig {
     two_row: typeof candidate.two_row === 'boolean'
       ? candidate.two_row
       : defaultClock.two_row,
+    order_reverse: typeof candidate.order_reverse === 'boolean'
+      ? candidate.order_reverse
+      : defaultClock.order_reverse,
     date_format: normalizeFormat(candidate.date_format, defaultClock.date_format ?? ''),
     time_format: normalizeFormat(candidate.time_format, defaultClock.time_format ?? ''),
     background: normalizeThemeColorOverride(candidate.background, defaultClock.background),
@@ -115,6 +118,7 @@ export function parseWidgetSettings(valueJson: string | null | undefined): Widge
   try {
     const parsed = JSON.parse(valueJson) as Record<string, unknown>
     const railAlignOptions = new Set(['left', 'center', 'right', 'space-between', 'space-around'])
+    const itemAlignOptions = new Set(['start', 'center', 'end', 'stretch'])
     const defaultSettings = DEFAULT_WIDGET_SETTINGS
     return {
       rail_enabled: parsed.rail_enabled === true,
@@ -124,6 +128,9 @@ export function parseWidgetSettings(valueJson: string | null | undefined): Widge
       rail_align: railAlignOptions.has(String(parsed.rail_align))
         ? parsed.rail_align as WidgetSettings['rail_align']
         : defaultSettings.rail_align,
+      item_align: itemAlignOptions.has(String(parsed.item_align))
+        ? parsed.item_align as WidgetSettings['item_align']
+        : defaultSettings.item_align,
       rail_ignore_max_width: parsed.rail_ignore_max_width === true,
       remote_sync_indicator: parsed.remote_sync_indicator === true,
       weather: normalizeWeatherConfig(parsed.weather),

@@ -9,6 +9,7 @@
 @import "./components/speed-dial.css";
 @import "./components/notes.css";
 @import "./components/todo.css";
+@import "./components/tooltip.css";
 @import "./components/user-action.css";
 @import "./components/search.css";
 @import "./components/feeds.css";

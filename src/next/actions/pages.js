@@ -2,6 +2,7 @@ import {cleanupOrphans, deleteCollectionTree, deleteModuleTree, deletePageTree} 
 import {db} from '../../db/db.ts'
 import {closeModal, openModal} from '../components/modal.js'
 import {closeSidepanel, onSidepanelClose, openSidepanel} from '../components/sidepanel.js'
+import {activateTrigger} from '../components/state-object.js'
 import {getModuleTypeMessageKey} from '../config/module-types.js'
 import {
   archiveBgItem,
@@ -37,6 +38,7 @@ import {
   loadBackgroundAssetsForEditor,
   loadBackgroundEditorData,
   sanitizeBackgroundValue,
+  syncBackgroundSelection,
   syncBackgroundInputs,
 } from '../utils/workspace-background.js'
 
@@ -263,8 +265,17 @@ export const pageActions = {
     await openPageEditor(page)
   },
 
-  async addPage() {
-    await openPageEditor(createDraftPage())
+  async addPage(target) {
+    const releaseTrigger = activateTrigger(target)
+    if (!releaseTrigger) return
+
+    try {
+      await openPageEditor(createDraftPage())
+      onSidepanelClose(releaseTrigger)
+    } catch (error) {
+      releaseTrigger()
+      throw error
+    }
   },
 
   previewPageBgProperty(target) {
@@ -272,6 +283,7 @@ export const pageActions = {
     if (!pageSyncId) return
     const value = sanitizeBackgroundValue(target.value)
     syncPageBackgroundInputs(target, value, target)
+    syncBackgroundSelection(getPageBackgroundForm(target), {value})
     if (getActivePageSyncId() !== pageSyncId) return
     if (value && isValidBackground(value)) {
       addBgSet(value)
@@ -286,11 +298,12 @@ export const pageActions = {
     const value = sanitizeBackgroundValue(target.value)
     if (!isValidBackground(value)) return
     syncPageBackgroundInputs(target, value, target)
+    syncBackgroundSelection(getPageBackgroundForm(target), {value})
     await savePageBackgroundOverride(pageSyncId, value ? {
       background_properties: value,
       background_asset_id: null,
     } : null)
-    await applyPageBackgroundIfActive(pageSyncId, {immediate: true})
+    await applyPageBackgroundIfActive(pageSyncId)
   },
 
   async archivePageBgProperty(target) {
@@ -298,7 +311,9 @@ export const pageActions = {
     if (!value || !isValidBackground(value)) return
     await archiveBgItem(value)
     const list = getPageBackgroundForm(target)?.querySelector('[data-bg-archive-list]')
-    if (list) patchInner(list, renderPageBgArchiveSwatches(await loadBgArchive()))
+    if (list) patchInner(list, renderPageBgArchiveSwatches(await loadBgArchive(), {
+      activeValue: list.dataset.bgActiveValue,
+    }))
   },
 
   async clearPageBgProperty(target) {
@@ -306,6 +321,7 @@ export const pageActions = {
     if (!pageSyncId) return
     await deletePageBackgroundOverride(pageSyncId)
     syncPageBackgroundInputs(target, '')
+    syncBackgroundSelection(getPageBackgroundForm(target))
     await applyPageBackgroundIfActive(pageSyncId)
   },
 
@@ -318,6 +334,7 @@ export const pageActions = {
       background_asset_id: null,
     })
     syncPageBackgroundInputs(target, value)
+    syncBackgroundSelection(getPageBackgroundForm(target), {value})
     await applyPageBackgroundIfActive(pageSyncId)
   },
 
@@ -338,6 +355,7 @@ export const pageActions = {
     })
     syncPageBackgroundInputs(target, '')
     await refreshPageBackgroundAssets(target)
+    syncBackgroundSelection(getPageBackgroundForm(target), {assetId})
     await applyPageBackgroundIfActive(pageSyncId)
   },
 
@@ -350,6 +368,7 @@ export const pageActions = {
       background_asset_id: assetId,
     })
     syncPageBackgroundInputs(target, '')
+    syncBackgroundSelection(getPageBackgroundForm(target), {assetId})
     await applyPageBackgroundIfActive(pageSyncId)
   },
 
@@ -503,7 +522,7 @@ export const pageActions = {
     if (picker) picker.toggleAttribute('hidden')
   },
 
-  pageFormPickIcon(target) {
+  pageFormPickIcon(target, event) {
     const icon = target.dataset.icon
     if (!icon) return
     const form = target.closest('[data-page-form]')
@@ -514,7 +533,11 @@ export const pageActions = {
         value: icon,
         detail: {source: 'page-icon-picker'},
       })
+
+      input.focus()
     }
+
+    console.log(event)
     target.closest('[data-icon-picker]')?.setAttribute('hidden', '')
   },
 

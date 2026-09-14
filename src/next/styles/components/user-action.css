@@ -24,6 +24,7 @@
       height: 140px;
       object-fit: cover;
       display: block;
+      pointer-events: none;
       border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     }
     button {
@@ -51,7 +52,7 @@
         padding: .5rem;
         flex: 1 auto;
         border: 0 solid #2889cf;
-        border-width: 1px 0 1px 1px;
+        border-width: 1px;
       }
       [data-click="usrCaptureImageAsWallpaper"] {
         border: 1px solid rgba(255, 255, 255, 0.15);
@@ -67,7 +68,8 @@
       font-size: 14px;
     }
     button[data-wallspeed-original] {
-      border-right: 1px solid #2889cf;
+      border: 0 solid #2889cf;
+      border-width: 1px 1px 1px 0;
     }
     &:hover {
       box-shadow: 0 4px 14px 1px rgb(25 25 25 / 60%);

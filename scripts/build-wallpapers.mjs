@@ -1,8 +1,8 @@
-import {promisify} from 'node:util'
 import {execFile} from 'node:child_process'
-import {access, mkdir, readFile, readdir, rename, stat, writeFile} from 'node:fs/promises'
 import {constants as fsConstants} from 'node:fs'
+import {access, mkdir, readFile, readdir, rename, stat, writeFile} from 'node:fs/promises'
 import {basename, extname, join, relative, resolve} from 'node:path'
+import {promisify} from 'node:util'
 
 const execFileAsync = promisify(execFile)
 
@@ -15,10 +15,28 @@ const ASSETS_URL = 'https://5elementsdesign.github.io/Speedtab/ext/st/wallpaper/
 const PIXABAY_URL = 'https://pixabay.com/'
 const MAX_IMAGE_SIZE = 1920
 const THUMBNAIL_WIDTH = 300
-const WEBP_QUALITY = 82
+const WEBP_QUALITY = 90
+const USE_WEBP_QUALITY = [
+  {filename: '1-app-wally-dark', quality: 90},
+  {filename: '1-app-wally-light', quality: 90},
+  {filename: '1-app-wally-marine', quality: 90},
+  {filename: '1-app-wally-minority', quality: 90},
+  {filename: '1-app-wally-speedtab', quality: 90},
+  {filename: '1-app-wally-speedtab-darker', quality: 90},
+]
 const EXCLUDE_FILENAMES = [
   'valiphotos-road-1072823.jpg',
+  'leonhard_niederwimmer-philadelphia-9919848.jpg',
 ]
+const EXCLUDE_PIXABAY_LINK = new Set([
+  '1-app-wally-dark',
+  '1-app-wally-light',
+  '1-app-wally-marine',
+  '1-app-wally-minority',
+  '1-app-wally-speedtab',
+  '1-app-wally-speedtab-darker',
+  'contacto9091-business-2991747_1920',
+])
 const IMAGE_EXTENSIONS = new Set(['.avif', '.jpeg', '.jpg', '.png', '.webp'])
 const THUMBNAIL_SUFFIX = '.thumbnail.webp'
 const EXCLUDED_STEMS = new Set(EXCLUDE_FILENAMES.map((filename) => basename(filename, extname(filename))))
@@ -65,7 +83,26 @@ async function exceedsMaxImageSize(path) {
   }
 }
 
-async function convertImage(source, target, resize) {
+async function convertImage(source, target, resize, webpQuality = null) {
+  if (webpQuality != null) {
+    try {
+      await execFileAsync('ffmpeg', [
+        '-loglevel', 'error',
+        '-i', source,
+        '-vf', `scale=${MAX_IMAGE_SIZE}:${MAX_IMAGE_SIZE}:force_original_aspect_ratio=decrease`,
+        '-frames:v', '1',
+        '-c:v', 'libwebp',
+        '-quality', String(webpQuality),
+        '-compression_level', '6',
+        '-y', target,
+      ])
+      return
+    } catch (error) {
+      const message = error?.stderr?.trim() || error?.message || 'Unknown ffmpeg error'
+      throw new Error(`Could not process ${relative(process.cwd(), source)}: ${message}`)
+    }
+  }
+
   try {
     await execFileAsync('convert', [
       source,
@@ -87,10 +124,12 @@ async function processRawImages() {
 
   for (const filename of files) {
     const source = join(sourceDir, filename)
-    const targetFilename = `${basename(filename, extname(filename))}.webp`
+    const stem = basename(filename, extname(filename))
+    const targetFilename = `${stem}.webp`
     const target = join(targetDir, targetFilename)
-    if (!await isNewer(source, target) && !await exceedsMaxImageSize(target)) continue
-    await convertImage(source, target, `${MAX_IMAGE_SIZE}x${MAX_IMAGE_SIZE}>`)
+    const webpQuality = USE_WEBP_QUALITY.find((entry) => entry.filename === stem)?.quality ?? null
+    if (webpQuality == null && !await isNewer(source, target) && !await exceedsMaxImageSize(target)) continue
+    await convertImage(source, target, `${MAX_IMAGE_SIZE}x${MAX_IMAGE_SIZE}>`, webpQuality)
     processed += 1
   }
 
@@ -135,6 +174,13 @@ function formatFileSize(bytes) {
   return `${(kilobytes / 1000).toFixed(1)} MB`
 }
 
+function formatApproximateFileSize(bytes) {
+  const megabytes = bytes / 1_000_000
+  return megabytes >= 1
+    ? `~${Math.max(1, Math.round(megabytes))} MB`
+    : `~${Math.max(1, Math.round(bytes / 1000))} KB`
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll('&', '&amp;')
@@ -161,6 +207,15 @@ function renderWallpaperItem(filename, bytes) {
   const fullUrl = `${ASSETS_URL}${encodeURIComponent(filename)}`
   const thumbnailUrl = `${ASSETS_URL}${encodeURIComponent(thumbnail)}`
   const pixabayUrl = `${PIXABAY_URL}${encodeURIComponent(stem)}`
+  const pixabayButton = EXCLUDE_PIXABAY_LINK.has(stem) ? '' : `
+      <button
+        data-wallspeed-original
+        data-click="goToHref"
+        data-btn="ghost"
+        title="Check it on Pixabay"
+        data-href="${pixabayUrl}">
+          <i data-icon="external" aria-hidden="true"></i>
+        </button>`
 
   return `  <figure data-wp-item data-st-wallpaper-id="${fullUrl}">
     <img width="250" alt=""
@@ -175,14 +230,7 @@ function renderWallpaperItem(filename, bytes) {
         data-click="goToHref"
         data-href="${fullUrl}"
       >${formatFileSize(bytes)}</button>
-      <button
-        data-wallspeed-original
-        data-click="goToHref"
-        data-btn="ghost"
-        title="Check it on Pixabay"
-        data-href="${pixabayUrl}">
-          <i data-icon="external" aria-hidden="true"></i>
-        </button>
+${pixabayButton}
     </div>
   </figure>`
 }
@@ -193,7 +241,10 @@ async function buildList() {
   const items = await Promise.all(files.map(async (filename) => ({
     filename,
     bytes: (await stat(join(targetDir, filename))).size,
+    thumbnailBytes: (await stat(join(targetDir, `${basename(filename, '.webp')}${THUMBNAIL_SUFFIX}`))).size,
   })))
+  const wallpaperBytes = items.reduce((total, item) => total + item.bytes, 0)
+  const thumbnailBytes = items.reduce((total, item) => total + item.thumbnailBytes, 0)
   const html = `<section data-wallpaper-list data-st-padding="1rem">
 
 ${items.map(({filename, bytes}) => renderWallpaperItem(filename, bytes)).join('\n\n')}
@@ -202,6 +253,10 @@ ${items.map(({filename, bytes}) => renderWallpaperItem(filename, bytes)).join('\
     <button data-click="usrResetWallpaper" data-btn="warning" data-st-height="100%" data-st-width="100%">Reset</button>
   </div>
 </section>
+
+<div class="pe-none" data-st-bg-color="#151515" data-st-padding="32px 8px" data-st-text-align="center" data-st-color="#e5e5e5" data-st-font-size="14px">
+  Gallery details <span data-st-padding="0 10px">•</span> Wallpapers: ${items.length} <span data-st-padding="0 10px">•</span> Wallpaper total: ${formatApproximateFileSize(wallpaperBytes)} <span data-st-padding="0 10px">•</span> Thumbnails total: ${formatApproximateFileSize(thumbnailBytes)}
+</div>
 `
   await writeFile(listFile, html)
   return items.length

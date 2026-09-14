@@ -5,14 +5,16 @@ import {
   lockFloatingCryptNote as lockFloatingCryptNoteWindow,
   openFloatingNote,
   openQuicknote,
-  refreshQuicknoteWindow,
   resetFloatingNoteWindowLayout as resetFloatingNoteWindowLayoutWindow,
   saveFloatingNoteEdit as saveFloatingNoteEditWindow,
+  saveFloatingNoteWindowOption as saveFloatingNoteWindowOptionWindow,
   startFloatingNoteEdit as startFloatingNoteEditWindow,
   syncFloatingNoteEditorField as syncFloatingNoteEditorFieldWindow,
   insertFloatingNoteTabber as insertFloatingNoteTabberWindow,
   insertFloatingNoteTableau as insertFloatingNoteTableauWindow,
+  generateFloatingNoteWorldClock as generateFloatingNoteWorldClockWindow,
   toggleFloatingNotePreview as toggleFloatingNotePreviewWindow,
+  toggleFloatingNoteWorldClockGenerator as toggleFloatingNoteWorldClockGeneratorWindow,
   toggleFloatingCryptPassphrase as toggleFloatingCryptPassphraseWindow,
   unlockFloatingCryptNote as unlockFloatingCryptNoteWindow,
   updateQuicknoteContent,
@@ -25,10 +27,6 @@ export const localToolsActions = {
 
   closeQuicknote() {
     closeQuicknoteWindow()
-  },
-
-  async refreshQuicknote() {
-    await refreshQuicknoteWindow()
   },
 
   updateQuicknoteContent(target) {
@@ -60,8 +58,19 @@ export const localToolsActions = {
     await saveFloatingNoteEditWindow(target?.dataset?.noteId || form?.dataset?.noteId, form)
   },
 
+  async saveFloatingNoteWindowOption(target) {
+    await saveFloatingNoteWindowOptionWindow(
+      target?.dataset?.noteId,
+      target?.dataset?.windowOption,
+      target?.checked === true,
+    )
+  },
+
   syncFloatingNoteEditorField(target) {
-    syncFloatingNoteEditorFieldWindow(target?.dataset?.noteId, target?.dataset?.editorField, target?.value ?? '')
+    const value = target instanceof HTMLInputElement && target.type === 'checkbox'
+      ? target.checked
+      : (target?.value ?? '')
+    syncFloatingNoteEditorFieldWindow(target?.dataset?.noteId, target?.dataset?.editorField, value)
   },
 
   insertFloatingNoteTabber(target) {
@@ -70,6 +79,16 @@ export const localToolsActions = {
 
   insertFloatingNoteTableau(target) {
     insertFloatingNoteTableauWindow(target?.dataset?.noteId)
+  },
+
+  async toggleFloatingNoteWorldClockGenerator(target) {
+    await toggleFloatingNoteWorldClockGeneratorWindow(target?.dataset?.noteId)
+  },
+
+  generateFloatingNoteWorldClock(target) {
+    const generator = target?.closest?.('[data-world-clock-generator]')
+    const source = generator?.querySelector?.('textarea')?.value ?? ''
+    generateFloatingNoteWorldClockWindow(target?.dataset?.noteId, source)
   },
 
   async toggleFloatingNotePreview(target) {

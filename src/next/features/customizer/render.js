@@ -38,9 +38,12 @@ const FIELD_LABELS = {
   'speed-dial-content-align': 'customizer.fields.speedDialContentAlign',
   'speed-dial-tile-height-px': 'customizer.fields.speedDialTileHeight',
   'speed-dial-fill-height': 'customizer.fields.speedDialFillHeight',
-  '--st-ws-shell-header-background-color': 'customizer.fields.shellHeaderBackground',
-  '--st-ws-shell-nav-background-color': 'customizer.fields.shellNavBackground',
-  '--st-ws-shell-nav-active-background-color': 'customizer.fields.shellNavActiveBackground',
+  '--st-ws-shell-header-background-color': 'customizer.fields.mainHeaderBackground',
+  '--st-ws-shell-nav-background-color': 'customizer.fields.mainNavBackground',
+  '--st-ws-shell-nav-active-background-color': 'customizer.fields.mainNavActiveBackground',
+  '--st-nav-header-background-color': 'customizer.fields.navHeaderBackground',
+  '--st-nav-background-color': 'customizer.fields.navBackground',
+  '--st-nav-active-background-color': 'customizer.fields.navActiveBackground',
   '--st-ws-module-background-color': 'customizer.fields.moduleBackground',
   '--st-ws-module-shadow-color': 'customizer.fields.moduleShadowColor',
   '--st-module-bookmark-preview-background-color': 'customizer.fields.bookmarkBackground',
@@ -66,6 +69,9 @@ export const INLINE_COLOR_FIELD_PAIRS = {
   '--st-ws-shell-header-background-color': '--st-ws-shell-header-text-color',
   '--st-ws-shell-nav-background-color': '--st-ws-shell-nav-text-color',
   '--st-ws-shell-nav-active-background-color': '--st-ws-shell-nav-active-text-color',
+  '--st-nav-header-background-color': '--st-nav-header-text-color',
+  '--st-nav-background-color': '--st-nav-text-color',
+  '--st-nav-active-background-color': '--st-nav-active-text-color',
   '--st-module-bookmark-preview-background-color': '--st-module-bookmark-preview-text-color',
   '--st-notes-preview-content-bg': '--st-notes-preview-content-color',
   '--st-notes-open-content-bg': '--st-notes-open-content-color',
@@ -74,6 +80,17 @@ export const INLINE_COLOR_FIELD_PAIRS = {
 export const INLINE_COLOR_FIELD_SECONDARIES = new Set(Object.values(INLINE_COLOR_FIELD_PAIRS))
 
 export const SHELL_SYNC_ID = 'app-shell'
+
+export function renderThemeSwitch(isLight = false) {
+  return `<label data-switch-component class="reverse-component-grid">
+    <input type="checkbox" role="switch" aria-label="${escapeHtml(t('customizer.fields.shellTheme'))}" data-change="stToggleColorPreset" data-state-sync="shell-theme" value="light" data-toggle-value="dark"${isLight ? ' checked' : ''}>
+    <span class="state" aria-hidden="true">
+      <span class="container"><span class="knob"></span></span>
+      <span class="off">${escapeHtml(t('customizer.options.dark'))}</span>
+      <span class="on">${escapeHtml(t('customizer.options.light'))}</span>
+    </span>
+  </label>`
+}
 
 const OPTION_LABELS = {
   fade: 'customizer.options.fade',
@@ -117,6 +134,9 @@ const APPEARANCE_FIELD_ORDER = [
   '--st-ws-shell-header-background-color',
   '--st-ws-shell-nav-background-color',
   '--st-ws-shell-nav-active-background-color',
+  '--st-nav-header-background-color',
+  '--st-nav-background-color',
+  '--st-nav-active-background-color',
   '--st-module-bookmark-preview-background-color',
   '--st-ws-module-shadow-color',
   '--st-notes-preview-content-bg',
@@ -130,6 +150,12 @@ const SHELL_APPEARANCE_FIELDS = [
   '--st-ws-shell-nav-text-color',
   '--st-ws-shell-nav-active-background-color',
   '--st-ws-shell-nav-active-text-color',
+  '--st-nav-header-background-color',
+  '--st-nav-header-text-color',
+  '--st-nav-background-color',
+  '--st-nav-text-color',
+  '--st-nav-active-background-color',
+  '--st-nav-active-text-color',
   '--st-ws-module-background-color',
   '--st-ws-module-shadow-color',
   '--st-module-bookmark-preview-background-color',
@@ -323,6 +349,9 @@ function renderShellAppearancePanelSection(sectionName, sectionSpec, sectionValu
       '--st-ws-shell-header-background-color',
       '--st-ws-shell-nav-background-color',
       '--st-ws-shell-nav-active-background-color',
+      '--st-nav-header-background-color',
+      '--st-nav-background-color',
+      '--st-nav-active-background-color',
       '--st-ws-module-background-color',
       '--st-ws-module-shadow-color',
     ]),
@@ -418,7 +447,7 @@ function renderFeedBehaviorSection(sectionSpec, sectionValues, moduleData) {
       </label>
       <label data-customizer-field data-customizer-field-type="integer">
         <span data-customizer-field-label>${escapeHtml(t('feeds.fetchItemLimit'))}</span>
-        <input type="number" min="1" max="100" step="1" value="${escapeHtml(String(fetchItemLimit))}" data-change="changeFeedFetchItemLimit" data-module-sync-id="${escapeHtml(moduleData?.sync_id ?? '')}">
+        <input name="changeFeedFetchItemLimit" type="number" min="1" max="100" step="1" value="${escapeHtml(String(fetchItemLimit))}" data-change="changeFeedFetchItemLimit" data-module-sync-id="${escapeHtml(moduleData?.sync_id ?? '')}">
       </label>`
   }).join('')
   return `
@@ -434,7 +463,7 @@ function renderFeedUtilitiesSection(moduleData) {
     <div data-customizer-section data-section="utilities">
       <p data-customizer-section-title>${escapeHtml(t('customizer.sections.utilities'))}</p>
       <div class="flex flex-wrap flex-grid gap-1">
-        <button type="button" class="px-0 flex-grid" data-btn="light" data-click="openArchivedFeedItems" data-module-sync-id="${escapeHtml(moduleData?.sync_id ?? '')}">${escapeHtml(t('feeds.archivedFeedItemsTitle'))}</button>
+        <button type="button" class="px-0 flex-grid" data-btn="dark" data-click="openArchivedFeedItems" data-module-sync-id="${escapeHtml(moduleData?.sync_id ?? '')}">${escapeHtml(t('feeds.archivedFeedItemsTitle'))}</button>
         <button type="button" class="px-0 flex-grid" data-btn="warning" data-click="clearModuleFeedItems" data-module-sync-id="${escapeHtml(moduleData?.sync_id ?? '')}">${escapeHtml(t('feeds.clearLoaded'))}</button>
       </div>
     </div>
@@ -448,9 +477,9 @@ function renderColorPairRow(bgKey, bgValue, textKey, textValue, sectionName, gro
     <div data-customizer-field data-customizer-field-type="color">
       <span data-customizer-field-label>${escapeHtml(t(FIELD_LABELS[bgKey] ?? bgKey))}</span>
       <div data-color-pair-row>
-      ${renderColorInput(bgKey, bgValue, sectionName)}
-      ${showTextColor ? renderColorInput(textKey, textValue, sectionName) : ''}
-      ${badge}
+        ${renderColorInput(bgKey, bgValue, sectionName)}
+        ${showTextColor ? renderColorInput(textKey, textValue, sectionName) : ''}
+        ${badge}
       </div>
     </div>
   `
@@ -711,7 +740,7 @@ function renderModuleIdentitySection(moduleTitle = '') {
 
 function renderAppearanceLauncherSection(bgData = null) {
   const uiTheme = bgData?.ui_theme ?? 'dark'
-  const isDark = uiTheme !== 'light'
+  const isLight = uiTheme === 'light'
   const isBackgroundRemoved = bgData?.background_properties === 'none' && !bgData?.background_asset_id
   const backgroundToggleLabel = isBackgroundRemoved
     ? t('customizer.speedtabBackgroundShort')
@@ -721,30 +750,16 @@ function renderAppearanceLauncherSection(bgData = null) {
     <div data-customizer-section data-section="appearance-launcher">
       <p data-customizer-section-title>${escapeHtml(t('common.appearance'))}</p>
       <div data-customizer-inline-actions>
+        <button
+          type="button"
+          class="st-btn"
+          data-btn="primary"
+          data-click="openCustomizerAppearance"
+          data-customizer-nav-button
+        >🖥️ ${escapeHtml(t('common.appearance'))}</button>
+        <div data-customizer-divider aria-hidden="true"></div>
         <div>
-          <button
-            type="button"
-            class="st-btn"
-            data-btn="dark"
-            data-click="setShellThemePreset"
-            data-theme-value="dark"
-            aria-pressed="${isDark ? 'true' : 'false'}"
-          ><i data-icon="moon" aria-hidden="true"></i> ${escapeHtml(t('customizer.options.dark'))}</button>
-          <button
-            type="button"
-            class="st-btn"
-            data-btn="light"
-            data-click="setShellThemePreset"
-            data-theme-value="light"
-            aria-pressed="${isDark ? 'false' : 'true'}"
-          ><i data-icon="sun" aria-hidden="true"></i> ${escapeHtml(t('customizer.options.light'))}</button>
-          <button
-            type="button"
-            class="st-btn"
-            data-btn="primary"
-            data-click="openCustomizerAppearance"
-            data-customizer-nav-button
-          >🖥️ ${escapeHtml(t('common.appearance'))}</button>
+          ${renderThemeSwitch(isLight)}
           <button
             type="button"
             class="st-btn"
@@ -793,7 +808,9 @@ export function renderCustomizerForm(entityType, moduleType, config = {}, bgData
   if (entityType === 'shell' && Object.keys(spec.appearance).length) {
     sections.push(renderAppearanceLauncherSection(bgData))
     if (bgData) {
-      sections.push(renderBackgroundSettingsSection(bgData))
+      sections.push(renderBackgroundSettingsSection(bgData, {
+        titleHelp: t('customizer.backgroundHelpShell'),
+      }))
     }
   } else if (Object.keys(spec.appearance).length) {
     sections.push(renderGroupedSection('appearance', spec.appearance, effectiveConfig.appearance))

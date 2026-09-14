@@ -20,6 +20,7 @@ Speedtab ile yapabilecekleriniz:
 • öncelikler, son tarihler, notlar ve görsel durum göstergeleri ile görevleri ve yapılacakları (ToDo) yönetin
 • metin, kod, bağlantı, özel HTML ve şifrelenmiş notlar oluşturun
 • YaiTabs altyapısıyla HTML notlarınızın içinde sonsuz, derinlemesine iç içe geçmiş sekme yapıları oluşturun
+• taşınabilir HTML notları içinde senkronize Dünya Saatleri oluşturun
 • notları ve besleme modüllerini kayan Document Picture-in-Picture (PiP) pencerelerine dönüştürün
 • RSS/Atom beslemelerini doğrudan başlangıç sayfanızda sekme bazlı otomatik yenileme aralıklarıyla okuyun
 • okundu/okunmadı durumlarını takip edin ve ilgilendiğiniz besleme ögelerini yorumlarla arşivleyin
@@ -148,7 +149,7 @@ ULUSLARARASI LAŞTIRMA VE YEREL DİL DESTEĞİ
 PERFORMANS VE BOYUT
 ----------------------------------------
 
-• Sıkıştırılmış eklenti boyutu: ~710 KB
+• Sıkıştırılmış eklenti boyutu: ~700 KB
 • Chrome Görev Yöneticisi:
   - Bellek: ~50 MB toplam bellek / ~5 MB canlı JavaScript yığını
   - CPU kullanımı: Etkin kullanım sırasında %1-10

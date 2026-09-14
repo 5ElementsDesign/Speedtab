@@ -64,7 +64,7 @@
   --yai-tabs-color-background:            var(--st-ws-module-background-color, linear-gradient(180deg, #090b0d, #0d1116 40%, #0b0e12));
   --yai-tabs-color-surface:               #1c1c1d;
   --yai-tabs-color-surface-alt:           #252526;
-  --yai-tabs-content-inactive-background: #0e0e0f22;
+  --yai-tabs-content-inactive-background: #0e0e0f00;
   --yai-tabs-content-inactive-color-muted:#c7ccd3;
 
   /* Brand / semantic palette */
@@ -188,11 +188,11 @@
   --st-modal-close-color: rgba(175, 175, 175, 1);
   --st-modal-close-color-hover: rgba(250, 250, 250, 1);
   --st-widget-shadow: rgb(0 0 0 / 0.42);
-  --st-widget-bg: rgba(0, 0, 0, 0.188);
+  --st-widget-bg: rgba(0, 0, 0, 0.45);
   --st-widget-backdrop-blur: 14px;
   --st-widget-text: var(--yai-tabs-color-text);
   --st-widget-text-muted: var(--yai-tabs-color-text-muted);
-  --st-weather-widget-theme-bg: rgba(0, 0, 0, .25);
+  --st-weather-widget-theme-bg: rgba(0, 0, 0, .45);
   --st-weather-widget-theme-shadow: var(--st-widget-shadow);
   --st-weather-widget-theme-location-color: #d4d1d1;
   --st-weather-widget-theme-temp-color: #d4d1d1;
@@ -226,7 +226,7 @@
   --st-module-card-min-height: initial;
   --st-module-card-padding: 1rem;
   --st-module-card-border-radius: 0;
-  --st-module-card-background: rgba(22,22,22,0.7);
+  --st-module-card-background: rgba(22,22,22,0.85);
   --st-module-card-border-color: rgba(255, 255, 255, 0.08);
   --st-module-card-title-color: var(--yai-tabs-color-text-muted);
   --st-module-card-body-color: var(--yai-tabs-color-text-muted);
@@ -236,7 +236,7 @@
   --st-ws-module-header-text-color: var(--st-ws-shell-header-text-color, var(--st-module-card-title-color));
   --st-ws-module-content-background-color: transparent;
   --st-ws-module-content-text-color: var(--st-module-card-body-color);
-  --st-module-bookmark-preview-background-color: rgba(15, 15, 15, .5);
+  --st-module-bookmark-preview-background-color: rgba(15, 15, 15, .95);
   --st-form-bg-color: transparent;
   --st-form-border-color: transparent;
   --st-form-elements-bg-color: #20202099;
@@ -253,11 +253,12 @@
   --st-form-select-min-height: var(--st-form-elements-min-height);
   --st-form-button-min-height: var(--st-form-elements-min-height);
   --st-textarea-min-height: 80px;
-  --st-checkbox-size: 1.1rem;
+  --st-checkbox-size-width: 1.1rem;
+  --st-checkbox-size-height: 1.1rem;
   --st-form-input-padding: 0 10px;
   --st-form-textarea-padding: 8px 10px;
   --st-form-select-padding-right: 24px;
-  --st-form-button-padding: 0 16px;
+  --st-form-button-padding: 0 8px;
   --st-form-elements-border-radius: 0;
   --st-form-button-border-radius: var(--st-form-elements-border-radius);
   --st-form-button-border: 0 none;
@@ -340,6 +341,21 @@
 }
 
 /*
+ Dark preset
+ */
+[data-theme="dark"],
+html.dark {
+  --st-ws-shell-header-background-color: rgba(11, 11, 11, .52);
+  --st-container-surface-background: rgba(11, 11, 11, .82);
+  --st-nav-header-background-color: #131313;
+
+  [data-todo-row] {
+    --yai-tabs-color-background: #151515ee;
+  }
+}
+
+
+/*
   Light preset
 */
 html.light {
@@ -352,7 +368,7 @@ html.light {
   --st-ws-shell-nav-hover-background-color: rgba(255, 255, 255, 0.95);
   --st-ws-shell-nav-active-background-color: #ffffff;
   --st-ws-shell-nav-active-text-color: #0f172a;
-  --st-ws-module-background-color: #eeeeee99;
+  --st-ws-module-background-color: #eeeeeecc;
   --st-ws-module-text-color: #1e293b;
   --st-ws-module-shadow-color: rgb(35 34 34 / 30%);
   --st-module-bookmark-preview-background-color: #ffffff;
@@ -384,7 +400,7 @@ html.light {
   --yai-tabs-color-text: #2c3440;
   --yai-tabs-color-text-muted: #afb3ba;
 
-  --yai-tabs-content-inactive-background: rgba(248, 250, 252, 0.2);
+  --yai-tabs-content-inactive-background: rgba(248, 250, 252, 0);
   --yai-tabs-content-inactive-color-muted: #64748b;
 
   --yai-tabs-shadow-accent: rgba(37, 99, 235, 0.14);
@@ -460,7 +476,7 @@ html.light {
   --yai-tabs-nav-button-color: var(--st-ws-shell-nav-text-color, var(--yai-tabs-color-text-muted));
   --yai-tabs-nav-button-hover-color: var(--st-ws-shell-nav-text-color, var(--yai-tabs-color-text));
   --yai-tabs-nav-button-active-color: var(--st-ws-shell-nav-active-text-color, var(--yai-tabs-color-accent));
-  --yai-tabs-nav-button-active-background: var(--st-ws-shell-nav-active-background-color, rgba(0, 0, 0, 0.65));
+  --yai-tabs-nav-button-active-background: var(--st-ws-shell-nav-active-background-color, rgba(25, 25, 25, 0.9));
   --yai-tabs-nav-button-hover-background: var(--st-ws-shell-nav-hover-background-color, rgba(44, 42, 42, 0.75));
   --yai-tabs-nav-border-bottom: rgba(255, 255, 255, 0.07);
   --yai-tabs-nav-box-shadow: rgba(255, 255, 255, 0.07);
@@ -535,13 +551,13 @@ html.light {
     }
   }
   [data-theme="dark"] {
-    --st-note-tabs-bg: #1e1e1e;
-    --st-note-tabs-color: #f5f5f5;
+    --st-note-tabs-bg: #171717;
+    --st-note-tabs-color: #ebe7e7;
     --st-color-dark: #1e1e1e;
     --st-border-color: rgba(255, 255, 255, 0.08);
     --st-note-tabs-main-header-bg: #181818cc;
     --st-note-tabs-main-footer-bg: #181818cc;
-    --st-note-tabs-header-bg: #262626;
+    --st-note-tabs-header-bg: #212121;
     --st-note-tabs-nav-button-bg: rgba(255, 255, 255, 0.03);
     --st-note-tabs-nav-button-hover-bg: rgba(255, 255, 255, 0.08);
     --st-note-tabs-nav-button-active-bg: #1e1e1e;

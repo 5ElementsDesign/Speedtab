@@ -156,7 +156,7 @@ export function renderRootShell({
           items: [
             {label: t('common.customize'), action: 'openCustomizerList'},
             {label: t('common.settings'), action: 'openSettings'},
-            {label: t('nav.actions.wallspeed'), action: 'openWallspeed', class: 'flex-between-center', trailingIcon: 'dashboard', dividerTop: true},
+            {label: t('nav.actions.wallspeed'), action: 'openWallspeed', class: 'flex-between-center', trailingIcon: 'dashboard', dividerTop: true, attributes: {'data-state-sync': 'wallspeed', 'aria-pressed': 'false'}},
             {label: t('assets.title'), action: 'openAssetBrowser', dividerTop: true},
             {label: t('nav.actions.sortContents'), action: 'openSorter', dividerTop: true},
             {label: t('settings.importExportTitle'), action: 'openImportExport', dividerTop: true},

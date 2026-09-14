@@ -113,6 +113,7 @@
 .inline-flex { display: inline-flex; }
 .flex-grid { flex: 1; }
 .flex-grid-xs { flex: 1 16%; }
+.flex-grid-s { flex: 1 30%; }
 .flex-flex-100 { flex: 1 100%; }
 .order-1 { order: 1; }
 .order-2 { order: 2; }

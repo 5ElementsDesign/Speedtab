@@ -1,5 +1,5 @@
 import {escapeHtml} from '../../../../utils/html.js'
-import {t, getLocale, toBcp47} from '../../../../utils/i18n.js'
+import {getLocale, t, toBcp47} from '../../../../utils/i18n.js'
 import {renderModuleTabs} from '../tabs/render.js'
 
 function formatDueAt(value) {
@@ -61,6 +61,7 @@ function renderTodoList(todos = [], moduleSyncId = '') {
       <p data-todo-empty${todos.length ? ' hidden' : ''}>${escapeHtml(t('todo.empty'))}</p>
       <form data-todo-inline-form data-submit="addTodo" data-module-sync-id="${escapeHtml(moduleSyncId)}">
         <input name="todo-title" type="text" maxlength="240" autocomplete="off" placeholder="${escapeHtml(t('todo.addPlaceholder'))}" aria-label="${escapeHtml(t('todo.add'))}">
+        <span data-todo-swipe-grab></span>
         <button type="submit" class="st-btn" data-btn="primary" title="${escapeHtml(t('todo.add'))}" aria-label="${escapeHtml(t('todo.add'))}"><i data-icon="plus" aria-hidden="true"></i></button>
       </form>
     </div>

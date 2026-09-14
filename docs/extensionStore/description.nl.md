@@ -20,6 +20,7 @@ Wat je kunt doen met Speedtab:
 • beheer taken en to-do's met prioriteiten, vervaldatums, notities en visuele statusindicatoren
 • maak tekst-, code-, link-, aangepaste HTML- en versleutelde notities
 • bouw oneindige, diep geneste tabbladstructuren binnen je HTML-notities aangedreven door YaiTabs
+• gesynchroniseerde wereldklokken maken in draagbare HTML-notities
 • koppel notities en feedmodulen los in zwevende Document Picture-in-Picture (PiP) vensters
 • lees RSS/Atom-feeds rechtstreeks op je startpagina met automatische vernieuwingsintervallen per tabblad
 • houd de status van gelezen/ongelezen items bij en archiveer interessante feed-items met opmerkingen
@@ -148,7 +149,7 @@ INTERNATIONALISERING & INHEMSE LOKALISATIE
 PRESTATIES & GROOTTE
 ----------------------------------------
 
-• Ingepakt extensieformaat (.ZIP): ~710 KB
+• Ingepakt extensieformaat (.ZIP): ~700 KB
 • Chrome Taakbeheer
   - Geheugen: ~50 MB totaal geheugen / ~5 MB live JavaScript-heap
   - CPU-gebruik: 1-10% tijdens actief gebruik

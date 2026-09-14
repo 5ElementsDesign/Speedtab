@@ -23,8 +23,20 @@
   }
 }
 
-[data-widget-rail][data-widget-rail-position="bottom"] [data-widget-rail-host] {
-  align-items: flex-end;
+[data-widget-rail-host][data-widget-item-align] {
+  align-items: center;
+}
+
+[data-widget-rail-host][data-widget-item-align="start"] {
+  align-items: start;
+}
+
+[data-widget-rail-host][data-widget-item-align="end"] {
+  align-items: end;
+}
+
+[data-widget-rail-host][data-widget-item-align="stretch"] {
+  align-items: stretch;
 }
 
 [data-widget-remote-sync-host] {
@@ -109,19 +121,30 @@
   &:hover {
     background: color-mix(in srgb, var(--st-clock-widget-bg) 86%, rgba(255, 255, 255, 0.30));
   }
-  &.is-two-row .st-clock-widget-body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    text-align: center;
+  &.is-two-row {
+    .st-clock-widget-body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      text-align: center;
+    }
+    &.is-order-reverse .st-clock-widget-body {
+      flex-direction: column-reverse;
+    }
+  }
+  &:not(.is-two-row) {
+    &.is-order-reverse .st-clock-widget-body {
+      flex-direction: row-reverse;
+    }
   }
   &.is-analog {
     padding: 2px 8px;
   }
   &.is-analog .st-clock-widget-body {
     display: flex;
+    flex-direction: row;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
@@ -129,6 +152,9 @@
   &.is-analog.is-two-row .st-clock-widget-body {
     flex-direction: column;
     gap: 2px;
+  }
+  &.is-analog.is-two-row.is-order-reverse .st-clock-widget-body {
+    flex-direction: column-reverse;
   }
 }
 
@@ -171,9 +197,14 @@
 
 .st-clock-widget-analog {
   display: inline-flex;
-  width: var(--st-clock-widget-analog-size);
-  height: var(--st-clock-widget-analog-size);
+  width: var(--st-clock-widget-analog-size, 1em);
+  height: var(--st-clock-widget-analog-size, 1em);
   flex: 0 0 auto;
+}
+
+[data-clock][data-fill-space].st-clock-widget-analog {
+  width: 100%;
+  height: 100%;
 }
 
 .st-clock-widget-analog-svg {
@@ -202,19 +233,19 @@
 }
 
 .st-clock-widget-analog-ring {
-  fill: color-mix(in srgb, var(--st-clock-widget-bg) 92%, rgba(255, 255, 255, 0.08));
-  stroke: color-mix(in srgb, var(--st-clock-widget-dial-color) 8%, transparent);
+  fill: color-mix(in srgb, var(--st-clock-widget-bg, transparent) 92%, rgba(255, 255, 255, 0.08));
+  stroke: color-mix(in srgb, var(--st-clock-widget-dial-color, currentColor) 8%, transparent);
   stroke-width: 1;
 }
 
 .st-clock-widget-analog-marker {
-  stroke: color-mix(in srgb, var(--st-clock-widget-dial-color) 78%, white);
+  stroke: color-mix(in srgb, var(--st-clock-widget-dial-color, currentColor) 78%, white);
   stroke-width: 2.5;
   stroke-linecap: round;
 }
 
 .st-clock-widget-analog-hand {
-  stroke: var(--st-clock-widget-time-color);
+  stroke: var(--st-clock-widget-time-color, currentColor);
   stroke-linecap: round;
 
   &.is-hour {
@@ -224,13 +255,13 @@
     stroke-width: 3;
   }
   &.is-second {
-    stroke: color-mix(in srgb, var(--st-clock-widget-time-color) 82%, white);
+    stroke: color-mix(in srgb, var(--st-clock-widget-time-color, currentColor) 82%, white);
     stroke-width: 1.5;
   }
 }
 
 .st-clock-widget-analog-center {
-  fill: var(--st-clock-widget-time-color);
+  fill: var(--st-clock-widget-time-color, currentColor);
 }
 
 @keyframes st-clock-analog-rotate {

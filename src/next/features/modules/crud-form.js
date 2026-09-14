@@ -1,7 +1,7 @@
+import {customizerDivider, customizerField, customizerSection, textarea} from '../../ui/primitives.js'
 import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 import {renderFormActions} from '../forms/actions.js'
-import {customizerDivider, customizerField, customizerSection, textarea} from '../../ui/primitives.js'
 import {getCollectionImportExample, getCollectionImportKind} from './collection-import.js'
 import {FEED_AUTO_REFRESH_INTERVALS, getFeedAutoRefreshInterval} from './feed-auto-refresh.js'
 
@@ -64,7 +64,7 @@ function renderFeedAutoRefresh(record, moduleType, moduleSyncId) {
     ${customizerDivider()}
     <label data-customizer-field>
       <span data-customizer-field-label>${escapeHtml(t('feeds.autoRefresh'))}</span>
-      <select data-change="changeFeedAutoRefresh" data-record-id="${escapeHtml(String(record.id))}" data-record-sync-id="${escapeHtml(record.sync_id ?? '')}" data-module-sync-id="${escapeHtml(moduleSyncId)}">
+      <select name="changeFeedAutoRefresh" data-change="changeFeedAutoRefresh" data-record-id="${escapeHtml(String(record.id))}" data-record-sync-id="${escapeHtml(record.sync_id ?? '')}" data-module-sync-id="${escapeHtml(moduleSyncId)}">
         <option value="">${escapeHtml(t('feeds.autoRefreshOff'))}</option>
         ${FEED_AUTO_REFRESH_INTERVALS.map((interval) => `<option value="${interval}"${value === interval ? ' selected' : ''}>${escapeHtml(t('feeds.autoRefreshMinutes', {minutes: interval}))}</option>`).join('')}
       </select>

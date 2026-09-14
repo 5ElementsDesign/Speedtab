@@ -4,11 +4,11 @@ function attrsToString(attrs = {}) {
   return buildAttributes(attrs, {leadingSpace: false, skipFalsy: true, booleanBare: true})
 }
 
-export function section({title = '', helper = '', children = '', attrs = {}} = {}) {
+export function section({title = '', titleHtml = '', helper = '', children = '', attrs = {}} = {}) {
   const attrString = attrsToString(attrs)
   return `
     <section data-section${attrString ? ` ${attrString}` : ''}>
-      ${title ? `<p data-section-title>${escapeHtml(title)}</p>` : ''}
+      ${titleHtml ? `<p data-section-title>${titleHtml}</p>` : title ? `<p data-section-title>${escapeHtml(title)}</p>` : ''}
       ${helper ? `<p data-section-helper>${escapeHtml(helper)}</p>` : ''}
       ${children}
     </section>

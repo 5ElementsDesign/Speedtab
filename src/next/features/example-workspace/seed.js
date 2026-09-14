@@ -1,7 +1,5 @@
 import {encryptNote, serialiseCryptPayload} from '../../../composables/useCrypt'
-import {WIDGET_SETTINGS_KEY} from '../../../composables/useWidgetSettings.ts'
 import {db as defaultDb, isActiveRecord, makeCreateMetadata} from '../../../db/db.ts'
-import {DEFAULT_WIDGET_SETTINGS} from '../../../types/widgets.ts'
 import {upsertUiConfig} from '../../data/ui-config.js'
 import {ensureFaviconAssetIdForUrl} from '../../utils/favicon.js'
 import {DEFAULT_LOCALE, getLocale, normalizeLocale} from '../../utils/i18n.js'
@@ -354,7 +352,6 @@ export async function seedExampleWorkspace(database = defaultDb, options = {}) {
       database.notes,
       database.todos,
       database.feed_sources,
-      database.app_settings,
     ],
     async () => {
       let pageSortOrder = 0
@@ -502,12 +499,6 @@ export async function seedExampleWorkspace(database = defaultDb, options = {}) {
           }
         }
       }
-
-      await database.app_settings.put({
-        key: WIDGET_SETTINGS_KEY,
-        value_json: JSON.stringify(structuredClone(DEFAULT_WIDGET_SETTINGS)),
-        updated_at: now,
-      })
     },
   )
 

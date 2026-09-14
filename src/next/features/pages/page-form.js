@@ -23,12 +23,12 @@ const PAGE_BACKGROUND_ASSET_OPTIONS = {
   deleteAction: 'deleteBgAsset',
 }
 
-export function renderPageBgArchiveSwatches(items) {
-  return renderBgArchiveSwatches(items, PAGE_BACKGROUND_ARCHIVE_OPTIONS)
+export function renderPageBgArchiveSwatches(items, options = {}) {
+  return renderBgArchiveSwatches(items, {...PAGE_BACKGROUND_ARCHIVE_OPTIONS, ...options})
 }
 
-export function renderPageBgAssetThumbs(items) {
-  return renderBgAssetThumbs(items, PAGE_BACKGROUND_ASSET_OPTIONS)
+export function renderPageBgAssetThumbs(items, options = {}) {
+  return renderBgAssetThumbs(items, {...PAGE_BACKGROUND_ASSET_OPTIONS, ...options})
 }
 
 export function syncPageFormActiveHint(form, activePageSyncId) {
@@ -95,7 +95,7 @@ export function renderPageForm(page, options = {}) {
           <div data-icon-picker hidden>
             <div data-icon-picker-grid>
               ${iconPickerGrid}
-              <button data-btn="dark" data-click="goToHref" data-href="https://yaijs.github.io/ycons/example/" title="Ycons, because Yconsny?">Ycons</button>
+              <button type="button" data-btn="dark" class="text-upper" data-click="goToHref" data-href="https://yaijs.github.io/ycons/example/" title="Ycons, because Yconsny?">Ycons</button>
             </div>
           </div>
 
@@ -138,7 +138,11 @@ export function renderPageForm(page, options = {}) {
 
       ${customizerDivider()}
 
+      ${renderFormActions({saveLabel})}
+
       ${backgroundData ? `
+        ${customizerDivider()}
+
         ${renderBackgroundSettingsSection(backgroundData, {
           textInputAction: 'previewPageBgProperty',
           changeAction: 'savePageBgProperty',
@@ -155,13 +159,11 @@ export function renderPageForm(page, options = {}) {
           assetSelectAction: PAGE_BACKGROUND_ASSET_OPTIONS.selectAction,
           assetDeleteAction: PAGE_BACKGROUND_ASSET_OPTIONS.deleteAction,
           formStateIgnore: true,
+          titleHelp: t('customizer.backgroundHelpPage'),
         })}
 
-        ${customizerDivider()}
+        <p data-customizer-empty data-page-form-inactive-hint hidden>${escapeHtml(t('pageForm.notActivePage'))}</p>
       ` : ''}
-
-      ${renderFormActions({saveLabel})}
-      ${backgroundData ? `<p data-customizer-empty data-page-form-inactive-hint hidden>${escapeHtml(t('pageForm.notActivePage'))}</p>` : ''}
     </form>
   `
 }
@@ -252,7 +254,7 @@ export function renderModuleCreateForm(page, modules = []) {
             `,
           })}
 
-          <div data-module-column-span-field>
+          <div data-module-column-span-field data-module-column-space-setter>
             ${customizerField({
               label: t('customizer.fields.moduleColumnSpan'),
               control: `
@@ -265,14 +267,13 @@ export function renderModuleCreateForm(page, modules = []) {
         `,
       })}
 
-      <div data-form-actions data-module-create-actions>
+      <div class="mt-1" data-form-actions data-module-create-actions>
         <button type="submit" data-btn="primary" data-form-save-btn disabled>${escapeHtml(t('moduleForm.createModule'))}</button>
         <button type="button" data-btn="light" data-click="toggleModuleCreatePlacement" aria-expanded="false">Place</button>
       </div>
 
-      ${customizerDivider()}
-
       <div data-module-create-placement hidden>
+        ${customizerDivider()}
         <div data-module-placement-preview>${placementSlots}</div>
       </div>
     </form>

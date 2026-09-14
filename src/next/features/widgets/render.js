@@ -39,7 +39,7 @@ export function renderWidgetRailShell(settings = {}) {
     <section class="st-widget-rail" data-widget-rail data-widget-rail-position="${escapeHtml(railPosition)}" data-swipe-ignore aria-label="${escapeHtml(t('widgetRail.aria'))}">
       <div class="st-widget-rail-inner"${innerStyle}>
         <div class="st-widget-rail-center">
-          <div data-widget-rail-host data-widget-rail-align="${escapeHtml(settings.rail_align || 'left')}">
+          <div data-widget-rail-host data-widget-rail-align="${escapeHtml(settings.rail_align || 'left')}" data-widget-item-align="${escapeHtml(settings.item_align || 'center')}">
             <div data-widget-weather-host></div>
             <div data-widget-remote-sync-host></div>
             <div data-widget-clock-host></div>
@@ -213,7 +213,7 @@ function buildClockInlineStyle(state = {}) {
   return declarations.length ? ` style="${escapeHtml(declarations.join(';'))}"` : ''
 }
 
-function renderAnalogClockSvg(state = {}) {
+export function renderAnalogClockSvg(state = {}) {
   const hour = Number(state.hour) || 0
   const minute = Number(state.minute) || 0
   const second = Number(state.second) || 0
@@ -282,7 +282,7 @@ export function renderClockWidget(state = {}) {
   return `
     <button
       type="button"
-      class="st-widget-card st-clock-widget fade-in-up is-visible${twoRow ? ' is-two-row' : ''}${isAnalog ? ' is-analog' : ' is-digital'}"
+      class="st-widget-card st-clock-widget fade-in-up is-visible${twoRow ? ' is-two-row' : ''}${state.orderReverse ? ' is-order-reverse' : ''}${isAnalog ? ' is-analog' : ' is-digital'}"
       data-widget-clock
       data-widget-align="${escapeHtml(align)}"
       data-clock-display="${escapeHtml(display)}"

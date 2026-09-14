@@ -1,3 +1,5 @@
+import {registerNoteWidgetScope, syncNoteWidgets, unregisterNoteWidgetScope} from '../features/note-widgets/index.js'
+
 let activePipWindow = null
 let activePipReplacement = null
 let pipSessionCounter = 0
@@ -114,6 +116,7 @@ function syncPipContent(pipDocument, replacement) {
     element.scrollTop = position.top
     element.scrollLeft = position.left
   })
+  if (nextPipContent.querySelector('[data-world-clock]')) syncNoteWidgets(pipDocument)
 }
 
 export function syncPictureInPicture() {
@@ -190,6 +193,7 @@ export const pictureInPictureActions = {
       activePipReplacement = replacement
       const isNoteWindow = target.matches('[data-floating-window][data-window-type="note"]')
       const isModuleCard = target.matches('[data-module-card]')
+      const hasWorldClock = target.matches('[data-world-clock]') || Boolean(target.querySelector('[data-world-clock]'))
       if (isNoteWindow || isModuleCard) replacement.setAttribute('data-module-in-pip', '')
       target.setAttribute('data-pip-content', '')
       pipWindow.document.querySelector('[data-pip-loading]')?.remove()
@@ -199,10 +203,12 @@ export const pictureInPictureActions = {
         pipWindow.document.body.append(mount)
       }
       mount.append(target)
+      if (hasWorldClock) registerNoteWidgetScope(pipWindow.document)
       bindPipInteractionBridge(pipWindow.document, replacement)
       document.body.setAttribute('data-pip-window-active', '')
 
       pipWindow.addEventListener('pagehide', () => {
+        if (hasWorldClock) unregisterNoteWidgetScope(pipWindow.document)
         clearPipBridgeNodes(replacement)
         replacement.removeAttribute('data-module-in-pip')
         clearActivePipWindow()

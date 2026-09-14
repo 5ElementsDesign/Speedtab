@@ -111,8 +111,8 @@ select {
 
 input[type="checkbox"],
 input[type="radio"] {
-  width: var(--st-checkbox-size);
-  height: var(--st-checkbox-size);
+  width: var(--st-checkbox-size-width);
+  height: var(--st-checkbox-size-height);
   padding: 0;
   cursor: pointer;
   flex-shrink: 0;

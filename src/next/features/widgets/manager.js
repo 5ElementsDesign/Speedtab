@@ -215,6 +215,7 @@ function buildClockState() {
     smoothMotion: clock.smooth_motion !== false,
     align: clock.align === 'right' ? 'right' : 'left',
     twoRow: clock.two_row === true,
+    orderReverse: clock.order_reverse === true,
     dateText: formatClockString(clock.date_format, now),
     timeText: formatClockString(clock.time_format, now),
     hour: now.getHours(),
@@ -408,6 +409,7 @@ function renderClockHost() {
   current.setAttribute('data-clock-display', nextDisplay)
   current.setAttribute('data-clock-smooth-motion', nextSmoothMotion ? 'true' : 'false')
   current.classList.toggle('is-two-row', state.twoRow === true)
+  current.classList.toggle('is-order-reverse', state.orderReverse === true)
   current.classList.toggle('is-analog', nextDisplay === 'analog')
   current.classList.toggle('is-digital', nextDisplay !== 'analog')
   if (nextStyle) current.setAttribute('style', nextStyle)

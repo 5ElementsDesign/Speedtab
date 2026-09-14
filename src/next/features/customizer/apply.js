@@ -4,6 +4,24 @@ import {getCachedAppSettings} from '../../data/app-settings.js'
 import {getVisibleBookmarkMediaScope, initBookmarkMedia} from '../../utils/bookmark-media.js'
 import {hasCustomUiConfig} from './normalize.js'
 
+const SHELL_DIRECT_APPEARANCE_KEYS = [
+  '--st-ws-shell-header-background-color',
+  '--st-ws-shell-header-text-color',
+  '--st-ws-shell-nav-background-color',
+  '--st-ws-shell-nav-text-color',
+  '--st-ws-shell-nav-active-background-color',
+  '--st-ws-shell-nav-active-text-color',
+  '--st-nav-header-background-color',
+  '--st-nav-header-text-color',
+  '--st-nav-background-color',
+  '--st-nav-text-color',
+  '--st-nav-active-background-color',
+  '--st-nav-active-text-color',
+  '--st-ws-module-background-color',
+]
+
+const SHELL_APPEARANCE_OVERRIDE_STYLE_ID = 'st-shell-appearance-overrides'
+
 function applyAttribute(target, name, value, spec) {
   if (!target) return
   if (spec.valueType === 'boolean') {
@@ -142,6 +160,50 @@ function applySection(moduleRoot, values, sectionSpec) {
   }
 }
 
+function applyShellAppearanceOverrides(appearance) {
+  const rules = []
+  const add = (selector, property, key) => {
+    const value = appearance[key]
+    if (value != null && value !== '') rules.push(`${selector}{${property}:${value} !important}`)
+  }
+
+  const mainHeader = 'html body #app :is([data-app-brand-wrap],[data-app-header-nav])'
+  const mainControllerHeader = 'html body #app [data-yai-tabs] > [data-controller]'
+  const mainNav = 'html body #app [data-yai-tabs] > [data-controller] > [data-open]:not(.active),html body #app [data-app-header-nav] > [data-dropdown] > [data-dropdown-trigger]'
+  const mainNavActive = 'html body #app [data-yai-tabs] > [data-controller] > [data-open].active'
+  const navHeader = 'html body #app [data-yai-tabs]:not([data-app]) > [data-controller]'
+  const nav = 'html body #app [data-yai-tabs]:not([data-app]) > [data-controller] > [data-open]:not(.active)'
+  const navActive = 'html body #app [data-yai-tabs]:not([data-app]) > [data-controller] > [data-open].active'
+  const moduleSurface = 'html body #app [data-module-tabs-shell] > [data-yai-tabs]'
+
+  add(mainHeader, 'background-color', '--st-ws-shell-header-background-color')
+  add(mainHeader, 'color', '--st-ws-shell-header-text-color')
+  if (appearance['--st-ws-shell-header-background-color']) {
+    rules.push(`${mainControllerHeader}{background-color:color-mix(in srgb, ${appearance['--st-ws-shell-header-background-color']} 80%, transparent) !important}`)
+  }
+  add(mainControllerHeader, 'color', '--st-ws-shell-header-text-color')
+  add(mainNav, 'background-color', '--st-ws-shell-nav-background-color')
+  add(mainNav, 'color', '--st-ws-shell-nav-text-color')
+  add(mainNavActive, 'background-color', '--st-ws-shell-nav-active-background-color')
+  add(mainNavActive, 'color', '--st-ws-shell-nav-active-text-color')
+  add(navHeader, 'background-color', '--st-nav-header-background-color')
+  add(navHeader, 'color', '--st-nav-header-text-color')
+  add(nav, 'background-color', '--st-nav-background-color')
+  add(nav, 'color', '--st-nav-text-color')
+  add(navActive, 'background-color', '--st-nav-active-background-color')
+  add(navActive, 'color', '--st-nav-active-text-color')
+  add(moduleSurface, 'background-color', '--st-ws-module-background-color')
+
+  const existing = document.getElementById(SHELL_APPEARANCE_OVERRIDE_STYLE_ID)
+  if (!rules.length) {
+    existing?.remove()
+    return
+  }
+  const style = existing ?? document.head.appendChild(document.createElement('style'))
+  style.id = SHELL_APPEARANCE_OVERRIDE_STYLE_ID
+  style.textContent = rules.join('')
+}
+
 export function applyModuleUiConfig(moduleRoot, effectiveConfig) {
   if (!moduleRoot || !effectiveConfig) return
 
@@ -172,7 +234,16 @@ export function applyShellUiConfig(effectiveConfig) {
   shellRoot.toggleAttribute('data-ui-configured', hasCustomUiConfig('shell', 'app', effectiveConfig))
   applySection(shellRoot, effectiveConfig.behavior ?? {}, spec.behavior)
   applySection(shellRoot, effectiveConfig.layout ?? {}, spec.layout)
-  applySection(shellRoot, effectiveConfig.appearance ?? {}, spec.appearance)
+  const appearance = effectiveConfig.appearance ?? {}
+  const inheritedAppearance = {...appearance}
+  SHELL_DIRECT_APPEARANCE_KEYS.forEach((key) => {
+    delete inheritedAppearance[key]
+    const field = spec.appearance[key]
+    const target = field ? getApplyTarget(shellRoot, field.target) : null
+    if (field?.applyAs?.type === 'css-variable') target?.style.removeProperty(field.applyAs.name)
+  })
+  applySection(shellRoot, inheritedAppearance, spec.appearance)
+  applyShellAppearanceOverrides(appearance)
   const borderRadius = effectiveConfig.layout?.['shell-border-radius-px']
   shellRoot.toggleAttribute('data-border-radius', borderRadius != null && borderRadius !== '')
 }

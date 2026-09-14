@@ -157,6 +157,7 @@
       left: 0;
       z-index: 0;
       height: 100%;
+      opacity: .03 !important;
       min-height: var(--yai-tabs-content-min-height);
       display: flex;
       align-items: var(--yai-tabs-closed-align);
@@ -366,7 +367,7 @@
   div:not(.tab-active)>[data-content] {
     color: var(--yai-tabs-content-inactive-color-muted, var(--yai-tabs-color-text-muted));
     background-color: var(--yai-tabs-content-inactive-background);
-    font-style: var(--yai-tabs-content-inactive-font-style, italic);
+    font-style: var(--yai-tabs-content-inactive-font-style, normal);
   }
 }
 
@@ -522,7 +523,26 @@
     border-radius: 50%;
     animation: yai-spin var(--yai-tabs-loader-speed) linear infinite;
     background: conic-gradient(transparent, var(--yai-loader-color));
+
     mask: radial-gradient(farthest-side, transparent calc(100% - var(--yai-tabs-loader-thickness)), var(--yai-loader-color, #022031) 0);
+  }
+}
+
+button.yai-loading {
+  --yai-loader-color: var(--st-color-text);
+  color: transparent !important;
+
+  ::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--st-note-tabs-nav-button-bg);
+  }
+}
+
+[data-wp-actions] {
+  button.yai-loading {
+    --yai-loader-color: var(--st-color-light);
   }
 }
 

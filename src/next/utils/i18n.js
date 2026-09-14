@@ -22,6 +22,7 @@ const CORE_LOADERS = {
 
 let locale = DEFAULT_LOCALE
 let messages = {}
+let logMissingTranslations = false
 
 // Aliases for locales whose canonical form is region-specific (e.g. 'zh' → 'zh_CN').
 // normalizeLocale always returns a value that is safe to use both as a locale key
@@ -68,8 +69,15 @@ export function getLocale() {
   return locale
 }
 
+export function setMissingTranslationLogging(enabled = false) {
+  logMissingTranslations = enabled === true
+}
+
 export function t(key, params = {}) {
   const value = key.split('.').reduce((node, part) => node?.[part], messages)
-  if (typeof value !== 'string') return key
+  if (typeof value !== 'string') {
+    if (logMissingTranslations) console.error('[Speedtab i18n] Missing translation.', {key, locale})
+    return key
+  }
   return value.replace(/\{(\w+)\}/g, (match, name) => (name in params ? String(params[name]) : match))
 }

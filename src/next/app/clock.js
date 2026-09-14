@@ -33,6 +33,10 @@ function getFinestActiveUnit() {
   return null
 }
 
+function hasKeepAliveListener() {
+  return [...listeners.values()].some((entry) => entry.keepAlive)
+}
+
 function notifyChangedListeners(now) {
   listeners.forEach((entry, listener) => {
     const nextKey = getUnitKey(now, entry.unit)
@@ -57,7 +61,7 @@ function clearTick() {
 function scheduleTick() {
   clearTick()
   const unit = getFinestActiveUnit()
-  if (!started || document.hidden || !unit) return
+  if (!started || (!hasKeepAliveListener() && document.hidden) || !unit) return
   const delay = getNextTickDelay(unit)
   timeoutId = window.setTimeout(() => {
     const now = Date.now()
@@ -67,7 +71,7 @@ function scheduleTick() {
 }
 
 function handleVisibilityChange() {
-  if (document.hidden) {
+  if (document.hidden && !hasKeepAliveListener()) {
     clearTick()
     return
   }
@@ -96,11 +100,12 @@ export function stopAppClock() {
   document.removeEventListener('visibilitychange', handleVisibilityChange)
 }
 
-export function subscribeToAppClock(listener, unit = 'second') {
+export function subscribeToAppClock(listener, unit = 'second', {keepAlive = false} = {}) {
   if (typeof listener !== 'function') return () => {}
   listeners.set(listener, {
     unit: normalizeUnit(unit),
     lastKey: getUnitKey(Date.now(), normalizeUnit(unit)),
+    keepAlive: keepAlive === true,
   })
   scheduleTick()
   return () => {

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Speedtab Privacy Policy</title>
   <meta name="description" content="Privacy policy for Speedtab, a local-first browser new-tab dashboard.">
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.png">
   <style>
     :root {
       color-scheme: dark;
@@ -57,7 +58,7 @@
     a {
       color: #8eb0ff;
     }
-    
+
     h1 {
       margin: 0 0 6px;
       padding-bottom: 6px;
@@ -85,11 +86,11 @@
       gap: 10px;
       list-style-position: inside;
     }
-    
+
     li {
       line-height: 1.1;
     }
-    
+
     p + ul {
       margin-top: -10px;
     }
@@ -147,9 +148,9 @@
       <h1 id="speedtab-privacy-policy">Privacy Policy</h1>
       <small>Last updated: 2026-07-10</small>
     </header>
-  
+
     <p>Speedtab is a local-first browser extension. Its purpose is to provide a structured new-tab dashboard for bookmarks, notes, RSS/Atom feeds, and workspace organization.</p>
-  
+
     <h2 id="summary">Summary</h2>
     <p>Speedtab stores user-created workspace data locally in the browser.</p>
     <p>Speedtab does not:</p>
@@ -160,7 +161,7 @@
       <li>use user data for advertising</li>
     </ul>
     <p>Network access is used only for user-facing features such as fetching user-configured feeds, loading favicon images for links and feed sources, and optional remote sync features the user explicitly enables.</p>
-  
+
     <h2 id="data-speedtab-stores">Data Speedtab Stores</h2>
     <p>Speedtab may store the following data locally inside the browser profile:</p>
     <ul>
@@ -176,11 +177,11 @@
       <li>import/export metadata needed for portable local workspaces</li>
     </ul>
     <p>This data is stored locally using IndexedDB.</p>
-  
+
     <h2 id="encrypted-notes">Encrypted Notes</h2>
     <p>If a user creates encrypted notes, those notes are encrypted client-side before storage.</p>
     <p>Speedtab uses browser cryptography APIs for encrypted note content. Passphrases are not stored by Speedtab.</p>
-  
+
     <h2 id="network-requests">Network Requests</h2>
     <p>Speedtab may make external requests for these user-facing features:</p>
     <ul>
@@ -191,7 +192,7 @@
     </ul>
     <p>These requests are made directly by the extension. They are not proxied through a Speedtab-controlled backend.</p>
     <p>If the user enables Google Drive sync, Speedtab uses Chrome’s <code class="language-plaintext highlighter-rouge">chrome.identity</code> OAuth flow to request access only to the user’s own Speedtab app-data folder. Synced workspace files are stored in the user’s Google Drive <code class="language-plaintext highlighter-rouge">appDataFolder</code>, which is hidden from the normal Drive file list. Speedtab does not send synced workspace data to a Speedtab-controlled server.</p>
-  
+
     <h2 id="data-sharing">Data Sharing</h2>
     <ul>
       <li>Speedtab does not sell user data</li>
@@ -200,25 +201,25 @@
       <li>Speedtab does not transfer user workspace data to a Speedtab-controlled third-party server</li>
     </ul>
     <p>The only third-party network interactions are those needed for the user-facing features listed above, such as feed fetching, favicon loading, and optional user-configured remote sync.</p>
-  
+
     <h2 id="export-and-import">Export and Import</h2>
     <p>Speedtab allows users to export their workspace data to a local JSON file and import that data again later.</p>
     <p>Exported files are created locally on the user’s device. Imported files are processed locally inside the browser.</p>
     <p>If the user enables remote sync, Speedtab may also upload workspace export files and metadata directly to the user-selected remote target, such as Google Drive <code class="language-plaintext highlighter-rouge">appDataFolder</code> or a user-configured WebDAV endpoint.</p>
     <p>Transient feed cache data is not treated as portable workspace data.</p>
-  
+
     <h2 id="retention">Retention</h2>
     <p>Workspace data remains in the browser profile until the user deletes it, clears browser storage, removes the extension data, or uninstalls the extension.</p>
     <p>Some transient feed cache data may be pruned automatically as part of normal local maintenance behavior.</p>
-  
+
     <h2 id="security">Security</h2>
     <p>Speedtab is designed to minimize unnecessary data exposure by keeping application data local-first and by avoiding a cloud backend for workspace storage.</p>
     <p>No software can guarantee absolute security, but Speedtab is built to reduce exposure by storing workspace data locally and by encrypting encrypted-note content before storage.</p>
-  
+
     <h2 id="changes-to-this-policy">Changes to This Policy</h2>
     <p>This privacy policy may be updated if Speedtab’s data handling changes.</p>
     <p>The Chrome Web Store listing, privacy disclosures, and this policy should remain consistent with the current extension behavior.</p>
-  
+
     <hr/>
 
     <p><a class="back" href="../index.html">Back to Speedtab</a></p>

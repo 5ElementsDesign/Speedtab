@@ -1,6 +1,6 @@
 import {afterEach, describe, expect, it, vi} from 'vitest'
 import {renderPageForm, syncPageFormActiveHint} from '../features/pages/page-form.js'
-import {addBgSet, transitionWorkspaceBackground} from '../utils/workspace-background.js'
+import {addBgSet, syncBackgroundSelection, transitionWorkspaceBackground} from '../utils/workspace-background.js'
 
 afterEach(() => {
   document.body.removeAttribute('data-workspace-background-layer')
@@ -33,6 +33,7 @@ describe('page background editor', () => {
     expect(html).toContain('data-click="deleteBgAsset"')
     expect(html).toContain('data-change="uploadPageBgWallpaper"')
     expect(html).toContain('data-page-form-inactive-hint hidden')
+    expect(html.indexOf('data-form-actions')).toBeLessThan(html.indexOf('data-bg-property-input'))
   })
 
   it('shows the hint only while the edited page is not active', () => {
@@ -57,6 +58,20 @@ describe('page background editor', () => {
 
     syncPageFormActiveHint(form, 'page-sync-1')
     expect(hint.hidden).toBe(true)
+  })
+
+  it('clears live wallpaper markers', () => {
+    document.body.innerHTML = `
+      <div data-bg-asset-list>
+        <div data-bg-asset-card><button data-bg-asset-thumb data-asset-id="1"></button></div>
+        <div data-bg-asset-card><button data-bg-asset-thumb data-asset-id="2"></button></div>
+      </div>
+    `
+
+    syncBackgroundSelection(document, {assetId: 2})
+    syncBackgroundSelection(document)
+
+    expect(document.querySelector('[data-bg-active]')).toBeNull()
   })
 
   it('does not show Background controls before a page exists', () => {

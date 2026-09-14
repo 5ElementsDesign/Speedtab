@@ -23,7 +23,8 @@ const DEFAULT_NOTE_WINDOW_STATE = {
   autoWidth: false,
 }
 
-const NOTE_MIN_HEIGHT = 96
+const NOTE_MIN_WIDTH = 100
+const NOTE_MIN_HEIGHT = 40
 
 const DEFAULT_LOCAL_TOOLS_STATE = {
   zIndexTracker: 220,
@@ -58,7 +59,7 @@ function normalizeNoteWindowState(source = {}) {
     noteId,
     x: Math.max(0, toFiniteNumber(source.x, DEFAULT_NOTE_WINDOW_STATE.x)),
     y: Math.max(0, toFiniteNumber(source.y, DEFAULT_NOTE_WINDOW_STATE.y)),
-    width: Math.max(280, toFiniteNumber(source.width, DEFAULT_NOTE_WINDOW_STATE.width)),
+    width: Math.max(NOTE_MIN_WIDTH, toFiniteNumber(source.width, DEFAULT_NOTE_WINDOW_STATE.width)),
     height: Math.max(NOTE_MIN_HEIGHT, toFiniteNumber(source.height, DEFAULT_NOTE_WINDOW_STATE.height)),
     z: Math.max(1, toFiniteNumber(source.z, DEFAULT_NOTE_WINDOW_STATE.z)),
     autoHeight: source.autoHeight === true,
@@ -79,7 +80,7 @@ function normalizeNoteLayoutState(source = {}) {
 
   if (Number.isFinite(x) && x >= 0) layout.x = x
   if (Number.isFinite(y) && y >= 0) layout.y = y
-  if (Number.isFinite(width) && width >= 280) layout.width = width
+  if (Number.isFinite(width) && width >= NOTE_MIN_WIDTH) layout.width = width
   if (Number.isFinite(height) && height >= NOTE_MIN_HEIGHT) layout.height = height
   if (Number.isFinite(z) && z >= 1) layout.z = z
 

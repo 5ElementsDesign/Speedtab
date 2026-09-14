@@ -23,7 +23,7 @@ import {getHashPageSlug, loadPages, resolveActivePage} from '../data/pages.js'
 import {loadUiConfigsByEntitySyncIds} from '../data/ui-config.js'
 import {applyModuleUiConfigMap, applyShellUiConfig} from '../features/customizer/apply.js'
 import {initCustomizerListeners} from '../features/customizer/panel.js'
-import {SHELL_SYNC_ID} from '../features/customizer/render.js'
+import {renderThemeSwitch, SHELL_SYNC_ID} from '../features/customizer/render.js'
 import {installFlyingConfig, openFlyingConfig} from '../features/flying-config/index.js'
 import {initializeLocalTools, refreshOpenNotePreviewState, refreshQuicknoteWindow} from '../features/local-tools/manager.js'
 import {queueFeedFavicons} from '../features/modules/feeds.js'
@@ -340,6 +340,8 @@ const appActions = {
   ...workspaceActions,
   ...todoActions,
   ...userActions,
+  openFlyingConfig,
+  saveFlyingConfig: openFlyingConfig,
   dismissToast(target) {
     dismissToast(target)
   },
@@ -451,7 +453,7 @@ export function initializeNextTabs(mount, pages) {
     syncWallspeedActiveWallpaper()
   })
 
-  mount.__flyingConfigCleanup = installFlyingConfig(tabs, ({target}) => openFlyingConfig(target))
+  mount.__flyingConfigCleanup = installFlyingConfig(tabs)
 
   const swype = new YaiTabsSwipe({
     axis: YaiDevice.hasTouch ? 'horizontal' : 'auto',
@@ -679,6 +681,8 @@ export async function renderNextRoot() {
   const initialActivePageContent = mount.querySelector(`[data-app-tab-content][data-page-slug="${CSS.escape(activePage?.slug || '')}"]`)
   syncActivePageGridMaxWidthToken(initialActivePageContent)
 
+  document.body.classList.toggle('st-app-state--empty', !renderPages.length || !activePage)
+
   if (renderPages.length && activePage) {
     initializeSearch()
     await initializeLocalTools(mount.querySelector('[data-app]'))
@@ -687,7 +691,9 @@ export async function renderNextRoot() {
     const tabs = initializeNextTabs(mount, renderPages)
     return tabs
   } else {
-    mount.innerHTML = `
+    const content = mount.querySelector('main[data-app-content]')
+    if (content instanceof HTMLElement) {
+      content.innerHTML = `
       <div class="st-app-empty">
         <div class="st-app-empty-card st-main-card">
           <h1><img data-app-brand-logo="" src="/icons/icon48.png" width="48" height="48" alt="Speedtab Logo"><span>${t('app.title')}</span></h1>
@@ -704,12 +710,19 @@ export async function renderNextRoot() {
         <div class="st-app-empty-card st-app-card-select-locale-container">
           ${canLoadExampleWorkspace ? renderExampleWorkspaceLocaleSelect() : ''}
         </div>
+        <div class="st-app-empty-card st-app-card-select-theme">
+          <div class="st-app-card-select-theme-actions">
+              <button type="button" data-btn="ghost" data-click="openWallspeed" data-state-sync="wallspeed" aria-pressed="false" class="flex-center-center gap-1">${t('nav.actions.wallspeed')} <i data-icon="dashboard" aria-hidden="true"></i></button>
+              ${renderThemeSwitch(appSettings.ui_theme === 'light')}
+          </div>
+        </div>
       </div>
     `
-    await initializeLocalTools(null)
+    }
+    await initializeLocalTools(appRoot)
     initializeWidgetRail(widgetSettings)
     void requestRemoteAutoSyncRefresh()
-    return null
+    return initializeNextTabs(mount, [])
   }
 }
 

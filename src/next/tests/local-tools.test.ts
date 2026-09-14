@@ -85,18 +85,18 @@ describe('normalizeLocalToolsState', () => {
     expect(state.noteWindows[0].noteId).toBe(42)
   })
 
-  it('clamps note window width to minimum 280', () => {
+  it('clamps note window width to minimum 100', () => {
     const state = normalizeLocalToolsState({
       noteWindows: [{ noteId: 1, x: 0, y: 0, width: 50, height: 300, z: 221 }],
     })
-    expect(state.noteWindows[0].width).toBe(280)
+    expect(state.noteWindows[0].width).toBe(100)
   })
 
-  it('clamps note window height to minimum 96', () => {
+  it('clamps note window height to minimum 40', () => {
     const state = normalizeLocalToolsState({
       noteWindows: [{ noteId: 1, x: 0, y: 0, width: 400, height: 10, z: 221 }],
     })
-    expect(state.noteWindows[0].height).toBe(96)
+    expect(state.noteWindows[0].height).toBe(40)
   })
 
   it('filters noteLayouts the same as noteWindows', () => {

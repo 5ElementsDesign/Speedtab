@@ -16,9 +16,6 @@ export function renderQuicknoteWindow(state = {}) {
           <p data-window-subtitle>${escapeHtml(t('scratchpad.helperLabel'))}</p>
         </div>
         <div data-window-actions>
-          <button type="button" data-click="refreshQuicknote" title="${escapeHtml(t('scratchpad.refreshAction'))}" aria-label="${escapeHtml(t('scratchpad.refreshAction'))}">
-            &#x21bb;
-          </button>
           <button type="button" data-click="closeQuicknote">${escapeHtml(t('common.close'))}</button>
         </div>
       </header>
@@ -61,9 +58,13 @@ function renderFloatingNoteWindow(note) {
   const contentHtml = note.editMode
     ? renderFloatingNoteEditor(note)
     : renderNoteContentHtml(note)
-  const headerActionsHtml = note.editMode
-    ? renderFloatingNoteEditorActions(note)
-    : renderFloatingNoteViewActions(note, title)
+  const headerQuickActions = note.editMode
+    ? renderFloatingNoteEditorQuickActions(note)
+    : renderFloatingNoteViewQuickActions(note)
+  const headerOptionsHtml = renderFloatingNoteHeaderOptions(
+    note,
+    note.editMode ? renderFloatingNoteEditorOptions(note) : renderFloatingNoteViewOptions(note, title),
+  )
 
   return `
     <article
@@ -71,15 +72,18 @@ function renderFloatingNoteWindow(note) {
       data-note-window-id="${escapeHtml(String(note.id))}"
       data-window-id="note:${escapeHtml(String(note.id))}"
       data-window-type="note"
+      data-note-window-mode="${note.editMode ? 'edit' : 'view'}"
       data-note-style-token="${escapeHtml(styleToken)}"
-      class="st-note-window"
+      ${note.noteBare ? 'data-note-bare' : ''}
+      ${note.noteNailed ? 'data-note-nailed' : ''}
+      class="st-note-window${note.noteHideHeader ? ' st-module-header-hidden' : ''}${note.noteResetPadding ? ' st-reset-padding' : ''}"
       style="top:${escapeHtml(String(note.y ?? 72))}px;left:${escapeHtml(String(note.x ?? 40))}px;width:${escapeHtml(String(note.width ?? 420))}px;height:${escapeHtml(String(note.height ?? 320))}px;z-index:${escapeHtml(String(note.z ?? 221))};"
     >
       <header data-window-header>
         <div data-window-title-wrap>
           <h2 data-window-title data-note-window-title>${title}</h2>
         </div>
-        <div data-window-actions>${headerActionsHtml}</div>
+        ${note.noteHideHeader ? '' : `<div data-window-actions>${headerQuickActions}${headerOptionsHtml}</div>`}
       </header>
       <div
         data-note-window-body
@@ -87,6 +91,10 @@ function renderFloatingNoteWindow(note) {
         data-note-mode="${note.editMode ? 'edit' : 'view'}"
         ${htmlSubtype ? `data-note-html-subtype="${escapeHtml(htmlSubtype)}"` : ''}
       >${contentHtml}</div>
+      ${note.noteHideHeader ? `
+        <span data-note-window-grab data-todo-swipe-grab aria-hidden="true"></span>
+        <div data-note-hidden-options>${headerOptionsHtml}</div>
+      ` : ''}
       <button type="button" data-window-resize-handle aria-label="${escapeHtml(t('noteViewer.resizeAria'))}">
         <i data-icon="resize-grip" aria-hidden="true"></i>
       </button>
@@ -94,9 +102,28 @@ function renderFloatingNoteWindow(note) {
   `
 }
 
-function renderFloatingNoteViewActions(note, title) {
+function renderFloatingNoteViewQuickActions(note) {
   return `
-    ${renderFlyingConfigButton(note)}
+    <button
+      type="button"
+      class="st-btn"
+      data-click="closeFloatingNote"
+      data-note-id="${escapeHtml(String(note.id ?? ''))}"
+      aria-label="${escapeHtml(t('noteViewer.closeAria'))}"
+      title="${escapeHtml(t('noteViewer.close'))}"
+    ><i data-icon="x" aria-hidden="true"></i></button>
+    <button
+      type="button"
+      class="st-btn"
+      data-click="editFloatingNote"
+      data-note-id="${escapeHtml(String(note.id ?? ''))}"
+      title="${escapeHtml(t('noteViewer.edit'))}"
+    ><i data-icon="pencil" aria-hidden="true"></i></button>
+  `
+}
+
+function renderFloatingNoteViewOptions(note, title) {
+  return `
     <button
       type="button"
       class="st-btn"
@@ -106,9 +133,11 @@ function renderFloatingNoteViewActions(note, title) {
       data-note-title="${title}"
       title="${escapeHtml(t('noteViewer.delete'))}"
     ><i data-icon="trash" aria-hidden="true"></i></button>
+    ${renderFlyingConfigButton(note)}
     <button
       type="button"
       class="st-btn"
+      data-btn="ghost"
       data-click="openInPip"
       data-pip-trigger
       data-pip-target="${escapeHtml(`[data-window-id=\"note:${String(note.id ?? '')}\"]`)}"
@@ -117,25 +146,10 @@ function renderFloatingNoteViewActions(note, title) {
       title="${escapeHtml(t('common.pictureInPicture'))}"
       aria-label="${escapeHtml(t('common.pictureInPicture'))}"
     ><i data-icon="external" aria-hidden="true"></i></button>
-    <button
-      type="button"
-      class="st-btn"
-      data-click="editFloatingNote"
-      data-note-id="${escapeHtml(String(note.id ?? ''))}"
-      title="${escapeHtml(t('noteViewer.edit'))}"
-    ><i data-icon="pencil" aria-hidden="true"></i></button>
-    <button
-      type="button"
-      class="st-btn"
-      data-click="closeFloatingNote"
-      data-note-id="${escapeHtml(String(note.id ?? ''))}"
-      aria-label="${escapeHtml(t('noteViewer.closeAria'))}"
-      title="${escapeHtml(t('noteViewer.close'))}"
-    ><i data-icon="x" aria-hidden="true"></i></button>
   `
 }
 
-function renderFloatingNoteEditorActions(note) {
+function renderFloatingNoteEditorQuickActions(note) {
   const formId = `note-editor-${note.id}`
   const isCryptLocked = note.type === 'crypt' && typeof note.unlockedContent !== 'string'
   const previewButton = note.type === 'html'
@@ -146,13 +160,20 @@ function renderFloatingNoteEditorActions(note) {
         data-btn="ghost"
         data-click="toggleFloatingNotePreview"
         data-note-id="${escapeHtml(String(note.id ?? ''))}"
-        title="${escapeHtml(note.previewMode ? t('noteViewer.edit') : t('noteViewer.preview'))}"
-      >${escapeHtml(note.previewMode ? t('noteViewer.edit') : t('noteViewer.preview'))}</button>
+        title="${escapeHtml(note.previewMode ? t('noteViewer.focus') : t('noteViewer.preview'))}"
+      >${escapeHtml(note.previewMode ? t('noteViewer.focus') : t('noteViewer.preview'))}</button>
     ` : ''
 
   return `
     ${isCryptLocked ? '' : previewButton}
-    ${renderFlyingConfigButton(note)}
+    <button
+      type="button"
+      class="st-btn"
+      data-btn="warning"
+      data-click="cancelFloatingNoteEdit"
+      data-note-id="${escapeHtml(String(note.id ?? ''))}"
+      title="${escapeHtml(t('common.cancel'))}"
+    ><i data-icon="blocked" aria-hidden="true"></i></button>
     ${isCryptLocked ? '' : `
       <button
         type="submit"
@@ -163,23 +184,12 @@ function renderFloatingNoteEditorActions(note) {
         title="${escapeHtml(t('common.save'))}"
       >${escapeHtml(t('common.save'))}</button>
     `}
-    <button
-      type="button"
-      class="st-btn"
-      data-btn="warning"
-      data-click="cancelFloatingNoteEdit"
-      data-note-id="${escapeHtml(String(note.id ?? ''))}"
-      title="${escapeHtml(t('common.cancel'))}"
-    ><i data-icon="blocked" aria-hidden="true"></i></button>
-    <button
-      type="button"
-      class="st-btn"
-      data-btn="ghost"
-      data-click="closeFloatingNote"
-      data-note-id="${escapeHtml(String(note.id ?? ''))}"
-      aria-label="${escapeHtml(t('noteViewer.closeAria'))}"
-      title="${escapeHtml(t('noteViewer.close'))}"
-    ><i data-icon="x" aria-hidden="true"></i></button>
+  `
+}
+
+function renderFloatingNoteEditorOptions(note) {
+  return `
+    ${renderFlyingConfigButton(note)}
   `
 }
 
@@ -189,6 +199,7 @@ function renderFlyingConfigButton(note) {
     <button
       type="button"
       class="st-btn"
+      data-btn="ghost"
       data-click="openFlyingConfig"
       data-flying-config-trigger
       data-note-id="${escapeHtml(String(note.id ?? ''))}"
@@ -202,8 +213,18 @@ function renderHtmlEditorToolbar(note) {
   if (note.type !== 'html') return ''
   return `
     <div class="st-note-editor-html-toolbar">
+      <button
+        type="button"
+        class="st-btn"
+        data-btn="primary"
+        data-click="toggleFloatingNoteWorldClockGenerator"
+        data-note-id="${escapeHtml(String(note.id ?? ''))}"
+        title="${escapeHtml(t('noteForm.worldClockTitle'))}"
+        aria-label="${escapeHtml(t('noteForm.worldClockTitle'))}"
+      >${escapeHtml(t('noteForm.worldClock'))}</button>
       <select
         name="template_theme"
+        data-auto-width
         data-note-template-theme
         data-note-id="${escapeHtml(String(note.id ?? ''))}"
         title="${escapeHtml(t('common.settings'))}"
@@ -230,6 +251,16 @@ function renderHtmlEditorToolbar(note) {
         title="${escapeHtml(t('noteForm.insertTableauTitle'))}"
         aria-label="${escapeHtml(t('noteForm.insertTableauTitle'))}"
       >${escapeHtml(t('noteForm.insertTableau'))}</button>
+    </div>
+  `
+}
+
+function renderWorldClockGenerator(note) {
+  if (note.type !== 'html' || note.worldClockGenerator !== true) return ''
+  return `
+    <div data-world-clock-generator>
+      <textarea name="worldclockgenerator" data-form-state-ignore rows="8" spellcheck="false" aria-label="${escapeHtml(t('noteForm.worldClockTitle'))}">${escapeHtml(note.worldClockZones ?? '')}</textarea>
+      <button type="button" class="st-btn" data-btn="primary" data-click="generateFloatingNoteWorldClock" data-note-id="${escapeHtml(String(note.id ?? ''))}">${escapeHtml(t('noteForm.worldClockGenerate'))}</button>
     </div>
   `
 }
@@ -270,22 +301,59 @@ function renderEditorLanguageField(note) {
   `
 }
 
-function renderFloatingNoteEditorOptions(note) {
+function renderFloatingNoteHeaderOptions(note, actionButtons) {
+  const formId = note.editMode ? `note-editor-${note.id}` : ''
+  const optionAttrs = (field) => note.editMode
+    ? `form="${escapeHtml(formId)}" data-change="syncFloatingNoteEditorField" data-editor-field="${field}"`
+    : `data-change="saveFloatingNoteWindowOption" data-window-option="${field}"`
+
   return `
-    <details class="st-note-editor-options">
-      <summary
+    <div class="st-note-editor-options" data-dropdown data-note-options-dropdown>
+      <button
+        type="button"
         class="st-btn"
+        data-dropdown-trigger
+        aria-haspopup="menu"
+        aria-expanded="false"
         title="${escapeHtml(t('common.options'))}"
         aria-label="${escapeHtml(t('common.options'))}"
-      ><i data-icon="cog" aria-hidden="true"></i></summary>
-      <div class="st-note-editor-options-panel">
-        <button
-          type="button"
-          data-click="resetFloatingNoteWindowLayout"
-          data-note-id="${escapeHtml(String(note.id ?? ''))}"
-        >${escapeHtml(t('common.reset'))}</button>
+      ><i data-icon="stack" aria-hidden="true"></i></button>
+      <div class="st-note-editor-options-panel" data-dropdown-panel data-dropdown-keep-open inert>
+        <div class="st-note-header-options">
+          <div data-window-actions>${actionButtons}</div>
+        </div>
+        <div data-customizer-divider aria-hidden="true"></div>
+        <div class="st-note-internal-options">
+
+          <div class="st-note-internal-quickset">
+            <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
+              <span data-customizer-field-label>${escapeHtml(t('noteForm.hideHeader'))}</span>
+              <input type="checkbox" name="note_hide_header" data-note-id="${escapeHtml(String(note.id ?? ''))}" ${optionAttrs('note_hide_header')}${note.noteHideHeader ? ' checked' : ''}>
+            </label>
+            <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
+              <span data-customizer-field-label>${escapeHtml(t('noteForm.removeDefaultPadding'))}</span>
+              <input type="checkbox" name="note_reset_padding" data-note-id="${escapeHtml(String(note.id ?? ''))}" ${optionAttrs('note_reset_padding')}${note.noteResetPadding ? ' checked' : ''}>
+            </label>
+            <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
+              <span data-customizer-field-label>${escapeHtml(t('noteForm.removeBackgroundBorder'))}</span>
+              <input type="checkbox" name="note_bare" data-note-id="${escapeHtml(String(note.id ?? ''))}" ${optionAttrs('note_bare')}${note.noteBare ? ' checked' : ''}>
+            </label>
+            <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
+              <span data-customizer-field-label>${escapeHtml(t('noteForm.nailToPosition'))}</span>
+              <input type="checkbox" name="note_nailed" data-note-id="${escapeHtml(String(note.id ?? ''))}" ${optionAttrs('note_nailed')}${note.noteNailed ? ' checked' : ''}>
+            </label>
+          </div>
+
+          ${note.hasSavedLayout ? `<div data-customizer-divider aria-hidden="true"></div>
+          <button
+            type="button"
+            data-btn="ghost"
+            data-click="resetFloatingNoteWindowLayout"
+            data-note-id="${escapeHtml(String(note.id ?? ''))}"
+          >${escapeHtml(t('customizer.reset'))}</button>` : ''}
+        </div>
       </div>
-    </details>
+    </div>
   `
 }
 
@@ -380,11 +448,6 @@ function renderFloatingNoteEditor(note) {
           </select>
         </label>
         ${renderEditorLanguageField(note)}
-        ${note.hasSavedLayout ? `
-        <div class="st-note-editor-side-actions">
-          ${renderFloatingNoteEditorOptions(note)}
-        </div>
-        ` : ''}
       </div>
       <div class="st-note-editor-panels${isHtml ? ' is-html' : ''}">
         ${isHtml ? `
@@ -412,6 +475,7 @@ function renderFloatingNoteEditor(note) {
               ${renderHtmlEditorToolbar(note)}
             </div>
           </div>
+          ${renderWorldClockGenerator(note)}
           <textarea
             name="content"
             rows="${isHtml ? '16' : '12'}"

@@ -1,5 +1,6 @@
 export type WidgetRailPosition = 'top' | 'bottom'
 export type WidgetRailAlign = 'left' | 'center' | 'right' | 'space-between' | 'space-around'
+export type WidgetItemAlign = 'start' | 'center' | 'end' | 'stretch'
 export type ClockWidgetAlign = 'left' | 'right'
 export type ClockWidgetDisplay = 'digital' | 'analog'
 export type WeatherWidgetProvider = 'open_meteo'
@@ -38,6 +39,7 @@ export interface ClockWidgetConfig {
   display: ClockWidgetDisplay
   smooth_motion: boolean
   two_row: boolean
+  order_reverse: boolean
   date_format: string
   time_format: string
   background: string | null
@@ -53,6 +55,7 @@ export interface WidgetSettings {
   rail_enabled: boolean
   rail_position: WidgetRailPosition
   rail_align: WidgetRailAlign
+  item_align: WidgetItemAlign
   rail_ignore_max_width: boolean
   remote_sync_indicator: boolean
   weather: WeatherWidgetConfig
@@ -91,6 +94,7 @@ export const DEFAULT_CLOCK_WIDGET_SETTINGS: ClockWidgetConfig = {
   display: 'digital',
   smooth_motion: false,
   two_row: true,
+  order_reverse: false,
   date_format: DEFAULT_CLOCK_DATE_FORMAT,
   time_format: DEFAULT_CLOCK_TIME_FORMAT,
   background: null,
@@ -122,6 +126,7 @@ export const DEFAULT_WIDGET_SETTINGS: WidgetSettings = {
   rail_enabled: true,
   rail_position: 'bottom',
   rail_align: 'space-between',
+  item_align: 'end',
   rail_ignore_max_width: false,
   remote_sync_indicator: false,
   weather: DEFAULT_WEATHER_WIDGET_SETTINGS,

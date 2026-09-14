@@ -5,30 +5,12 @@ import {buildNotePayload} from '../modules/note-form.js'
 let tabsInstance = null
 
 /**
- * Single integration point for Flying Config.
- * The existing YaiTabs instance remains the event delegation layer.
+ * Keep the owning YaiTabs instance available for newly added tabs.
  */
-export function installFlyingConfig(tabs, onEvent) {
-  if (!tabs?.hook || typeof onEvent !== 'function') return () => {}
+export function installFlyingConfig(tabs) {
+  if (!tabs) return () => {}
   tabsInstance = tabs
-
-  const eventClick = (context) => {
-    const {target, action} = context ?? {}
-    if (!target?.matches?.('[data-flying-config-trigger], [data-flying-config-menu], [data-flying-config-target-index], [data-click="saveFlyingConfig"], [data-flying-config-back], [data-flying-config-maximize], [data-flying-config-close], [data-flying-config-remove-markers], [data-flying-config-add], [data-flying-config-delete], [data-flying-config-move], [data-flying-config-view-toggle]')) return
-    onEvent({target, action, event: context?.event})
-  }
-
-  const eventInput = (context) => {
-    const {target, action} = context ?? {}
-    if (!target?.matches?.('[data-input="filterFlyingConfig"]')) return
-    onEvent({target, action, event: context?.event})
-  }
-
-  tabs.hook('eventClick', eventClick)
-  tabs.hook('eventInput', eventInput)
   return () => {
-    tabs.unhook?.('eventClick', eventClick)
-    tabs.unhook?.('eventInput', eventInput)
     tabsInstance = null
   }
 }
@@ -372,7 +354,10 @@ function renderComponentTreeList(noteWindow, markActive = false) {
 }
 
 export async function openFlyingConfig(target) {
-  const noteWindow = target?.closest?.('[data-floating-window][data-note-window-id]')
+  const triggerNoteId = target?.dataset?.noteId ?? ''
+  const directNoteWindow = target?.closest?.('[data-floating-window][data-note-window-id]')
+  const noteWindow = directNoteWindow
+    ?? (triggerNoteId ? document.querySelector(`[data-floating-window][data-note-window-id="${CSS.escape(triggerNoteId)}"]`) : null)
   if (!(noteWindow instanceof HTMLElement)) return
 
   if (target.matches('[data-flying-config-maximize]')) {

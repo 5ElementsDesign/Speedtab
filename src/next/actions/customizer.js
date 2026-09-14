@@ -1,6 +1,7 @@
+import {deleteModuleTree} from '../../composables/useMaintenance.ts'
 import {YEH} from '../../lib/yai/yeh.js'
 import {closeSidepanel, getSidepanelState} from '../components/sidepanel.js'
-import {deleteModuleTree} from '../../composables/useMaintenance.ts'
+import {setState} from '../components/state-object.js'
 import {getUiConfigSpec} from '../config/ui-config-spec.js'
 import {getCachedAppSettings, loadPageBackgroundOverride, saveAppSetting} from '../data/app-settings.js'
 import {loadModuleBySyncId, saveModuleData} from '../data/modules.js'
@@ -25,6 +26,12 @@ const CUSTOMIZER_GROUP_KEYS = {
     '--st-ws-shell-nav-text-color',
     '--st-ws-shell-nav-active-background-color',
     '--st-ws-shell-nav-active-text-color',
+    '--st-nav-header-background-color',
+    '--st-nav-header-text-color',
+    '--st-nav-background-color',
+    '--st-nav-text-color',
+    '--st-nav-active-background-color',
+    '--st-nav-active-text-color',
     '--st-ws-module-background-color',
     '--st-ws-module-shadow-color',
   ],
@@ -42,6 +49,13 @@ function renderShellWallpaperToggleContent(isBackgroundRemoved) {
   }
 }
 
+async function applyShellTheme(theme) {
+  const nextTheme = normalizeDocumentTheme(theme)
+  await saveAppSetting('ui_theme', nextTheme)
+  applyDocumentTheme(nextTheme)
+  setState('shell-theme', nextTheme === 'light')
+}
+
 function getActivePageBackgroundOverride() {
   const activeButton = document.querySelector('[data-controller] [data-tab-action="open"][aria-selected="true"]')
   const activeSlug = activeButton?.dataset?.open
@@ -56,7 +70,7 @@ async function renderWallspeedMarkup() {
   const backgroundValue = getBackgroundValue(backgroundSettings)
   return `
   <div data-st-wallspeed data-current-wallpaper="${escapeHtml(backgroundValue)}" class="fade-in is-visible">
-    <div data-yai-tabs data-theme="dark" data-color-accent="light" data-auto-accessibility="false">
+    <div data-yai-tabs data-theme="dark" data-color-accent="secondary" data-auto-accessibility="false">
       <nav data-controller>
         <button
           data-tab-action="open"
@@ -280,6 +294,23 @@ function refreshModuleBookmarkMedia(syncId) {
   if (mediaScope) initBookmarkMedia(mediaScope)
 }
 
+function closeWallspeed() {
+  const wallspeed = document.querySelector('[data-st-wallspeed]')
+  if (!wallspeed) {
+    document.body.classList.remove('st-wallspeed-active')
+    setState('wallspeed', false)
+    return
+  }
+  wallspeed.classList.remove('fade-in', 'is-visible')
+  wallspeed.classList.add('fade-out', 'is-hidden')
+  setState('wallspeed', false)
+  setTimeout(() => {
+    wallspeed.remove()
+    document.getElementById('highlight-active-wallpaper')?.remove()
+    document.body.classList.remove('st-wallspeed-active')
+  }, 200)
+}
+
 function persistCustomizerValue({syncId, moduleType, section, key, value}) {
   const task = persistAndApply({syncId, moduleType, section, key, value})
   maybeUpdateContrastBadge(task, section, key)
@@ -296,7 +327,11 @@ export const customizerActions = {
     const content = document.querySelector('#app [data-app] main[data-app-content]')
     if (!(content instanceof HTMLElement)) return
 
-    document.querySelector('[data-st-wallspeed]')?.remove()
+    if (document.querySelector('[data-st-wallspeed]')) {
+      closeWallspeed()
+      return
+    }
+
     content.insertAdjacentHTML('afterbegin', await renderWallspeedMarkup())
     const wallspeed = content.querySelector(':scope > [data-st-wallspeed]')
     const container = wallspeed?.querySelector(':scope > [data-yai-tabs]')
@@ -304,22 +339,12 @@ export const customizerActions = {
     const tabs = document.querySelector('#app')?.__nextTabsInstance
     if (container && defaultButton) tabs?.openTab?.(defaultButton, null, container, true)
     document.body.classList.add('st-wallspeed-active')
+    setState('wallspeed', true)
     closeSidepanel()
   },
 
   closeWallspeed() {
-    const wallspeed = document.querySelector('[data-st-wallspeed]')
-    if (!wallspeed) {
-      document.body.classList.remove('st-wallspeed-active')
-      return
-    }
-    wallspeed.classList.remove('fade-in', 'is-visible')
-    wallspeed.classList.add('fade-out', 'is-hidden')
-    setTimeout(() => {
-      wallspeed.remove()
-      document.getElementById('highlight-active-wallpaper')?.remove()
-      document.body.classList.remove('st-wallspeed-active')
-    }, 200)
+    closeWallspeed()
   },
 
   async openCustomizer(target, event) {
@@ -344,17 +369,11 @@ export const customizerActions = {
   },
 
   async setShellThemePreset(target) {
-    const nextTheme = normalizeDocumentTheme(
-      target?.dataset?.themeValue || getCachedAppSettings().ui_theme || 'dark',
-    )
-    await saveAppSetting('ui_theme', nextTheme)
-    applyDocumentTheme(nextTheme)
+    await applyShellTheme(target?.dataset?.themeValue || getCachedAppSettings().ui_theme || 'dark')
+  },
 
-    const wrap = target?.closest?.('[data-customizer-inline-actions]')
-    wrap?.querySelectorAll?.('[data-click="setShellThemePreset"]').forEach((button) => {
-      if (!(button instanceof HTMLElement)) return
-      button.setAttribute('aria-pressed', button.dataset.themeValue === nextTheme ? 'true' : 'false')
-    })
+  async stToggleColorPreset(target) {
+    await applyShellTheme(target.checked ? target.value : target.dataset.toggleValue)
   },
 
   async toggleShellWallpaper() {

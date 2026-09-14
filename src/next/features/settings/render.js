@@ -136,6 +136,16 @@ export function renderWeatherLocationSearchState(location = null, weatherState =
 
   return `
     <div data-weather-location-search-state>
+      <label class="flex-between-center position-relative" data-customizer-field-label>
+        ${escapeHtml(t('settings.weatherLocation'))}
+        <button
+          type="button"
+          data-tip
+          data-pos="top"
+          data-tip-on-parent
+          aria-label="${escapeHtml(t('settings.weatherLocationHelp'))}"
+        ><i data-icon="help" aria-hidden="true"></i></button>
+      </label>
       <input
         id="weather_location_query"
         name="weather_location_query"
@@ -145,7 +155,6 @@ export function renderWeatherLocationSearchState(location = null, weatherState =
         data-input="searchWeatherLocations"
         data-settings-wide-input
       />
-      <span data-settings-hint>${escapeHtml(t('settings.weatherLocationHelp'))}</span>
       ${location ? `
         <div data-configuration-ww-current-location>
           <div data-settings-current-location>
@@ -195,12 +204,14 @@ export function renderBgAssetThumbs(assets, options = {}) {
   const {
     selectAction = 'loadBgAsset',
     deleteAction = 'deleteBgAsset',
+    activeAssetId = null,
   } = options
   if (!assets.length) return ''
   return assets.map((asset) => {
     const objUrl = asset._objectUrl ?? ''
+    const isActive = Number(asset.id) === Number(activeAssetId)
     return `
-      <div data-bg-asset-card>
+      <div data-bg-asset-card${isActive ? ' data-bg-active' : ''}>
         <button
           type="button"
           data-click="${escapeHtml(selectAction)}"
@@ -229,6 +240,10 @@ function renderRailSettingsSection(widgetSettings = {}) {
   const railAlign = railAlignOptions.has(widgetSettings?.rail_align)
     ? widgetSettings.rail_align
     : DEFAULT_WIDGET_SETTINGS.rail_align
+  const itemAlignOptions = new Set(['start', 'center', 'end', 'stretch'])
+  const itemAlign = itemAlignOptions.has(widgetSettings?.item_align)
+    ? widgetSettings.item_align
+    : DEFAULT_WIDGET_SETTINGS.item_align
   const railIgnoreMaxWidth = widgetSettings?.rail_ignore_max_width === true
   return customizerSection({title: t('settings.rail'), children: `
     <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
@@ -275,6 +290,21 @@ function renderRailSettingsSection(widgetSettings = {}) {
         </select>
       </div>
 
+      <div data-customizer-field>
+        <span data-customizer-field-label>${t('settings.widgetAlignment')}</span>
+        <select
+          id="widget_item_align"
+          name="widget_item_align"
+          data-change="changeWidgetSetting"
+          data-widget-path="item_align"
+        >
+          <option value="start"${itemAlign === 'start' ? ' selected' : ''}>${escapeHtml(t('settings.alignStart'))}</option>
+          <option value="center"${itemAlign === 'center' ? ' selected' : ''}>${escapeHtml(t('settings.center'))}</option>
+          <option value="end"${itemAlign === 'end' ? ' selected' : ''}>${escapeHtml(t('settings.alignEnd'))}</option>
+          <option value="stretch"${itemAlign === 'stretch' ? ' selected' : ''}>${escapeHtml(t('settings.stretch'))}</option>
+        </select>
+      </div>
+
       <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
         <span data-customizer-field-label>${t('settings.railIgnoreMaxWidth')}</span>
         <input
@@ -310,22 +340,20 @@ function renderWeatherSettingsSection(widgetSettings = {}, weatherState = {}) {
       </label>
       ${weatherEnabled ? `
         <div data-customizer-field data-customizer-field-layout="stack" data-customizer-gap="sm">
-          <span data-customizer-field-label>${escapeHtml(t('settings.weatherLocation'))}</span>
           ${renderWeatherLocationSearchState(location, {...weatherState, displayLabel: weather.display_label})}
         </div>
+        <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
+          <span data-customizer-field-label>${t('settings.compactMode')}</span>
+          <input
+            type="checkbox"
+            name="weather_compact_mode"
+            data-change="changeWidgetSetting"
+            data-widget-path="weather.compact_mode"
+            data-value-type="boolean"
+            ${weather.compact_mode === true ? 'checked' : ''}
+          />
+        </label>
         ${renderWidgetAdvancedOptions(`
-          <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
-            <span data-customizer-field-label>${t('settings.compactMode')}</span>
-            <input
-              type="checkbox"
-              name="weather_compact_mode"
-              data-change="changeWidgetSetting"
-              data-widget-path="weather.compact_mode"
-              data-value-type="boolean"
-              ${weather.compact_mode === true ? 'checked' : ''}
-            />
-          </label>
-
           <div data-customizer-field>
             <span data-customizer-field-label>${t('settings.units')}</span>
             <select
@@ -467,6 +495,17 @@ function renderClockSettingsSection(widgetSettings = {}) {
             data-widget-path="clock.two_row"
             data-value-type="boolean"
             ${clock.two_row === true ? 'checked' : ''}
+          />
+        </label>
+        <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
+          <span data-customizer-field-label>${t('settings.reverseDateTimeOrder')}</span>
+          <input
+            type="checkbox"
+            name="clock_order_reverse"
+            data-change="changeWidgetSetting"
+            data-widget-path="clock.order_reverse"
+            data-value-type="boolean"
+            ${clock.order_reverse === true ? 'checked' : ''}
           />
         </label>
         ${renderWidgetAdvancedOptions(`
@@ -615,10 +654,11 @@ export function renderBgArchiveSwatches(items, options = {}) {
   const {
     selectAction = 'loadBgArchiveItem',
     deleteAction = 'deleteBgArchiveItem',
+    activeValue = '',
   } = options
   if (!items.length) return ''
   return items.map((item) => `
-    <div data-bg-archive-card>
+    <div data-bg-archive-card${item.value === activeValue ? ' data-bg-active' : ''}>
       <button
         type="button"
         class="st-btn"
@@ -662,12 +702,16 @@ export function renderBackgroundSettingsSection(bgData = {}, options = {}) {
     assetSelectAction = 'loadBgAsset',
     assetDeleteAction = 'deleteBgAsset',
     formStateIgnore = false,
+    titleHelp = '',
   } = options
 
-  const {background_properties = '', bgArchive = [], bgAssets = []} = bgData
+  const {background_properties = '', background_asset_id = null, bgArchive = [], bgAssets = []} = bgData
   const backgroundColorValue = toColorInputValue(background_properties?.trim?.() ?? background_properties)
+  const titleMarkup = titleHelp
+    ? `<span class="flex-between-center position-relative">${escapeHtml(title)}<button type="button" data-tip data-pos="top" data-tip-on-parent aria-label="${escapeHtml(titleHelp)}"><i data-icon="help" aria-hidden="true"></i></button></span>`
+    : escapeHtml(title)
 
-  return section(title, `
+  return renderSection({titleHtml: titleMarkup, children: `
     <div data-customizer-field data-customizer-field-layout="background-input">
       <div data-color-item>
         <input
@@ -705,11 +749,12 @@ export function renderBackgroundSettingsSection(bgData = {}, options = {}) {
       <button type="button" data-btn="warning" data-click="${escapeHtml(clearAction)}" data-customizer-compact-btn>${t('settings.clear')}</button>
     </div>
     ${bgArchive.length
-      ? `<div data-bg-archive-list>${renderBgArchiveSwatches(bgArchive, {
+      ? `<div data-bg-archive-list data-bg-active-value="${escapeHtml(background_properties)}">${renderBgArchiveSwatches(bgArchive, {
         selectAction: archiveSelectAction,
         deleteAction: archiveDeleteAction,
+        activeValue: background_properties,
       })}</div>`
-      : '<div data-bg-archive-list></div>'}
+      : `<div data-bg-archive-list data-bg-active-value="${escapeHtml(background_properties)}"></div>`}
     <div data-customizer-field data-customizer-field-layout="stack" data-customizer-gap="md">
       <label data-customizer-upload-row>
         <span data-customizer-field-label>${t('customizer.uploadWallpaper')}</span>
@@ -718,12 +763,13 @@ export function renderBackgroundSettingsSection(bgData = {}, options = {}) {
       </label>
     </div>
     ${bgAssets.length
-      ? `<div data-bg-asset-list>${renderBgAssetThumbs(bgAssets, {
+      ? `<div data-bg-asset-list data-bg-active-asset-id="${escapeHtml(String(background_asset_id ?? ''))}">${renderBgAssetThumbs(bgAssets, {
         selectAction: assetSelectAction,
         deleteAction: assetDeleteAction,
+        activeAssetId: background_asset_id,
       })}</div>`
-      : '<div data-bg-asset-list></div>'}
-  `)
+      : `<div data-bg-asset-list data-bg-active-asset-id="${escapeHtml(String(background_asset_id ?? ''))}"></div>`}
+  `})
 }
 
 export function renderSettingsPanel(settings, widgetSettings = {}) {
@@ -840,6 +886,10 @@ export function renderWidgetSettingsPanel(widgetSettings = {}, weatherState = {}
   const railAlign = railAlignOptions.has(widgetSettings?.rail_align)
     ? widgetSettings.rail_align
     : 'left'
+  const itemAlignOptions = new Set(['start', 'center', 'end', 'stretch'])
+  const itemAlign = itemAlignOptions.has(widgetSettings?.item_align)
+    ? widgetSettings.item_align
+    : DEFAULT_WIDGET_SETTINGS.item_align
   const railIgnoreMaxWidth = widgetSettings?.rail_ignore_max_width === true
   return `
     <div data-settings-form data-customizer-form>
@@ -869,6 +919,19 @@ export function renderWidgetSettingsPanel(widgetSettings = {}, weatherState = {}
               <option value="right"${railAlign === 'right' ? ' selected' : ''}>${escapeHtml(t('settings.right'))}</option>
               <option value="space-between"${railAlign === 'space-between' ? ' selected' : ''}>${escapeHtml(t('settings.spaceBetween'))}</option>
               <option value="space-around"${railAlign === 'space-around' ? ' selected' : ''}>${escapeHtml(t('settings.spaceAround'))}</option>
+            </select>
+          </div>
+          <div data-customizer-field>
+            <span data-customizer-field-label>${t('settings.widgetAlignment')}</span>
+            <select
+              id="widget_item_align"
+              name="widget_item_align"
+              data-change="changeWidgetSetting"
+              data-widget-path="item_align">
+              <option value="start"${itemAlign === 'start' ? ' selected' : ''}>${escapeHtml(t('settings.alignStart'))}</option>
+              <option value="center"${itemAlign === 'center' ? ' selected' : ''}>${escapeHtml(t('settings.center'))}</option>
+              <option value="end"${itemAlign === 'end' ? ' selected' : ''}>${escapeHtml(t('settings.alignEnd'))}</option>
+              <option value="stretch"${itemAlign === 'stretch' ? ' selected' : ''}>${escapeHtml(t('settings.stretch'))}</option>
             </select>
           </div>
 

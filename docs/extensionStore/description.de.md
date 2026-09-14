@@ -20,6 +20,7 @@ Was du mit Speedtab tun kannst:
 • Aufgaben und To-Dos mit Prioritäten, Fälligkeitsdaten, Notizen und visuellen Statusindikatoren verwalten
 • Text-, Code-, Link-, benutzerdefinierte HTML- und verschlüsselte Notizen erstellen
 • unendliche, tief verschachtelte Tab-Strukturen in deinen HTML-Notizen erstellen (angetrieben durch YaiTabs)
+• synchronisierte Weltuhren in portablen HTML-Notizen erstellen
 • Notizen und Feed-Module in schwebende Document Picture-in-Picture-Fenster (PiP) auskoppeln
 • RSS/Atom-Feeds direkt auf deiner Startseite mit individuellen Tab-Aktualisierungsintervallen lesen
 • Gelesen/Ungelesen-Status verfolgen und interessante Feed-Einträge mit Kommentaren archivieren
@@ -148,7 +149,7 @@ INTERNATIONALISIERUNG & NATIVE LOKALISIERUNG
 PERFORMANCE & GRÖSSE
 ----------------------------------------
 
-• Gezippte Extension-Größe: ~710 KB
+• Gezippte Extension-Größe: ~700 KB
 • Chrome Task-Manager:
   - Speicher: ~50 MB Gesamtspeicher / ~5 MB aktiver JavaScript-Heap
   - CPU-Auslastung: 1-10% während aktiver Nutzung

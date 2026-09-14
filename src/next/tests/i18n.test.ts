@@ -12,7 +12,7 @@ vi.mock('../../db/db', async (importOriginal) => {
   }
 })
 
-import { getLocale, initI18n, t } from '../utils/i18n.js'
+import { getLocale, initI18n, setMissingTranslationLogging, t } from '../utils/i18n.js'
 
 describe('i18n utility', () => {
   beforeEach(async () => {
@@ -20,6 +20,7 @@ describe('i18n utility', () => {
   })
 
   afterEach(async () => {
+    setMissingTranslationLogging(false)
     await testDb.app_settings.clear()
     await testDb.close()
     vi.unstubAllGlobals()
@@ -63,6 +64,18 @@ describe('i18n utility', () => {
     await initI18n()
     const result = t('common.nonexistent_key_123')
     expect(result).toBe('common.nonexistent_key_123')
+  })
+
+  it('can report missing translations during development', async () => {
+    await initI18n()
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    setMissingTranslationLogging(true)
+
+    expect(t('common.nonexistent_key_123')).toBe('common.nonexistent_key_123')
+    expect(error).toHaveBeenCalledWith('[Speedtab i18n] Missing translation.', {
+      key: 'common.nonexistent_key_123',
+      locale: 'en',
+    })
   })
 
   it('interpolates parameters correctly', async () => {

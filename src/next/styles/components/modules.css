@@ -46,6 +46,30 @@
   height: 100%;
 }
 
+body.app-is-zooming-in {
+  [data-app] {
+    display: block;
+
+    &[data-yai-tabs] {
+      &[data-root] {
+        overflow: auto;
+      }
+      [data-app-content],
+      [data-tab].active {
+        min-height: 0;
+        height: auto;
+      }
+      [data-grid-row] {
+        display: block;
+
+        [data-grid-col] {
+          margin-bottom: 2rem;
+        }
+      }
+    }
+  }
+}
+
 @media (max-width: 767px) {
   [data-grid-row] {
     display: flex;

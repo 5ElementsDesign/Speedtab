@@ -1,8 +1,8 @@
 import {saveAppSetting} from '../data/app-settings.js'
-import {syncPictureInPicture} from './picture-in-picture.js'
 import {convertImageBlobToWebp, storeOrGetAsset} from '../data/assets.js'
 import {applyDocumentTheme} from '../utils/document-theme.js'
 import {applyWorkspaceBackground, getBackgroundValue, isValidBackground} from '../utils/workspace-background.js'
+import {syncPictureInPicture} from './picture-in-picture.js'
 
 function readWallpaperSource(target) {
   const item = target.closest?.('[data-wp-item]')
@@ -31,7 +31,17 @@ export function syncWallspeedActiveWallpaper() {
   const activeStyle = style ?? document.head.appendChild(document.createElement('style'))
   activeStyle.id = 'highlight-active-wallpaper'
   const selector = `#app [data-st-wallpaper-id="${CSS.escape(currentWallpaper)}"]`
-  activeStyle.textContent = `${selector} { box-shadow: 0 0 8px 5px #41b1fd !important; border-color: #41b1fd !important; } ${selector} [data-click="usrCaptureCssAsBg"], ${selector} [data-click="usrCaptureImageAsWallpaper"] { pointer-events: none !important; opacity: .6 !important; background: #333 !important; }`
+  activeStyle.textContent = `
+    ${selector} {
+      box-shadow: 0 0 8px 5px #41b1fd !important;
+      border-color: #41b1fd !important;
+    }
+    ${selector} [data-click="usrCaptureCssAsBg"],
+    ${selector} [data-click="usrCaptureImageAsWallpaper"] {
+      pointer-events: none !important;
+      opacity: .6 !important;
+      background: #333 !important;
+    }`
 }
 
 function syncWallspeedBackgroundValue() {

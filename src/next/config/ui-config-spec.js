@@ -229,6 +229,30 @@ export const UI_CONFIG_SPEC = {
           valueType: 'color', validate: isCssColor, defaultValue: '',
           target: 'shell-root', applyAs: {type: 'css-variable', name: '--st-ws-shell-nav-active-text-color'},
         },
+        '--st-nav-header-background-color': {
+          valueType: 'color', validate: isCssColor, defaultValue: '',
+          target: 'document-root', applyAs: {type: 'css-variable', name: '--st-nav-header-background-color'},
+        },
+        '--st-nav-header-text-color': {
+          valueType: 'color', validate: isCssColor, defaultValue: '',
+          target: 'document-root', applyAs: {type: 'css-variable', name: '--st-nav-header-text-color'},
+        },
+        '--st-nav-background-color': {
+          valueType: 'color', validate: isCssColor, defaultValue: '',
+          target: 'document-root', applyAs: {type: 'css-variable', name: '--st-nav-background-color'},
+        },
+        '--st-nav-text-color': {
+          valueType: 'color', validate: isCssColor, defaultValue: '',
+          target: 'document-root', applyAs: {type: 'css-variable', name: '--st-nav-text-color'},
+        },
+        '--st-nav-active-background-color': {
+          valueType: 'color', validate: isCssColor, defaultValue: '',
+          target: 'document-root', applyAs: {type: 'css-variable', name: '--st-nav-active-background-color'},
+        },
+        '--st-nav-active-text-color': {
+          valueType: 'color', validate: isCssColor, defaultValue: '',
+          target: 'document-root', applyAs: {type: 'css-variable', name: '--st-nav-active-text-color'},
+        },
         '--st-module-bookmark-preview-background-color': {
           valueType: 'color', validate: isCssColor, defaultValue: '',
           target: 'shell-root', applyAs: {type: 'css-variable', name: '--st-module-bookmark-preview-background-color'},
@@ -270,7 +294,7 @@ export const UI_CONFIG_SPEC = {
         '--st-notes-open-link-color': {
           valueType: 'color', validate: isCssColor, defaultValue: '',
           target: 'document-root', group: 'noteOpen',
-          applyAs: {type: 'css-variable', name: '--st-notes-open-link-color'},
+          applyAs: {type: 'css-variable', name: '--st-notes-open-link-color-custom'},
         },
         '--st-notes-open-content-font-scale': {
           valueType: 'integer',
@@ -542,6 +566,21 @@ export const UI_CONFIG_SPEC = {
           defaultValue: false,
           target: 'controller',
           applyAs: {type: 'attribute', name: 'data-grow', trueValue: ''},
+        },
+        'module-tabs-behavior': {
+          valueType: 'enum',
+          allowedValues: TAB_BEHAVIOR_VALUES,
+          validate: isEnum(TAB_BEHAVIORS),
+          defaultValue: 'zoom',
+          target: 'tabs-root',
+          applyAs: {type: 'attribute', name: 'data-behavior'},
+        },
+        'module-tabs-swipe-enabled': {
+          valueType: 'boolean',
+          validate: isBoolean,
+          defaultValue: true,
+          target: 'tabs-root',
+          applyAs: {type: 'attribute', name: 'data-swipe', trueValue: 'slyde'},
         },
         'module-hide-header': {
           valueType: 'boolean',

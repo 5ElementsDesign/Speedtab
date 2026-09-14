@@ -449,7 +449,7 @@ export function renderFeedItemBody(item, sourceTitle, moduleSyncId, collectionId
           ? `<p class="st-module-feed-item-empty">${escapeHtml(t('feedItem.noSummary'))}</p>`
           : ''}
 
-      <div class="st-module-feed-item-actions">
+      <div class="st-module-feed-item-actions" data-swipe-ignore>
         ${item.url ? `
           <a
             href="${escapeHtml(item.url)}"
@@ -703,12 +703,6 @@ export function renderFeedContentZone(moduleSyncId, collectionId, vm) {
       <div class="st-module-feed-empty">
         <div>
           <p class="st-module-feed-empty-text">${escapeHtml(t('feeds.loadedItemsHidden'))}</p>
-          <button
-            type="button"
-            data-click="toggleLoadedItemsVisibility"
-            data-feed-collection-id="${escapeHtml(String(collectionId))}"
-            data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
-          >${escapeHtml(t('feeds.showLoadedItems'))}</button>
         </div>
       </div>
     `
@@ -744,22 +738,6 @@ export function renderFeedContentZone(moduleSyncId, collectionId, vm) {
                 ? t('feeds.noItemsForSource')
                 : t('feeds.noItemsFound')
         )}</p>
-        ${!sources.length ? `
-          <button
-            type="button"
-            data-click="openAddFeedSource"
-            data-feed-collection-id="${escapeHtml(String(collectionId))}"
-            data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
-          >${escapeHtml(t('feeds.addSource'))}</button>
-        ` : state.activeSourceId != null ? `
-          <button
-            type="button"
-            data-click="toggleFeedSource"
-            data-feed-source-id="${escapeHtml(String(state.activeSourceId))}"
-            data-feed-collection-id="${escapeHtml(String(collectionId))}"
-            data-feed-module-sync-id="${escapeHtml(moduleSyncId)}"
-          >${escapeHtml(t('feeds.showAllSources'))}</button>
-        ` : ''}
       </div>
     </div>
   `
@@ -847,7 +825,7 @@ export function renderFeedsModule(tabs = [], actionsHtml = '', moduleId = null, 
     return `
       <div data-module-empty-state-wrap>
         ${actions}
-        <div data-swipe-ignore><p class="st-module-empty-state">${escapeHtml(t('feeds.noFeedsInModule'))}</p></div>
+        <div><p class="st-module-empty-state">${escapeHtml(t('feeds.noFeedsInModule'))}</p></div>
       </div>
     `
   }
@@ -882,8 +860,8 @@ export function renderFeedsModule(tabs = [], actionsHtml = '', moduleId = null, 
   const refPath = moduleId != null ? ` data-ref-path="${refPathName}"` : ''
 
   return `
-    <div data-module-tabs-shell data-swipe-ignore data-feed-skip-images="${moduleConfig.skipImages ? 'true' : 'false'}">
-      <div data-yai-tabs data-behavior="fade"${refPath}>
+    <div data-module-tabs-shell data-feed-skip-images="${moduleConfig.skipImages ? 'true' : 'false'}">
+      <div data-yai-tabs data-swipe data-behavior="fade"${refPath}>
         <nav data-controller>${navBtns}</nav>
         ${actions}
         <div data-content>${panels}</div>

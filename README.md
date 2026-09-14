@@ -45,15 +45,15 @@ Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/a
 
 ### Speed Dial 4.0
 
-![Speedtab start page](screenshots/1-speedtab-start.1.png)
+![Speedtab start page](screenshots/1-speedtab-start.2.png)
 
 ### Wallspeed
 
-![Speedtab Wallspeed](screenshots/7-speedtab-wallspeed.1.png)
+![Speedtab Wallspeed](screenshots/7-speedtab-wallspeed.2.png)
 
 ### Notes Viewer
 
-![Speedtab open notes](screenshots/2-speedtab-open-notes.1.jpg)
+![Speedtab open notes](screenshots/2-speedtab-open-notes.2.png)
 
 ### Interactive Nested Notes
 
@@ -225,9 +225,13 @@ Why they are needed:
 - `unlimitedStorage`: allows larger local datasets and image assets in IndexedDB
 - `contextMenus`: lets users send selected text or the current page into Speedtab from the browser context menu
 - `identity`: required for optional Google Drive OAuth
-- `host permissions`: required so the background service worker can fetch RSS/Atom feeds across origins
+- `host permissions`: required for dynamic cross-origin capabilities where domain targets cannot be predicted in advance:
+  - **Dynamic Content & Asset Fetching:** powers the RSS/Atom feed reader and automated bookmark favicon resolution.
+  - **Live URL Tab Loading:** enables embedding live web URLs inside nested YaiTabs within HTML notes (e.g., dynamically fetching remote markdown docs like `PRIVACY.md` or `SECURITY.md` into notes).
+  - **Cloud Content Integration:** allows fetching hosted wallpaper collections and repository assets directly from Speedtab's internal [Wallspeed service](https://5elementsdesign.github.io/Speedtab/ext/st/).
 
-Speedtab requests broad host permissions because users can configure RSS/Atom feeds from arbitrary domains, and those domains cannot be enumerated in advance.
+Speedtab requests broad host permissions because features like user-configured RSS feeds, custom URL tabs, and bookmark favicon resolution target arbitrary user-provided domains that cannot be enumerated in advance.
+
 
 ## Browser Compatibility
 

@@ -244,10 +244,8 @@
   border: 1px solid var(--st-feed-item-divider);
   box-sizing: border-box;
 
+
   &[data-focus-width] {
-    .st-module-feed-item:last-of-type {
-      min-height: 100%;
-    }
     [data-click="openFeedFocusQuick"] {
       display: none;
     }
@@ -259,6 +257,9 @@
     .st-feed-grid--sidebar-content {
       max-height: 180px;
     }
+  }
+  .st-module-feed-item:last-of-type {
+    min-height: 100%;
   }
 }
 
@@ -546,6 +547,7 @@
 .st-module-feed-list-inner.st-feed-grid-ajax-response {
   display: flex;
   flex-direction: column;
+  height: 100%;
   max-height: 100%;
   overflow: auto;
   scrollbar-gutter: stable;

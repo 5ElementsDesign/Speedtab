@@ -2,6 +2,25 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.5.8]
+
+### Added
+- Added a compact native Dark/Light theme switch for App Shell appearance controls and the empty workspace.
+- Added active background markers and contextual Background help in both App Shell and per-page Customization.
+- Added a small shared StateObject for claimed action triggers and opt-in live control synchronization.
+- Added synchronized state to the App Shell/empty-page theme switch and Wallspeed toggle controls.
+- Added zoom-aware page-grid fallback at 150%+ tab zoom, using the native Chrome tab zoom factor.
+- Added a World Clock generator for HTML notes: validate IANA time zones, insert portable clock markup, and drive every open clock from the shared App Clock.
+
+### Changed
+- Kept the App Shell and widget rail available before any page exists; installing the example workspace now preserves existing Clock and Weather configuration.
+- Moved Page save actions above the variable-length Background editor and made manual background changes use the shared workspace crossfade.
+- Made App Header → Pages → Add Page temporarily active and disabled while its sidepanel editor is open, preventing duplicate starts.
+- Made Wallspeed triggers toggle the open workspace closed directly, without requiring the internal close button.
+
+### Fixed
+- Fixed background-selection feedback so Clear leaves user-uploaded wallpaper assets unmarked until a background is actually selected again.
+
 ## [1.5.7]
 
 ### Added

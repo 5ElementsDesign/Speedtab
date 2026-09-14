@@ -1,20 +1,26 @@
 import {decryptNote, parseCryptPayload} from '../../../composables/useCrypt.ts'
 import {highlightCode} from '../../../composables/useHighlight.ts'
 import {renderNoteHtmlWithAssets} from '../../../composables/useNoteImages.ts'
+import {syncPictureInPicture} from '../../actions/picture-in-picture.js'
+import {closeDropdown, rebindOpenDropdownRoot} from '../../components/dropdown.js'
 import {loadLocalToolsState, normalizeLocalToolsState, saveLocalToolsState} from '../../data/local-tools.js'
 import {loadNoteById, loadNotesByIds, saveNoteData} from '../../data/notes.js'
-import {syncPictureInPicture} from '../../actions/picture-in-picture.js'
 import {initFavicons} from '../../utils/favicon.js'
 import {t} from '../../utils/i18n.js'
-import {initFormDirtyState} from '../forms/actions.js'
+import {initFormDirtyState, updateFormDirtyState} from '../forms/actions.js'
 import {buildNotePayload} from '../modules/note-form.js'
 import {getHtmlNoteSubtype, normalizeNoteStyleToken, parseNoteMeta} from '../modules/notes-shared.js'
+import {getValidTimeZone} from '../note-widgets/clock.js'
+import {syncNoteWidgets} from '../note-widgets/index.js'
 import {renderLocalToolsRoot, renderQuicknoteWindow} from './render.js'
 
 const WINDOW_ROOT_ATTR = 'data-floating-windows'
 const MIN_WIDTH = 240
 const MIN_HEIGHT = 140
-const NOTE_MIN_HEIGHT = 96
+const NOTE_MIN_WIDTH = 100
+const NOTE_MIN_HEIGHT = 40
+const NOTE_VISIBLE_WIDTH = 72
+const NOTE_VISIBLE_HEADER_HEIGHT = 40
 const DEFAULT_NOTE_LAYOUT = {
   x: 40,
   y: 72,
@@ -38,6 +44,18 @@ const closingWindowIds = new Set()
 const WINDOW_CLOSE_ANIMATION_MS = 180
 const noteHtmlRenderRevokes = new Map()
 const MOBILE_NOTE_BREAKPOINT = 900
+const DEFAULT_WORLD_CLOCK_ZONES = [
+  'Europe/Berlin',
+  'Europe/Amsterdam',
+  'Europe/Paris',
+  'Europe/Madrid',
+  'Europe/London',
+  'Europe/Istanbul',
+  'Europe/Moscow',
+  'Asia/Kolkata',
+  'Asia/Shanghai',
+  'America/New_York',
+].join('\n')
 
 function isMobileNoteViewport() {
   return window.innerWidth <= MOBILE_NOTE_BREAKPOINT
@@ -205,7 +223,7 @@ function getDefaultNoteWindowMeta(note = {}) {
   const height = Number(windowMeta?.height)
 
   return {
-    width: Number.isFinite(width) && width >= 300 ? width : null,
+    width: Number.isFinite(width) && width >= NOTE_MIN_WIDTH ? width : null,
     height: Number.isFinite(height) && height >= NOTE_MIN_HEIGHT ? height : null,
   }
 }
@@ -240,15 +258,23 @@ function saveNoteLayoutPatch(windowState, patch = {}) {
 }
 
 function getRenderableNotes(notesById) {
-  return state.noteWindows.map((windowState) => ({
-    ...notesById.get(windowState.noteId),
-    ...windowState,
-    ...cryptSessions.get(windowState.noteId),
-    ...editorSessions.get(windowState.noteId),
-    hasSavedLayout: !!getSavedNoteLayout(windowState.noteId),
-    module_sync_id: document.querySelector(`[data-note-sync-id="${CSS.escape(notesById.get(windowState.noteId)?.sync_id ?? '')}"]`)
+  return state.noteWindows.map((windowState) => {
+    const note = notesById.get(windowState.noteId)
+    const windowMeta = parseNoteMeta(note?.meta_json ?? null)?.window ?? {}
+    return {
+      ...note,
+      ...windowState,
+      noteHideHeader: windowMeta.hide_header === true,
+      noteResetPadding: windowMeta.reset_padding === true,
+      noteBare: windowMeta.bare === true,
+      noteNailed: windowMeta.nailed === true,
+      ...cryptSessions.get(windowState.noteId),
+      ...editorSessions.get(windowState.noteId),
+      hasSavedLayout: !!getSavedNoteLayout(windowState.noteId),
+      module_sync_id: document.querySelector(`[data-note-sync-id="${CSS.escape(note?.sync_id ?? '')}"]`)
       ?.getAttribute?.('data-module-sync-id') ?? '',
-  }))
+    }
+  })
 }
 
 function revokeAllNoteHtmlRenderers() {
@@ -398,6 +424,7 @@ async function render({reloadNotes = false} = {}) {
   initFavicons(el)
   void hydrateNoteHtmlRenders(el)
   void hydrateNoteCodeBlocks(el)
+  syncNoteWidgets(el)
   autoFitNoteWindows()
   syncZTracker()
   syncOpenNotePreviewState()
@@ -406,12 +433,14 @@ async function render({reloadNotes = false} = {}) {
 
 function normalizeEditorSession(note = {}, session = {}) {
   let language = 'auto'
+  let meta = {}
   try {
-    const meta = note?.meta_json ? JSON.parse(note.meta_json) : {}
+    meta = note?.meta_json ? JSON.parse(note.meta_json) : {}
     if (typeof meta?.language === 'string') language = meta.language
   } catch {
     // ignore invalid meta
   }
+  const windowMeta = meta?.window && typeof meta.window === 'object' ? meta.window : {}
 
   return {
     editMode: true,
@@ -423,6 +452,10 @@ function normalizeEditorSession(note = {}, session = {}) {
     editStyleToken: session.editStyleToken ?? note.style_token ?? 'primary',
     previewMode: session.previewMode ?? (note.type === 'html'),
     editError: session.editError ?? '',
+    noteHideHeader: session.noteHideHeader ?? (windowMeta.hide_header === true),
+    noteResetPadding: session.noteResetPadding ?? (windowMeta.reset_padding === true),
+    noteBare: session.noteBare ?? (windowMeta.bare === true),
+    noteNailed: session.noteNailed ?? (windowMeta.nailed === true),
   }
 }
 
@@ -639,6 +672,21 @@ function insertFloatingNoteTemplate(noteId, buildInsertion) {
   textarea.focus()
   textarea.setSelectionRange(nextCaret, nextCaret)
   syncFloatingNoteEditorField(parsedNoteId, 'content', nextValue)
+  updateFormDirtyState(textarea.form)
+}
+
+function buildWorldClockMarkup(zones = []) {
+  return [
+    '<section data-world-clock data-world-clock-theme="default">',
+    `  <div data-clock-zone="${zones[0]}"><h3><b data-date data-date-format="{dayShort} {day}. {monthShort} {year}"></b></h3></div>\n  <div data-world-clock-items data-world-clock-default-timezone="${zones[0]}">`,
+    ...zones.map((timeZone) => [
+      `    <div data-world-clock-item data-clock-zone="${timeZone}">`,
+      '      <h3 data-clock-zone></h3>',
+      '      <h4><b data-clock data-analog data-seconds></b></h4>',
+      '    </div>',
+    ].join('\n')),
+    `  </div>\n</section>`,
+  ].join('\n')
 }
 
 async function hydrateNoteCodeBlocks(container) {
@@ -700,6 +748,7 @@ async function hydrateNoteHtmlRenders(container) {
     }
     syncNestedTabsInFloatingWindows(el)
     initFavicons(el, {force: true})
+    syncNoteWidgets(el)
     syncPictureInPicture()
   }))
 }
@@ -759,18 +808,23 @@ function getWindowElement(windowId) {
 function clampWindowState(windowState) {
   const parsed = parseWindowId(windowState?.windowId || `note:${windowState?.noteId ?? ''}`)
   const minHeight = getWindowMinHeight(windowState)
+  const minWidth = parsed.type === 'note' ? NOTE_MIN_WIDTH : MIN_WIDTH
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
   const maxWidth = parsed.type === 'note'
-    ? Math.max(MIN_WIDTH, viewportWidth)
+    ? Math.max(minWidth, viewportWidth)
     : Math.max(MIN_WIDTH, viewportWidth - 16)
   const maxHeight = parsed.type === 'note'
     ? Math.max(minHeight, viewportHeight)
     : Math.max(minHeight, viewportHeight - 16)
-  const width = Math.max(MIN_WIDTH, Math.min(windowState.width, maxWidth))
+  const width = Math.max(minWidth, Math.min(windowState.width, maxWidth))
   const height = Math.max(minHeight, Math.min(windowState.height, maxHeight))
-  const x = Math.max(0, Math.min(windowState.x, Math.max(0, viewportWidth - width)))
-  const y = Math.max(0, Math.min(windowState.y, Math.max(0, viewportHeight - height)))
+  const minX = parsed.type === 'note' ? NOTE_VISIBLE_WIDTH - width : 0
+  const minY = 0
+  const maxX = parsed.type === 'note' ? viewportWidth - NOTE_VISIBLE_WIDTH : Math.max(0, viewportWidth - width)
+  const maxY = parsed.type === 'note' ? viewportHeight - NOTE_VISIBLE_HEADER_HEIGHT : Math.max(0, viewportHeight - height)
+  const x = Math.max(minX, Math.min(windowState.x, maxX))
+  const y = Math.max(minY, Math.min(windowState.y, maxY))
 
   return {...windowState, width, height, x, y}
 }
@@ -918,11 +972,15 @@ async function mountSingleFloatingNoteWindow(noteId) {
   if (!noteHtml) return
 
   const existing = el.querySelector(`[data-window-id="note:${CSS.escape(String(noteId))}"]`)
+  const previousDropdown = existing?.querySelector?.('[data-note-options-dropdown]')
   if (existing instanceof HTMLElement) existing.remove()
 
   el.insertAdjacentHTML('beforeend', noteHtml)
   const windowEl = el.querySelector(`[data-window-id="note:${CSS.escape(String(noteId))}"]`)
   if (!(windowEl instanceof HTMLElement)) return
+  if (previousDropdown instanceof HTMLElement) {
+    rebindOpenDropdownRoot(previousDropdown, windowEl.querySelector('[data-note-options-dropdown]'))
+  }
 
   if (enteringWindowIds.has(`note:${noteId}`)) {
     windowEl.setAttribute('data-window-entering', '')
@@ -936,6 +994,7 @@ async function mountSingleFloatingNoteWindow(noteId) {
   initFavicons(windowEl)
   await hydrateNoteHtmlRenders(windowEl)
   await hydrateNoteCodeBlocks(windowEl)
+  syncNoteWidgets(windowEl)
   syncPictureInPicture()
   autoFitSingleNoteWindow(noteId)
   syncZTracker()
@@ -976,8 +1035,11 @@ function removeFloatingNoteWindowDom(noteId) {
   revokeNoteHtmlRenderers(noteId)
   const windowEl = root?.querySelector?.(`[data-window-id="note:${CSS.escape(String(noteId))}"]`)
   if (windowEl instanceof HTMLElement) {
+    const dropdown = windowEl.querySelector('[data-note-options-dropdown]')
+    if (dropdown instanceof HTMLElement) closeDropdown(dropdown)
     windowEl.remove()
   }
+  syncNoteWidgets()
 }
 
 function removeQuicknoteWindowDom() {
@@ -1124,6 +1186,17 @@ function handlePointerDown(event) {
     return
   }
 
+  if (windowEl.hasAttribute('data-note-nailed')) {
+    return
+  }
+
+  const grabArea = target.closest('[data-note-window-grab]')
+  if (grabArea) {
+    event.preventDefault()
+    startSession('move', windowEl, event)
+    return
+  }
+
   const resizeHandle = target.closest('[data-window-resize-handle]')
   if (resizeHandle) {
     event.preventDefault()
@@ -1133,7 +1206,7 @@ function handlePointerDown(event) {
 
   const header = target.closest('[data-window-header]')
   if (header) {
-    if (target.closest('button, input, textarea, select, a')) return
+    if (target.closest('button, input, textarea, select, a, summary')) return
     event.preventDefault()
     startSession('move', windowEl, event)
   }
@@ -1203,7 +1276,7 @@ export function openFloatingNote(noteId, options = {}) {
   const windowId = `note:${parsedNoteId}`
   const transientWidth = Number(options.initialWidth)
   const transientHeight = Number(options.initialHeight)
-  const hasTransientWidth = Number.isFinite(transientWidth) && transientWidth >= 300
+  const hasTransientWidth = Number.isFinite(transientWidth) && transientWidth >= NOTE_MIN_WIDTH
   const hasTransientHeight = Number.isFinite(transientHeight) && transientHeight >= NOTE_MIN_HEIGHT
   if (isMobileNoteViewport()) {
     const removedIds = state.noteWindows
@@ -1306,6 +1379,31 @@ export async function resetFloatingNoteWindowLayout(noteId) {
   queueSave()
 }
 
+export async function saveFloatingNoteWindowOption(noteId, field, value) {
+  const parsedNoteId = parseInt(String(noteId), 10)
+  const metaKey = {
+    note_hide_header: 'hide_header',
+    note_reset_padding: 'reset_padding',
+    note_bare: 'bare',
+    note_nailed: 'nailed',
+  }[field]
+  if (!Number.isInteger(parsedNoteId) || parsedNoteId <= 0 || !metaKey) return
+
+  const note = await loadNoteById(parsedNoteId)
+  if (!note) return
+
+  const meta = parseNoteMeta(note.meta_json ?? null)
+  const windowMeta = meta.window && typeof meta.window === 'object' ? {...meta.window} : {}
+  if (value === true) windowMeta[metaKey] = true
+  else delete windowMeta[metaKey]
+  if (Object.keys(windowMeta).length) meta.window = windowMeta
+  else delete meta.window
+
+  const meta_json = Object.keys(meta).length ? JSON.stringify(meta) : null
+  await saveNoteData(parsedNoteId, {meta_json})
+  noteRecords.set(parsedNoteId, {...note, meta_json})
+  await mountSingleFloatingNoteWindow(parsedNoteId)
+}
 
 export function closeFloatingNote(noteId) {
   const parsedNoteId = parseInt(String(noteId), 10)
@@ -1466,6 +1564,10 @@ export function syncFloatingNoteEditorField(noteId, field, value) {
   if (field === 'content') patch.editContent = String(value ?? '')
   if (field === 'language') patch.editLanguage = String(value ?? 'auto')
   if (field === 'style_token') patch.editStyleToken = String(value ?? 'primary')
+  if (field === 'note_hide_header') patch.noteHideHeader = value === true
+  if (field === 'note_reset_padding') patch.noteResetPadding = value === true
+  if (field === 'note_bare') patch.noteBare = value === true
+  if (field === 'note_nailed') patch.noteNailed = value === true
   patch.editError = ''
   if (!Object.keys(patch).length) return
   setEditorSession(parsedNoteId, patch)
@@ -1525,6 +1627,35 @@ export function insertFloatingNoteTableau(noteId) {
   insertFloatingNoteTemplate(noteId, (selectedText) => buildTableauMarkup(selectedText, {theme}))
 }
 
+export async function toggleFloatingNoteWorldClockGenerator(noteId) {
+  const parsedNoteId = parseInt(String(noteId), 10)
+  const current = getEditorSession(parsedNoteId)
+  if (!current) return
+  setEditorSession(parsedNoteId, {
+    worldClockGenerator: current.worldClockGenerator !== true,
+    worldClockZones: current.worldClockZones || DEFAULT_WORLD_CLOCK_ZONES,
+  })
+  await mountSingleFloatingNoteWindow(parsedNoteId)
+}
+
+export function generateFloatingNoteWorldClock(noteId, source = '') {
+  const parsedNoteId = parseInt(String(noteId), 10)
+  const current = getEditorSession(parsedNoteId)
+  const existingZones = new Set([...String(current?.editContent ?? '').matchAll(/\bdata-clock-zone=(["'])(.*?)\1/g)].map(([, , value]) => value))
+  const zones = [...new Set(String(source ?? '')
+    .split(/\r?\n/)
+    .map((value) => getValidTimeZone(value))
+    .filter(Boolean))].filter((timeZone) => !existingZones.has(timeZone))
+  if (!zones.length) return
+
+  insertFloatingNoteTemplate(parsedNoteId, () => buildWorldClockMarkup(zones))
+  setEditorSession(parsedNoteId, {
+    worldClockGenerator: false,
+    worldClockZones: String(source ?? ''),
+  })
+  root?.querySelector?.(`[data-note-window-id="${parsedNoteId}"] [data-world-clock-generator]`)?.remove()
+}
+
 export async function toggleFloatingNotePreview(noteId) {
   const parsedNoteId = parseInt(String(noteId), 10)
   if (!Number.isInteger(parsedNoteId) || parsedNoteId <= 0) return
@@ -1545,6 +1676,10 @@ export async function saveFloatingNoteEdit(noteId, form) {
   const contentValue = form.querySelector('[name="content"]')?.value ?? ''
   const language = form.querySelector('[name="language"]')?.value ?? 'auto'
   const styleToken = form.querySelector('[name="style_token"]')?.value ?? (note.style_token ?? 'primary')
+  const noteHideHeader = form.elements.namedItem('note_hide_header')?.checked === true
+  const noteResetPadding = form.elements.namedItem('note_reset_padding')?.checked === true
+  const noteBare = form.elements.namedItem('note_bare')?.checked === true
+  const noteNailed = form.elements.namedItem('note_nailed')?.checked === true
 
   if (!title) {
     setEditorSession(parsedNoteId, {editError: t('noteForm.title')})
@@ -1571,6 +1706,22 @@ export async function saveFloatingNoteEdit(noteId, form) {
     await mountSingleFloatingNoteWindow(parsedNoteId)
     return false
   }
+
+  const existingMeta = parseNoteMeta(note.meta_json ?? null)
+  const payloadMeta = parseNoteMeta(payload.meta_json ?? null)
+  const windowMeta = {...(existingMeta.window && typeof existingMeta.window === 'object' ? existingMeta.window : {})}
+  if (noteHideHeader) windowMeta.hide_header = true
+  else delete windowMeta.hide_header
+  if (noteResetPadding) windowMeta.reset_padding = true
+  else delete windowMeta.reset_padding
+  if (noteBare) windowMeta.bare = true
+  else delete windowMeta.bare
+  if (noteNailed) windowMeta.nailed = true
+  else delete windowMeta.nailed
+  const nextMeta = {...existingMeta, ...payloadMeta}
+  if (Object.keys(windowMeta).length) nextMeta.window = windowMeta
+  else delete nextMeta.window
+  payload.meta_json = Object.keys(nextMeta).length ? JSON.stringify(nextMeta) : null
 
   await saveNoteData(parsedNoteId, payload)
   noteRecords.set(parsedNoteId, {

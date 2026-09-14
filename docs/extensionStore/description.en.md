@@ -20,6 +20,7 @@ What you can do with Speedtab:
 • manage tasks and to-dos with priorities, due dates, notes, and visual status indicators
 • create text, code, link, custom HTML, and encrypted notes
 • build infinite, deeply nested tab structures inside your HTML notes powered by YaiTabs
+• generate synchronized World Clock displays inside portable HTML notes
 • pop notes and feed modules into floating Document Picture-in-Picture (PiP) windows
 • read RSS/Atom feeds directly on your startpage with per-tab auto-refresh intervals
 • track read/unread states and archive interesting feed items with comments
@@ -148,7 +149,7 @@ INTERNATIONALIZATION & NATIVE LOCALIZATION
 PERFORMANCE & SIZE
 ----------------------------------------
 
-• Zipped extension size: ~710 KB
+• Zipped extension size: ~700 KB
 • Chrome Task Manager
   - Memory: ~50 MB total memory / ~5 MB live JavaScript heap
   - CPU usage: 1-10% during active use

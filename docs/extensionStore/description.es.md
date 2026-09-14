@@ -20,6 +20,7 @@ Lo que puedes hacer con Speedtab:
 • gestionar tareas y pendientes con prioridades, fechas de vencimiento, notas e indicadores visuales de estado
 • crear notas de texto, código, enlaces, HTML personalizado y notas cifradas
 • construir estructuras de pestañas anidadas e infinitas dentro de tus notas HTML gracias a YaiTabs
+• generar relojes mundiales sincronizados dentro de notas HTML portables
 • desacoplar notas y módulos de noticias en ventanas flotantes Document Picture-in-Picture (PiP)
 • leer fuentes RSS/Atom directamente en tu página de inicio con intervalos de actualización automática por pestaña
 • realizar un seguimiento del estado de leído/no leído y archivar elementos de fuentes interesantes con comentarios
@@ -148,7 +149,7 @@ INTERNACIONALIZACIÓN Y LOCALIZACIÓN NATIVA
 RENDIMIENTO Y TAMAÑO
 ----------------------------------------
 
-• Tamaño de la extensión comprimida (.ZIP): ~710 KB
+• Tamaño de la extensión comprimida (.ZIP): ~700 KB
 • Administrador de tareas de Chrome
   - Memoria: ~50 MB de memoria total / ~5 MB de memoria JavaScript activa
   - Uso de CPU: 1-10% durante el uso activo

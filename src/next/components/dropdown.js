@@ -200,6 +200,17 @@ export function rebindOpenDropdown(moduleRoot) {
   positionPanel(nextRoot, _openPanel)
 }
 
+export function rebindOpenDropdownRoot(previousRoot, nextRoot) {
+  if (_openRoot !== previousRoot || !_openPanel || !(nextRoot instanceof HTMLElement)) return
+
+  previousRoot.removeAttribute(OPEN)
+  previousRoot.querySelector('[data-dropdown-trigger]')?.setAttribute('aria-expanded', 'false')
+  _openRoot = nextRoot
+  nextRoot.setAttribute(OPEN, '')
+  nextRoot.querySelector('[data-dropdown-trigger]')?.setAttribute('aria-expanded', 'true')
+  positionPanel(nextRoot, _openPanel)
+}
+
 export function toggle(root) {
   root?.hasAttribute(OPEN) ? closeDropdown(root) : openDropdown(root)
 }

@@ -203,12 +203,10 @@
 }
 
 [data-btn="ghost"] {
-  background: color-mix(in srgb, var(--st-form-elements-bg-color) 24%, transparent);
+  background: color-mix(in srgb, var(--st-form-elements-bg-color) 75%, transparent);
   border-color: color-mix(in srgb, var(--st-form-elements-border-color) 72%, transparent);
   color: color-mix(in srgb, var(--st-color-text) 88%, white 12%);
-}
 
-[data-btn="ghost"] {
   &:hover:not(:disabled) {
     background: color-mix(in srgb, var(--st-form-elements-border-color) 88%, transparent);
     border-color: var(--st-form-elements-border-color);
@@ -218,10 +216,10 @@
 [data-btn="outline"] {
   background: transparent;
   border-color: var(--st-form-elements-border-color);
-}
 
-[data-btn="outline"]:hover:not(:disabled) {
-  background: var(--st-form-elements-border-color);
+  &:hover:not(:disabled) {
+    background: var(--st-form-elements-border-color);
+  }
 }
 
 [data-btn="link"] {
@@ -233,13 +231,13 @@
   text-decoration: none;
   border: 0 dashed #888777;
   border-width: 0 0 1px 0;
-}
 
-[data-btn="link"]:is(:hover, :focus-visible, .active) {
-  background: transparent;
-  border-color: transparent;
-  color: var(--yai-tabs-nav-button-active-color, var(--yai-tabs-color-accent));
-  border-bottom: 1px solid;
+  &:is(:hover, :focus-visible, .active) {
+    background: transparent;
+    border-color: transparent;
+    color: var(--yai-tabs-nav-button-active-color, var(--yai-tabs-color-accent));
+    border-bottom: 1px solid;
+  }
 }
 
 [data-bookmark-inline-add],

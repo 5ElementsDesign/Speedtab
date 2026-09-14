@@ -175,11 +175,11 @@ html.light {
 
 [data-floating-window] {
   position: fixed;
-  min-width: 300px;
+  min-width: 140px;
   min-height: 140px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   pointer-events: auto;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: color-mix(in srgb, #050505 80%, transparent);
@@ -234,9 +234,12 @@ html.light {
   [data-window-actions] {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
+    flex-wrap: wrap;
+    z-index: 100;
 
-    button {
+    button,
+    summary {
       min-height: 24px;
       padding: 4px 8px;
       font-size: var(--st-content-control-font-size);
