@@ -28,6 +28,8 @@ Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/a
 - Visual bookmark tiles with preview images and favicons
 - Optional bookmark titles below full-size tiles
 - Notes with text, code, links, HTML, and encrypted content
+- Speedtab Clockworx for portable, synchronized world-clock notes
+- Virtual and page-aware floating notes, with an always-available open-notes rail
 - ToDo modules with priorities, notes, due dates, and tile view
 - Interactive nested tabbed notes authored directly inside HTML notes
 - `TABBY-TABS` example note showcasing onboarding-as-content with live nested tabs, swipe, and click behavior on the same delegated runtime
@@ -128,9 +130,14 @@ Speedtab does not currently export feed cache responses. Feed items fetched from
 - `html` notes sanitized before rendering
 - `crypt` notes encrypted locally before storage
 - floating note windows with persisted open state, size, and position
+- page-aware floating notes with an optional global visibility mode and a custom module-preview summary
+- portable Clockworx world-clock notes with grouped timezone selection, analog or digital displays, and optional date formats
+- declarative virtual notes that can be launched from trusted HTML content and saved to the Capture Inbox when needed
+- footer open-notes rail for returning to any open note and its source page
 - Document Picture-in-Picture (PiP) viewing for open notes in supported Chromium browsers
 - nested interactive YaiTabs inside HTML notes
 - safe `data-st-*` utility attributes for trusted HTML-note styling
+- controlled inline CSS and stylesheets hosted on Speedtab GitHub Pages for trusted HTML-note presentation
 - example-workspace flagship note `TABBY-TABS.html` demonstrates deeply nested interactive notes running on the same event-delegated system as the rest of Speedtab
 
 ### Interactive Notes
@@ -153,6 +160,7 @@ Speedtab does not currently export feed cache responses. Feed items fetched from
 - Expand a feed module into a focused reading view
 - Document Picture-in-Picture (PiP) viewing for a full Feed module in supported Chromium browsers
 - Archive interesting items with optional comments
+- Choose a source favicon manually or resolve one automatically after testing a Feed source
 
 ### Portability
 

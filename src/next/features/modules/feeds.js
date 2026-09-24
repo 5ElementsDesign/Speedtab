@@ -307,7 +307,12 @@ function renderFeedSourceIcon(source) {
   const faviconUrl = source.site_url || source.feed_url || ''
   return `
     <span class="st-module-feed-source-icon">
-      <img data-favicon-url="${escapeHtml(faviconUrl)}" alt="" draggable="false" >
+      <img
+        ${source.favicon_asset_id ? `data-favicon-asset-id="${escapeHtml(String(source.favicon_asset_id))}"` : ''}
+        data-favicon-url="${escapeHtml(faviconUrl)}"
+        alt=""
+        draggable="false"
+      >
     </span>
   `
 }
@@ -451,21 +456,24 @@ export function renderFeedItemBody(item, sourceTitle, moduleSyncId, collectionId
 
       <div class="st-module-feed-item-actions" data-swipe-ignore>
         ${item.url ? `
-          <a
-            href="${escapeHtml(item.url)}"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="st-module-feed-item-open button"
-          >${escapeHtml(t('feedItem.open'))}</a>
+          <button
+            type="button"
+            data-btn="dark"
+            data-click="goToHref"
+            data-href="${escapeHtml(item.url)}">
+            ${escapeHtml(t('feedItem.open'))}
+          </button>
         ` : ''}
-        <a
-          href="${escapeHtml(searchUrl)}"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="st-module-feed-item-action button"
-        >${escapeHtml(t('feedItem.search'))}</a>
         <button
           type="button"
+          data-btn="dark"
+          data-click="goToHref"
+          data-href="${escapeHtml(searchUrl)}">
+          ${escapeHtml(t('feedItem.search'))}
+        </button>
+        <button
+          type="button"
+          data-btn="dark"
           data-click="archiveFeedItem"
           data-feed-item-id="${escapeHtml(String(item.id ?? ''))}"
           data-feed-source-id="${escapeHtml(String(item.feed_source_id ?? ''))}"

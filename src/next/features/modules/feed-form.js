@@ -9,6 +9,14 @@ const feedApi = useFeed()
 
 let feedFormState = null
 
+function revokeObjectUrl(url) {
+  if (url) URL.revokeObjectURL(url)
+}
+
+export function getFeedFaviconSourceUrl(state) {
+  return String(state?.siteUrl || state?.feedUrl || '').trim()
+}
+
 function normalizeDiscoveredFeeds(urls = []) {
   const seen = new Set()
   return urls.filter((entry) => {
@@ -108,6 +116,11 @@ function buildInitialState({record = null, moduleSyncId = '', parentId = '', par
     title: record?.title || '',
     feedUrl: record?.feed_url || '',
     siteUrl: record?.site_url || '',
+    selectedFaviconAssetId: record?.favicon_asset_id ?? null,
+    selectedFaviconAssetUrl: null,
+    faviconAssets: [],
+    isFaviconPickerOpen: false,
+    hasUnlockedFaviconPicker: !!record,
     discoveredFeeds: [],
     lookupStatus: null,
     isTesting: false,
@@ -134,13 +147,24 @@ function canSave(state) {
 }
 
 export function resetFeedFormState() {
+  if (feedFormState) {
+    revokeObjectUrl(feedFormState.selectedFaviconAssetUrl)
+    feedFormState.faviconAssets.forEach((asset) => revokeObjectUrl(asset.objectUrl))
+  }
   feedFormState = null
 }
 
-export function initFeedFormState(context) {
+export async function initFeedFormState(context) {
   resetFeedFormState()
   feedFormState = buildInitialState(context)
+  const {hydrateFeedSelectedFavicon} = await import('./feed-favicon.js')
+  await hydrateFeedSelectedFavicon(feedFormState)
   return feedFormState
+}
+
+export async function afterFeedSourceFormRender(body) {
+  const {initFeedFormFavicons} = await import('./feed-favicon.js')
+  initFeedFormFavicons(body)
 }
 
 export function getFeedFormState() {
@@ -193,6 +217,9 @@ export async function testFeedSourceUrl() {
       const doc = parser.parseFromString(xml, 'text/xml')
       feedFormState.title = doc.querySelector('channel > title, feed > title')?.textContent || ''
     }
+    feedFormState.hasUnlockedFaviconPicker = true
+    const {ensureFeedFaviconAsset} = await import('./feed-favicon.js')
+    await ensureFeedFaviconAsset(feedFormState).catch(() => {})
   } catch (error) {
     feedFormState.testError = error instanceof Error ? error.message : t('feedForm.failedToConnect')
     if (!String(feedFormState.siteUrl || '').trim() && String(feedFormState.feedUrl || '').trim()) {
@@ -249,6 +276,125 @@ export async function useDiscoveredFeedUrl(url) {
   feedFormState.testError = null
   feedFormState.testSuccess = false
   await testFeedSourceUrl()
+}
+
+export async function toggleFeedFaviconPicker() {
+  if (!feedFormState?.hasUnlockedFaviconPicker) return
+  feedFormState.isFaviconPickerOpen = !feedFormState.isFaviconPickerOpen
+  if (feedFormState.isFaviconPickerOpen) {
+    const {hydrateFeedFaviconAssets} = await import('./feed-favicon.js')
+    await hydrateFeedFaviconAssets(feedFormState)
+  }
+}
+
+export async function uploadFeedFavicon(file) {
+  if (!feedFormState || !file) return
+  const {uploadFeedFaviconAsset} = await import('./feed-favicon.js')
+  await uploadFeedFaviconAsset(feedFormState, file)
+}
+
+export async function selectFeedFaviconAsset(assetId) {
+  if (!feedFormState || !assetId) return
+  const {selectFeedFaviconAssetById} = await import('./feed-favicon.js')
+  await selectFeedFaviconAssetById(feedFormState, assetId)
+}
+
+export function clearFeedFavicon() {
+  if (!feedFormState) return
+  feedFormState.selectedFaviconAssetId = null
+  revokeObjectUrl(feedFormState.selectedFaviconAssetUrl)
+  feedFormState.selectedFaviconAssetUrl = null
+  feedFormState.isFaviconPickerOpen = false
+}
+
+export async function buildFeedSourceFaviconPayload() {
+  if (!feedFormState) return null
+  const {ensureFeedFaviconAsset} = await import('./feed-favicon.js')
+  return ensureFeedFaviconAsset(feedFormState).catch(() => feedFormState.selectedFaviconAssetId)
+}
+
+function renderFeedFaviconPicker(state) {
+  if (!state.isFaviconPickerOpen) return ''
+  const assets = state.faviconAssets.length
+    ? `<div data-feed-form-favicon-grid>${state.faviconAssets.map((asset) => `
+      <button type="button" data-click="feedFormSelectFaviconAsset" data-asset-id="${escapeHtml(String(asset.id))}" data-feed-form-favicon-tile>
+        <img src="${escapeHtml(asset.objectUrl)}" alt="${escapeHtml(t('tabForm.faviconAssetAlt'))}">
+      </button>
+    `).join('')}</div>`
+    : `<p data-feed-form-status>${escapeHtml(t('tabForm.noFaviconAssets'))}</p>`
+
+  return `
+    <div data-feed-form-favicon-picker>
+      <div data-feed-form-favicon-picker-section>
+        <h4 data-feed-form-favicon-picker-title>${escapeHtml(t('tabForm.favicons'))}</h4>
+        ${assets}
+      </div>
+      <div data-feed-form-favicon-picker-actions>
+        <button type="button" data-btn="ghost" data-click="feedFormTriggerFaviconUpload">${escapeHtml(t('tabForm.upload'))}</button>
+        <button type="button" data-btn="ghost" data-click="feedFormClearFavicon">${escapeHtml(t('tabForm.clear'))}</button>
+        <button type="button" data-btn="ghost" data-click="feedFormToggleFaviconPicker">${escapeHtml(t('common.close'))}</button>
+        <input type="file" accept="image/*" hidden data-feed-favicon-file data-change="feedFormFaviconFileChange">
+      </div>
+    </div>
+  `
+}
+
+function renderFeedFaviconButton(state) {
+  const sourceUrl = getFeedFaviconSourceUrl(state)
+  return `
+    <button
+      type="button"
+      data-click="feedFormToggleFaviconPicker"
+      data-feed-form-favicon-btn
+      ${state.hasUnlockedFaviconPicker ? '' : 'disabled'}
+      title="${escapeHtml(state.hasUnlockedFaviconPicker ? t('tabForm.faviconPickerTitle') : t('tabForm.faviconPickerLockedTitle'))}"
+    >${state.selectedFaviconAssetUrl
+      ? `<img src="${escapeHtml(state.selectedFaviconAssetUrl)}" alt="${escapeHtml(t('tabForm.faviconPreviewAlt'))}" class="st-feed-form-favicon-preview" draggable="false">`
+      : `<img data-favicon-url="${escapeHtml(sourceUrl)}" alt="${escapeHtml(t('tabForm.faviconPreviewAlt'))}" class="st-feed-form-favicon-preview" draggable="false">`
+    }</button>
+  `
+}
+
+function renderFeedSiteUrlField(state) {
+  return `
+    <div data-customizer-field data-customizer-field-layout="stack" data-feed-form-field data-feed-form-site-field>
+      <div data-feed-form-inline-head>
+        <span data-customizer-field-label>${escapeHtml(t('feedForm.siteUrl'))}</span>
+      </div>
+      <div data-feed-form-inline-row>
+        ${renderFeedFaviconButton(state)}
+        ${urlInput({
+          name: 'site_url',
+          value: state.siteUrl,
+          attrs: {
+            autocomplete: 'off',
+            spellcheck: 'false',
+            placeholder: t('feedForm.siteUrlPlaceholder'),
+          },
+        })}
+        <button
+          type="button"
+          class="st-btn"
+          data-btn="secondary"
+          data-click="feedFormLookup"
+          data-feed-form-lookup-btn
+          ${state.isLookingUp || !state.siteUrl ? 'disabled' : ''}
+        >${state.isLookingUp ? '...' : escapeHtml(t('common.lookup'))}</button>
+      </div>
+      <p data-settings-hint>${escapeHtml(t('feedForm.siteUrlHelp'))}</p>
+      <div data-feed-form-lookup-status>${renderLookupStatus(state)}</div>
+      ${renderFeedFaviconPicker(state)}
+    </div>
+  `
+}
+
+function buildFeedFaviconStateToken(state) {
+  return [
+    state.selectedFaviconAssetId ?? 'none',
+    state.selectedFaviconAssetUrl ? 'asset' : 'no-asset',
+    state.isFaviconPickerOpen ? 'open' : 'closed',
+    state.hasUnlockedFaviconPicker ? 'unlocked' : 'locked',
+  ].join(':')
 }
 
 function renderTestedUrlLink(state) {
@@ -362,32 +508,7 @@ export function renderFeedSourceCrudForm(state) {
             }),
           })}
 
-          <div data-customizer-field data-customizer-field-layout="stack" data-feed-form-field>
-            <div data-feed-form-inline-head>
-              <span data-customizer-field-label>${escapeHtml(t('feedForm.siteUrl'))}</span>
-            </div>
-            <div data-feed-form-inline-row>
-              ${urlInput({
-                name: 'site_url',
-                value: state.siteUrl,
-                attrs: {
-                  autocomplete: 'off',
-                  spellcheck: 'false',
-                  placeholder: t('feedForm.siteUrlPlaceholder'),
-                },
-              })}
-              <button
-                type="button"
-                class="st-btn"
-                data-btn="secondary"
-                data-click="feedFormLookup"
-                data-feed-form-lookup-btn
-                ${state.isLookingUp || !state.siteUrl ? 'disabled' : ''}
-              >${state.isLookingUp ? '...' : escapeHtml(t('common.lookup'))}</button>
-            </div>
-            <p data-settings-hint>${escapeHtml(t('feedForm.siteUrlHelp'))}</p>
-            <div data-feed-form-lookup-status>${renderLookupStatus(state)}</div>
-          </div>
+          ${renderFeedSiteUrlField(state)}
         `,
       })}
 
@@ -396,6 +517,7 @@ export function renderFeedSourceCrudForm(state) {
       <input type="hidden" name="feed_test_success" value="${state.testSuccess ? '1' : ''}" data-form-state-ignore>
       <input type="hidden" name="feed_last_tested_url" value="${escapeHtml(state.lastTestedUrl || '')}" data-form-state-ignore>
       <input type="hidden" name="feed_can_save" value="${canSave(state) ? '1' : ''}" data-form-state-ignore>
+      <input type="hidden" name="feed_favicon_asset_id" value="${escapeHtml(buildFeedFaviconStateToken(state))}">
     </form>
   `
 }
@@ -411,6 +533,11 @@ export function patchFeedSourceCrudForm(root, state = feedFormState) {
 
   form.dataset.feedTestSuccess = state.testSuccess ? 'true' : 'false'
   form.dataset.feedLastTestedUrl = state.lastTestedUrl || ''
+
+  const siteField = form.querySelector('[data-feed-form-site-field]')
+  if (siteField instanceof HTMLElement) {
+    siteField.outerHTML = renderFeedSiteUrlField(state)
+  }
 
   const feedUrlInput = form.querySelector('input[name="feed_url"]')
   if (feedUrlInput instanceof HTMLInputElement && feedUrlInput.value !== state.feedUrl) {
@@ -474,6 +601,12 @@ export function patchFeedSourceCrudForm(root, state = feedFormState) {
     canSaveInput.value = canSave(state) ? '1' : ''
   }
 
+  const faviconAssetInput = form.querySelector('input[name="feed_favicon_asset_id"]')
+  if (faviconAssetInput instanceof HTMLInputElement) {
+    faviconAssetInput.value = buildFeedFaviconStateToken(state)
+  }
+
+  void afterFeedSourceFormRender(form)
   updateFormDirtyState(form)
   return true
 }

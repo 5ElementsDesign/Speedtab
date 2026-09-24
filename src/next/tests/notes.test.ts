@@ -29,6 +29,7 @@ import {
     saveNoteData,
     softDeleteNote,
 } from '../data/notes.js'
+import {getNotePreviewText} from '../features/modules/notes-shared.js'
 
 async function seedCollection() {
   return testDb.collections.add({
@@ -158,6 +159,16 @@ describe('saveNoteData', () => {
     expect(updated!.title).toBe('New')
     expect(updated!.content).toBe('y')
     expect(updated!.updated_at).toBeGreaterThan(oldTs)
+  })
+})
+
+describe('getNotePreviewText', () => {
+  it('prefers the optional stored preview text', () => {
+    expect(getNotePreviewText({
+      type: 'html',
+      content: '<section data-world-clock></section>',
+      meta_json: JSON.stringify({preview: 'World clocks at a glance'}),
+    })).toBe('World clocks at a glance')
   })
 })
 

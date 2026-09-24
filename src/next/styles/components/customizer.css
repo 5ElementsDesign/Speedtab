@@ -47,13 +47,14 @@
     align-items: stretch;
     gap: 6px;
   }
-
   &[data-customizer-gap="sm"] {
     gap: 4px;
   }
-
   &[data-customizer-gap="md"] {
     gap: 6px;
+  }
+  &[hidden] {
+    display: none !important;
   }
 
   > :where(

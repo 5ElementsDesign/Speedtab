@@ -86,7 +86,7 @@ async function renderWallspeedMarkup() {
           data-delay="100"
           data-min-loading="400"
           data-url="https://5elementsdesign.github.io/Speedtab/ext/st/en/wallspeed.html"
-        >Wallpaper</button>
+        >${escapeHtml(t('nav.actions.wallspeed'))}</button>
       </nav>
       <div data-module-actions data-swipe-ignore>
         <button
@@ -246,7 +246,7 @@ function contrastWouldFail(section, key, value, syncId) {
   const pairedStored = getStoredHex(syncId, isText ? pairKeys.bg : pairKeys.text)
   if (!pairedStored) return false
   const ratio = contrastRatio(isBg ? value : pairedStored, isText ? value : pairedStored)
-  return ratio !== null && ratio < 3
+  return ratio !== null && ratio < 1.01
 }
 
 function flashContrastBadge(key) {

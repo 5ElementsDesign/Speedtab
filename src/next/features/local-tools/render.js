@@ -57,11 +57,15 @@ function renderFloatingNoteWindow(note) {
     : ''
   const contentHtml = note.editMode
     ? renderFloatingNoteEditor(note)
-    : renderNoteContentHtml(note)
-  const headerQuickActions = note.editMode
-    ? renderFloatingNoteEditorQuickActions(note)
-    : renderFloatingNoteViewQuickActions(note)
-  const headerOptionsHtml = renderFloatingNoteHeaderOptions(
+    : note.virtualMarkup
+      ? `<pre class="st-note-content-pre st-note-code-pre">${escapeHtml(note.content ?? '')}</pre>`
+      : renderNoteContentHtml(note)
+  const headerQuickActions = note.virtualNote
+    ? renderVirtualNoteQuickActions(note)
+    : note.editMode
+      ? renderFloatingNoteEditorQuickActions(note)
+      : renderFloatingNoteViewQuickActions(note)
+  const headerOptionsHtml = note.virtualNote ? '' : renderFloatingNoteHeaderOptions(
     note,
     note.editMode ? renderFloatingNoteEditorOptions(note) : renderFloatingNoteViewOptions(note, title),
   )
@@ -74,6 +78,8 @@ function renderFloatingNoteWindow(note) {
       data-window-type="note"
       data-note-window-mode="${note.editMode ? 'edit' : 'view'}"
       data-note-style-token="${escapeHtml(styleToken)}"
+      ${note.pageSlug && !note.noteShowOnAllPages ? `data-note-page="${escapeHtml(note.pageSlug)}"` : ''}
+      ${note.notePageHidden ? 'hidden' : ''}
       ${note.noteBare ? 'data-note-bare' : ''}
       ${note.noteNailed ? 'data-note-nailed' : ''}
       class="st-note-window${note.noteHideHeader ? ' st-module-header-hidden' : ''}${note.noteResetPadding ? ' st-reset-padding' : ''}"
@@ -119,6 +125,27 @@ function renderFloatingNoteViewQuickActions(note) {
       data-note-id="${escapeHtml(String(note.id ?? ''))}"
       title="${escapeHtml(t('noteViewer.edit'))}"
     ><i data-icon="pencil" aria-hidden="true"></i></button>
+  `
+}
+
+function renderVirtualNoteQuickActions(note) {
+  const noteId = escapeHtml(String(note.id ?? ''))
+  return `
+    <button type="button" class="st-btn" data-click="closeFloatingNote" data-note-id="${noteId}" title="${escapeHtml(t('noteViewer.close'))}" aria-label="${escapeHtml(t('noteViewer.closeAria'))}"><i data-icon="x" aria-hidden="true"></i></button>
+    <button type="button" class="st-btn" data-click="toggleVirtualNoteMarkup" data-note-id="${noteId}" title="Toggle markup">&lt;/&gt;</button>
+    <button type="button" class="st-btn" data-click="saveVirtualNoteToInbox" data-note-id="${noteId}" title="${escapeHtml(t('capture.saveToSpeedtab'))}">${escapeHtml(t('nav.inbox'))}</button>
+    <button
+      type="button"
+      class="st-btn"
+      data-btn="ghost"
+      data-click="openInPip"
+      data-pip-trigger
+      data-pip-target="${escapeHtml(`[data-window-id=\"note:${String(note.id ?? '')}\"]`)}"
+      data-pip-width="${escapeHtml(String(note.width ?? 820))}"
+      data-pip-height="${escapeHtml(String(note.height ?? 660))}"
+      title="${escapeHtml(t('common.pictureInPicture'))}"
+      aria-label="${escapeHtml(t('common.pictureInPicture'))}"
+    ><i data-icon="external" aria-hidden="true"></i></button>
   `
 }
 
@@ -257,11 +284,83 @@ function renderHtmlEditorToolbar(note) {
 
 function renderWorldClockGenerator(note) {
   if (note.type !== 'html' || note.worldClockGenerator !== true) return ''
+  const selectedZones = new Set(String(note.worldClockZones ?? '').split(/[\n,]/).map((zone) => zone.trim()).filter(Boolean))
+  const timeZones = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : []
+  const timeZoneGroups = Object.groupBy(timeZones, (timeZone) => timeZone.split('/')[0])
+  const display = note.worldClockDisplay === 'analog' ? 'analog' : 'digital'
+  const analogSize = Math.min(500, Math.max(60, parseInt(note.worldClockAnalogSize, 10) || 100))
+  const topDateFormat = String(note.worldClockTopDateFormat ?? '')
+  const itemDateFormat = String(note.worldClockItemDateFormat ?? '')
   return `
     <div data-world-clock-generator>
-      <textarea name="worldclockgenerator" data-form-state-ignore rows="8" spellcheck="false" aria-label="${escapeHtml(t('noteForm.worldClockTitle'))}">${escapeHtml(note.worldClockZones ?? '')}</textarea>
-      <button type="button" class="st-btn" data-btn="primary" data-click="generateFloatingNoteWorldClock" data-note-id="${escapeHtml(String(note.id ?? ''))}">${escapeHtml(t('noteForm.worldClockGenerate'))}</button>
+      <div data-world-clock-generator-settings>
+        <div data-world-clock-date-formats>
+          <label data-customizer-field>
+            <span data-customizer-field-label>${escapeHtml(t('noteForm.worldClockTopDateFormat'))}</span>
+            <input name="worldclock_top_date_format" type="text" value="${escapeHtml(topDateFormat)}" placeholder="{D} {M} {Y} {dayName} {monthName} {year}" data-form-state-ignore>
+          </label>
+          <label data-customizer-field>
+            <span data-customizer-field-label>${escapeHtml(t('noteForm.worldClockItemDateFormat'))}</span>
+            <input name="worldclock_item_date_format" type="text" value="${escapeHtml(itemDateFormat)}" placeholder="{D} {M} {Y} {dayName} {monthName} {year}" data-form-state-ignore>
+          </label>
+        </div>
+        <label data-customizer-field>
+          <span data-customizer-field-label data-st-white-space="nowrap">${escapeHtml(t('settings.clockDisplay'))}</span>
+          <select name="worldclock_display" data-change="toggleFloatingNoteWorldClockAnalogSize" data-form-state-ignore>
+            <option value="digital"${display === 'digital' ? ' selected' : ''}>${escapeHtml(t('settings.digital'))}</option>
+            <option value="analog"${display === 'analog' ? ' selected' : ''}>${escapeHtml(t('settings.analog'))}</option>
+          </select>
+        </label>
+        <label data-customizer-field data-world-clock-analog-size${display === 'analog' ? '' : ' hidden'}>
+          <span data-customizer-field-label>${escapeHtml(t('noteForm.worldClockSize'))}</span>
+          <input name="worldclock_analog_size" type="number" min="60" max="500" value="${analogSize}" data-form-state-ignore>
+        </label>
+      </div>
+      <div data-world-clock-zone-filter>
+        <input name="worldclock_filter" type="search" data-input="filterFloatingNoteWorldClockZones" data-form-state-ignore placeholder="${escapeHtml(t('common.search'))}" aria-label="${escapeHtml(t('common.search'))}">
+      </div>
+      <div data-world-clock-zones>
+        ${Object.entries(timeZoneGroups).map(([region, zones]) => `
+          <details data-world-clock-zone-group="${escapeHtml(region)}">
+            <summary>${escapeHtml(region)} (${zones.filter((timeZone) => selectedZones.has(timeZone)).length}/${zones.length})</summary>
+            <div>
+              ${zones.map((timeZone) => `
+                <label data-world-clock-zone-option="${escapeHtml(timeZone)}"${selectedZones.has(timeZone) ? ' data-tz-selected' : ''}>
+                  <input name="worldclock_zone" type="checkbox" value="${escapeHtml(timeZone)}" data-change="syncFloatingNoteWorldClockDefaultTimezone" data-form-state-ignore${selectedZones.has(timeZone) ? ' checked' : ''}>
+                  <span>${escapeHtml(timeZone.slice(region.length + 1))}</span>
+                </label>
+              `).join('')}
+            </div>
+          </details>
+        `).join('')}
+      </div>
+      ${renderWorldClockDefaultTimezoneOptions([...selectedZones], note.worldClockDefaultTimezone)}
+      <div data-world-clock-generator-actions>
+        <button type="button" class="st-btn" data-btn="primary" data-click="generateFloatingNoteWorldClock" data-note-id="${escapeHtml(String(note.id ?? ''))}">${escapeHtml(t('noteForm.worldClockGenerate'))}</button>
+      </div>
     </div>
+  `
+}
+
+export function renderWorldClockDefaultTimezoneOptions(timeZones = [], defaultTimeZone = '') {
+  const selectedZones = [...new Set(timeZones)]
+  const selectedDefault = selectedZones.includes(defaultTimeZone) ? defaultTimeZone : selectedZones[0]
+  return `
+    <details data-world-clock-default-timezone-options data-world-clock-default-timezones${selectedDefault ? '' : ' open'}>
+      <summary>
+        <span data-label>${escapeHtml(t('noteForm.worldClockDefaultTimezone'))}</span>
+        <span data-counter>(${selectedZones.length})</span>
+        ${selectedDefault ? `<span data-default>${escapeHtml(selectedDefault)}</span>` : ''}
+      </summary>
+      <div data-world-clock-default-timezone-list>
+        ${selectedZones.map((timeZone) => `
+          <label data-world-clock-default-zone${timeZone === selectedDefault ? ' data-default' : ''}>
+            <input name="worldclock_default_timezone" type="radio" value="${escapeHtml(timeZone)}" data-change="syncFloatingNoteWorldClockDefaultTimezone" data-form-state-ignore${timeZone === selectedDefault ? ' checked' : ''}>
+            <span>${escapeHtml(timeZone.slice(timeZone.indexOf('/') + 1))}</span>
+          </label>
+        `).join('')}
+      </div>
+    </details>
   `
 }
 
@@ -341,6 +440,10 @@ function renderFloatingNoteHeaderOptions(note, actionButtons) {
             <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
               <span data-customizer-field-label>${escapeHtml(t('noteForm.nailToPosition'))}</span>
               <input type="checkbox" name="note_nailed" data-note-id="${escapeHtml(String(note.id ?? ''))}" ${optionAttrs('note_nailed')}${note.noteNailed ? ' checked' : ''}>
+            </label>
+            <label data-customizer-field data-customizer-field-type="boolean" data-customizer-label-clickable>
+              <span data-customizer-field-label>${escapeHtml(t('noteForm.showOnAllPages'))}</span>
+              <input type="checkbox" name="note_show_on_all_pages" data-note-id="${escapeHtml(String(note.id ?? ''))}" ${optionAttrs('note_show_on_all_pages')}${note.noteShowOnAllPages ? ' checked' : ''}>
             </label>
           </div>
 
@@ -433,6 +536,23 @@ function renderFloatingNoteEditor(note) {
             data-input-immediate="syncFloatingNoteEditorField"
             data-note-id="${escapeHtml(String(note.id ?? ''))}"
             data-editor-field="title"
+          >
+        </label>
+        <label data-customizer-field
+          data-customizer-field-type="text"
+          data-st-width="100%"
+          data-st-max-width="280px"
+          data-st-display="block"
+          data-note-editor-field>
+          <span data-customizer-field-label>${escapeHtml(t('noteViewer.preview'))}</span>
+          <input
+            type="text"
+            name="preview"
+            maxlength="240"
+            value="${escapeHtml(note.editPreview ?? '')}"
+            data-input-immediate="syncFloatingNoteEditorField"
+            data-note-id="${escapeHtml(String(note.id ?? ''))}"
+            data-editor-field="preview"
           >
         </label>
         <label data-customizer-field data-customizer-field-type="select" data-note-editor-field>

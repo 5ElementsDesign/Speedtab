@@ -238,7 +238,7 @@ class YaiTabsSwipe {
         if (!allowedInteractive && target.matches('input, textarea, select, button:not([data-open])')) return true;
 
         const ignoredElement = target.closest(
-            '[data-swipe-ignore], [data-tabs-header], [data-tabs-footer]'
+            '[data-swipe-ignore], [data-tabs-header], [data-tabs-footer], [data-note-mode="edit"]'
         );
         if (ignoredElement && !ignoredElement.hasAttribute('data-swipe-allow')) {
             return true;

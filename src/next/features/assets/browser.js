@@ -199,6 +199,10 @@ function getReferenceSummary(assetId, data) {
     }
 
     for (const source of data.feedSources) {
+      if (source.favicon_asset_id === assetId) {
+        counts.feedFavicons += 1
+        continue
+      }
       const candidates = getFaviconHostnameCandidatesForUrl(source.site_url || source.feed_url)
       if (candidates.some((candidate) => faviconHosts.has(candidate))) {
         counts.feedFavicons += 1
@@ -485,9 +489,10 @@ export async function deleteAssetById(assetId) {
   const tabs = await db.tabs.toArray()
   const notes = await db.notes.toArray()
   const pages = await db.pages.toArray()
+  const feedSources = await db.feed_sources.toArray()
   const appSettings = await db.app_settings.toArray()
 
-  await db.transaction('rw', [db.assets, db.tabs, db.notes, db.pages, db.app_settings], async () => {
+  await db.transaction('rw', [db.assets, db.tabs, db.notes, db.pages, db.feed_sources, db.app_settings], async () => {
     for (const tab of tabs) {
       const patch = {}
       if (tab.favicon_asset_id === id) patch.favicon_asset_id = null
@@ -495,6 +500,11 @@ export async function deleteAssetById(assetId) {
       if (Object.keys(patch).length) {
         await db.tabs.update(tab.id, {...patch, ...makeUpdatedAtPatch(now)})
       }
+    }
+
+    for (const source of feedSources) {
+      if (source.favicon_asset_id !== id) continue
+      await db.feed_sources.update(source.id, {favicon_asset_id: null, ...makeUpdatedAtPatch(now)})
     }
 
     for (const note of notes) {

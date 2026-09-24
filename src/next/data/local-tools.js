@@ -64,6 +64,7 @@ function normalizeNoteWindowState(source = {}) {
     z: Math.max(1, toFiniteNumber(source.z, DEFAULT_NOTE_WINDOW_STATE.z)),
     autoHeight: source.autoHeight === true,
     autoWidth: source.autoWidth === true,
+    pageSlug: typeof source.pageSlug === 'string' ? source.pageSlug.trim() : '',
   }
 }
 

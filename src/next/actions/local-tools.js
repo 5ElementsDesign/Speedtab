@@ -1,9 +1,11 @@
 import {
   closeFloatingNote,
+  focusFloatingNote as focusFloatingNoteWindow,
   cancelFloatingNoteEdit as cancelFloatingNoteEditWindow,
   closeQuicknoteWindow,
   lockFloatingCryptNote as lockFloatingCryptNoteWindow,
   openFloatingNote,
+  openVirtualNote,
   openQuicknote,
   resetFloatingNoteWindowLayout as resetFloatingNoteWindowLayoutWindow,
   saveFloatingNoteEdit as saveFloatingNoteEditWindow,
@@ -12,12 +14,17 @@ import {
   syncFloatingNoteEditorField as syncFloatingNoteEditorFieldWindow,
   insertFloatingNoteTabber as insertFloatingNoteTabberWindow,
   insertFloatingNoteTableau as insertFloatingNoteTableauWindow,
+  filterFloatingNoteWorldClockZones as filterFloatingNoteWorldClockZonesWindow,
   generateFloatingNoteWorldClock as generateFloatingNoteWorldClockWindow,
+  syncFloatingNoteWorldClockDefaultTimezone as syncFloatingNoteWorldClockDefaultTimezoneWindow,
+  toggleFloatingNoteWorldClockAnalogSize as toggleFloatingNoteWorldClockAnalogSizeWindow,
   toggleFloatingNotePreview as toggleFloatingNotePreviewWindow,
+  toggleVirtualNoteMarkup as toggleVirtualNoteMarkupWindow,
   toggleFloatingNoteWorldClockGenerator as toggleFloatingNoteWorldClockGeneratorWindow,
   toggleFloatingCryptPassphrase as toggleFloatingCryptPassphraseWindow,
   unlockFloatingCryptNote as unlockFloatingCryptNoteWindow,
   updateQuicknoteContent,
+  saveVirtualNoteToInbox as saveVirtualNoteToInboxWindow,
 } from '../features/local-tools/manager.js'
 
 export const localToolsActions = {
@@ -41,12 +48,28 @@ export const localToolsActions = {
     openFloatingNote(target?.dataset?.noteId)
   },
 
+  openVirtualNote(target) {
+    openVirtualNote(target)
+  },
+
+  async toggleVirtualNoteMarkup(target) {
+    await toggleVirtualNoteMarkupWindow(target?.dataset?.noteId)
+  },
+
+  async saveVirtualNoteToInbox(target) {
+    await saveVirtualNoteToInboxWindow(target?.dataset?.noteId)
+  },
+
   async editFloatingNote(target) {
     await startFloatingNoteEditWindow(target?.dataset?.noteId)
   },
 
   closeFloatingNote(target) {
     closeFloatingNote(target?.dataset?.noteId)
+  },
+
+  focusFloatingNote(target) {
+    focusFloatingNoteWindow(target?.dataset?.noteId)
   },
 
   async cancelFloatingNoteEdit(target) {
@@ -87,8 +110,26 @@ export const localToolsActions = {
 
   generateFloatingNoteWorldClock(target) {
     const generator = target?.closest?.('[data-world-clock-generator]')
-    const source = generator?.querySelector?.('textarea')?.value ?? ''
-    generateFloatingNoteWorldClockWindow(target?.dataset?.noteId, source)
+    const zones = [...generator?.querySelectorAll?.('[data-world-clock-zone-option] input:checked') ?? []].map((input) => input.value)
+    generateFloatingNoteWorldClockWindow(target?.dataset?.noteId, zones, {
+      display: generator?.querySelector?.('[name="worldclock_display"]')?.value,
+      analogSize: generator?.querySelector?.('[name="worldclock_analog_size"]')?.value,
+      defaultTimeZone: generator?.querySelector?.('[name="worldclock_default_timezone"]:checked')?.value,
+      topDateFormat: generator?.querySelector?.('[name="worldclock_top_date_format"]')?.value,
+      itemDateFormat: generator?.querySelector?.('[name="worldclock_item_date_format"]')?.value,
+    })
+  },
+
+  toggleFloatingNoteWorldClockAnalogSize(target) {
+    toggleFloatingNoteWorldClockAnalogSizeWindow(target)
+  },
+
+  filterFloatingNoteWorldClockZones(target) {
+    filterFloatingNoteWorldClockZonesWindow(target)
+  },
+
+  syncFloatingNoteWorldClockDefaultTimezone(target) {
+    syncFloatingNoteWorldClockDefaultTimezoneWindow(target)
   },
 
   async toggleFloatingNotePreview(target) {

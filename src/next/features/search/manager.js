@@ -1,8 +1,8 @@
 import {db, isActiveRecord} from '../../../db/db.ts'
 import {on} from '../../app/dispatch.js'
-import {renderSearchChrome, renderSearchPanel} from './render.js'
-import {t} from '../../utils/i18n.js'
 import {patchHost} from '../../utils/dom-patch.js'
+import {t} from '../../utils/i18n.js'
+import {renderSearchChrome, renderSearchPanel} from './render.js'
 
 const SEARCH_RESULT_LIMIT = 80
 const SEARCH_HIGHLIGHT_MS = 4200

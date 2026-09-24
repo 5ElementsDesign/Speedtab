@@ -106,6 +106,7 @@ export interface FeedSource extends SyncMetadata {
   title:               string
   feed_url:            string
   site_url:            string | null
+  favicon_asset_id?:   number | null
   sort_order:          number
   style_token:         string | null
   last_hash:           string | null

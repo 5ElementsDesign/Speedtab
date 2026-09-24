@@ -3,16 +3,18 @@ import {highlightCode} from '../../../composables/useHighlight.ts'
 import {renderNoteHtmlWithAssets} from '../../../composables/useNoteImages.ts'
 import {syncPictureInPicture} from '../../actions/picture-in-picture.js'
 import {closeDropdown, rebindOpenDropdownRoot} from '../../components/dropdown.js'
+import {createCaptureInboxItem} from '../../data/capture-inbox.js'
 import {loadLocalToolsState, normalizeLocalToolsState, saveLocalToolsState} from '../../data/local-tools.js'
 import {loadNoteById, loadNotesByIds, saveNoteData} from '../../data/notes.js'
 import {initFavicons} from '../../utils/favicon.js'
+import {escapeHtml} from '../../utils/html.js'
 import {t} from '../../utils/i18n.js'
 import {initFormDirtyState, updateFormDirtyState} from '../forms/actions.js'
 import {buildNotePayload} from '../modules/note-form.js'
 import {getHtmlNoteSubtype, normalizeNoteStyleToken, parseNoteMeta} from '../modules/notes-shared.js'
 import {getValidTimeZone} from '../note-widgets/clock.js'
 import {syncNoteWidgets} from '../note-widgets/index.js'
-import {renderLocalToolsRoot, renderQuicknoteWindow} from './render.js'
+import {renderLocalToolsRoot, renderQuicknoteWindow, renderWorldClockDefaultTimezoneOptions} from './render.js'
 
 const WINDOW_ROOT_ATTR = 'data-floating-windows'
 const MIN_WIDTH = 240
@@ -31,6 +33,7 @@ const DEFAULT_NOTE_LAYOUT = {
 
 let root = null
 let appRoot = null
+let activePageSlug = ''
 let state = normalizeLocalToolsState()
 let saveTimer = null
 let session = null
@@ -39,6 +42,8 @@ let initialized = false
 const cryptSessions = new Map()
 const editorSessions = new Map()
 const noteRecords = new Map()
+const virtualNoteIds = new Set()
+let virtualNoteSequence = 0
 const enteringWindowIds = new Set()
 const closingWindowIds = new Set()
 const WINDOW_CLOSE_ANIMATION_MS = 180
@@ -52,10 +57,11 @@ const DEFAULT_WORLD_CLOCK_ZONES = [
   'Europe/London',
   'Europe/Istanbul',
   'Europe/Moscow',
-  'Asia/Kolkata',
+  'Asia/Calcutta',
   'Asia/Shanghai',
   'America/New_York',
 ].join('\n')
+const WORLD_CLOCK_SECTION_PATTERN = /<section\b(?=[^>]*\bdata-world-clock(?:\s|=|>))[^>]*>[\s\S]*?<\/section>/i
 
 function isMobileNoteViewport() {
   return window.innerWidth <= MOBILE_NOTE_BREAKPOINT
@@ -149,6 +155,7 @@ function getSavedNoteTabState(noteId) {
 }
 
 function saveNoteTabState(noteId, tabs = []) {
+  if (virtualNoteIds.has(noteId)) return
   const nextState = {noteId, tabs}
   const index = state.noteTabStates.findIndex((entry) => entry.noteId === noteId)
   if (index === -1) {
@@ -249,8 +256,25 @@ function isNoteWindowInEditMode(windowId) {
   return parsed.type === 'note' && editorSessions.has(parsed.key)
 }
 
+function expandFloatingNoteEditor(noteId) {
+  const windowState = getWindowState(`note:${noteId}`)
+  if (!windowState) return
+  setEditorSession(noteId, {
+    editorWidth: windowState.width,
+    editorHeight: windowState.height,
+  })
+  applyWindowPatch(`note:${noteId}`, {}, {persist: false, rerender: false})
+}
+
+function restoreFloatingNoteEditorSize(noteId, editor = {}) {
+  const width = Number(editor?.editorWidth)
+  const height = Number(editor?.editorHeight)
+  if (!Number.isFinite(width) || !Number.isFinite(height)) return
+  applyWindowPatch(`note:${noteId}`, {width, height}, {persist: false, rerender: false})
+}
+
 function saveNoteLayoutPatch(windowState, patch = {}) {
-  if (!windowState?.noteId) return
+  if (!windowState?.noteId || virtualNoteIds.has(windowState.noteId)) return
   saveNoteLayout({
     noteId: windowState.noteId,
     ...patch,
@@ -268,6 +292,10 @@ function getRenderableNotes(notesById) {
       noteResetPadding: windowMeta.reset_padding === true,
       noteBare: windowMeta.bare === true,
       noteNailed: windowMeta.nailed === true,
+      noteShowOnAllPages: windowMeta.show_on_all_pages === true,
+      notePageHidden: Boolean(activePageSlug) && Boolean(windowState.pageSlug) && windowState.pageSlug !== activePageSlug && windowMeta.show_on_all_pages !== true,
+      virtualNote: virtualNoteIds.has(windowState.noteId),
+      virtualMarkup: windowState.virtualMarkup === true,
       ...cryptSessions.get(windowState.noteId),
       ...editorSessions.get(windowState.noteId),
       hasSavedLayout: !!getSavedNoteLayout(windowState.noteId),
@@ -313,6 +341,7 @@ async function ensureCachedNotes(noteIds = []) {
 
 function removeCachedNote(noteId) {
   noteRecords.delete(noteId)
+  virtualNoteIds.delete(noteId)
 }
 
 function getOpenNotesById() {
@@ -343,6 +372,45 @@ function syncOpenNotePreviewState() {
     if (!noteId) return
     element.toggleAttribute('data-note-open', openNoteIds.has(noteId))
   })
+  syncOpenNotesMap()
+}
+
+function syncOpenNotesMap() {
+  const host = document.querySelector('[data-open-notes-map]')
+  if (!(host instanceof HTMLElement)) return
+
+  const notes = state.noteWindows.map((windowState) => ({
+    id: windowState.noteId,
+    pageSlug: windowState.pageSlug ?? '',
+    title: noteRecords.get(windowState.noteId)?.title?.trim() || t('openNotes.noteTitle'),
+    styleToken: normalizeNoteStyleToken(noteRecords.get(windowState.noteId)?.style_token),
+  }))
+
+  host.toggleAttribute('data-notes-opened', notes.length > 0)
+  host.innerHTML = notes.length ? `
+    <div data-open-notes-map-content>
+      ${notes.map((note) => `
+        <button
+          type="button"
+          data-click="focusFloatingNote"
+          data-note-id="${escapeHtml(String(note.id))}"
+          data-note-reference="note:${escapeHtml(String(note.id))}"
+          data-page-slug="${escapeHtml(note.pageSlug)}"
+        ><span data-open-notes-map-marker data-note-style-token="${escapeHtml(note.styleToken)}" aria-hidden="true"></span>${escapeHtml(note.title)}</button>
+      `).join('')}
+    </div>
+  ` : ''
+}
+
+function getActivePageSlug() {
+  return document.querySelector('[data-yai-tabs][data-ref-path="pages"]')?.dataset.lastActive || activePageSlug
+}
+
+export function syncFloatingNotePageScope(pageSlug = getActivePageSlug()) {
+  activePageSlug = pageSlug || activePageSlug
+  root?.querySelectorAll?.('[data-floating-window][data-note-page]').forEach((note) => {
+    note.toggleAttribute('hidden', Boolean(activePageSlug) && note.dataset.notePage !== activePageSlug)
+  })
 }
 
 export function refreshOpenNotePreviewState() {
@@ -368,7 +436,13 @@ function queueSave() {
   if (saveTimer) clearTimeout(saveTimer)
   saveTimer = setTimeout(async () => {
     saveTimer = null
-    state = await saveLocalToolsState(state)
+    const virtualWindows = state.noteWindows.filter((entry) => virtualNoteIds.has(entry.noteId))
+    const persistedState = {
+      ...state,
+      noteWindows: state.noteWindows.filter((entry) => !virtualNoteIds.has(entry.noteId)),
+    }
+    const savedState = await saveLocalToolsState(persistedState)
+    state = {...savedState, noteWindows: [...savedState.noteWindows, ...virtualWindows]}
     syncZTracker()
   }, 120)
 }
@@ -396,8 +470,9 @@ async function render({reloadNotes = false} = {}) {
   const el = ensureRoot()
   const openNoteIds = state.noteWindows.map((windowState) => windowState.noteId)
   if (reloadNotes) {
-    const notes = openNoteIds.length ? await loadNotesByIds(openNoteIds) : []
-    openNoteIds.forEach((noteId) => noteRecords.delete(noteId))
+    const persistentNoteIds = openNoteIds.filter((noteId) => !virtualNoteIds.has(noteId))
+    const notes = persistentNoteIds.length ? await loadNotesByIds(persistentNoteIds) : []
+    persistentNoteIds.forEach((noteId) => noteRecords.delete(noteId))
     notes.forEach((note) => {
       if (note?.id) noteRecords.set(note.id, note)
     })
@@ -428,6 +503,7 @@ async function render({reloadNotes = false} = {}) {
   autoFitNoteWindows()
   syncZTracker()
   syncOpenNotePreviewState()
+  syncFloatingNotePageScope()
   enteringWindowIds.clear()
 }
 
@@ -450,12 +526,14 @@ function normalizeEditorSession(note = {}, session = {}) {
       : (note.content ?? '')),
     editLanguage: session.editLanguage ?? language,
     editStyleToken: session.editStyleToken ?? note.style_token ?? 'primary',
+    editPreview: session.editPreview ?? (typeof meta.preview === 'string' ? meta.preview : ''),
     previewMode: session.previewMode ?? (note.type === 'html'),
     editError: session.editError ?? '',
     noteHideHeader: session.noteHideHeader ?? (windowMeta.hide_header === true),
     noteResetPadding: session.noteResetPadding ?? (windowMeta.reset_padding === true),
     noteBare: session.noteBare ?? (windowMeta.bare === true),
     noteNailed: session.noteNailed ?? (windowMeta.nailed === true),
+    noteShowOnAllPages: session.noteShowOnAllPages ?? (windowMeta.show_on_all_pages === true),
   }
 }
 
@@ -675,18 +753,75 @@ function insertFloatingNoteTemplate(noteId, buildInsertion) {
   updateFormDirtyState(textarea.form)
 }
 
-function buildWorldClockMarkup(zones = []) {
+function buildWorldClockMarkup(zones = [], {
+  display = 'digital',
+  analogSize = 100,
+  defaultTimeZone = zones[0],
+  topDateFormat = '',
+  itemDateFormat = '',
+} = {}) {
+  const defaultZone = zones.includes(defaultTimeZone) ? defaultTimeZone : zones[0]
+  const topDate = String(topDateFormat ?? '').trim()
+  const itemDate = String(itemDateFormat ?? '').trim()
+  const clockMarkup = display === 'analog'
+    ? `data-clock data-analog data-seconds data-st-width="${analogSize}px" data-st-height="${analogSize}px"`
+    : 'data-clock data-digital data-seconds'
   return [
-    '<section data-world-clock data-world-clock-theme="default">',
-    `  <div data-clock-zone="${zones[0]}"><h3><b data-date data-date-format="{dayShort} {day}. {monthShort} {year}"></b></h3></div>\n  <div data-world-clock-items data-world-clock-default-timezone="${zones[0]}">`,
+    '<section data-world-clock data-world-clock-theme="default" data-swipe-ignore>',
+    ...(topDate ? [`  <div data-clock-zone><h3><b data-date data-date-format="${escapeHtml(topDate)}"></b></h3></div>`] : []),
+    `  <div data-world-clock-items data-world-clock-default-timezone="${defaultZone}">`,
     ...zones.map((timeZone) => [
       `    <div data-world-clock-item data-clock-zone="${timeZone}">`,
       '      <h3 data-clock-zone></h3>',
-      '      <h4><b data-clock data-analog data-seconds></b></h4>',
+      `      <h4 ${clockMarkup}></h4>`,
+      ...(itemDate ? [`      <small data-date data-date-format="${escapeHtml(itemDate)}"></small>`] : []),
       '    </div>',
     ].join('\n')),
     `  </div>\n</section>`,
   ].join('\n')
+}
+
+function getWorldClockConfig(source = '') {
+  const document = new DOMParser().parseFromString(source, 'text/html')
+  const worldClock = document.body.querySelector('section[data-world-clock]')
+  if (!(worldClock instanceof HTMLElement)) return null
+
+  const items = worldClock.querySelectorAll('[data-world-clock-item][data-clock-zone]')
+  const zones = [...(items.length ? items : worldClock.querySelectorAll('[data-clock-zone]'))]
+    .map((element) => getValidTimeZone(element.dataset.clockZone))
+    .filter(Boolean)
+  if (!zones.length) return null
+
+  const clock = worldClock.querySelector('[data-clock]')
+  const analogSize = parseInt(clock?.dataset.stWidth, 10)
+  const configuredDefault = getValidTimeZone(worldClock.querySelector('[data-world-clock-items]')?.dataset.worldClockDefaultTimezone)
+  const topDateFormat = [...worldClock.children]
+    .find((child) => child.matches?.('[data-clock-zone]'))
+    ?.querySelector('h3 > [data-date]')?.dataset.dateFormat ?? ''
+  const itemDateFormat = worldClock.querySelector('[data-world-clock-item] [data-date]')?.dataset.dateFormat ?? ''
+
+  return {
+    zones: [...new Set(zones)],
+    display: clock?.hasAttribute('data-analog') ? 'analog' : 'digital',
+    analogSize: Number.isFinite(analogSize) ? analogSize : 100,
+    defaultTimeZone: zones.includes(configuredDefault) ? configuredDefault : zones[0],
+    topDateFormat,
+    itemDateFormat,
+  }
+}
+
+function replaceFloatingNoteWorldClock(noteId, markup) {
+  const textarea = root?.querySelector?.(
+    `[data-note-window-id="${noteId}"] textarea[name="content"][data-editor-field="content"]`,
+  )
+  if (!(textarea instanceof HTMLTextAreaElement)) return false
+
+  const nextValue = textarea.value.replace(WORLD_CLOCK_SECTION_PATTERN, markup)
+  if (nextValue === textarea.value) return false
+  textarea.value = nextValue
+  syncFloatingNoteEditorField(noteId, 'content', nextValue)
+  updateFormDirtyState(textarea.form)
+  return true
 }
 
 async function hydrateNoteCodeBlocks(container) {
@@ -778,7 +913,10 @@ function getWindowMinHeight(windowIdOrState) {
     ? windowIdOrState
     : (windowIdOrState?.windowId || `note:${windowIdOrState?.noteId ?? ''}`)
   const parsed = parseWindowId(windowId)
-  return parsed.type === 'note' ? NOTE_MIN_HEIGHT : MIN_HEIGHT
+  if (parsed.type !== 'note') return MIN_HEIGHT
+  return isNoteWindowInEditMode(windowId)
+    ? Math.max(NOTE_MIN_HEIGHT, Math.ceil(window.innerHeight * 0.5))
+    : NOTE_MIN_HEIGHT
 }
 
 function setWindowState(windowId, patch = {}) {
@@ -808,7 +946,11 @@ function getWindowElement(windowId) {
 function clampWindowState(windowState) {
   const parsed = parseWindowId(windowState?.windowId || `note:${windowState?.noteId ?? ''}`)
   const minHeight = getWindowMinHeight(windowState)
-  const minWidth = parsed.type === 'note' ? NOTE_MIN_WIDTH : MIN_WIDTH
+  const minWidth = parsed.type === 'note'
+    ? (isNoteWindowInEditMode(windowState?.windowId || `note:${windowState?.noteId ?? ''}`)
+      ? Math.max(NOTE_MIN_WIDTH, Math.ceil(window.innerWidth * 0.5))
+      : NOTE_MIN_WIDTH)
+    : MIN_WIDTH
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
   const maxWidth = parsed.type === 'note'
@@ -999,6 +1141,7 @@ async function mountSingleFloatingNoteWindow(noteId) {
   autoFitSingleNoteWindow(noteId)
   syncZTracker()
   syncOpenNotePreviewState()
+  syncFloatingNotePageScope()
   enteringWindowIds.delete(`note:${noteId}`)
 }
 
@@ -1221,8 +1364,9 @@ function bindGlobalListeners() {
   window.addEventListener('pointercancel', handlePointerUp)
 }
 
-export async function initializeLocalTools(appEl) {
+export async function initializeLocalTools(appEl, pageSlug = '') {
   appRoot = appEl || appRoot
+  activePageSlug = pageSlug || activePageSlug
   if (!initialized) {
     state = await loadLocalToolsState()
     initialized = true
@@ -1338,6 +1482,7 @@ export function openFloatingNote(noteId, options = {}) {
             : (defaultMetaWindow.height ?? 320)
         ),
         z: nextZ,
+        pageSlug: getActivePageSlug(),
         autoHeight: !hasSavedHeight && !hasTransientHeight && !defaultMetaWindow.height,
         autoWidth: note.type !== 'crypt' && !hasSavedWidth && !hasTransientWidth && !defaultMetaWindow.width,
         transientInitialLayout: !hasSavedWidth && !hasSavedHeight && (hasTransientWidth || hasTransientHeight || !!defaultMetaWindow.width || !!defaultMetaWindow.height),
@@ -1346,6 +1491,104 @@ export function openFloatingNote(noteId, options = {}) {
     await mountSingleFloatingNoteWindow(parsedNoteId)
     queueSave()
   })()
+}
+
+export function focusFloatingNote(noteId) {
+  const parsedNoteId = parseInt(String(noteId), 10)
+  if (!Number.isInteger(parsedNoteId) || parsedNoteId <= 0) return
+  const windowState = state.noteWindows.find((entry) => entry.noteId === parsedNoteId)
+  if (!windowState) return
+
+  const pageSlug = windowState.pageSlug
+  if (pageSlug && pageSlug !== getActivePageSlug()) {
+    document.querySelector(`[data-yai-tabs][data-ref-path="pages"] > [data-controller] [data-tab-action="open"][data-open="${CSS.escape(pageSlug)}"]`)?.click()
+  }
+  bringToFront(`note:${parsedNoteId}`, {persist: true, rerender: false})
+}
+
+function getVirtualNotePayload(target) {
+  const raw = target?.dataset?.noteJson ?? target?.dataset?.json ?? ''
+  try {
+    const payload = JSON.parse(raw)
+    if (!payload || Array.isArray(payload) || typeof payload.content !== 'string') return null
+    return {
+      title: typeof payload.title === 'string' && payload.title.trim() ? payload.title.trim() : t('openNotes.noteTitle'),
+      content: payload.content,
+      type: ['html', 'code', 'links', 'text'].includes(payload.type) ? payload.type : 'html',
+      style_token: normalizeNoteStyleToken(payload.style_token),
+      preview: typeof payload.preview === 'string' ? payload.preview.trim() : '',
+      source_url: typeof payload.source_url === 'string' ? payload.source_url : null,
+      source_title: typeof payload.source_title === 'string' ? payload.source_title : null,
+      width: Number(payload.width),
+      height: Number(payload.height),
+    }
+  } catch {
+    return null
+  }
+}
+
+export function openVirtualNote(target) {
+  const payload = getVirtualNotePayload(target)
+  if (!payload) return
+
+  const existingId = Number(target?.dataset?.virtualNoteId)
+  if (virtualNoteIds.has(existingId) && state.noteWindows.some((entry) => entry.noteId === existingId)) {
+    bringToFront(`note:${existingId}`, {persist: false, rerender: false})
+    return
+  }
+
+  const noteId = 9_000_000_000 + ++virtualNoteSequence
+  const nextZ = Math.max(state.zIndexTracker + 1, 221)
+  const offset = isMobileNoteViewport() ? 0 : state.noteWindows.length * 20
+  const width = Number.isFinite(payload.width) && payload.width >= NOTE_MIN_WIDTH ? payload.width : 420
+  const height = Number.isFinite(payload.height) && payload.height >= NOTE_MIN_HEIGHT ? payload.height : 320
+  virtualNoteIds.add(noteId)
+  noteRecords.set(noteId, {id: noteId, ...payload, virtual: true})
+  state.zIndexTracker = nextZ
+  state.noteWindows = [...state.noteWindows, {
+    noteId,
+    x: 40 + offset,
+    y: 72 + offset,
+    width,
+    height,
+    z: nextZ,
+    pageSlug: getActivePageSlug(),
+    autoHeight: !Number.isFinite(payload.height),
+    autoWidth: !Number.isFinite(payload.width),
+  }]
+  if (target?.dataset) target.dataset.virtualNoteId = String(noteId)
+  void mountSingleFloatingNoteWindow(noteId)
+}
+
+export async function toggleVirtualNoteMarkup(noteId) {
+  const parsedNoteId = Number(noteId)
+  if (!virtualNoteIds.has(parsedNoteId)) return
+  const current = getWindowState(`note:${parsedNoteId}`)
+  if (!current) return
+  setWindowState(`note:${parsedNoteId}`, {virtualMarkup: current.virtualMarkup !== true})
+  await mountSingleFloatingNoteWindow(parsedNoteId)
+}
+
+export async function saveVirtualNoteToInbox(noteId) {
+  const parsedNoteId = Number(noteId)
+  if (!virtualNoteIds.has(parsedNoteId)) return
+  const note = noteRecords.get(parsedNoteId)
+  if (!note) return
+  const result = await createCaptureInboxItem({
+    kind: 'note',
+    title: note.title ?? null,
+    text: note.content ?? '',
+    url: null,
+    source_url: note.source_url ?? null,
+    source_title: note.source_title ?? note.title ?? null,
+    meta_json: JSON.stringify({
+      note_type: note.type,
+      style_token: note.style_token,
+      preview: note.preview || undefined,
+    }),
+  })
+  const {syncCaptureInboxChrome} = await import('../../app/bootstrap.js')
+  syncCaptureInboxChrome(result.count)
 }
 
 export async function resetFloatingNoteWindowLayout(noteId) {
@@ -1386,6 +1629,7 @@ export async function saveFloatingNoteWindowOption(noteId, field, value) {
     note_reset_padding: 'reset_padding',
     note_bare: 'bare',
     note_nailed: 'nailed',
+    note_show_on_all_pages: 'show_on_all_pages',
   }[field]
   if (!Number.isInteger(parsedNoteId) || parsedNoteId <= 0 || !metaKey) return
 
@@ -1402,6 +1646,10 @@ export async function saveFloatingNoteWindowOption(noteId, field, value) {
   const meta_json = Object.keys(meta).length ? JSON.stringify(meta) : null
   await saveNoteData(parsedNoteId, {meta_json})
   noteRecords.set(parsedNoteId, {...note, meta_json})
+  if (field === 'note_show_on_all_pages' && value !== true) {
+    const dropdown = root?.querySelector?.(`[data-note-window-id="${parsedNoteId}"] [data-note-options-dropdown]`)
+    if (dropdown instanceof HTMLElement) closeDropdown(dropdown)
+  }
   await mountSingleFloatingNoteWindow(parsedNoteId)
 }
 
@@ -1526,11 +1774,13 @@ export async function startFloatingNoteEdit(noteId) {
       editError: '',
     })
     syncShellTabsEditorMode()
+    expandFloatingNoteEditor(parsedNoteId)
     await mountSingleFloatingNoteWindow(parsedNoteId)
     return
   }
   setEditorSession(parsedNoteId, normalizeEditorSession(note))
   syncShellTabsEditorMode()
+  expandFloatingNoteEditor(parsedNoteId)
   await mountSingleFloatingNoteWindow(parsedNoteId)
   requestAnimationFrame(() => {
     const form = root?.querySelector?.(`[data-floating-note-form][data-note-id="${parsedNoteId}"]`)
@@ -1547,7 +1797,9 @@ export async function startFloatingNoteEdit(noteId) {
 export async function cancelFloatingNoteEdit(noteId) {
   const parsedNoteId = parseInt(String(noteId), 10)
   if (!Number.isInteger(parsedNoteId) || parsedNoteId <= 0) return
+  const editor = getEditorSession(parsedNoteId)
   editorSessions.delete(parsedNoteId)
+  restoreFloatingNoteEditorSize(parsedNoteId, editor)
   syncShellTabsEditorMode()
   const note = noteRecords.get(parsedNoteId)
   if (note?.type === 'crypt') {
@@ -1564,10 +1816,12 @@ export function syncFloatingNoteEditorField(noteId, field, value) {
   if (field === 'content') patch.editContent = String(value ?? '')
   if (field === 'language') patch.editLanguage = String(value ?? 'auto')
   if (field === 'style_token') patch.editStyleToken = String(value ?? 'primary')
+  if (field === 'preview') patch.editPreview = String(value ?? '')
   if (field === 'note_hide_header') patch.noteHideHeader = value === true
   if (field === 'note_reset_padding') patch.noteResetPadding = value === true
   if (field === 'note_bare') patch.noteBare = value === true
   if (field === 'note_nailed') patch.noteNailed = value === true
+  if (field === 'note_show_on_all_pages') patch.noteShowOnAllPages = value === true
   patch.editError = ''
   if (!Object.keys(patch).length) return
   setEditorSession(parsedNoteId, patch)
@@ -1631,27 +1885,95 @@ export async function toggleFloatingNoteWorldClockGenerator(noteId) {
   const parsedNoteId = parseInt(String(noteId), 10)
   const current = getEditorSession(parsedNoteId)
   if (!current) return
+  const openingGenerator = current.worldClockGenerator !== true
+  const existingClock = openingGenerator ? getWorldClockConfig(current.editContent) : null
   setEditorSession(parsedNoteId, {
-    worldClockGenerator: current.worldClockGenerator !== true,
-    worldClockZones: current.worldClockZones || DEFAULT_WORLD_CLOCK_ZONES,
+    worldClockGenerator: openingGenerator,
+    worldClockZones: existingClock?.zones.join('\n') || current.worldClockZones || DEFAULT_WORLD_CLOCK_ZONES,
+    worldClockDisplay: existingClock?.display || current.worldClockDisplay || 'digital',
+    worldClockAnalogSize: existingClock?.analogSize || current.worldClockAnalogSize || 100,
+    worldClockDefaultTimezone: existingClock?.defaultTimeZone || current.worldClockDefaultTimezone || DEFAULT_WORLD_CLOCK_ZONES.split('\n')[0],
+    worldClockTopDateFormat: existingClock?.topDateFormat ?? current.worldClockTopDateFormat ?? '',
+    worldClockItemDateFormat: existingClock?.itemDateFormat ?? current.worldClockItemDateFormat ?? '',
   })
   await mountSingleFloatingNoteWindow(parsedNoteId)
 }
 
-export function generateFloatingNoteWorldClock(noteId, source = '') {
+export function toggleFloatingNoteWorldClockAnalogSize(target) {
+  target?.closest?.('[data-world-clock-generator]')
+    ?.querySelector?.('[data-world-clock-analog-size]')
+    ?.toggleAttribute('hidden', target.value !== 'analog')
+}
+
+export function filterFloatingNoteWorldClockZones(target) {
+  const query = String(target?.value ?? '').trim().toLowerCase()
+  const generator = target?.closest?.('[data-world-clock-generator]')
+  generator
+    ?.querySelectorAll?.('[data-world-clock-zone-group]')
+    .forEach((group) => {
+      const matches = [...group.querySelectorAll('[data-world-clock-zone-option]')]
+        .filter((option) => option.dataset.worldClockZoneOption.toLowerCase().includes(query))
+      group.toggleAttribute('hidden', Boolean(query) && !matches.length)
+      if (query && matches.length) group.open = true
+      group.querySelectorAll('[data-world-clock-zone-option]').forEach((option) => {
+        option.toggleAttribute('hidden', Boolean(query) && !option.dataset.worldClockZoneOption.toLowerCase().includes(query))
+      })
+    })
+  filterFloatingNoteWorldClockDefaultTimezoneOptions(generator, query)
+}
+
+function filterFloatingNoteWorldClockDefaultTimezoneOptions(generator, query = '') {
+  generator?.querySelectorAll?.('[data-world-clock-default-zone]').forEach((option) => {
+    const timeZone = option.querySelector('input')?.value?.toLowerCase() ?? ''
+    option.toggleAttribute('hidden', Boolean(query) && !timeZone.includes(query))
+  })
+}
+
+export function syncFloatingNoteWorldClockDefaultTimezone(target) {
+  const generator = target?.closest?.('[data-world-clock-generator]')
+  const option = target?.closest?.('[data-world-clock-zone-option]')
+  option?.toggleAttribute('data-tz-selected', target.checked === true)
+  generator?.querySelectorAll?.('[data-world-clock-zone-group]').forEach((group) => {
+    const zones = group.querySelectorAll('[name="worldclock_zone"]')
+    const selected = group.querySelectorAll('[name="worldclock_zone"]:checked')
+    const summary = group.querySelector('summary')
+    if (summary) summary.textContent = `${group.dataset.worldClockZoneGroup} (${selected.length}/${zones.length})`
+  })
+  const selectedZones = [...generator?.querySelectorAll?.('[name="worldclock_zone"]:checked') ?? []].map((input) => input.value)
+  const selectedDefault = generator?.querySelector?.('[name="worldclock_default_timezone"]:checked')?.value
+  const options = generator?.querySelector?.('[data-world-clock-default-timezone-options]')
+  if (options instanceof HTMLElement) {
+    options.outerHTML = renderWorldClockDefaultTimezoneOptions(selectedZones, selectedDefault)
+    filterFloatingNoteWorldClockDefaultTimezoneOptions(generator, String(generator.querySelector('[name="worldclock_filter"]')?.value ?? '').trim().toLowerCase())
+  }
+}
+
+export function generateFloatingNoteWorldClock(noteId, zones = [], options = {}) {
   const parsedNoteId = parseInt(String(noteId), 10)
   const current = getEditorSession(parsedNoteId)
-  const existingZones = new Set([...String(current?.editContent ?? '').matchAll(/\bdata-clock-zone=(["'])(.*?)\1/g)].map(([, , value]) => value))
-  const zones = [...new Set(String(source ?? '')
-    .split(/\r?\n/)
+  const existingClock = getWorldClockConfig(current?.editContent)
+  const selectedZones = [...new Set(zones
     .map((value) => getValidTimeZone(value))
-    .filter(Boolean))].filter((timeZone) => !existingZones.has(timeZone))
-  if (!zones.length) return
+    .filter(Boolean))]
+  if (!selectedZones.length) return
 
-  insertFloatingNoteTemplate(parsedNoteId, () => buildWorldClockMarkup(zones))
+  const display = options.display === 'analog' ? 'analog' : 'digital'
+  const analogSize = Math.min(500, Math.max(60, parseInt(options.analogSize, 10) || 100))
+  const defaultTimeZone = selectedZones.includes(options.defaultTimeZone) ? options.defaultTimeZone : selectedZones[0]
+  const topDateFormat = String(options.topDateFormat ?? '').trim()
+  const itemDateFormat = String(options.itemDateFormat ?? '').trim()
+
+  const markup = buildWorldClockMarkup(selectedZones, {display, analogSize, defaultTimeZone, topDateFormat, itemDateFormat})
+  if (existingClock) replaceFloatingNoteWorldClock(parsedNoteId, markup)
+  else insertFloatingNoteTemplate(parsedNoteId, () => markup)
   setEditorSession(parsedNoteId, {
     worldClockGenerator: false,
-    worldClockZones: String(source ?? ''),
+    worldClockZones: selectedZones.join('\n'),
+    worldClockDisplay: display,
+    worldClockAnalogSize: analogSize,
+    worldClockDefaultTimezone: defaultTimeZone,
+    worldClockTopDateFormat: topDateFormat,
+    worldClockItemDateFormat: itemDateFormat,
   })
   root?.querySelector?.(`[data-note-window-id="${parsedNoteId}"] [data-world-clock-generator]`)?.remove()
 }
@@ -1676,10 +1998,12 @@ export async function saveFloatingNoteEdit(noteId, form) {
   const contentValue = form.querySelector('[name="content"]')?.value ?? ''
   const language = form.querySelector('[name="language"]')?.value ?? 'auto'
   const styleToken = form.querySelector('[name="style_token"]')?.value ?? (note.style_token ?? 'primary')
+  const notePreview = form.querySelector('[name="preview"]')?.value?.trim() ?? ''
   const noteHideHeader = form.elements.namedItem('note_hide_header')?.checked === true
   const noteResetPadding = form.elements.namedItem('note_reset_padding')?.checked === true
   const noteBare = form.elements.namedItem('note_bare')?.checked === true
   const noteNailed = form.elements.namedItem('note_nailed')?.checked === true
+  const noteShowOnAllPages = form.elements.namedItem('note_show_on_all_pages')?.checked === true
 
   if (!title) {
     setEditorSession(parsedNoteId, {editError: t('noteForm.title')})
@@ -1718,7 +2042,11 @@ export async function saveFloatingNoteEdit(noteId, form) {
   else delete windowMeta.bare
   if (noteNailed) windowMeta.nailed = true
   else delete windowMeta.nailed
+  if (noteShowOnAllPages) windowMeta.show_on_all_pages = true
+  else delete windowMeta.show_on_all_pages
   const nextMeta = {...existingMeta, ...payloadMeta}
+  if (notePreview) nextMeta.preview = notePreview
+  else delete nextMeta.preview
   if (Object.keys(windowMeta).length) nextMeta.window = windowMeta
   else delete nextMeta.window
   payload.meta_json = Object.keys(nextMeta).length ? JSON.stringify(nextMeta) : null
@@ -1733,7 +2061,9 @@ export async function saveFloatingNoteEdit(noteId, form) {
     cryptSessions.delete(parsedNoteId)
   }
 
+  const editor = getEditorSession(parsedNoteId)
   editorSessions.delete(parsedNoteId)
+  restoreFloatingNoteEditorSize(parsedNoteId, editor)
   syncShellTabsEditorMode()
   await mountSingleFloatingNoteWindow(parsedNoteId)
   const moduleSyncId = document.querySelector(`[data-note-id="${CSS.escape(String(parsedNoteId))}"][data-module-sync-id]`)?.getAttribute('data-module-sync-id')

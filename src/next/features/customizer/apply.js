@@ -167,27 +167,30 @@ function applyShellAppearanceOverrides(appearance) {
     if (value != null && value !== '') rules.push(`${selector}{${property}:${value} !important}`)
   }
 
-  const mainHeader = 'html body #app :is([data-app-brand-wrap],[data-app-header-nav])'
-  const mainControllerHeader = 'html body #app [data-yai-tabs] > [data-controller]'
+  const mainHeader = 'html body #app :is([data-app-brand-wrap],[data-app-header-nav],[data-app-header-actions])'
+  const mainHeaderControls = 'html body #app [data-app-brand],html body #app :is([data-app-brand-wrap],[data-app-header-actions]) :is(button,a),html body #app [data-app-header-nav] > :is(button,a,[data-dropdown] > [data-dropdown-trigger])'
+  const mainControllerHeader = 'html body #app [data-yai-tabs] > :is([data-controller],[data-module-actions])'
+  const mainControllerHeaderControls = 'html body #app [data-yai-tabs] > [data-controller] > [data-open]:not(.active),html body #app [data-yai-tabs] > [data-module-actions] :is(button,a)'
   const mainNav = 'html body #app [data-yai-tabs] > [data-controller] > [data-open]:not(.active),html body #app [data-app-header-nav] > [data-dropdown] > [data-dropdown-trigger]'
   const mainNavActive = 'html body #app [data-yai-tabs] > [data-controller] > [data-open].active'
-  const navHeader = 'html body #app [data-yai-tabs]:not([data-app]) > [data-controller]'
+  const navHeader = 'html body #app [data-yai-tabs]:not([data-app]) > :is([data-controller],[data-module-actions])'
+  const navHeaderControls = 'html body #app [data-yai-tabs]:not([data-app]) > [data-controller] > [data-open]:not(.active),html body #app [data-yai-tabs]:not([data-app]) > [data-module-actions] :is(button,a)'
   const nav = 'html body #app [data-yai-tabs]:not([data-app]) > [data-controller] > [data-open]:not(.active)'
   const navActive = 'html body #app [data-yai-tabs]:not([data-app]) > [data-controller] > [data-open].active'
   const moduleSurface = 'html body #app [data-module-tabs-shell] > [data-yai-tabs]'
 
   add(mainHeader, 'background-color', '--st-ws-shell-header-background-color')
-  add(mainHeader, 'color', '--st-ws-shell-header-text-color')
+  add(`${mainHeader},${mainHeaderControls}`, 'color', '--st-ws-shell-header-text-color')
   if (appearance['--st-ws-shell-header-background-color']) {
     rules.push(`${mainControllerHeader}{background-color:color-mix(in srgb, ${appearance['--st-ws-shell-header-background-color']} 80%, transparent) !important}`)
   }
-  add(mainControllerHeader, 'color', '--st-ws-shell-header-text-color')
+  add(`${mainControllerHeader},${mainControllerHeaderControls}`, 'color', '--st-ws-shell-header-text-color')
   add(mainNav, 'background-color', '--st-ws-shell-nav-background-color')
   add(mainNav, 'color', '--st-ws-shell-nav-text-color')
   add(mainNavActive, 'background-color', '--st-ws-shell-nav-active-background-color')
   add(mainNavActive, 'color', '--st-ws-shell-nav-active-text-color')
   add(navHeader, 'background-color', '--st-nav-header-background-color')
-  add(navHeader, 'color', '--st-nav-header-text-color')
+  add(`${navHeader},${navHeaderControls}`, 'color', '--st-nav-header-text-color')
   add(nav, 'background-color', '--st-nav-background-color')
   add(nav, 'color', '--st-nav-text-color')
   add(navActive, 'background-color', '--st-nav-active-background-color')

@@ -2,6 +2,31 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.5.9]
+
+### Added
+- Added portable HTML-note widgets, starting with Speedtab Clockworx: a configurable world-clock generator with grouped IANA timezone selection, digital or analog clocks, optional top and per-clock date formats, default-timezone comparison, and compact date-format tokens including `{datetime}` and `{iso}`.
+- Added virtual notes: declarative `data-note-json` launchers can open self-contained notes from any HTML surface, including nested YaiTabs and URL-backed content; virtual notes can be saved deliberately to the Capture Inbox.
+- Added optional floating-note controls for hiding the header, removing the window surface, removing content padding, fixing a note in place, and showing a custom preview summary in its module.
+- Added controlled presentation CSS for HTML notes and fetched YaiTabs content: inline `<style>` blocks and stylesheet links hosted below the official Speedtab GitHub Pages repository are supported.
+- Added an open-notes rail in the App footer. It lists every open persistent or virtual note, preserves each note’s originating page reference, uses its existing color scheme marker, and brings the selected note to the foreground.
+- Added optional per-source favicon selection for Feed modules, including automatic resolution after a successful feed test and normal Asset lifecycle support.
+- Added Speedfeed as the example workspace’s first Feed source: a first-party, interactive RSS showcase hosted through Speedtab’s GitHub Pages service.
+
+### Changed
+- Refined floating-note editing into a compact header action set and a single local options dropdown, with reliable closing behavior and a practical small-note minimum size.
+- Made floating notes page-aware by default while retaining an explicit “Show on all Pages” option; their original page ownership remains intact when that option is toggled.
+- Expanded the shared App Clock formatter cache and reused it for note clocks, substantially reducing repeated formatting work while keeping every visible clock synchronized.
+- Improved YaiTabs restoration for nested note content so active routes and defaults reliably recover after reload.
+- Made the shared StateObject hydrate dynamic controls inserted into Feed items, keeping remote theme switches synchronized with the current App Shell theme.
+
+### Fixed
+- Fixed note editor sizing so editing a small floating note uses temporary working dimensions and restores its previous viewing size afterwards.
+- Fixed hidden-header note geometry, close/dropdown cleanup, Picture-in-Picture clock updates, and page-scope transitions.
+- Fixed dynamic note-content sanitization so approved style markup survives consistently across regular notes, virtual notes, and URL-fetched YaiTabs content.
+- Fixed Feed reader focus scrolling so interacting with a deeply expanded item cannot scroll and clip the outer Feed pane.
+- Restored the optional note prompt when archiving a Feed item and show saved notes in Archived Feed Items.
+
 ## [1.5.8]
 
 ### Added

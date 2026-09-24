@@ -1,5 +1,5 @@
 import {db, makeUpdatedAtPatch} from '../../db/db.ts'
-import {sha256hex} from '../data/assets.js'
+import {loadAssetObjectUrl, sha256hex} from '../data/assets.js'
 
 // CRITICAL PATH:
 // This resolver is intentionally simple because more "advanced" variants
@@ -18,8 +18,18 @@ const FAVICON_LOW_COLOR_SPREAD  = 28
 const FAVICON_MIN_TRANSPARENCY  = 0.1
 const FAVICON_WHITE_BG_RADIUS   = 4
 
+// Exact page-level override. This intentionally does not affect github.com
+// generally, so repositories and other GitHub pages keep normal resolution.
+const STATIC_FAVICON_BY_PAGE_URL = new Map([
+  ['https://github.com/5elementsdesign', '/icons/icon48.png'],
+])
+const STATIC_FAVICON_BY_HOSTNAME = new Map([
+  ['5elementsdesign.github.io', '/icons/icon48.png'],
+])
+
 // In-memory caches
 const objectUrlByHost        = new Map() // hostname → blob: URL
+const objectUrlByAsset       = new Map() // asset id → blob: URL
 const pendingByHost          = new Map() // hostname → Promise (deduplicates concurrent reqs)
 const lastFetchAttemptByHost = new Map()
 const aliasByHost            = new Map() // subdomain → parent hostname
@@ -58,6 +68,17 @@ function getHostnameFromUrl(url) {
     const host = normalizeFaviconHostname(new URL(url).hostname)
     if (!host || isExcludedHost(host)) return null
     return host
+  } catch { return null }
+}
+
+function getStaticFaviconUrl(url) {
+  if (!url) return null
+  try {
+    const parsed = new URL(url)
+    const pathname = parsed.pathname.replace(/\/+$/, '').toLowerCase()
+    return STATIC_FAVICON_BY_PAGE_URL.get(`${parsed.origin.toLowerCase()}${pathname}`)
+      ?? STATIC_FAVICON_BY_HOSTNAME.get(normalizeFaviconHostname(parsed.hostname))
+      ?? null
   } catch { return null }
 }
 
@@ -303,7 +324,7 @@ export async function fixFaviconAssetBackground(assetId) {
       ...hostnames,
     ]
 
-    await db.transaction('rw', [db.assets, db.tabs], async () => {
+    await db.transaction('rw', [db.assets, db.tabs, db.feed_sources], async () => {
       await db.assets.update(existingForChecksum.id, {
         meta_json: makeFaviconMeta(mergedHostnames),
       })
@@ -311,6 +332,14 @@ export async function fixFaviconAssetBackground(assetId) {
       const directRefs = await db.tabs.where('favicon_asset_id').equals(id).toArray()
       for (const tab of directRefs) {
         await db.tabs.update(tab.id, {
+          favicon_asset_id: existingForChecksum.id,
+          ...makeUpdatedAtPatch(now),
+        })
+      }
+
+      const feedSourceRefs = await db.feed_sources.where('favicon_asset_id').equals(id).toArray()
+      for (const source of feedSourceRefs) {
+        await db.feed_sources.update(source.id, {
           favicon_asset_id: existingForChecksum.id,
           ...makeUpdatedAtPatch(now),
         })
@@ -452,7 +481,21 @@ export async function refreshStaleFavicons() {
  * Sets src immediately from cache, or registers for async update once fetched.
  */
 export function loadFaviconImg(img) {
+  const assetId = Number(img.dataset.faviconAssetId || '')
+  if (assetId) {
+    const cachedAssetUrl = objectUrlByAsset.get(assetId)
+    if (cachedAssetUrl) { img.src = cachedAssetUrl; return }
+    void loadAssetObjectUrl(assetId).then((assetUrl) => {
+      if (!assetUrl) return
+      objectUrlByAsset.set(assetId, assetUrl)
+      if (img.isConnected) img.src = assetUrl
+    })
+    return
+  }
+
   const url = img.dataset.faviconUrl
+  const staticUrl = getStaticFaviconUrl(url)
+  if (staticUrl) { img.src = staticUrl; return }
   const hostname = getHostnameFromUrl(url)
   if (!hostname) return
 

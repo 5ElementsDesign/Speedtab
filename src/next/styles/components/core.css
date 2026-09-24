@@ -104,7 +104,7 @@ html.light {
   color: var(--st-widget-text);
   position: fixed;
   inset: 0;
-  z-index: 121;
+  z-index: 1000;
   display: none;
 
   &[data-modal-open] {
@@ -168,7 +168,6 @@ html.light {
 
 [data-floating-windows] {
   position: fixed;
-  inset: 0;
   z-index: 110;
   pointer-events: none;
 }
@@ -183,22 +182,30 @@ html.light {
   pointer-events: auto;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: color-mix(in srgb, #050505 80%, transparent);
-  backdrop-filter: blur(10px);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.03),
-    0 18px 44px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(5px);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 4px 12px rgba(0, 0, 0, 0.45);
+
   transform-origin: top left;
+  transform: translateY(0);
   transition:
-    opacity var(--yai-timeout-2) ease,
-    transform var(--yai-timeout-2) cubic-bezier(0.3, 0, 0.6, 1),
-    box-shadow var(--yai-timeout-2) ease;
+    opacity var(--yai-timeout-1) ease,
+    transform var(--yai-timeout-1) cubic-bezier(0.3, 0, 0.6, 1);
 
   &[data-window-entering] {
+    transform: translateY(0);
     animation: st-floating-window-in var(--yai-timeout-2) cubic-bezier(0.3, 0, 0.6, 1) both;
   }
+  &[data-window-entering][hidden],
   &[data-window-closing] {
     pointer-events: none;
-    animation: st-floating-window-out 0.18s ease both;
+    transform: translateY(8px);
+    animation: st-floating-window-out .25s ease;
+  }
+  &[hidden],
+  &[hidden] * {
+    opacity: 0;
+    pointer-events: none !important;
+    transform: translateY(8px);
   }
 
   [data-window-header] {

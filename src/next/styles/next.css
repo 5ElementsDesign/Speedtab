@@ -50,6 +50,7 @@
   --yai-timeout-s: 1ms !important;
   --yai-timeout-1: 1ms !important;
   --yai-timeout-2: 1ms !important;
+  --yai-timeout-3: 1ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 1ms !important;
   animation-delay: -1ms !important;
@@ -69,6 +70,7 @@
     --yai-timeout-s: 1ms !important;
     --yai-timeout-1: 1ms !important;
     --yai-timeout-2: 1ms !important;
+    --yai-timeout-3: 1ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
     animation-delay: -1ms !important;

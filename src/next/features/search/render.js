@@ -111,7 +111,7 @@ function renderSearchResult(result, expandedIds = new Set(), kindLabels = {}) {
 
 export function renderSearchPanel(state = {}) {
   const show = state.panelVisible === true
-  if (!show) return `<section data-search-panel hidden></section>`
+  if (!show) return `<section data-search-panel data-swipe-ignore hidden></section>`
 
   const query = String(state.query ?? '').trim()
   const results = state.results ?? []
@@ -119,7 +119,7 @@ export function renderSearchPanel(state = {}) {
   const kindLabels = state.kindLabels ?? {}
 
   return `
-    <section data-search-panel aria-label="${escapeHtml(t('app.searchAria'))}">
+    <section data-search-panel data-swipe-ignore aria-label="${escapeHtml(t('app.searchAria'))}">
       <div data-search-panel-header>
         ${query
           ? escapeHtml(t('app.searchResults', {count: results.length, query}))

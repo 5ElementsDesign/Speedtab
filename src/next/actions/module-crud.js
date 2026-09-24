@@ -4,10 +4,11 @@ import {softDeleteModuleTabCascade} from '../../next-sorter/data.js'
 import {syncOpenQuickSettingState} from '../components/dropdown.js'
 import {closeModal, openModal} from '../components/modal.js'
 import {closeSidepanel, onSidepanelClose, openSidepanel} from '../components/sidepanel.js'
+import {syncState} from '../components/state-object.js'
 import {showToast} from '../components/toast.js'
 import {isBookmarkModuleType} from '../config/module-types.js'
 import {createBookmark, loadBookmarkBySyncId, loadBookmarksByTabId, saveBookmarkData, softDeleteBookmark} from '../data/bookmarks.js'
-import {clearFeedItemsBySourceIds, createFeedSourceData, createSavedFeedItemData, loadFeedItemById, loadFeedItemsBySourceIds, loadFeedSourceById, loadFeedSourceBySyncId, loadFeedSourcesByCollectionId, loadSavedFeedItemsByCollectionId, saveFeedSourceData, softDeleteFeedSource, softDeleteSavedFeedItem} from '../data/feeds.js'
+import {clearFeedItemsBySourceIds, createFeedSourceData, createSavedFeedItemData, loadFeedItemById, loadFeedItemsBySourceIds, loadFeedSourceById, loadFeedSourceBySyncId, loadFeedSourcesByCollectionId, loadSavedFeedItems, loadSavedFeedItemsByCollectionId, saveFeedSourceData, softDeleteFeedSource, softDeleteSavedFeedItem} from '../data/feeds.js'
 import {loadModuleBySyncId, saveModuleData} from '../data/modules.js'
 import {createNoteData, loadNotesByCollectionId, softDeleteNote} from '../data/notes.js'
 import {createModuleTab, loadModuleTabById, loadModuleTabBySyncId, saveModuleTabData} from '../data/tabs.js'
@@ -44,18 +45,6 @@ import {
 import {getCollectionImportKind, parseCollectionImport} from '../features/modules/collection-import.js'
 import {getCrudPanelTitle, renderModuleCrudForm} from '../features/modules/crud-form.js'
 import {getFeedAutoRefreshDelay, getFeedFetchItemLimit, getFeedSkipImages, normalizeFeedAutoRefreshInterval, withFeedAutoRefreshInterval, withFeedFetchItemLimit, withFeedSkipImages} from '../features/modules/feed-auto-refresh.js'
-import {
-  canSaveFeedSourceForm,
-  getFeedFormState,
-  initFeedFormState,
-  lookupFeedSourceUrls,
-  patchFeedSourceCrudForm,
-  renderFeedSourceCrudForm,
-  resetFeedFormState,
-  syncFeedFormStateFromForm,
-  testFeedSourceUrl,
-  useDiscoveredFeedUrl,
-} from '../features/modules/feed-form.js'
 import {addFeedLatestItems, closeFeedFocusState, computeFeedCollectionViewModel, FEED_OPEN_BATCH_SIZE, getFeedUiState, initFeedFavicons, openFeedFocusState, queueFeedFavicons, renderFeedCollection, renderFeedContentZone, renderFeedFocusControls, renderFeedItem, renderFeedItemBody, setFeedFocusWidth, setFeedRefreshingState, setFeedSourceLoadingState, toggleFeedItemExpansionState, toggleFeedLatestState, toggleFeedLoadedState, toggleFeedSourceState, toggleFeedUnreadState} from '../features/modules/feeds.js'
 import {
   afterNoteFormRender,
@@ -75,6 +64,16 @@ import {readQuickModuleSettingValue} from '../utils/module-quick-settings.js'
 import {syncPictureInPicture} from './picture-in-picture.js'
 
 const feedApi = useFeed()
+let feedFormModule = null
+let feedFormModulePromise = null
+
+function getFeedFormModule() {
+  feedFormModulePromise ??= import('../features/modules/feed-form.js').then((module) => {
+    feedFormModule = module
+    return module
+  })
+  return feedFormModulePromise
+}
 
 function getOpenSidepanelBody() {
   return document.querySelector('[data-sidepanel][data-sidepanel-open] [data-sidepanel-body]')
@@ -84,12 +83,14 @@ function getOpenModalBody() {
   return document.querySelector('[data-modal][data-modal-open] [data-modal-body]')
 }
 
-function rerenderFeedForm(body = null) {
+async function rerenderFeedForm(body = null) {
+  const feedForm = await getFeedFormModule()
   const target = body || getOpenSidepanelBody()
-  const state = getFeedFormState()
+  const state = feedForm.getFeedFormState()
   if (!target || !state) return
-  if (patchFeedSourceCrudForm(target, state)) return
-  target.innerHTML = renderFeedSourceCrudForm(state)
+  if (feedForm.patchFeedSourceCrudForm(target, state)) return
+  target.innerHTML = feedForm.renderFeedSourceCrudForm(state)
+  void feedForm.afterFeedSourceFormRender(target)
   initFormDirtyState(target, {useExistingBaseline: true})
 }
 
@@ -151,7 +152,38 @@ function formatArchivedFeedDate(value) {
   return Number.isNaN(date.getTime()) ? '' : date.toLocaleString()
 }
 
+function getArchivedFeedExcerpt(item) {
+  const content = item.summary?.trim() || item.content?.trim()
+  if (!content) return ''
+  const text = new DOMParser().parseFromString(content, 'text/html').body.textContent?.replace(/\s+/g, ' ').trim() || ''
+  return text.length > 360 ? `${text.slice(0, 357).trimEnd()}…` : text
+}
+
+function renderArchiveFeedItemModal(item, context) {
+  return `
+    <div data-feed-archive-form>
+      <label data-customizer-field data-customizer-field-layout="stack">
+        <span data-customizer-field-label>${escapeHtml(t('todo.note'))}</span>
+        <textarea name="feed-comment" rows="4" maxlength="4000" placeholder="${escapeHtml(t('todo.note'))}"></textarea>
+      </label>
+      <div data-form-actions>
+        <button type="button" class="st-btn" data-modal-close>${escapeHtml(t('common.cancel'))}</button>
+        <button
+          type="button"
+          class="st-btn"
+          data-btn="primary"
+          data-click="saveArchivedFeedItem"
+          data-feed-item-id="${escapeHtml(String(item.id))}"
+          data-feed-collection-id="${escapeHtml(String(context.collectionId))}"
+          data-feed-module-sync-id="${escapeHtml(context.moduleSyncId)}"
+        >${escapeHtml(t('feedItem.save'))}</button>
+      </div>
+    </div>
+  `
+}
+
 function renderArchivedFeedItemsModal(collectionId, items = []) {
+  const scope = collectionId ? 'collection' : 'all'
   if (!items.length) {
     return `
       <div data-feed-archived-items>
@@ -164,11 +196,12 @@ function renderArchivedFeedItemsModal(collectionId, items = []) {
   }
 
   return `
-    <div data-feed-archived-items data-feed-collection-id="${escapeHtml(String(collectionId))}">
+    <div data-feed-archived-items data-feed-archive-scope="${scope}"${collectionId ? ` data-feed-collection-id="${escapeHtml(String(collectionId))}"` : ''}>
       <div data-feed-archived-items-list>
         ${items.map((item) => {
           const title = item.title?.trim() || t('feeds.archivedItemFallback')
           const date = formatArchivedFeedDate(item.saved_at || item.published_at)
+          const excerpt = getArchivedFeedExcerpt(item)
           return `
             <article data-feed-archived-item data-feed-archived-item-id="${escapeHtml(String(item.id ?? ''))}">
               <div data-feed-archived-item-main>
@@ -177,6 +210,8 @@ function renderArchivedFeedItemsModal(collectionId, items = []) {
                   ${item.source_title ? `<span>${escapeHtml(item.source_title)}</span>` : ''}
                   ${date ? `${item.source_title ? '<span> · </span>' : ''}<span>${escapeHtml(date)}</span>` : ''}
                 </p>
+                ${excerpt ? `<p data-feed-archived-item-excerpt>${escapeHtml(excerpt)}</p>` : ''}
+                ${item.comment?.trim() ? `<p data-feed-archived-item-comment>${escapeHtml(item.comment)}</p>` : ''}
               </div>
               <div data-feed-archived-item-actions>
                 ${item.url ? `
@@ -192,7 +227,7 @@ function renderArchivedFeedItemsModal(collectionId, items = []) {
                   class="st-btn"
                   data-click="deleteArchivedFeedItem"
                   data-archived-feed-item-id="${escapeHtml(String(item.id ?? ''))}"
-                  data-feed-collection-id="${escapeHtml(String(collectionId))}"
+                  data-feed-archive-scope="${scope}"${collectionId ? ` data-feed-collection-id="${escapeHtml(String(collectionId))}"` : ''}
                   title="${escapeHtml(t('common.delete'))}"
                   aria-label="${escapeHtml(t('common.delete'))}"
                 ><i data-icon="x" aria-hidden="true"></i></button>
@@ -209,7 +244,9 @@ function renderArchivedFeedItemsModal(collectionId, items = []) {
 }
 
 async function openArchivedFeedItemsModal(collectionId) {
-  const items = await loadSavedFeedItemsByCollectionId(collectionId)
+  const items = collectionId
+    ? await loadSavedFeedItemsByCollectionId(collectionId)
+    : await loadSavedFeedItems()
   openModal({
     title: t('feeds.archivedFeedItemsTitle'),
     content: renderArchivedFeedItemsModal(collectionId, items),
@@ -830,11 +867,11 @@ function updateFeedItemDom(article, item, context, {syncPip = true} = {}) {
 
   if (existingBody) {
     existingBody.outerHTML = bodyHtml
-    if (syncPip) syncPictureInPicture()
-    return
+  } else {
+    header?.insertAdjacentHTML('afterend', bodyHtml)
   }
 
-  header?.insertAdjacentHTML('afterend', bodyHtml)
+  syncState(article.querySelector('.st-module-feed-item-body'))
   if (syncPip) syncPictureInPicture()
 }
 
@@ -879,7 +916,7 @@ async function openCrudPanel({entityType, record = null, moduleSyncId = '', modu
   })
   onSidepanelClose(() => {
     resetBookmarkFormState()
-    resetFeedFormState()
+    feedFormModule?.resetFeedFormState()
   })
   const body = panelEl.querySelector('[data-sidepanel-body]')
   if (body) {
@@ -892,8 +929,10 @@ async function openCrudPanel({entityType, record = null, moduleSyncId = '', modu
     }
 
     if (entityType === 'feed-source') {
-      const state = initFeedFormState({record, moduleSyncId, parentId, parentSyncId, parentTitle})
-      body.innerHTML = renderFeedSourceCrudForm(state)
+      const feedForm = await getFeedFormModule()
+      const state = await feedForm.initFeedFormState({record, moduleSyncId, parentId, parentSyncId, parentTitle})
+      body.innerHTML = feedForm.renderFeedSourceCrudForm(state)
+      await feedForm.afterFeedSourceFormRender(body)
       initFormDirtyState(body)
       return
     }
@@ -1459,8 +1498,23 @@ export const moduleCrudActions = {
     if (!context || !itemId) return
     const item = await loadFeedItemById(itemId)
     if (!item) return
+
+    openModal({
+      title: t('feedItem.archiveThisItem'),
+      content: renderArchiveFeedItemModal(item, context),
+    })
+  },
+
+  async saveArchivedFeedItem(target) {
+    const collectionId = parseInt(target.dataset.feedCollectionId ?? '', 10)
+    const moduleSyncId = target.dataset.feedModuleSyncId ?? ''
+    const itemId = parseInt(target.dataset.feedItemId ?? '', 10)
+    if (!collectionId || !moduleSyncId || !itemId) return
+
+    const item = await loadFeedItemById(itemId)
+    if (!item) return
     const source = await loadFeedSourceById(item.feed_source_id)
-    const existingSaved = await loadSavedFeedItemsByCollectionId(context.collectionId)
+    const existingSaved = await loadSavedFeedItemsByCollectionId(collectionId)
     const duplicate = existingSaved.find((row) => {
       if (row.meta_json) {
         try {
@@ -1470,8 +1524,13 @@ export const moduleCrudActions = {
       }
       return row.title === item.title && row.url === item.url
     })
-    if (duplicate) return
-    await createSavedFeedItemData(context.collectionId, {
+    if (duplicate) {
+      closeModal()
+      return
+    }
+
+    const comment = target.closest('[data-modal]')?.querySelector('[name="feed-comment"]')?.value?.trim() || null
+    await createSavedFeedItemData(collectionId, {
       title: item.title,
       url: item.url,
       source_title: source?.title ?? null,
@@ -1479,10 +1538,11 @@ export const moduleCrudActions = {
       published_at: item.published_at,
       summary: item.summary,
       content: item.content,
-      comment: null,
+      comment,
       meta_json: item.external_id ? JSON.stringify({external_id: item.external_id}) : null,
     })
-    await refreshFeedCollectionView(context.moduleSyncId, context.collectionId)
+    closeModal()
+    await refreshFeedCollectionView(moduleSyncId, collectionId)
   },
 
   async openArchivedFeedItems(target) {
@@ -1493,13 +1553,18 @@ export const moduleCrudActions = {
     await openArchivedFeedItemsModal(currentTab.tabId)
   },
 
+  async openAllArchivedFeedItems() {
+    await openArchivedFeedItemsModal()
+  },
+
   async deleteArchivedFeedItem(target) {
     const archivedItemId = parseInt(target.dataset.archivedFeedItemId ?? '', 10)
     const collectionId = parseInt(target.dataset.feedCollectionId ?? '', 10)
-    if (!archivedItemId || !collectionId) return
+    const showAll = target.dataset.feedArchiveScope === 'all'
+    if (!archivedItemId || (!collectionId && !showAll)) return
     if (!confirm(t('feeds.deleteArchivedFeedItemConfirm'))) return
     await softDeleteSavedFeedItem(archivedItemId)
-    await openArchivedFeedItemsModal(collectionId)
+    await openArchivedFeedItemsModal(showAll ? null : collectionId)
   },
 
   async addModuleNote(target) {
@@ -1611,12 +1676,13 @@ export const moduleCrudActions = {
     }
 
     if (context.entityType === 'feed-source') {
-      syncFeedFormStateFromForm(context.form)
+      const feedForm = await getFeedFormModule()
+      feedForm.syncFeedFormStateFromForm(context.form)
       const title = context.form.querySelector('[name="title"]')?.value?.trim()
       const feedUrl = context.form.querySelector('[name="feed_url"]')?.value?.trim()
       const siteUrl = context.form.querySelector('[name="site_url"]')?.value?.trim() || null
-      if (!title || !feedUrl || !canSaveFeedSourceForm()) {
-        rerenderFeedForm(getOpenSidepanelBody())
+      if (!title || !feedUrl || !feedForm.canSaveFeedSourceForm()) {
+        await rerenderFeedForm(getOpenSidepanelBody())
         return
       }
 
@@ -1624,6 +1690,7 @@ export const moduleCrudActions = {
         title,
         feed_url: feedUrl,
         site_url: siteUrl,
+        favicon_asset_id: await feedForm.buildFeedSourceFaviconPayload(),
       }
 
       const record = context.recordId
@@ -1834,26 +1901,64 @@ export const moduleCrudActions = {
   },
 
   async feedFormTestUrl(target) {
+    const feedForm = await getFeedFormModule()
     const form = target.closest('[data-module-crud-form]')
-    syncFeedFormStateFromForm(form)
-    await testFeedSourceUrl()
-    rerenderFeedForm(getOpenSidepanelBody())
+    feedForm.syncFeedFormStateFromForm(form)
+    await feedForm.testFeedSourceUrl()
+    await rerenderFeedForm(getOpenSidepanelBody())
   },
 
   async feedFormLookup(target) {
+    const feedForm = await getFeedFormModule()
     const form = target.closest('[data-module-crud-form]')
-    syncFeedFormStateFromForm(form)
-    await lookupFeedSourceUrls()
-    rerenderFeedForm(getOpenSidepanelBody())
+    feedForm.syncFeedFormStateFromForm(form)
+    await feedForm.lookupFeedSourceUrls()
+    await rerenderFeedForm(getOpenSidepanelBody())
   },
 
   async feedFormUseDiscovered(target) {
+    const feedForm = await getFeedFormModule()
     const form = target.closest('[data-module-crud-form]')
-    syncFeedFormStateFromForm(form)
+    feedForm.syncFeedFormStateFromForm(form)
     const url = target.dataset.discoveredFeedUrl || ''
     if (!url) return
-    await useDiscoveredFeedUrl(url)
-    rerenderFeedForm(getOpenSidepanelBody())
+    await feedForm.useDiscoveredFeedUrl(url)
+    await rerenderFeedForm(getOpenSidepanelBody())
+  },
+
+  async feedFormToggleFaviconPicker(target) {
+    const feedForm = await getFeedFormModule()
+    feedForm.syncFeedFormStateFromForm(target.closest('[data-module-crud-form]'))
+    await feedForm.toggleFeedFaviconPicker()
+    await rerenderFeedForm(getOpenSidepanelBody())
+  },
+
+  async feedFormTriggerFaviconUpload(target) {
+    target.closest('[data-feed-form-favicon-picker]')?.querySelector('[data-feed-favicon-file]')?.click()
+  },
+
+  async feedFormFaviconFileChange(target) {
+    const feedForm = await getFeedFormModule()
+    const file = target.files?.[0]
+    if (!file) return
+    feedForm.syncFeedFormStateFromForm(target.closest('[data-module-crud-form]'))
+    await feedForm.uploadFeedFavicon(file)
+    target.value = ''
+    await rerenderFeedForm(getOpenSidepanelBody())
+  },
+
+  async feedFormSelectFaviconAsset(target) {
+    const feedForm = await getFeedFormModule()
+    feedForm.syncFeedFormStateFromForm(target.closest('[data-module-crud-form]'))
+    await feedForm.selectFeedFaviconAsset(target.dataset.assetId)
+    await rerenderFeedForm(getOpenSidepanelBody())
+  },
+
+  async feedFormClearFavicon(target) {
+    const feedForm = await getFeedFormModule()
+    feedForm.syncFeedFormStateFromForm(target.closest('[data-module-crud-form]'))
+    feedForm.clearFeedFavicon()
+    await rerenderFeedForm(getOpenSidepanelBody())
   },
 
   bookmarkFormCropZoomIn() {

@@ -83,12 +83,21 @@ export async function loadSavedFeedItemsByCollectionId(collectionId) {
     .sortBy('saved_at')
 }
 
+export async function loadSavedFeedItems() {
+  const items = await db.saved_feed_items
+    .filter(isActiveRecord)
+    .toArray()
+
+  return items.sort((left, right) => (right.saved_at ?? 0) - (left.saved_at ?? 0))
+}
+
 export async function createFeedSourceData(collectionId, payload = {}) {
   if (!collectionId) return null
   return createOrderedEntity(db.feed_sources, 'collection_id', collectionId, {
     title: payload.title ?? '',
     feed_url: payload.feed_url ?? '',
     site_url: payload.site_url ?? null,
+    favicon_asset_id: payload.favicon_asset_id ?? null,
     style_token: payload.style_token ?? null,
     last_hash: payload.last_hash ?? null,
     last_fetched_at: payload.last_fetched_at ?? null,

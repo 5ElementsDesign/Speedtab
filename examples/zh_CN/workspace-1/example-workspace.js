@@ -49,6 +49,9 @@ const exampleWorkspaceDefinition = [
           {{asset:image:2}}
           {{asset:image:3}}
         </figure>
+        <div data-st-margin="0 0 .5rem" data-st-text-align="center">
+          <section data-world-clock data-st-font-size="16px"><span data-clock-zone></span> - <b data-clock data-seconds></b> - <small data-date></small></section>
+        </div>
         <h3>功能亮点</h3>
         <table>
           <thead>

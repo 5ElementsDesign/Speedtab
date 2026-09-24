@@ -1110,6 +1110,31 @@ html.light button[data-theme-value="light"] {
   }
 }
 
+@media (max-width: 740px) {
+  [data-dropdown-panel] {
+    [data-dropdown-submenu-panel] {
+      top: 105%;
+      margin-top: 8px;
+      inset-inline-start: 100%;
+      min-width: 14.5rem;
+      min-height: 150px;
+      padding: 6px 0;
+      border: 1px solid var(--st-dropdown-border-color);
+      box-shadow: 0 1px 5px 1px var(--st-dropdown-border-color);
+      background-color: var(--st-dropdown-background-color);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity .16s ease-out .12s, visibility 0s linear .28s, pointer-events 0s linear .28s;
+      z-index: 1;
+    }
+
+    &[data-align=right] [data-dropdown-submenu-panel] {
+      inset-inline-end: 0;
+    }
+  }
+}
+
 /**
  * Sidepanel
  * Variables live in next.css ( --st-sidepanel-* )

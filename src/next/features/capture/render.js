@@ -146,7 +146,7 @@ export function renderCaptureInboxModal(state) {
               <button
                 type="button"
                 class="st-btn"
-                data-variant="${selectedNoteId ? 'secondary' : 'danger'}"
+                data-btn="${selectedNoteId ? 'secondary' : 'danger'}"
                 data-click="captureSave"
               >
                 ${escapeHtml(activeItem?.kind === 'note'

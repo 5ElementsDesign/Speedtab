@@ -473,7 +473,7 @@
 [data-color-accent="dark"] {
   --yai-tabs-color-accent: var(--yai-tabs-color-dark);
   --yai-tabs-nav-button-active-background: var(--yai-tabs-color-dark);
-  --yai-tabs-nav-button-active-color: var(--yai-tabs-color-dark);
+  --yai-tabs-nav-button-active-color: var(--yai-tabs-color-dark-contrast);
   --yai-loader-color: var(--yai-tabs-nav-button-active-color);
   --yai-tabs-shadow-accent: rgba(161, 158, 160, 0.649);
 }

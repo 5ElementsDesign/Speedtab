@@ -125,7 +125,14 @@ async function refreshState() {
 }
 
 function buildMetaJson(item) {
+  let meta = {}
+  try {
+    meta = JSON.parse(item.meta_json ?? '{}') || {}
+  } catch {
+    meta = {}
+  }
   return JSON.stringify({
+    ...meta,
     capture_source_url: item.source_url,
     capture_source_title: item.source_title,
     capture_hash: item.external_hash,
@@ -137,6 +144,12 @@ async function saveActiveItem() {
   if (!item || !state.selectedCollectionId) return
 
   const meta_json = buildMetaJson(item)
+  let captureMeta = {}
+  try {
+    captureMeta = JSON.parse(item.meta_json ?? '{}') || {}
+  } catch {
+    captureMeta = {}
+  }
 
   if (item.kind === 'note') {
     if (state.selectedNoteId) {
@@ -162,9 +175,9 @@ async function saveActiveItem() {
     } else {
       await createNoteData(state.selectedCollectionId, {
         title: item.title || t('app.statuses.capturedNoteTitle'),
-        type: 'text',
+        type: ['html', 'code', 'links'].includes(captureMeta.note_type) ? captureMeta.note_type : 'text',
         content: state.draftNoteText || '',
-        style_token: null,
+        style_token: captureMeta.style_token || null,
         meta_json,
       })
     }

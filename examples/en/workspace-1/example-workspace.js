@@ -48,6 +48,9 @@ const exampleWorkspaceDefinition = [
         {{asset:image:2}}
         {{asset:image:3}}
       </figure>
+      <div data-st-margin="0 0 .5rem" data-st-text-align="center">
+        <section data-world-clock data-st-font-size="16px"><span data-clock-zone></span> - <b data-clock data-seconds></b> - <small data-date></small></section>
+      </div>
       <h3>Highlights</h3>
       <table>
         <thead>
@@ -1133,7 +1136,6 @@ colspan, rowspan
   <li><b>Absolute Data Sovereignty:</b> True local-first execution where data belongs solely to your browser's internal storage.</li>
   <li><b>Decentralized Cloud Layers:</b> Optional, explicit WebDAV syncing capabilities designed as secondary utilities, never as mandatory chains.</li>
 </ul>
-<hr>
 <table>
   <thead>
     <tr> <th>Evolutionary Phase</th> <th>Architectural Reality</th> </tr>

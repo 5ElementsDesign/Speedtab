@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
     <title>Speedtab News &amp; Tips</title>
     <link>https://5elementsdesign.github.io/Speedtab/</link>
@@ -13,27 +13,34 @@
     <!-- ITEM 1 — Welcome (YaiTabs flex)                                -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <item>
-      <title>👋 Welcome to the Feed Module</title>
-      <link>https://5elementsdesign.github.io/Speedtab/docs/feeds</link>
+      <title>Welcome to the Feed Module</title>
       <guid isPermaLink="false">speedtab-news-welcome</guid>
       <pubDate>Wed, 23 Sep 2026 00:00:00 GMT</pubDate>
+      <dc:creator>Speedy E</dc:creator>
       <description><![CDATA[
         <p data-st-bg-color="var(--st-color-primary)"
            data-st-color="var(--st-color-primary-contrast)"
            data-st-padding="12px 16px"
            data-st-border-radius="6px"
            data-st-margin-bottom="12px">
-          👋 <b>Welcome!</b> You're looking at Speedtab's own feed source — a demonstration of what's possible with the RSS module.
+          👋 <b>Welcome!</b> You're looking at Speedtab's own feed source — a demonstration of what's possible with the Feeds module.
         </p>
 
-        <div data-yai-tabs data-theme="default" data-color-accent="primary" data-auto-accessibility="false">
+        <div data-yai-tabs
+          data-closable="true"
+          data-behavior="blur"
+          data-theme="default"
+          data-color-accent="primary"
+          data-auto-accessibility="false"
+          class="tab-active"
+        >
           <nav data-controller>
-            <button data-tab-action="open" data-open="1" data-default>What is this?</button>
+            <button data-tab-action="open" data-open="1" class="active">What is this?</button>
             <button data-tab-action="open" data-open="2">Why care?</button>
             <button data-tab-action="open" data-open="3">Try it</button>
           </nav>
           <div data-content>
-            <div data-tab="1">
+            <div data-tab="1" class="active">
               <p>This is a feed item. But it's also an interactive component — with tabs, styling, and rich HTML.</p>
             </div>
             <div data-tab="2">
@@ -55,6 +62,24 @@
                   type="button"
                   data-btn="primary">Open Quicknote</button>
               </p>
+              <p data-st-bg-color="rgba(255,255,255,0.05)"
+                data-st-padding="12px 16px"
+                data-st-border-radius="6px"
+                data-st-margin-top="12px"
+                data-st-display="flex"
+                data-st-align-items="center"
+                data-st-justify-content="space-between"
+                data-st-gap="12px">
+                <span>📌 Open a portable virtual note</span>
+                <button
+                  data-click="openVirtualNote"
+                  type="button"
+                  data-btn="primary"
+                  data-note-json='{"title":"Speedtab mini note","type":"html","style_token":"secondary","preview":"A portable two-tab note","width":460,"height":300,"content":"<div data-yai-tabs data-theme=\"dark\" data-color-accent=\"warning\" data-auto-accessibility=\"false\"><nav data-controller><button data-tab-action=\"open\" data-open=\"about\" data-default>About</button><button data-tab-action=\"open\" data-open=\"share\">Share</button></nav><div data-content><div data-tab=\"about\"><p>This virtual note was opened directly from a feed item.</p><p>It behaves like a regular floating note, without first being stored in the workspace.</p></div><div data-tab=\"share\"><p>Virtual notes can carry normal note content, including nested tabs.</p><p>Save one to the Inbox when you want to keep it.</p></div></div></div>"}'>Open note</button>
+              </p>
+              <p data-st-text-align="center" data-st-margin-top="16px">
+                <button type="button" data-click="openAllArchivedFeedItems" data-btn="light">Open archived feed items</button>
+              </p>
             </div>
           </div>
         </div>
@@ -65,10 +90,11 @@
     <!-- ITEM 2 — v1.5.9 Update (Grid + Details flex)                   -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <item>
-      <title>🎉 v1.5.9 — Virtual Notes + Clockworx</title>
+      <title>v1.5.9 — Virtual Notes + Clockworx</title>
       <link>https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff</link>
       <guid isPermaLink="false">speedtab-news-159</guid>
       <pubDate>Tue, 22 Sep 2026 00:00:00 GMT</pubDate>
+      <dc:creator>Speedy E</dc:creator>
       <description><![CDATA[
         <div data-st-grid="2" data-st-gap="12px">
           <div data-st-bg-color="var(--st-color-success)"
@@ -102,10 +128,10 @@
     <!-- ITEM 3 — Add your first feed (Steps + Callout flex)            -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <item>
-      <title>📚 How to add your first feed</title>
-      <link>https://5elementsdesign.github.io/Speedtab/docs/feeds/add</link>
+      <title>How to add your first feed</title>
       <guid isPermaLink="false">speedtab-news-add-feed</guid>
       <pubDate>Mon, 21 Sep 2026 00:00:00 GMT</pubDate>
+      <dc:creator>Speedy E</dc:creator>
       <description><![CDATA[
         <ol data-st-padding-left="24px" data-st-line-height="1.9" data-st-margin="0">
           <li>Click <b>+ Source</b> in the feed module header</li>
@@ -129,19 +155,27 @@
     <!-- ITEM 4 — Archive items (Left-nav tabs flex)                    -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <item>
-      <title>💡 Archive interesting items</title>
-      <link>https://5elementsdesign.github.io/Speedtab/docs/feeds/archive</link>
+      <title>Archive interesting items</title>
       <guid isPermaLink="false">speedtab-news-archive</guid>
       <pubDate>Sun, 20 Sep 2026 00:00:00 GMT</pubDate>
+      <dc:creator>Speedy E</dc:creator>
       <description><![CDATA[
-        <div data-yai-tabs data-theme="default" data-nav="left" data-color-accent="secondary" data-auto-accessibility="false">
+        <div data-yai-tabs
+          data-closable="true"
+          data-behavior="blur"
+          data-theme="default"
+          data-nav="left"
+          data-color-accent="secondary"
+          data-auto-accessibility="false"
+          class="tab-active"
+        >
           <nav data-controller>
-            <button data-tab-action="open" data-open="1" data-default>Why archive?</button>
+            <button data-tab-action="open" data-open="1" class="active">Why archive?</button>
             <button data-tab-action="open" data-open="2">How to do it</button>
             <button data-tab-action="open" data-open="3">Where it lives</button>
           </nav>
           <div data-content>
-            <div data-tab="1">
+            <div data-tab="1" class="active">
               <p>Feeds roll over. Archives don't. Keep what matters — forever, locally.</p>
             </div>
             <div data-tab="2">
@@ -159,10 +193,11 @@
     <!-- ITEM 5 — v1.5.8 Update (Interactive theme switch)              -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <item>
-      <title>🎉 v1.5.8 — Dark/Light theme switch</title>
+      <title>v1.5.8 — Dark/Light theme switch</title>
       <link>https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff</link>
       <guid isPermaLink="false">speedtab-news-158</guid>
       <pubDate>Sat, 19 Sep 2026 00:00:00 GMT</pubDate>
+      <dc:creator>Speedy E</dc:creator>
       <description><![CDATA[
         <p data-st-text-align="center" data-st-margin-bottom="16px" data-st-margin-top="0">
           <b>Try it right now</b> — this switch controls Speedtab's theme in real time:
@@ -201,10 +236,11 @@
     <!-- ITEM 6 — Auto-refresh explained (Icon grid flex)               -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <item>
-      <title>⚙️ Feed auto-refresh explained</title>
+      <title>Feed auto-refresh explained</title>
       <link>https://5elementsdesign.github.io/Speedtab/docs/feeds/auto-refresh</link>
       <guid isPermaLink="false">speedtab-news-auto-refresh</guid>
       <pubDate>Fri, 18 Sep 2026 00:00:00 GMT</pubDate>
+      <dc:creator>Speedy E</dc:creator>
       <description><![CDATA[
         <div data-st-grid="3" data-st-gap="8px">
           <div data-st-bg-color="rgba(255,255,255,0.05)"
@@ -242,10 +278,11 @@
     <!-- ITEM 7 — v1.5.7 Wallspeed (The Speed of Wall)                  -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <item>
-      <title>🎉 v1.5.7 — Wallspeed: The Speed of Wall</title>
+      <title>v1.5.7 — Wallspeed: The Speed of Wall</title>
       <link>https://chromewebstore.google.com/detail/speedtab/adkjbdepojalajhfkoobiedddlnoamff</link>
       <guid isPermaLink="false">speedtab-news-157</guid>
       <pubDate>Wed, 16 Sep 2026 00:00:00 GMT</pubDate>
+      <dc:creator>Speedy E</dc:creator>
       <description><![CDATA[
         <p data-st-bg-color="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
           data-st-color="#fff"
@@ -254,15 +291,15 @@
           data-st-text-align="center"
           data-st-margin="0">
           <b data-st-font-size="1.5rem" data-st-display="block" data-st-margin-bottom="4px">
-            <span class="mr-1" data-st-font-size="1rem">🏁</span>
+            <span class="mirror mr-1" data-st-font-size="1rem">🏁</span>
             Wallspeed
-            <span class="mirror ml-1" data-st-font-size="1rem">🏁</span>
+            <span class="ml-1" data-st-font-size="1rem">🏁</span>
           </b>
-          <b data-st-display="block" data-st-opacity="0.85" data-st-font-size="15px">The Speed of Wall.</b>
+          <b data-st-display="block" data-st-opacity="0.85" data-st-font-size="15px">The Speed of Wall</b>
         </p>
 
         <p data-st-margin-top="16px" data-st-text-align="center" data-st-font-size="0.9rem" data-st-opacity="0.85">
-          Litespeed's most feared competitor has entered the room.
+          Litespeed's most feared competitor has entered the feed.
         </p>
 
         <p data-st-bg-color="rgba(255,255,255,0.05)"
@@ -281,10 +318,10 @@
     <!-- ITEM 8 — Custom CSS in feed items (Code + live flex)           -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <item>
-      <title>🎨 Custom CSS in feed items</title>
-      <link>https://5elementsdesign.github.io/Speedtab/docs/style-api</link>
+      <title>Custom CSS in feed items</title>
       <guid isPermaLink="false">speedtab-news-style-api</guid>
       <pubDate>Tue, 15 Sep 2026 00:00:00 GMT</pubDate>
+      <dc:creator>Speedy E</dc:creator>
       <description><![CDATA[
         <p data-st-margin-top="0">
           Feed items use the same <code>data-st-*</code> attribute API as notes.
@@ -314,22 +351,112 @@
     </item>
 
     <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- ITEM 9 — Roadmap (Top-nav tabs flex)                           -->
+    <!-- ITEM 9 — World Clock (Interactive showcase)                    -->
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <item>
-      <title>🚀 What's coming next</title>
-      <link>https://5elementsdesign.github.io/Speedtab/docs/roadmap</link>
+      <title>World Clock — 418 timezones, one note</title>
+      <guid isPermaLink="false">speedtab-news-worldclock</guid>
+      <pubDate>Thu, 23 Sep 2026 00:00:00 GMT</pubDate>
+      <dc:creator>Speedy E</dc:creator>
+      <description><![CDATA[
+        <p data-st-bg-color="linear-gradient(135deg, #1a3c5e 0%, #2d5016 100%)"
+          data-st-color="#fff"
+          data-st-padding="24px 20px"
+          data-st-border-radius="10px"
+          data-st-text-align="center"
+          data-st-margin="0">
+          <b data-st-font-size="1.4rem" data-st-display="block">🌍 World Clock</b>
+          <small data-st-display="block" data-st-opacity="0.85" data-st-margin-top="4px">
+            Your world. Your timezone. Your perspective.
+          </small>
+        </p>
+
+        <p data-st-margin-top="16px">
+          Every timezone in the IANA database, organized by region:
+        </p>
+
+        <div data-st-display="flex" data-st-gap="6px" data-st-flex-wrap="wrap" data-st-margin-top="12px">
+          <span data-st-bg-color="rgba(255,255,255,0.08)" data-st-padding="4px 10px" data-st-border-radius="12px" data-st-font-size="0.75rem">
+            Africa · 52
+          </span>
+          <span data-st-bg-color="rgba(255,255,255,0.08)" data-st-padding="4px 10px" data-st-border-radius="12px" data-st-font-size="0.75rem">
+            America · 144
+          </span>
+          <span data-st-bg-color="rgba(255,255,255,0.08)" data-st-padding="4px 10px" data-st-border-radius="12px" data-st-font-size="0.75rem">
+            Asia · 82
+          </span>
+          <span data-st-bg-color="rgba(255,255,255,0.08)" data-st-padding="4px 10px" data-st-border-radius="12px" data-st-font-size="0.75rem">
+            Europe · 58
+          </span>
+          <span data-st-bg-color="rgba(255,255,255,0.08)" data-st-padding="4px 10px" data-st-border-radius="12px" data-st-font-size="0.75rem">
+            Australia · 11
+          </span>
+          <span data-st-bg-color="rgba(255,255,255,0.08)" data-st-padding="4px 10px" data-st-border-radius="12px" data-st-font-size="0.75rem">
+            Pacific · 38
+          </span>
+          <span data-st-bg-color="rgba(255,255,255,0.08)" data-st-padding="4px 10px" data-st-border-radius="12px" data-st-font-size="0.75rem">
+            Indian · 11
+          </span>
+          <span data-st-bg-color="rgba(255,255,255,0.08)" data-st-padding="4px 10px" data-st-border-radius="12px" data-st-font-size="0.75rem">
+            Atlantic · 10
+          </span>
+          <span data-st-bg-color="rgba(255,255,255,0.08)" data-st-padding="4px 10px" data-st-border-radius="12px" data-st-font-size="0.75rem">
+            Antarctica · 11
+          </span>
+          <span data-st-bg-color="rgba(255,255,255,0.08)" data-st-padding="4px 10px" data-st-border-radius="12px" data-st-font-size="0.75rem">
+            Arctic · 1
+          </span>
+        </div>
+
+        <p data-st-bg-color="rgba(255,255,255,0.05)"
+          data-st-padding="12px 16px"
+          data-st-border-radius="6px"
+          data-st-margin-top="16px"
+          data-st-margin-bottom="0">
+          <b>How it works:</b> Choose your timezones from collapsible category lists.
+          Your system timezone becomes the default reference, so colors show whether
+          each clock is behind, near, or ahead of <em>your</em> time.
+          All 418 clocks run on one App Clock tick.
+        </p>
+
+        <p data-st-text-align="center" data-st-margin-top="16px" data-st-margin-bottom="0">
+          <button type="button"
+                  data-click="openVirtualNote"
+                  data-btn="light"
+                  data-note-json='{"title":"World Clock — Live Demo","type":"html","style_token":"secondary","preview":"Cross-continental timezones in sync","width":800,"height":406,"content": "<section data-world-clock data-world-clock-theme=\"default\" data-swipe-ignore>\n  <div data-clock-zone>\n    <h3><b data-date data-date-format=\"{date}\"></b> ~ <span data-clock-zone></span></h3>\n  </div>\n  <div data-world-clock-items>\n    <div data-world-clock-item data-clock-zone=\"Europe/Berlin\">\n      <h3 data-clock-zone></h3>\n      <h4 data-clock data-analog data-seconds></h4>\n    </div>\n    <div data-world-clock-item data-clock-zone=\"Europe/Amsterdam\">\n      <h3 data-clock-zone></h3>\n      <h4 data-clock data-analog data-seconds></h4>\n    </div>\n    <div data-world-clock-item data-clock-zone=\"Europe/Paris\">\n      <h3 data-clock-zone></h3>\n      <h4 data-clock data-analog data-seconds></h4>\n    </div>\n    <div data-world-clock-item data-clock-zone=\"Europe/London\">\n      <h3 data-clock-zone></h3>\n      <h4 data-clock data-analog data-seconds></h4>\n    </div>\n    <div data-world-clock-item data-clock-zone=\"Europe/Madrid\">\n      <h3 data-clock-zone></h3>\n      <h4 data-clock data-analog data-seconds></h4>\n    </div>\n    <div data-world-clock-item data-clock-zone=\"Europe/Istanbul\">\n      <h3 data-clock-zone></h3>\n      <h4 data-clock data-analog data-seconds></h4>\n    </div>\n    <div data-world-clock-item data-clock-zone=\"Europe/Moscow\">\n      <h3 data-clock-zone></h3>\n      <h4 data-clock data-analog data-seconds></h4>\n    </div>\n    <div data-world-clock-item data-clock-zone=\"Asia/Calcutta\">\n      <h3 data-clock-zone></h3>\n      <h4 data-clock data-analog data-seconds></h4>\n    </div>\n    <div data-world-clock-item data-clock-zone=\"Asia/Shanghai\">\n      <h3 data-clock-zone></h3>\n      <h4 data-clock data-digital data-seconds></h4>\n    </div>\n    <div data-world-clock-item data-clock-zone=\"America/New_York\">\n      <h3 data-clock-zone></h3> \n      <h4 data-clock data-digital data-seconds></h4>\n    </div>\n  </div>\n</section>\n\n"}'>Open live demo</button>
+        </p>
+
+        <p data-st-text-align="center" data-st-margin-top="8px" data-st-font-size="0.85rem" data-st-opacity="0.7" data-st-margin-bottom="0">
+          Ten zones, one tick, zero drift.
+        </p>
+      ]]></description>
+    </item>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- ITEM 10 — Roadmap (Top-nav tabs flex)                           -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <item>
+      <title>What's coming next</title>
       <guid isPermaLink="false">speedtab-news-roadmap</guid>
       <pubDate>Mon, 14 Sep 2026 00:00:00 GMT</pubDate>
+      <dc:creator>Speedy E</dc:creator>
       <description><![CDATA[
-        <div data-yai-tabs data-theme="dark" data-nav="top" data-color-accent="secondary" data-auto-accessibility="false">
+        <div data-yai-tabs
+          data-closable="true"
+          data-behavior="blur"
+          data-theme="dark"
+          data-nav="top"
+          data-color-accent="secondary"
+          data-auto-accessibility="false"
+          class="tab-active"
+        >
           <nav data-controller>
-            <button data-tab-action="open" data-open="1" data-default>Short term</button>
+            <button data-tab-action="open" data-open="1" class="active">Short term</button>
             <button data-tab-action="open" data-open="2">Mid term</button>
             <button data-tab-action="open" data-open="3">Long term</button>
           </nav>
           <div data-content>
-            <div data-tab="1">
+            <div data-tab="1" class="active">
               <ul data-st-padding-left="20px" data-st-line-height="1.7" data-st-margin="0">
                 <li>Calendar module</li>
                 <li>Kanban view for ToDo</li>

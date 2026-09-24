@@ -2,7 +2,7 @@
   width: 100%;
   max-width: var(--st-page-grid-max-width-local, var(--st-page-grid-max-width));
   margin: 0 auto;
-  padding: 8px 0;
+  padding: 0 0 8px;
 }
 
 .st-widget-rail-center {

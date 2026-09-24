@@ -34,19 +34,33 @@ export function getState(name, defaultState = null) {
   return syncedStates.has(name) ? syncedStates.get(name) : defaultState
 }
 
+function applySyncedState(element, value) {
+  if (element instanceof HTMLInputElement && element.type === 'checkbox') {
+    element.checked = Boolean(value)
+  }
+  if (element instanceof HTMLButtonElement) {
+    element.toggleAttribute('data-state-active', Boolean(value))
+    element.setAttribute('aria-pressed', String(Boolean(value)))
+  }
+}
+
+/** Hydrates opt-in controls inserted after their state was first set. */
+export function syncState(root = document, name = null) {
+  const elements = root instanceof Element
+    ? [root, ...root.querySelectorAll('[data-state-sync]')]
+    : [...root.querySelectorAll('[data-state-sync]')]
+
+  elements.forEach((element) => {
+    const stateName = element.dataset?.stateSync
+    if (!stateName || (name && stateName !== name) || !syncedStates.has(stateName)) return
+    applySyncedState(element, syncedStates.get(stateName))
+  })
+}
+
 /**
  * Updates every opt-in control without making a component own an event listener.
  */
 export function setState(name, value) {
   syncedStates.set(name, value)
-  document.querySelectorAll('[data-state-sync]').forEach((element) => {
-    if (element.dataset.stateSync !== name) return
-    if (element instanceof HTMLInputElement && element.type === 'checkbox') {
-      element.checked = Boolean(value)
-    }
-    if (element instanceof HTMLButtonElement) {
-      element.toggleAttribute('data-state-active', Boolean(value))
-      element.setAttribute('aria-pressed', String(Boolean(value)))
-    }
-  })
+  syncState(document, name)
 }

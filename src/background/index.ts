@@ -30,6 +30,7 @@ import {
 import { isRemoteProviderConfigured } from '@/composables/useRemoteProvider'
 import { db } from '@/db/db'
 import { loadLocalToolsState, saveLocalToolsState } from '../next/data/local-tools.js'
+import { createCaptureInboxItem } from '../next/data/capture-inbox.js'
 import { extractDescription } from '../next/utils/page-meta.js'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -367,13 +368,6 @@ function buildCapturedPageNote(input: {
   return lines.join('\n')
 }
 
-async function sha256Hex(input: string) {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(input))
-  return Array.from(new Uint8Array(digest))
-    .map(byte => byte.toString(16).padStart(2, '0'))
-    .join('')
-}
-
 async function storeCaptureItem(input: {
   kind: 'note' | 'bookmark'
   title: string | null
@@ -382,19 +376,7 @@ async function storeCaptureItem(input: {
   source_url: string | null
   source_title: string | null
 }) {
-  const external_hash = await sha256Hex(JSON.stringify(input))
-  const existing = await db.capture_inbox.where('external_hash').equals(external_hash).first()
-  if (existing) {
-    await notifyCaptureInboxUpdated()
-    return
-  }
-
-  await db.capture_inbox.add({
-    ...input,
-    external_hash,
-    created_at: Date.now(),
-    meta_json: null,
-  })
+  await createCaptureInboxItem(input)
   await notifyCaptureInboxUpdated()
 }
 

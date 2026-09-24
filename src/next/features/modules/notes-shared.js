@@ -88,6 +88,8 @@ function getCryptPayloadPreview(content = '') {
 
 export function getNotePreviewText(note = {}) {
   if (note.type === 'crypt') return t('noteTile.encrypted')
+  const preview = parseNoteMeta(note.meta_json ?? null).preview
+  if (typeof preview === 'string' && preview.trim()) return preview.trim()
   const source = note.type === 'html'
     ? stripTags(note.content)
     : String(note.content ?? '')

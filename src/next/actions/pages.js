@@ -522,7 +522,7 @@ export const pageActions = {
     if (picker) picker.toggleAttribute('hidden')
   },
 
-  pageFormPickIcon(target, event) {
+  pageFormPickIcon(target) {
     const icon = target.dataset.icon
     if (!icon) return
     const form = target.closest('[data-page-form]')
@@ -536,8 +536,6 @@ export const pageActions = {
 
       input.focus()
     }
-
-    console.log(event)
     target.closest('[data-icon-picker]')?.setAttribute('hidden', '')
   },
 

@@ -19,10 +19,12 @@ import {
     normalizeLocalToolsState,
     saveLocalToolsState,
 } from '../data/local-tools.js'
+import {createCaptureInboxItem} from '../data/capture-inbox.js'
 
 beforeEach(async () => { await testDb.open() })
 afterEach(async () => {
   await testDb.app_settings.clear()
+  await testDb.capture_inbox.clear()
   await testDb.close()
 })
 
@@ -83,6 +85,14 @@ describe('normalizeLocalToolsState', () => {
     })
     expect(state.noteWindows).toHaveLength(1)
     expect(state.noteWindows[0].noteId).toBe(42)
+  })
+
+  it('preserves a note window page binding', () => {
+    const state = normalizeLocalToolsState({
+      noteWindows: [{noteId: 42, x: 10, y: 10, width: 400, height: 300, z: 221, pageSlug: 'main'}],
+    })
+
+    expect(state.noteWindows[0].pageSlug).toBe('main')
   })
 
   it('clamps note window width to minimum 100', () => {
@@ -163,5 +173,17 @@ describe('saveLocalToolsState', () => {
     // Round-trip: load confirms persistence
     const loaded = await loadLocalToolsState()
     expect(loaded.quicknote.content).toBe('saved note')
+  })
+})
+
+describe('createCaptureInboxItem', () => {
+  it('deduplicates a virtual note payload before it reaches the inbox', async () => {
+    const item = {
+      kind: 'note', title: 'Remote note', text: '<section>Remote</section>', url: null,
+      source_url: 'https://example.com/note.html', source_title: 'Example', meta_json: '{"note_type":"html"}',
+    }
+    expect((await createCaptureInboxItem(item)).created).toBe(true)
+    expect((await createCaptureInboxItem(item)).created).toBe(false)
+    expect(await testDb.capture_inbox.count()).toBe(1)
   })
 })

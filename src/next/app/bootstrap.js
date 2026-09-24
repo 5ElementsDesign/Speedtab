@@ -15,6 +15,7 @@ import {syncTodoClockSubscription, todoActions} from '../actions/todos.js'
 import {syncWallspeedActiveWallpaper, userActions} from '../actions/user-actions.js'
 import {workspaceActions} from '../actions/workspace.js'
 import {closeAll, closeDropdown, rebindOpenDropdown} from '../components/dropdown.js'
+import {setState} from '../components/state-object.js'
 import {dismissToast, initToastEvents} from '../components/toast.js'
 import {getCachedAppSettings, loadAppSettings, saveAppSetting} from '../data/app-settings.js'
 import {loadCaptureInboxCount} from '../data/capture-inbox.js'
@@ -24,8 +25,7 @@ import {loadUiConfigsByEntitySyncIds} from '../data/ui-config.js'
 import {applyModuleUiConfigMap, applyShellUiConfig} from '../features/customizer/apply.js'
 import {initCustomizerListeners} from '../features/customizer/panel.js'
 import {renderThemeSwitch, SHELL_SYNC_ID} from '../features/customizer/render.js'
-import {installFlyingConfig, openFlyingConfig} from '../features/flying-config/index.js'
-import {initializeLocalTools, refreshOpenNotePreviewState, refreshQuicknoteWindow} from '../features/local-tools/manager.js'
+import {initializeLocalTools, refreshOpenNotePreviewState, refreshQuicknoteWindow, syncFloatingNotePageScope} from '../features/local-tools/manager.js'
 import {queueFeedFavicons} from '../features/modules/feeds.js'
 import {adaptModule} from '../features/modules/registry.js'
 import {enrichModules} from '../features/modules/service.js'
@@ -38,9 +38,10 @@ import {renderWidgetRailShell} from '../features/widgets/render.js'
 import {initBookmarkMedia} from '../utils/bookmark-media.js'
 import {loadAndApplyDocumentTheme} from '../utils/document-theme.js'
 import {initFavicons} from '../utils/favicon.js'
-import {SUPPORTED_LOCALES, getLocale, initI18n, t} from '../utils/i18n.js'
+import {getLocale, initI18n, SUPPORTED_LOCALES, t} from '../utils/i18n.js'
 import {activateFirstModuleTab} from '../utils/module-tabs.js'
 import {applyPageWorkspaceBackground} from '../utils/workspace-background.js'
+import {sanitizeHtml} from '../../composables/useSanitize.ts'
 import {startAppClock} from './clock.js'
 import {installWorkspaceDirtyTracking} from './dirty-tracker.js'
 import {dispatch} from './dispatch.js'
@@ -51,6 +52,17 @@ let runtimeInboxListenerBound = false
 let quicknoteChromeListenerBound = false
 let currentInboxCount = 0
 let quicknotePendingCount = 0
+let flyingConfigModulePromise = null
+
+async function openFlyingConfigAction(target) {
+  const flyingConfig = await (flyingConfigModulePromise ??= import('../features/flying-config/index.js'))
+  const mount = document.querySelector('#app')
+  const tabs = mount?.__nextTabsInstance
+  if (tabs && !mount.__flyingConfigCleanup) {
+    mount.__flyingConfigCleanup = flyingConfig.installFlyingConfig(tabs)
+  }
+  return flyingConfig.openFlyingConfig(target)
+}
 
 function renderExampleWorkspaceLocaleSelect() {
   const locale = getLocale()
@@ -340,8 +352,8 @@ const appActions = {
   ...workspaceActions,
   ...todoActions,
   ...userActions,
-  openFlyingConfig,
-  saveFlyingConfig: openFlyingConfig,
+  openFlyingConfig: openFlyingConfigAction,
+  saveFlyingConfig: openFlyingConfigAction,
   dismissToast(target) {
     dismissToast(target)
   },
@@ -367,7 +379,7 @@ export function initializeNextTabs(mount, pages) {
     : ['mousedown', 'mousemove', 'mouseup']
   const globalReleaseListeners = YaiDevice.hasTouch
     ? []
-    : [{type: 'mouseup', handler: 'globalMouseWatch', debounce: 50}]
+    : [{type: 'mouseup', handler: 'globalMouseWatch', debounce: 550}]
 
   const tabs = new YaiTabs({
     rootSelector: '[data-app][data-yai-tabs], [data-app] [data-yai-tabs]',
@@ -384,14 +396,14 @@ export function initializeNextTabs(mount, pages) {
       setListener: {
         window: [{type: 'hashchange', debounce: 60}],
         ...(globalReleaseListeners.length ? {body: globalReleaseListeners} : {}),
-        '[data-yai-tabs]': ['click', 'keydown', 'submit', 'input', 'change'],
-        '[data-app-content]': setListenerType,
-        '[data-floating-windows]': setListenerType,
+        '[data-yai-tabs]': ['click', 'keydown', 'submit', 'input', 'change', ...setListenerType],
       },
       actionableAttributes: ['data-tab-action', 'data-swipe', 'data-click', 'data-input', 'data-input-immediate', 'data-change', 'data-submit'],
       actionableClasses: ['st-btn'],
     },
     callable: {
+      // Notes and fetched YaiTabs content use the same markup policy.
+      sanitizeHtml,
       eventClick: [({target, action, event}) => {
         if (!action) return
         routeAction(target, action, event)
@@ -437,6 +449,7 @@ export function initializeNextTabs(mount, pages) {
         document.querySelectorAll('[data-page-slug]').forEach((btn) => {
           btn.toggleAttribute('data-overflow-active', btn.dataset.pageSlug === activeSlug)
         })
+        syncFloatingNotePageScope(activeSlug)
 
         syncActivePageGridMaxWidthToken(content?.querySelector?.('[data-app-tab-content]') ?? null)
 
@@ -452,8 +465,6 @@ export function initializeNextTabs(mount, pages) {
     syncPictureInPicture()
     syncWallspeedActiveWallpaper()
   })
-
-  mount.__flyingConfigCleanup = installFlyingConfig(tabs)
 
   const swype = new YaiTabsSwipe({
     axis: YaiDevice.hasTouch ? 'horizontal' : 'auto',
@@ -661,6 +672,7 @@ export async function renderNextRoot() {
     widgetRail: renderWidgetRailShell(widgetSettings),
     widgetRailPosition: widgetSettings.rail_position,
   })
+  setState('shell-theme', appSettings.ui_theme === 'light')
   syncQuicknoteMarkerButton()
 
   if (activePage?.slug) {
@@ -685,7 +697,7 @@ export async function renderNextRoot() {
 
   if (renderPages.length && activePage) {
     initializeSearch()
-    await initializeLocalTools(mount.querySelector('[data-app]'))
+    await initializeLocalTools(mount.querySelector('[data-app]'), activePage.slug)
     initializeWidgetRail(widgetSettings)
     void requestRemoteAutoSyncRefresh()
     const tabs = initializeNextTabs(mount, renderPages)

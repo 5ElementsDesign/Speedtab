@@ -172,9 +172,10 @@ export function renderRootShell({
         ${pages.map((page) => renderPagePanel(page, activePage, pageModulesBySlug.get(page.slug) ?? [], {hydratedPageSlugs, orphanCandidates})).join('')}
       </main>
 
-      ${widgetRail && widgetRailPosition === 'bottom'
-        ? `<footer data-app-footer data-swipe-ignore>${widgetRail}</footer>`
-        : ''}
+      <footer data-app-footer data-swipe-ignore>
+        <div data-open-notes-map></div>
+        ${widgetRail && widgetRailPosition === 'bottom' ? widgetRail : ''}
+      </footer>
     </div>
   `
 }

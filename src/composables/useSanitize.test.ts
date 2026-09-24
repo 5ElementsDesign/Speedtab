@@ -32,32 +32,55 @@ describe('useSanitize – script and event handler removal', () => {
     expect(out.toLowerCase()).not.toContain('alert')
   })
 
-  it('strips <iframe>, <object>, <embed>, <form>, <input>', () => {
+  it('strips embedded executable content', () => {
     const dirty = `
       <iframe src="https://evil.example"></iframe>
       <object data="evil.swf"></object>
       <embed src="evil.swf" />
-      <form action="/evil"><input name="x"></form>
     `
     const out = sanitizeHtml(dirty).toLowerCase()
     expect(out).not.toContain('<iframe')
     expect(out).not.toContain('<object')
     expect(out).not.toContain('<embed')
-    expect(out).not.toContain('<form')
-    expect(out).not.toContain('<input')
   })
 
-  it('strips <style> blocks (CSS-based exfiltration)', () => {
-    const out = sanitizeHtml('<style>body{background:url(//evil)}</style><p>ok</p>')
-    expect(out.toLowerCase()).not.toContain('<style')
+  it('strips external stylesheets outside the Speedtab repository', () => {
+    const out = sanitizeHtml(
+      '<link rel="stylesheet" href="https://evil.example/main.css">'
+      + '<link rel="stylesheet" href="https://5elementsdesign.github.io/Speedtab.evil/main.css">'
+      + '<p>ok</p>',
+    )
+    expect(out.toLowerCase()).not.toContain('<link')
     expect(out).toContain('<p>ok</p>')
   })
 })
 
 describe('useSanitize – allowlist preservation', () => {
+  it('keeps inline styles and Speedtab repository stylesheets', () => {
+    const html = '<style>[data-example]{display:block}</style>'
+      + '<link rel="stylesheet" href="https://5elementsdesign.github.io/Speedtab/ext/st/example/main.css">'
+    const out = sanitizeHtml(html)
+    expect(out).toContain('<style>[data-example]{display:block}</style>')
+    expect(out).toContain('<link rel="stylesheet" href="https://5elementsdesign.github.io/Speedtab/ext/st/example/main.css">')
+  })
+
   it('keeps safe formatting tags', () => {
     const html = '<p>Hi <strong>bold</strong> <em>em</em> <code>x</code></p>'
     expect(sanitizeHtml(html)).toBe(html)
+  })
+
+  it('keeps semantic time elements for note widgets', () => {
+    expect(sanitizeHtml('<time data-date data-date-format="{datetime}"></time>'))
+      .toBe('<time data-date="" data-date-format="{datetime}"></time>')
+  })
+
+  it('keeps native form and status markup for note playgrounds', () => {
+    const html = '<form data-submit="demo"><label for="demo">Name</label><input id="demo" name="demo" type="text" value="Hi" required><select name="zone"><option value="Europe/Berlin" selected>Berlin</option></select><textarea name="note" rows="3">Text</textarea><output>42</output><meter value="3" min="0" max="5">3</meter><progress value="2" max="3">2</progress></form>'
+    const out = sanitizeHtml(html)
+    expect(out).toContain('<input id="demo" name="demo" type="text" value="Hi" required="">')
+    expect(out).toContain('<select name="zone">')
+    expect(out).toContain('<meter value="3" min="0" max="5">3</meter>')
+    expect(out).toContain('<progress value="2" max="3">2</progress>')
   })
 
   it('keeps lists and headings', () => {

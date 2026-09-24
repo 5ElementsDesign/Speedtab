@@ -14,7 +14,7 @@ class YaiTabs extends YaiCore {
             defaultBehavior: 'zoom',          /** @var string Default animation behavior if no data-behavior is specified */
             autoFocus: false,                 /** @var bool Automatically focus the first container's active tab on init */
             autoAccessibility: false,         /** @var bool Enable comprehensive ARIA accessibility setup */
-            lazyNestedComponents: true,       /** @var bool On init, marks nested tab components as laty "data-yai-tabs-lazy" */
+            lazyNestedComponents: true,       /** @var bool On init, marks nested tab components as lazy "data-yai-tabs-lazy" */
             autoActionableAttributes: false,  /** @var bool Auto-generates data-attributes for a set of defined event types */
             timeout: {
                 debounce: {

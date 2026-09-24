@@ -91,9 +91,9 @@
               "title": "Breaking",
               "sources": [
                 {
-                  "title": "GTmetrix Blog",
-                  "feed_url": "https://gtmetrix.com/blog/feed/",
-                  "site_url": "https://gtmetrix.com/blog/"
+                  "title": "Speedtab News & Tips",
+                  "feed_url": "https://5elementsdesign.github.io/Speedtab/ext/st/feeds/speedtab-news.xml",
+                  "site_url": "https://5elementsdesign.github.io/Speedtab/"
                 }
               ]
             },
