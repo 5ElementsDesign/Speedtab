@@ -36,7 +36,6 @@ const zh_CN = {
     onboardingLanguageDescription: '选择界面语言。',
     newPage: '+ 新页面',
     quickStart: '快速开始',
-    quickStartLoading: '加载中…',
     noModulesTitle: '此页面暂无模块',
     noModulesDescription: '书签、笔记和订阅源模块将在此显示。添加您的第一个模块以开始。',
     addModule: '+ 添加模块',

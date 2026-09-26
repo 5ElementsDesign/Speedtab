@@ -36,7 +36,6 @@ const tr = {
     onboardingLanguageDescription: 'Arayüz dilini seçin.',
     newPage: '+ Yeni Sayfa',
     quickStart: 'Hızlı Başlangıç',
-    quickStartLoading: 'Yükleniyor…',
     noModulesTitle: 'Bu sayfada modül yok',
     noModulesDescription: 'Sekmeler, Notlar ve Akışlar modülleri burada görünecek. Başlamak için ilk modülünüzü ekleyin.',
     addModule: '+ Modül Ekle',

@@ -2,6 +2,18 @@
 
 All notable changes to Speedtab will be documented in this file.
 
+## [1.6.0]
+
+### Changed
+- Refined the footer Open Notes rail with a persistent-view control, note color markers, and direct note-close actions.
+- Simplified the shared visual-token layer: Speedtab and its shipped HTML content now use canonical YaiTabs color, focus, timing, and font-weight tokens directly.
+- Narrowed App Shell Appearance targeting so Main Header and Main Nav controls affect only the root shell; module and nested YaiTabs navigation remains independently customizable.
+- Refined first-run Quick Start feedback to keep the button label stable and use the shared loading state.
+
+### Fixed
+- Fixed light-mode rendered HTML surfaces, including table headers, retaining dark background and text values.
+- Fixed custom Style API and Speedfeed examples to use canonical color tokens after the visual-token cleanup.
+
 ## [1.5.9]
 
 ### Added
@@ -26,6 +38,7 @@ All notable changes to Speedtab will be documented in this file.
 - Fixed dynamic note-content sanitization so approved style markup survives consistently across regular notes, virtual notes, and URL-fetched YaiTabs content.
 - Fixed Feed reader focus scrolling so interacting with a deeply expanded item cannot scroll and clip the outer Feed pane.
 - Restored the optional note prompt when archiving a Feed item and show saved notes in Archived Feed Items.
+- Fixed App Shell appearance overrides so custom header and navigation colors persist on their controls without overriding active-tab colors.
 
 ## [1.5.8]
 

@@ -9,7 +9,7 @@
   --st-notes-preview-content-font-scale: 1;
   --st-notes-open-content-bg: #fff;
   --st-notes-open-content-color: #222;
-  --st-notes-open-link-color: var(--st-color-primary);
+  --st-notes-open-link-color: var(--yai-tabs-color-primary);
   --st-notes-open-content-font-scale: 1;
   --st-note-preview-content-background-color: var(--st-notes-preview-content-bg);
   --st-note-preview-content-text-color: var(--st-notes-preview-content-color);
@@ -55,8 +55,8 @@
   --st-inline-add-text-color-hover: var(--yai-tabs-color-text);
   --st-inline-add-icon-opacity: 0.68;
 
-  --st-flying-config-contrast-color: var(--st-color-dark);
-  --st-flying-config-active-bg: var(--st-color-success);
+  --st-flying-config-contrast-color: var(--yai-tabs-color-dark);
+  --st-flying-config-active-bg: var(--yai-tabs-color-success);
 }
 
 html.light {
@@ -93,13 +93,13 @@ html.light {
 [data-modal] {
   --yai-tabs-color-text: var(--st-modal-title-color);
   --yai-tabs-color-text-muted: color-mix(in srgb, var(--st-modal-title-color) 68%, transparent);
-  --st-color-text: var(--st-modal-title-color);
-  --st-color-text-muted: color-mix(in srgb, var(--st-modal-title-color) 68%, transparent);
+  --yai-tabs-color-text: var(--st-modal-title-color);
+  --yai-tabs-color-text-muted: color-mix(in srgb, var(--st-modal-title-color) 68%, transparent);
   --st-form-elements-bg-color: #20202099;
   --st-form-elements-border-color: rgba(255, 255, 255, 0.14);
   --st-form-elements-border-hover: rgba(255, 255, 255, 0.24);
-  --st-color-focus: #53ffc4;
-  --st-color-focus-ring: rgba(2, 255, 178, 0.3);
+  --yai-tabs-color-focus: #53ffc4;
+  --yai-tabs-color-focus-ring: rgba(2, 255, 178, 0.3);
   --st-widget-text: var(--st-modal-title-color);
   color: var(--st-widget-text);
   position: fixed;
@@ -205,9 +205,13 @@ html.light {
   &[hidden] * {
     opacity: 0;
     pointer-events: none !important;
+    border-color: transparent !important;
     transform: translateY(8px);
+    display: unset !important;
   }
-
+  &[hidden] * {
+    transform: translateY(0);
+  }
   [data-window-header] {
     display: flex;
     align-items: center;
@@ -238,10 +242,15 @@ html.light {
     color: rgba(255, 255, 255, 0.45);
   }
 
+  &:not([data-note-bare]) {
+    [data-window-actions] {
+    transform: translate(0, -1px);
+    }
+  }
   [data-window-actions] {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
     z-index: 100;
 

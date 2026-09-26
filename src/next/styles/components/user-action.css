@@ -58,9 +58,6 @@
         border: 1px solid rgba(255, 255, 255, 0.15);
         background: var(--st-color-accent-primary, #007acc);
       }
-      [data-click="goToHref"] {
-        color: #252525;
-      }
     }
     button[data-wallspeed-filesize] {
       padding: 0 3px;

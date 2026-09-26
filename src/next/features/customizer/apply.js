@@ -169,10 +169,8 @@ function applyShellAppearanceOverrides(appearance) {
 
   const mainHeader = 'html body #app :is([data-app-brand-wrap],[data-app-header-nav],[data-app-header-actions])'
   const mainHeaderControls = 'html body #app [data-app-brand],html body #app :is([data-app-brand-wrap],[data-app-header-actions]) :is(button,a),html body #app [data-app-header-nav] > :is(button,a,[data-dropdown] > [data-dropdown-trigger])'
-  const mainControllerHeader = 'html body #app [data-yai-tabs] > :is([data-controller],[data-module-actions])'
-  const mainControllerHeaderControls = 'html body #app [data-yai-tabs] > [data-controller] > [data-open]:not(.active),html body #app [data-yai-tabs] > [data-module-actions] :is(button,a)'
-  const mainNav = 'html body #app [data-yai-tabs] > [data-controller] > [data-open]:not(.active),html body #app [data-app-header-nav] > [data-dropdown] > [data-dropdown-trigger]'
-  const mainNavActive = 'html body #app [data-yai-tabs] > [data-controller] > [data-open].active'
+  const mainNav = 'html body #app [data-app] > [data-app-header-nav][data-controller] > [data-open]:not(.active),html body #app [data-app] > [data-app-header-nav] > [data-dropdown] > [data-dropdown-trigger]'
+  const mainNavActive = 'html body #app [data-app] > [data-app-header-nav][data-controller] > [data-open].active'
   const navHeader = 'html body #app [data-yai-tabs]:not([data-app]) > :is([data-controller],[data-module-actions])'
   const navHeaderControls = 'html body #app [data-yai-tabs]:not([data-app]) > [data-controller] > [data-open]:not(.active),html body #app [data-yai-tabs]:not([data-app]) > [data-module-actions] :is(button,a)'
   const nav = 'html body #app [data-yai-tabs]:not([data-app]) > [data-controller] > [data-open]:not(.active)'
@@ -181,10 +179,6 @@ function applyShellAppearanceOverrides(appearance) {
 
   add(mainHeader, 'background-color', '--st-ws-shell-header-background-color')
   add(`${mainHeader},${mainHeaderControls}`, 'color', '--st-ws-shell-header-text-color')
-  if (appearance['--st-ws-shell-header-background-color']) {
-    rules.push(`${mainControllerHeader}{background-color:color-mix(in srgb, ${appearance['--st-ws-shell-header-background-color']} 80%, transparent) !important}`)
-  }
-  add(`${mainControllerHeader},${mainControllerHeaderControls}`, 'color', '--st-ws-shell-header-text-color')
   add(mainNav, 'background-color', '--st-ws-shell-nav-background-color')
   add(mainNav, 'color', '--st-ws-shell-nav-text-color')
   add(mainNavActive, 'background-color', '--st-ws-shell-nav-active-background-color')

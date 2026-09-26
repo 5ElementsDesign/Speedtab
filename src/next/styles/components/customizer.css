@@ -188,7 +188,7 @@
   }
 
   input:focus-visible ~ .state {
-    outline: 2px solid var(--st-color-primary);
+    outline: 2px solid var(--yai-tabs-color-primary);
     outline-offset: 3px;
   }
 }
@@ -338,7 +338,7 @@
   white-space: nowrap;
   background: rgba(255, 255, 255, 0.04);
   font-size: 0.72rem;
-  transition: background-color var(--st-timeout-1) ease, box-shadow var(--st-timeout-1) ease;
+  transition: background-color var(--yai-timeout-1) ease, box-shadow var(--yai-timeout-1) ease;
 
   [data-contrast-preview] {
     display: inline-flex;
@@ -406,7 +406,7 @@
         line-height: 1;
         width: 6px;
         height: 6px;
-        background: var(--st-color-success);
+        background: var(--yai-tabs-color-success);
         border-radius: 50%;
         opacity: .8;
       }
@@ -614,8 +614,8 @@
   padding: 3px;
   border: 0 none;
   cursor: pointer;
-  color: var(--st-color-danger-contrast);
-  background: var(--st-color-danger);
+  color: var(--yai-tabs-color-danger-contrast);
+  background: var(--yai-tabs-color-danger);
   opacity: 0.75;
   border-radius: 50%;
 }
@@ -741,8 +741,8 @@
 
   &[data-todo-is-completed] {
     [data-customizer-field]:first-of-type {
-      background-color: var(--st-color-success);
-      color: var(--st-color-success-contrast);
+      background-color: var(--yai-tabs-color-success);
+      color: var(--yai-tabs-color-success-contrast);
       padding-left: 6px;
     }
   }
@@ -907,11 +907,11 @@ form[data-submit]:invalid [data-form-save-btn] {
   box-shadow: none;
 
   &::placeholder {
-    color: var(--st-color-text-muted);
+    color: var(--yai-tabs-color-text-muted);
   }
 
   &:focus-visible {
-    outline: 1px solid var(--st-color-focus);
+    outline: 1px solid var(--yai-tabs-color-focus);
     outline-offset: 2px;
   }
 }
@@ -981,7 +981,7 @@ form[data-submit]:invalid [data-form-save-btn] {
     padding: var(--st-form-button-padding);
     border: 1px solid var(--st-form-elements-border-color);
     background: var(--st-form-elements-bg-color);
-    color: var(--st-color-text);
+    color: var(--yai-tabs-color-text);
     cursor: pointer;
     user-select: none;
 

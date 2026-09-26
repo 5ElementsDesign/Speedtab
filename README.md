@@ -45,33 +45,15 @@ Chrome Web Store: [Speedtab](https://chromewebstore.google.com/detail/speedtab/a
 
 ## Screenshots
 
-### Speed Dial 4.0
-
-![Speedtab start page](screenshots/1-speedtab-start.2.png)
-
-### Wallspeed
-
-![Speedtab Wallspeed](screenshots/7-speedtab-wallspeed.2.png)
-
-### Notes Viewer
-
-![Speedtab open notes](screenshots/2-speedtab-open-notes.2.png)
-
-### Interactive Nested Notes
-
-![Speedtab open tabbed note](screenshots/5-speedtab-tabbed-note.1.jpg)
-
-### Speedtab Speed Dial Module
-
-![Speedtab Speed Dial Module](screenshots/6-speedtab-speed-dial-module.1.png)
-
-### Expanded Feed Reader
-
-![Speedtab maximized feeds module](screenshots/3-speedtab-expanded-feed-reader.1.jpg)
-
-### Sort Speedtab
-
-![Speedtab Sorter](screenshots/5-speedtab-manage-content.1.jpg)
+| Speed Dial 4.0 | Wallspeed |
+| --- | --- |
+| ![Speedtab start page](screenshots/1-speedtab-start.2.png) | ![Speedtab Wallspeed](screenshots/7-speedtab-wallspeed.2.png) |
+| Notes Viewer | Interactive Nested Notes |
+| ![Speedtab open notes](screenshots/2-speedtab-open-notes.2.png) | ![Speedtab open tabbed note](screenshots/5-speedtab-tabbed-note.1.jpg) |
+| Speedtab Speed Dial Module | Expanded Feed Reader |
+| ![Speedtab Speed Dial Module](screenshots/6-speedtab-speed-dial-module.1.png) | ![Speedtab maximized feeds module](screenshots/3-speedtab-expanded-feed-reader.1.jpg) |
+| Sort Speedtab | |
+| ![Speedtab Sorter](screenshots/5-speedtab-manage-content.1.jpg) | |
 
 
 ## Privacy

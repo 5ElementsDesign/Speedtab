@@ -448,21 +448,21 @@
     height: 7px;
     border: 1px solid var(--st-feed-item-list-favicon-bg);
     border-radius: 50%;
-    background-color: var(--st-color-success);
+    background-color: var(--yai-tabs-color-success);
     pointer-events: none;
     opacity: .8;
   }
   &.is-loading {
     .st-module-feed-source-icon {
-      background-color: color-mix(in srgb, var(--st-color-danger) 85%, var(--st-feed-item-list-favicon-bg));
-      box-shadow: 0 0 0 1px color-mix(in srgb, var(--st-color-danger) 95%, transparent);
+      background-color: color-mix(in srgb, var(--yai-tabs-color-danger) 85%, var(--st-feed-item-list-favicon-bg));
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--yai-tabs-color-danger) 95%, transparent);
 
       img {
-        filter: drop-shadow(0 0 6px color-mix(in srgb, var(--st-color-danger) 55%, transparent));
+        filter: drop-shadow(0 0 6px color-mix(in srgb, var(--yai-tabs-color-danger) 55%, transparent));
       }
     }
     .st-module-feed-source-label {
-      color: var(--st-color-danger);
+      color: var(--yai-tabs-color-danger);
     }
   }
 }
@@ -566,7 +566,7 @@
   min-height: var(--st-form-elements-min-height);
   align-items: center;
   opacity: 1;
-  color: var(--st-color-warning);
+  color: var(--yai-tabs-color-warning);
 }
 
 .st-module-feed-focus-controls {
@@ -676,8 +676,8 @@
 .st-module-feed-item-header {
   display: flex;
   align-items: center;
-  padding-inline-end: 12px;
-  gap: 12px;
+  padding-inline-end: 6px;
+  gap: 6px;
   position: relative;
 }
 

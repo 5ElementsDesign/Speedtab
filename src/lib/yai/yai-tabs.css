@@ -529,7 +529,7 @@
 }
 
 button.yai-loading {
-  --yai-loader-color: var(--st-color-text);
+  --yai-loader-color: var(--yai-tabs-color-text);
   color: transparent !important;
 
   ::before {
@@ -542,7 +542,7 @@ button.yai-loading {
 
 [data-wp-actions] {
   button.yai-loading {
-    --yai-loader-color: var(--st-color-light);
+    --yai-loader-color: var(--yai-tabs-color-light);
   }
 }
 

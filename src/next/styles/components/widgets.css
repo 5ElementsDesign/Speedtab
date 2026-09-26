@@ -579,7 +579,7 @@
 
   &:hover:not(:disabled) {
     background: var(--st-widget-button-bg-hover);
-    color: var(--st-widget-button-text);
+    color: var(--yai-tabs-color-text);
     opacity: 1;
   }
   &:disabled {
@@ -654,14 +654,14 @@
 }
 
 .st-weather-forecast-current-condition {
-  color: var(--st-color-text-muted);
+  color: var(--yai-tabs-color-text-muted);
 }
 
 .st-weather-forecast-current-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  color: var(--st-color-text-muted);
+  color: var(--yai-tabs-color-text-muted);
   font-size: 12px;
 }
 
@@ -698,13 +698,13 @@
 }
 
 .st-weather-forecast-condition {
-  color: var(--st-color-text-muted);
+  color: var(--yai-tabs-color-text-muted);
 }
 
 .st-weather-forecast-legend {
   display: flex;
   gap: 14px;
-  color: var(--st-color-text-muted);
+  color: var(--yai-tabs-color-text-muted);
   font-size: 11px;
 }
 

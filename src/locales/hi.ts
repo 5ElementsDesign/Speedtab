@@ -36,7 +36,6 @@ const hi = {
     onboardingLanguageDescription: 'इंटरफ़ेस भाषा चुनें।',
     newPage: '+ नया पेज',
     quickStart: 'त्वरित प्रारंभ',
-    quickStartLoading: 'लोड हो रहा है…',
     noModulesTitle: 'इस पेज पर कोई मॉड्यूल नहीं',
     noModulesDescription: 'टैब, नोट्स और फ़ीड मॉड्यूल यहाँ दिखाई देंगे। शुरू करने के लिए अपना पहला मॉड्यूल जोड़ें।',
     addModule: '+ मॉड्यूल जोड़ें',

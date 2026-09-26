@@ -36,7 +36,6 @@ const fr = {
     onboardingLanguageDescription: 'Choisissez la langue de l\'interface.',
     newPage: '+ Nouvelle page',
     quickStart: 'Démarrage rapide',
-    quickStartLoading: 'Chargement…',
     noModulesTitle: 'Aucun module sur cette page',
     noModulesDescription: 'Les modules de favoris, notes et flux apparaîtront ici. Ajoutez votre premier module pour commencer.',
     addModule: '+ Ajouter un module',

@@ -3,7 +3,7 @@ h1, h2, h3, h4, h5, h6 {
   margin: var(--st-h1-margin);
   font-weight: inherit;
   line-height: var(--st-heading-line-height);
-  text-shadow: var(--st-font-weight-bolder);
+  text-shadow: var(--yai-font-weight-bolder);
 }
 
 h1:first-child, h2:first-child, h3:first-child,
@@ -58,7 +58,7 @@ table {
   thead {
     border-bottom: 1px solid var(--st-html-border-color);
     background-color: var(--st-html-layer-bg-color);
-    color: var(--st-color-text);
+    color: var(--st-html-layer-text-color);
   }
 
   tbody tr:last-child td {
@@ -115,7 +115,7 @@ small {
 
 strong, b {
   font-weight: inherit;
-  text-shadow: var(--st-font-weight-bolder);
+  text-shadow: var(--yai-font-weight-bolder);
 }
 
 em, i {

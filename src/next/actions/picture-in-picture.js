@@ -44,7 +44,7 @@ function applyPipDocumentChrome(pipDocument) {
       display: grid;
       min-height: 100vh;
       place-items: center;
-      color: var(--st-color-text, #fff);
+      color: var(--yai-tabs-color-text, #fff);
       background: var(--st-app-background-color, #171717);
       font: 500 13px/1.2 system-ui, sans-serif;
     }

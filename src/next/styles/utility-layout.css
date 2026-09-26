@@ -64,9 +64,9 @@
 .font-normal { font-weight: var(--st-font-weight-normal); }
 .font-medium { font-weight: var(--st-font-weight-medium); }
 
-.font-bold { text-shadow: var(--st-font-weight-bold); }
-.font-bolder { text-shadow: var(--st-font-weight-bolder); }
-.font-boldest { text-shadow: var(--st-font-weight-boldest); }
+.font-bold { text-shadow: var(--yai-font-weight-bold); }
+.font-bolder { text-shadow: var(--yai-font-weight-bolder); }
+.font-boldest { text-shadow: var(--yai-font-weight-boldest); }
 
 :is(.font-bold, .font-bolder, .font-boldest) {
   font-weight: inherit;

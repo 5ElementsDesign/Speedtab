@@ -17,169 +17,169 @@
   transition: var(--st-interactive-transition);
   background: var(--st-form-elements-bg-color);
   border-color: var(--st-form-elements-border-color);
-  color: var(--st-color-text);
+  color: var(--yai-tabs-color-text);
   text-decoration: none;
   white-space: nowrap;
 }
 
 [data-btn="primary"],
 [data-ui-btn="primary"] {
-  background: var(--st-color-primary);
-  color: var(--st-color-primary-contrast);
-  border-color: var(--st-color-primary);
+  background: var(--yai-tabs-color-primary);
+  color: var(--yai-tabs-color-primary-contrast);
+  border-color: var(--yai-tabs-color-primary);
 
   &[data-outline] {
-    background: var(--st-color-primary-contrast);
-    color: var(--st-color-primary);
-    border-color: var(--st-color-primary-contrast);
+    background: var(--yai-tabs-color-primary-contrast);
+    color: var(--yai-tabs-color-primary);
+    border-color: var(--yai-tabs-color-primary-contrast);
   }
 }
 
 [data-btn="secondary"],
 [data-ui-btn="secondary"] {
-  background: var(--st-color-secondary);
-  color: var(--st-color-secondary-contrast);
-  border-color: var(--st-color-secondary);
+  background: var(--yai-tabs-color-secondary);
+  color: var(--yai-tabs-color-secondary-contrast);
+  border-color: var(--yai-tabs-color-secondary);
 
   &[data-outline] {
-    background: var(--st-color-secondary-contrast);
-    color: var(--st-color-secondary);
-    border-color: var(--st-color-secondary-contrast);
+    background: var(--yai-tabs-color-secondary-contrast);
+    color: var(--yai-tabs-color-secondary);
+    border-color: var(--yai-tabs-color-secondary-contrast);
   }
 }
 
 [data-btn="success"],
 [data-ui-btn="success"] {
-  background: var(--st-color-success);
-  color: var(--st-color-success-contrast);
-  border-color: var(--st-color-success);
+  background: var(--yai-tabs-color-success);
+  color: var(--yai-tabs-color-success-contrast);
+  border-color: var(--yai-tabs-color-success);
 
   &[data-outline] {
-    background: var(--st-color-success-contrast);
-    color: var(--st-color-success);
-    border-color: var(--st-color-success-contrast);
+    background: var(--yai-tabs-color-success-contrast);
+    color: var(--yai-tabs-color-success);
+    border-color: var(--yai-tabs-color-success-contrast);
   }
 }
 
 [data-btn="warning"],
 [data-ui-btn="warning"] {
-  background: var(--st-color-warning);
-  color: var(--st-color-warning-contrast);
-  border-color: var(--st-color-warning);
+  background: var(--yai-tabs-color-warning);
+  color: var(--yai-tabs-color-warning-contrast);
+  border-color: var(--yai-tabs-color-warning);
 
   &[data-outline] {
-    background: var(--st-color-warning-contrast);
-    color: var(--st-color-warning);
-    border-color: var(--st-color-warning-contrast);
+    background: var(--yai-tabs-color-warning-contrast);
+    color: var(--yai-tabs-color-warning);
+    border-color: var(--yai-tabs-color-warning-contrast);
   }
 }
 
 [data-btn="danger"],
 [data-ui-btn="danger"] {
-  background: var(--st-color-danger);
-  color: var(--st-color-danger-contrast);
-  border-color: var(--st-color-danger);
+  background: var(--yai-tabs-color-danger);
+  color: var(--yai-tabs-color-danger-contrast);
+  border-color: var(--yai-tabs-color-danger);
 
   &[data-outline] {
-    background: var(--st-color-danger-contrast);
-    color: var(--st-color-danger);
-    border-color: var(--st-color-danger-contrast);
+    background: var(--yai-tabs-color-danger-contrast);
+    color: var(--yai-tabs-color-danger);
+    border-color: var(--yai-tabs-color-danger-contrast);
   }
 }
 
 [data-btn="dark"],
 [data-ui-btn="dark"] {
-  background: var(--st-color-dark);
-  color: var(--st-color-dark-contrast);
-  border-color: var(--st-color-dark);
+  background: var(--yai-tabs-color-dark);
+  color: var(--yai-tabs-color-dark-contrast);
+  border-color: var(--yai-tabs-color-dark);
 
   &[data-outline] {
-    background: var(--st-color-dark);
-    color: var(--st-color-dark-contrast);
-    border-color: var(--st-color-dark);
+    background: var(--yai-tabs-color-dark);
+    color: var(--yai-tabs-color-dark-contrast);
+    border-color: var(--yai-tabs-color-dark);
   }
 }
 
 [data-btn="light"],
 [data-ui-btn="light"] {
-  background: var(--st-color-light);
-  color: var(--st-color-light-contrast);
-  border-color: color-mix(in srgb, var(--st-color-light), black 25%);
+  background: var(--yai-tabs-color-light);
+  color: var(--yai-tabs-color-light-contrast);
+  border-color: color-mix(in srgb, var(--yai-tabs-color-light), black 25%);
 
   &[data-outline] {
-    background: var(--st-color-light-contrast);
-    color: var(--st-color-light);
-    border-color: var(--st-color-light-contrast);
+    background: var(--yai-tabs-color-light-contrast);
+    color: var(--yai-tabs-color-light);
+    border-color: var(--yai-tabs-color-light-contrast);
   }
 }
 
 .st-color-primary {
-  background: var(--st-color-primary);
-  color: var(--st-color-primary-contrast);
-  border-color: var(--st-color-primary);
+  background: var(--yai-tabs-color-primary);
+  color: var(--yai-tabs-color-primary-contrast);
+  border-color: var(--yai-tabs-color-primary);
 
   +.st-note-preview-content {
-    border-color: var(--st-color-primary);
+    border-color: var(--yai-tabs-color-primary);
   }
 }
 
 .st-color-secondary {
-  background: var(--st-color-secondary);
-  color: var(--st-color-secondary-contrast);
-  border-color: var(--st-color-secondary);
+  background: var(--yai-tabs-color-secondary);
+  color: var(--yai-tabs-color-secondary-contrast);
+  border-color: var(--yai-tabs-color-secondary);
 
   +.st-note-preview-content {
-    border-color: var(--st-color-secondary);
+    border-color: var(--yai-tabs-color-secondary);
   }
 }
 
 .st-color-success {
-  background: var(--st-color-success);
-  color: var(--st-color-success-contrast);
-  border-color: var(--st-color-success);
+  background: var(--yai-tabs-color-success);
+  color: var(--yai-tabs-color-success-contrast);
+  border-color: var(--yai-tabs-color-success);
 
   +.st-note-preview-content {
-    border-color: var(--st-color-success);
+    border-color: var(--yai-tabs-color-success);
   }
 }
 
 .st-color-warning {
-  background: var(--st-color-warning);
-  color: var(--st-color-warning-contrast);
-  border-color: var(--st-color-warning);
+  background: var(--yai-tabs-color-warning);
+  color: var(--yai-tabs-color-warning-contrast);
+  border-color: var(--yai-tabs-color-warning);
 
   + .st-note-preview-content {
-    border-color: var(--st-color-warning);
+    border-color: var(--yai-tabs-color-warning);
   }
 }
 
 .st-color-danger {
-  background: var(--st-color-danger);
-  color: var(--st-color-danger-contrast);
-  border-color: var(--st-color-danger);
+  background: var(--yai-tabs-color-danger);
+  color: var(--yai-tabs-color-danger-contrast);
+  border-color: var(--yai-tabs-color-danger);
 
   +.st-note-preview-content {
-    border-color: var(--st-color-danger);
+    border-color: var(--yai-tabs-color-danger);
   }
 }
 
 .st-color-dark {
-  background: var(--st-color-dark);
-  color: var(--st-color-dark-contrast);
-  border-color: var(--st-color-dark);
+  background: var(--yai-tabs-color-dark);
+  color: var(--yai-tabs-color-dark-contrast);
+  border-color: var(--yai-tabs-color-dark);
 
   +.st-note-preview-content {
-    border-color: var(--st-color-dark);
+    border-color: var(--yai-tabs-color-dark);
   }
 }
 
 .st-color-light {
-  background: var(--st-color-light);
-  color: var(--st-color-light-contrast);
-  border-color: var(--st-color-light);
+  background: var(--yai-tabs-color-light);
+  color: var(--yai-tabs-color-light-contrast);
+  border-color: var(--yai-tabs-color-light);
 
   +.st-note-preview-content {
-    border-color: var(--st-color-light);
+    border-color: var(--yai-tabs-color-light);
   }
 }
 
@@ -205,7 +205,7 @@
 [data-btn="ghost"] {
   background: color-mix(in srgb, var(--st-form-elements-bg-color) 75%, transparent);
   border-color: color-mix(in srgb, var(--st-form-elements-border-color) 72%, transparent);
-  color: color-mix(in srgb, var(--st-color-text) 88%, white 12%);
+  color: color-mix(in srgb, var(--yai-tabs-color-text) 88%, white 12%);
 
   &:hover:not(:disabled) {
     background: color-mix(in srgb, var(--st-form-elements-border-color) 88%, transparent);
@@ -248,7 +248,7 @@
     opacity: var(--st-inline-add-icon-opacity);
     transform: rotate(0deg) scale(1);
     transform-origin: center;
-    transition: transform var(--st-timeout-2) cubic-bezier(0.2, 0.8, 0.2, 1) .3s;
+    transition: transform var(--yai-timeout-2) cubic-bezier(0.2, 0.8, 0.2, 1) .3s;
     filter:
       drop-shadow(10.5px 0 0 currentColor) drop-shadow(-0.5px 0 0 currentColor)
       drop-shadow(0 10.5px 0 currentColor) drop-shadow(0 -0.5px 0 currentColor);

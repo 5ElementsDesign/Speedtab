@@ -36,7 +36,6 @@ const ru = {
     onboardingLanguageDescription: 'Выберите язык интерфейса.',
     newPage: '+ Новая страница',
     quickStart: 'Быстрый старт',
-    quickStartLoading: 'Загрузка…',
     noModulesTitle: 'На этой странице нет модулей',
     noModulesDescription: 'Здесь будут отображаться модули закладок, заметок и лент. Добавьте первый модуль, чтобы начать.',
     addModule: '+ Добавить модуль',

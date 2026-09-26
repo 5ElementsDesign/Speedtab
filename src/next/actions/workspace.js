@@ -10,12 +10,11 @@ export const workspaceActions = {
     const card = button?.closest('.st-app-empty-card') ?? null
     const actionWrap = card?.querySelector?.('.st-app-empty-actions') ?? null
     const newPageButton = actionWrap?.querySelector?.('[data-empty-add-page]') ?? null
-    const originalLabel = button?.textContent ?? ''
 
     if (button) {
       button.disabled = true
       button.setAttribute('aria-busy', 'true')
-      button.textContent = t('app.quickStartLoading')
+      button.classList.add('yai-loading')
     }
     if (newPageButton instanceof HTMLButtonElement) {
       newPageButton.disabled = true
@@ -32,7 +31,7 @@ export const workspaceActions = {
       if (button) {
         button.disabled = false
         button.removeAttribute('aria-busy')
-        button.textContent = originalLabel
+        button.classList.remove('yai-loading')
       }
       if (newPageButton instanceof HTMLButtonElement) {
         newPageButton.disabled = false

@@ -18,8 +18,8 @@
       <pubDate>Wed, 23 Sep 2026 00:00:00 GMT</pubDate>
       <dc:creator>Speedy E</dc:creator>
       <description><![CDATA[
-        <p data-st-bg-color="var(--st-color-primary)"
-           data-st-color="var(--st-color-primary-contrast)"
+        <p data-st-bg-color="var(--yai-tabs-color-primary)"
+           data-st-color="var(--yai-tabs-color-primary-contrast)"
            data-st-padding="12px 16px"
            data-st-border-radius="6px"
            data-st-margin-bottom="12px">
@@ -49,7 +49,7 @@
             <div data-tab="3">
               <p>Click the tabs above. Yes — <b>that works inside a feed item</b>. No special setup required.</p>
               <p data-st-bg-color="rgba(255,255,255,0.05)"
-                data-st-padding="12px 16px"
+                data-st-padding="0 16px"
                 data-st-border-radius="6px"
                 data-st-margin-top="12px"
                 data-st-display="flex"
@@ -63,7 +63,7 @@
                   data-btn="primary">Open Quicknote</button>
               </p>
               <p data-st-bg-color="rgba(255,255,255,0.05)"
-                data-st-padding="12px 16px"
+                data-st-padding="0 16px"
                 data-st-border-radius="6px"
                 data-st-margin-top="12px"
                 data-st-display="flex"
@@ -179,8 +179,8 @@
       <dc:creator>Speedy E</dc:creator>
       <description><![CDATA[
         <div data-st-grid="2" data-st-gap="12px">
-          <div data-st-bg-color="var(--st-color-success)"
-               data-st-color="var(--st-color-success-contrast)"
+          <div data-st-bg-color="var(--yai-tabs-color-success)"
+               data-st-color="var(--yai-tabs-color-success-contrast)"
                data-st-padding="10px 14px"
                data-st-border-radius="6px"
                data-st-text-align="center">
@@ -222,8 +222,8 @@
           <li>Save — done. Speedtab fetches it on demand or on schedule</li>
         </ol>
 
-        <p data-st-bg-color="var(--st-color-warning)"
-           data-st-color="var(--st-color-warning-contrast)"
+        <p data-st-bg-color="var(--yai-tabs-color-warning)"
+           data-st-color="var(--yai-tabs-color-warning-contrast)"
            data-st-padding="10px 14px"
            data-st-border-radius="6px"
            data-st-margin-top="12px"
@@ -319,7 +319,6 @@
     <!-- ═══════════════════════════════════════════════════════════════ -->
     <item>
       <title>Feed auto-refresh explained</title>
-      <link>https://5elementsdesign.github.io/Speedtab/docs/feeds/auto-refresh</link>
       <guid isPermaLink="false">speedtab-news-auto-refresh</guid>
       <pubDate>Fri, 18 Sep 2026 00:00:00 GMT</pubDate>
       <dc:creator>Speedy E</dc:creator>
@@ -332,8 +331,8 @@
             <div data-st-font-size="1.6rem">🔕</div>
             <small>Off</small>
           </div>
-          <div data-st-bg-color="var(--st-color-primary)"
-               data-st-color="var(--st-color-primary-contrast)"
+          <div data-st-bg-color="var(--yai-tabs-color-primary)"
+               data-st-color="var(--yai-tabs-color-primary-contrast)"
                data-st-padding="12px"
                data-st-border-radius="6px"
                data-st-text-align="center">
@@ -380,10 +379,6 @@
           <b data-st-display="block" data-st-opacity="0.85" data-st-font-size="15px">The Speed of Wall</b>
         </p>
 
-        <p data-st-margin-top="16px" data-st-text-align="center" data-st-font-size="0.9rem" data-st-opacity="0.85">
-          Litespeed's most feared competitor has entered the feed.
-        </p>
-
         <p data-st-bg-color="rgba(255,255,255,0.05)"
           data-st-padding="12px 16px"
           data-st-border-radius="6px"
@@ -410,23 +405,23 @@
           Style anything, anywhere — no inline <code>style=""</code> required.
         </p>
 
-        <pre data-st-bg-color="rgba(0,0,0,0.4)"
+        <pre data-st-bg-color="rgba(0,0,0,0.2)"
              data-st-padding="12px"
              data-st-border-radius="6px"
              data-st-font-size="0.8rem"
              data-st-overflow="auto"
-             data-st-margin="12px 0">&lt;p data-st-bg-color="var(--st-color-primary)"
-   data-st-color="var(--st-color-primary-contrast)"
+             data-st-margin="12px 0">&lt;p data-st-bg-color="var(--yai-tabs-color-primary)"
+   data-st-color="var(--yai-tabs-color-primary-contrast)"
    data-st-padding="12px"
    data-st-border-radius="6px"&gt;
   Rich content!
 &lt;/p&gt;</pre>
 
-        <p data-st-bg-color="var(--st-color-primary)"
-           data-st-color="var(--st-color-primary-contrast)"
-           data-st-padding="12px"
-           data-st-border-radius="6px"
-           data-st-margin="0">
+        <p data-st-bg-color="var(--yai-tabs-color-primary)"
+            data-st-color="var(--yai-tabs-color-primary-contrast)"
+            data-st-padding="12px"
+            data-st-border-radius="6px"
+            data-st-margin="0">
           Rich content!
         </p>
       ]]></description>

@@ -173,7 +173,10 @@ export function renderRootShell({
       </main>
 
       <footer data-app-footer data-swipe-ignore>
-        <div data-open-notes-map></div>
+        <div data-open-notes-map>
+          <input type="checkbox" name="toggle-note-map-rail" data-change="toggleOpenNotesMapPersistentView">
+          <div data-open-notes-map-content></div>
+        </div>
         ${widgetRail && widgetRailPosition === 'bottom' ? widgetRail : ''}
       </footer>
     </div>

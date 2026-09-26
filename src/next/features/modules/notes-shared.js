@@ -44,14 +44,14 @@ export function getNoteBorderClass(token) {
 export function getNoteAccentCssValue(token) {
   const normalized = normalizeNoteStyleToken(token)
   const varName = {
-    primary: '--st-color-primary',
-    secondary: '--st-color-secondary',
-    success: '--st-color-success',
-    warning: '--st-color-warning',
-    danger: '--st-color-danger',
-    dark: '--st-color-dark',
-    light: '--st-color-light',
-  }[normalized] ?? '--st-color-primary'
+    primary: '--yai-tabs-color-primary',
+    secondary: '--yai-tabs-color-secondary',
+    success: '--yai-tabs-color-success',
+    warning: '--yai-tabs-color-warning',
+    danger: '--yai-tabs-color-danger',
+    dark: '--yai-tabs-color-dark',
+    light: '--yai-tabs-color-light',
+  }[normalized] ?? '--yai-tabs-color-primary'
   return `var(${varName})`
 }
 

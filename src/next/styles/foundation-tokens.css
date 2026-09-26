@@ -109,17 +109,12 @@
   --yai-tabs-content-background:          transparent;
   --yai-tabs-orientation-hint-color:      var(--yai-tabs-color-text-muted);
 
-  /*
-    Color tokens — mapped to YaiTabs vars (dark-only app)
-  */
-
-  --st-timeout-1: var(--yai-timeout-1);
-  --st-timeout-2: var(--yai-timeout-2);
-  --st-motion-fade-fast: opacity var(--st-timeout-1) ease-in;
-  --st-motion-fade: opacity var(--st-timeout-2) ease-in;
-  --st-motion-colors-fast: background-color var(--st-timeout-1) ease-in-out, color var(--st-timeout-2) ease-in-out, border-color var(--st-timeout-2) ease-in-out;
-  --st-motion-colors: background-color var(--st-timeout-2) ease-in, color var(--st-timeout-2) ease, border-color var(--st-timeout-2) ease, box-shadow var(--st-timeout-2) ease;
-  --st-motion-filter: opacity var(--st-timeout-2) ease-in, filter var(--st-timeout-2) ease;
+  /* Shared motion tokens use YaiTabs directly. */
+  --st-motion-fade-fast: opacity var(--yai-timeout-1) ease-in;
+  --st-motion-fade: opacity var(--yai-timeout-2) ease-in;
+  --st-motion-colors-fast: background-color var(--yai-timeout-1) ease-in-out, color var(--yai-timeout-2) ease-in-out, border-color var(--yai-timeout-2) ease-in-out;
+  --st-motion-colors: background-color var(--yai-timeout-2) ease-in, color var(--yai-timeout-2) ease, border-color var(--yai-timeout-2) ease, box-shadow var(--yai-timeout-2) ease;
+  --st-motion-filter: opacity var(--yai-timeout-2) ease-in, filter var(--yai-timeout-2) ease;
 
   --st-font-family: -apple-system, BlinkMacSystemFont, "Ubuntu", "Segoe UI", "Roboto", "Oxygen", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", "Helvetica", Arial, sans-serif;
   --st-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -129,32 +124,6 @@
   --st-content-muted-font-size: 14px;
   --st-content-control-font-size: 14px;
 
-  --st-color-text: var(--yai-tabs-color-text);
-  --st-color-text-muted: var(--yai-tabs-color-text-muted);
-  --st-color-background: var(--yai-tabs-color-background);
-  --st-color-surface: var(--yai-tabs-color-surface);
-  --st-color-surface-alt: var(--yai-tabs-color-surface-alt);
-
-  --st-color-primary: var(--yai-tabs-color-primary);
-  --st-color-primary-contrast: var(--yai-tabs-color-primary-contrast);
-  --st-color-secondary: var(--yai-tabs-color-secondary);
-  --st-color-secondary-contrast: var(--yai-tabs-color-secondary-contrast);
-  --st-color-accent: var(--yai-tabs-color-accent);
-  --st-color-accent-contrast: var(--yai-tabs-color-accent-contrast);
-  --st-color-success: var(--yai-tabs-color-success);
-  --st-color-success-contrast: var(--yai-tabs-color-success-contrast);
-  --st-color-warning: var(--yai-tabs-color-warning);
-  --st-color-warning-contrast: var(--yai-tabs-color-warning-contrast);
-  --st-color-danger: var(--yai-tabs-color-danger);
-  --st-color-danger-contrast: var(--yai-tabs-color-danger-contrast);
-  --st-color-dark: var(--yai-tabs-color-dark);
-  --st-color-dark-contrast: var(--yai-tabs-color-dark-contrast);
-  --st-color-light: var(--yai-tabs-color-light);
-  --st-color-light-contrast: var(--yai-tabs-color-light-contrast);
-
-  --st-color-focus: var(--yai-tabs-color-focus);
-  --st-color-focus-ring: var(--yai-tabs-color-focus-ring);
-
   --st-shadow-subtle-color: rgba(0, 0, 0, 0.4);
   --st-shadow-medium-color: rgba(0, 0, 0, 0.6);
   --st-shadow-accent: rgba(2, 255, 178, 0.5);
@@ -163,8 +132,6 @@
   --st-dropdown-background-color: rgba(12, 12, 13, 0.97);
   --st-dropdown-border-color: rgba(255, 255, 255, 0.08);
   --st-dropdown-button-padding: 6px 10px;
-  --st-dropdown-button-transition: var(--yai-tabs-nav-button-transition);
-  --st-dropdown-button-font-size: var(--yai-tabs-button-font-size);
   --st-dropdown-trigger-gap: 4px;
   --st-dropdown-trigger-button-color: rgba(180, 180, 180, 1);
   --st-dropdown-trigger-button-background-color: rgba(20, 20, 20, 0.85);
@@ -200,7 +167,6 @@
   --st-weather-widget-theme-muted-color: var(--st-widget-text-muted);
   --st-widget-button-bg: rgba(255, 255, 255, 0.06);
   --st-widget-button-bg-hover: rgba(255, 255, 255, 0.12);
-  --st-widget-button-text: var(--yai-tabs-color-text);
   --st-sidepanel-width: 360px;
   --st-sidepanel-background-color: rgba(10, 10, 10, .94);
   --st-sidepanel-border-color: rgba(64, 63, 63, .4);
@@ -229,12 +195,11 @@
   --st-module-card-border-radius: 0;
   --st-module-card-background: rgba(22,22,22,0.85);
   --st-module-card-border-color: rgba(255, 255, 255, 0.08);
-  --st-module-card-title-color: var(--yai-tabs-color-text-muted);
   --st-module-card-body-color: var(--yai-tabs-color-text-muted);
   --st-ws-module-background-color: var(--st-module-card-background);
   --st-ws-module-text-color: var(--st-ws-shell-text-color, var(--st-module-card-body-color));
   --st-ws-module-header-background-color: transparent;
-  --st-ws-module-header-text-color: var(--st-ws-shell-header-text-color, var(--st-module-card-title-color));
+  --st-ws-module-header-text-color: var(--st-ws-shell-header-text-color, var(--yai-tabs-color-text-muted));
   --st-ws-module-content-background-color: transparent;
   --st-ws-module-content-text-color: var(--st-module-card-body-color);
   --st-module-bookmark-preview-background-color: rgba(15, 15, 15, .95);
@@ -243,12 +208,10 @@
   --st-form-elements-bg-color: #20202099;
   --st-form-elements-border-color: rgba(255, 255, 255, 0.14);
   --st-form-elements-border-hover: rgba(255, 255, 255, 0.24);
-  --st-form-disabled-bg-color: var(--st-color-surface-alt);
-  --st-html-layer-bg-color: var(--st-color-surface-alt);
+  --st-form-disabled-bg-color: var(--yai-tabs-color-surface-alt);
+  --st-html-layer-bg-color: var(--yai-tabs-color-surface-alt);
+  --st-html-layer-text-color: var(--yai-tabs-color-text);
   --st-html-border-color: rgba(255, 255, 255, 0.06);
-  --st-font-weight-bold: var(--yai-font-weight-bold);
-  --st-font-weight-bolder: var(--yai-font-weight-bolder);
-  --st-font-weight-boldest: var(--yai-font-weight-boldest);
   --st-form-elements-min-height: 30px;
   --st-form-input-min-height: var(--st-form-elements-min-height);
   --st-form-select-min-height: var(--st-form-elements-min-height);
@@ -318,7 +281,7 @@
   --st-btn-lg-font-size: 1.1rem;
   --st-btn-gap: 0.25rem;
   --st-btn-font-weight: 500;
-  --st-link-color: var(--st-color-primary);
+  --st-link-color: var(--yai-tabs-color-primary);
   --st-small-font-size: 85%;
   --st-small-opacity: 0.85;
 }
@@ -361,12 +324,12 @@ html.dark {
 */
 html.light {
   /* --- 1. Base Workspace Elevation --- */
-  --st-ws-shell-header-background-color: rgba(255, 255, 255, 0.5);
+  --st-ws-shell-header-background-color: rgba(235, 235, 235, 0.75);
   --st-ws-shell-header-text-color: #a6a9ae;
   --yai-tabs-nav-button-background: #ffffffcc;
   --st-ws-shell-nav-background-color: rgba(148, 163, 184, 0.08);
   --st-ws-shell-nav-text-color: #475569;
-  --st-ws-shell-nav-hover-background-color: rgba(255, 255, 255, 0.95);
+  --st-ws-shell-nav-hover-background-color: rgba(245, 245, 245, 0.95);
   --st-ws-shell-nav-active-background-color: #ffffff;
   --st-ws-shell-nav-active-text-color: #0f172a;
   --st-ws-module-background-color: #eeeeeecc;
@@ -413,6 +376,9 @@ html.light {
 
   --st-form-elements-bg-color: #eee;
   --st-form-disabled-bg-color: #e2e8f0;
+  --st-html-layer-bg-color: #e2e8f0;
+  --st-html-layer-text-color: #232323;
+  --st-html-border-color: rgba(15, 23, 42, 0.14);
 
   /* --- 4. Brand & Semantic Palette (Optimierte Lesbarkeit auf hellen Flächen) --- */
   --yai-tabs-color-primary: #2563eb;
@@ -422,7 +388,7 @@ html.light {
   --yai-tabs-color-dark: #eff1f5;
   --yai-tabs-color-dark-contrast: #181e2c;
 
-  --st-color-text: #232323;
+  --yai-tabs-color-text: #232323;
   --st-dropdown-trigger-button-color: #858688;
   --st-dropdown-trigger-button-background-color: rgb(255 255 255 / 0.72);
   --st-dropdown-trigger-button-color-active: #0f172a;
@@ -453,13 +419,13 @@ html.light {
   }
   [data-module-card] {
     select, select option {
-      background-color: var(--st-color-light);
+      background-color: var(--yai-tabs-color-light);
       border: 1px solid var(--st-feed-item-button-border);
       color: var(--st-feed-item-button-text);
     }
   }
   [data-flying-config] {
-    --st-color-text: #fff;
+    --yai-tabs-color-text: #fff;
   }
   [data-flying-config-component] {
     --st-flying-config-muted-color: #858585;
@@ -485,14 +451,14 @@ html.light {
 }
 
 [data-yai-tabs][data-theme="dark"] {
-  --st-color-text: #eef1f4;
-  --st-color-text-muted: #c3c6c9;
+  --yai-tabs-color-text: #eef1f4;
+  --yai-tabs-color-text-muted: #c3c6c9;
   --st-form-elements-bg-color: #20202099;
   --st-form-elements-border-color: rgba(255, 255, 255, 0.14);
   --st-form-elements-border-hover: rgba(255, 255, 255, 0.24);
   --st-form-disabled-bg-color: #252526;
-  --st-color-focus: #53ffc4;
-  --st-color-focus-ring: rgba(2, 255, 178, 0.3);
+  --yai-tabs-color-focus: #53ffc4;
+  --yai-tabs-color-focus-ring: rgba(2, 255, 178, 0.3);
 }
 
 /*
@@ -503,7 +469,7 @@ html.light {
   --st-note-tabs-nav-button-height: 44px;
 
   [data-note-style-token="light"] {
-    --st-color-text: #334155;
+    --yai-tabs-color-text: #334155;
     --st-form-elements-bg-color: #ffffff;
     --st-form-elements-border-color: rgba(100, 116, 139, 0.35);
     --st-form-elements-border-hover: rgba(71, 85, 105, 0.55);
@@ -546,6 +512,9 @@ html.light {
     --st-notes-open-link-color: #2563eb;
     --yai-tabs-content-inactive-color-muted: #444;
 
+    [data-tab-action] {
+      --yai-tabs-color-text: var(--yai-tabs-nav-button-active-color) !important;
+    }
     &[data-color-accent="dark"] {
       --yai-tabs-nav-button-active-color: #151515 !important;
     }
@@ -553,7 +522,7 @@ html.light {
   [data-theme="dark"] {
     --st-note-tabs-bg: #171717;
     --st-note-tabs-color: #ebe7e7;
-    --st-color-dark: #1e1e1e;
+    --yai-tabs-color-dark: #1e1e1e;
     --st-border-color: rgba(255, 255, 255, 0.08);
     --st-note-tabs-main-header-bg: #181818cc;
     --st-note-tabs-main-footer-bg: #181818cc;

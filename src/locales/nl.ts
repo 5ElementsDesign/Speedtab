@@ -36,7 +36,6 @@ const nl = {
     onboardingLanguageDescription: 'Kies de taal van de interface.',
     newPage: '+ Nieuwe pagina',
     quickStart: 'Snelle start',
-    quickStartLoading: 'Laden…',
     noModulesTitle: 'Geen modulen op deze pagina',
     noModulesDescription: 'Tabbladen, Notities en Feeds modulen verschijnen hier. Voeg je eerste module toe om te beginnen.',
     addModule: '+ Module toevoegen',

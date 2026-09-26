@@ -31,7 +31,6 @@ const de = {
     onboardingLanguageDescription: 'Wähle die Sprache der Benutzeroberfläche.',
     newPage: '+ Neue Seite',
     quickStart: 'Schnellstart',
-    quickStartLoading: 'Lädt…',
     noModulesTitle: 'Keine Module auf dieser Seite',
     noModulesDescription: 'Tab-, Notiz- und Feed-Module werden hier angezeigt. Füge dein erstes Modul hinzu, um loszulegen.',
     addModule: '+ Modul hinzufügen',

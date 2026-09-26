@@ -13,7 +13,7 @@
   [data-btn],
   input:is([type="checkbox"], [type="radio"], [type="range"])):focus-visible,
 [data-focus-ring] {
-  outline: 2px solid var(--st-color-focus);
+  outline: 2px solid var(--yai-tabs-color-focus);
   outline-offset: 2px;
 }
 

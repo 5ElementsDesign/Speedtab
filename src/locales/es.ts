@@ -36,7 +36,6 @@ const es = {
     onboardingLanguageDescription: 'Elige el idioma de la interfaz.',
     newPage: '+ Nueva página',
     quickStart: 'Inicio rápido',
-    quickStartLoading: 'Cargando…',
     noModulesTitle: 'Sin módulos en esta página',
     noModulesDescription: 'Los módulos de pestañas, notas y fuentes aparecerán aquí. Añade tu primer módulo para empezar.',
     addModule: '+ Añadir módulo',

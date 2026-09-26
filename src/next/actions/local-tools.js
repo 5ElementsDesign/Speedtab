@@ -72,6 +72,10 @@ export const localToolsActions = {
     focusFloatingNoteWindow(target?.dataset?.noteId)
   },
 
+  toggleOpenNotesMapPersistentView(target) {
+    target?.closest?.('[data-open-notes-map]')?.toggleAttribute('data-persistent-view-active', target.checked === true)
+  },
+
   async cancelFloatingNoteEdit(target) {
     await cancelFloatingNoteEditWindow(target?.dataset?.noteId)
   },

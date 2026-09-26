@@ -232,5 +232,5 @@ html.light {
 [data-bookmark-tile] [data-bookmark-link][data-search-highlight],
 .st-trigger-note[data-search-highlight],
 .st-module-feed-source-row[data-search-highlight] {
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 16%), 0 0 0 3px var(--st-color-danger);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 16%), 0 0 0 3px var(--yai-tabs-color-danger);
 }

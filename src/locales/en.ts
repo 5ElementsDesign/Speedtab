@@ -31,7 +31,6 @@ const en = {
     onboardingLanguageDescription: 'Choose the interface language.',
     newPage: '+ New Page',
     quickStart: 'Quick Start',
-    quickStartLoading: 'Loading…',
     noModulesTitle: 'No modules on this page',
     noModulesDescription: 'Tabs, Notes, and Feeds modules will appear here. Add your first module to get started.',
     addModule: '+ Add Module',

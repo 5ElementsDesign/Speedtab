@@ -378,6 +378,8 @@ function syncOpenNotePreviewState() {
 function syncOpenNotesMap() {
   const host = document.querySelector('[data-open-notes-map]')
   if (!(host instanceof HTMLElement)) return
+  const content = host.querySelector(':scope > [data-open-notes-map-content]')
+  if (!(content instanceof HTMLElement)) return
 
   const notes = state.noteWindows.map((windowState) => ({
     id: windowState.noteId,
@@ -387,19 +389,19 @@ function syncOpenNotesMap() {
   }))
 
   host.toggleAttribute('data-notes-opened', notes.length > 0)
-  host.innerHTML = notes.length ? `
-    <div data-open-notes-map-content>
-      ${notes.map((note) => `
-        <button
-          type="button"
-          data-click="focusFloatingNote"
-          data-note-id="${escapeHtml(String(note.id))}"
-          data-note-reference="note:${escapeHtml(String(note.id))}"
-          data-page-slug="${escapeHtml(note.pageSlug)}"
-        ><span data-open-notes-map-marker data-note-style-token="${escapeHtml(note.styleToken)}" aria-hidden="true"></span>${escapeHtml(note.title)}</button>
-      `).join('')}
+  content.innerHTML = notes.map((note) => `
+    <div data-open-notes-map-item>
+      <button
+        type="button"
+        data-btn="ghost"
+        data-click="focusFloatingNote"
+        data-note-id="${escapeHtml(String(note.id))}"
+        data-note-reference="note:${escapeHtml(String(note.id))}"
+        data-page-slug="${escapeHtml(note.pageSlug)}"
+      ><span data-open-notes-map-marker data-note-style-token="${escapeHtml(note.styleToken)}" aria-hidden="true"></span>${escapeHtml(note.title)}</button>
+      <button type="button" data-btn="ghost" data-click="closeFloatingNote" data-note-id="${escapeHtml(String(note.id))}" title="${escapeHtml(t('common.close'))}" aria-label="${escapeHtml(t('common.close'))}"><i data-icon="x" aria-hidden="true"></i></button>
     </div>
-  ` : ''
+  `).join('')
 }
 
 function getActivePageSlug() {
